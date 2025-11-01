@@ -77,7 +77,7 @@ const ComplaintsContent = () => {
   const [loadingGPs, setLoadingGPs] = useState(false);
 
   // Complaints specific state
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Analytics data state
@@ -116,7 +116,7 @@ const ComplaintsContent = () => {
 
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
 
-  const filterButtons = ['All', 'Open', 'In Progress', 'Resolved', 'Closed'];
+  const filterButtons = ['Open', 'Verified', 'Resolved', 'Closed'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -1036,27 +1036,35 @@ const ComplaintsContent = () => {
   const complaintMetrics = getComplaintMetrics();
 
   // Use dynamic complaints data from API, or empty array if loading/error
-  const complaintsData = complaintsListData.map(complaint => ({
-    id: `COMP-${complaint.id}`,
-    title: complaint.complaint_type || 'N/A',
-    description: complaint.description || 'No description',
-    status: complaint.status || 'OPEN',
-    priority: 'Medium', // API doesn't provide priority, using default
-    location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
-    submittedBy: complaint.mobile_number || 'N/A',
-    submittedDate: complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
-    assignedTo: complaint.assigned_worker || 'Unassigned',
-    statusColor: complaint.status === 'OPEN' ? '#ef4444' : 
-                 complaint.status === 'VERIFIED' ? '#f97316' :
-                 complaint.status === 'RESOLVED' ? '#8b5cf6' : '#10b981',
-    village: complaint.village_name,
-    block: complaint.block_name,
-    district: complaint.district_name,
-    lat: complaint.lat,
-    long: complaint.long,
-    media: complaint.media_urls || [],
-    comments: complaint.comments || []
-  }));
+  // Normalize incoming statuses and compute a normalized status + color to use for filtering and display
+  const complaintsData = complaintsListData.map(complaint => {
+    const rawStatus = complaint.status || 'OPEN';
+    const statusNormalized = normalizeStatusForFilter(rawStatus);
+    const statusColor = statusNormalized === 'OPEN' ? '#ef4444' :
+                         statusNormalized === 'VERIFIED' ? '#f97316' :
+                         statusNormalized === 'RESOLVED' ? '#8b5cf6' : '#10b981';
+
+    return {
+      id: `COMP-${complaint.id}`,
+      title: complaint.complaint_type || 'N/A',
+      description: complaint.description || 'No description',
+      status: rawStatus,
+      statusNormalized,
+      priority: 'Medium', // API doesn't provide priority, using default
+      location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
+      submittedBy: complaint.mobile_number || 'N/A',
+      submittedDate: complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
+      assignedTo: complaint.assigned_worker || 'Unassigned',
+      statusColor,
+      village: complaint.village_name,
+      block: complaint.block_name,
+      district: complaint.district_name,
+      lat: complaint.lat,
+      long: complaint.long,
+      media: complaint.media_urls || [],
+      comments: complaint.comments || []
+    };
+  });
 
 
   const getStatusIcon = (status) => {
@@ -1092,18 +1100,29 @@ const ComplaintsContent = () => {
     }
   };
 
+  const normalizeStatusForFilter = (rawStatus) => {
+    if (!rawStatus) return '';
+    let s = String(rawStatus).toUpperCase().trim();
+    if (s === 'DISPOSED') s = 'CLOSED';
+    if (s === 'IN PROGRESS') s = 'VERIFIED';
+    // accept a few common synonyms
+    if (s === 'CLOSE' || s === 'CLOS') s = 'CLOSED';
+    return s;
+  };
+
   const filteredComplaints = complaintsData.filter(complaint => {
-    // Normalize status comparison - handle both API format (OPEN) and UI format (Open)
-    const normalizedComplaintStatus = complaint.status?.toUpperCase();
-    const normalizedFilterStatus = activeFilter?.toUpperCase();
-    
-    const matchesFilter = activeFilter === 'All' || 
-                         normalizedComplaintStatus === normalizedFilterStatus ||
-                         (activeFilter === 'In Progress' && normalizedComplaintStatus === 'VERIFIED');
-    
-    const matchesSearch = complaint.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         complaint.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         complaint.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const complaintStatusForFilter = complaint.statusNormalized || normalizeStatusForFilter(complaint.status);
+    const normalizedFilterStatus = normalizeStatusForFilter(activeFilter);
+
+    const matchesFilter = normalizedFilterStatus
+      ? complaintStatusForFilter === normalizedFilterStatus
+      : true; // if filter is empty/null, don't filter
+
+    const q = searchTerm?.toLowerCase() || '';
+    const matchesSearch = complaint.title.toLowerCase().includes(q) ||
+                         complaint.description.toLowerCase().includes(q) ||
+                         complaint.id.toLowerCase().includes(q);
+
     return matchesFilter && matchesSearch;
   });
 
@@ -1117,7 +1136,8 @@ const ComplaintsContent = () => {
     filteredComplaintsLength: filteredComplaints.length,
     activeFilter,
     searchTerm,
-    uniqueStatuses: [...new Set(complaintsData.map(c => c.status))]
+    uniqueStatuses: [...new Set(complaintsData.map(c => c.status))],
+    uniqueNormalized: [...new Set(complaintsData.map(c => c.statusNormalized))]
   });
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
@@ -2444,8 +2464,8 @@ const ComplaintsContent = () => {
                           borderRadius: '12px',
                           fontSize: '12px',
                           fontWeight: '500'
-                        }}>
-                          {complaint.status || 'N/A'}
+                        }} title={complaint.status || 'N/A'}>
+                          {complaint.statusNormalized || complaint.status || 'N/A'}
                         </div>
                         <button style={{
                           padding: '6px 12px',
