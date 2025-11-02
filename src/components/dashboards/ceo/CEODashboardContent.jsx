@@ -309,7 +309,7 @@ const CEODashboardContent = () => {
   const [activePerformanceTab, setActivePerformanceTab] = useState('starPerformers');
   const [performanceMonth, setPerformanceMonth] = useState(() => new Date().getMonth());
   const [showPerformanceRangePicker, setShowPerformanceRangePicker] = useState(false);
-  const [top3Scope, setTop3Scope] = useState('District');
+  const [top3Scope, setTop3Scope] = useState('Block'); // CEO: Default to Block (no District)
   const [top3Month, setTop3Month] = useState(() => new Date().getMonth());
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
   const [showTop3MonthPicker, setShowTop3MonthPicker] = useState(false);
@@ -1301,13 +1301,8 @@ const CEODashboardContent = () => {
       const startDate = formatDate(new Date(target.getFullYear(), target.getMonth(), 1));
       const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
       
-      // Map scope to API level
-      const level = 'VILLAGE'; // CEO: Always VILLAGE level
-      if (top3Scope === 'Block') {
-        level = 'BLOCK';
-      } else if (top3Scope === 'GP') {
-        level = 'VILLAGE';
-      }
+      // CEO: Always use VILLAGE level for analytics
+      const level = 'VILLAGE';
       
       console.log('📅 Date Range:', startDate, 'to', endDate);
       console.log('📊 Level:', level);
@@ -1350,62 +1345,64 @@ const CEODashboardContent = () => {
     }
   }, [top3Scope, selectedDistrictId, selectedBlockId, selectedGPId, top3Month]);
 
-  // Fetch analytics data for overview section when scope, location, or date range changes
+  // CEO: Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
-    // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
+    console.log('🔄 CEO Analytics useEffect triggered:', {
+      activeScope,
+      ceoDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      startDate,
+      endDate
+    });
+    
+    // CEO only has Blocks and GPs scopes
+    if (activeScope === 'Blocks') {
+      // For Blocks scope, call API immediately (shows district-level data)
+      console.log('📡 CEO: Calling analytics for Blocks scope');
+      fetchAnalyticsData();
+      return;
     }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
-    }
+    
     if (activeScope === 'GPs' && !selectedGPId) {
+      console.log('⏳ CEO: Waiting for GP selection');
       return; // Wait for GP selection
     }
     
+    console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts, blocks, gramPanchayats]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, ceoDistrictId, fetchAnalyticsData]);
 
-  // Fetch complaints chart data when filters change (independent of overview date range)
+  // CEO: Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {
-    // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
-    }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
+    // CEO: Fetch for Blocks scope immediately (don't wait for districts)
+    // CEO: No Districts scope
+    if (activeScope === 'Blocks') {
+      // CEO: Call API immediately for Blocks scope
+      console.log('📡 CEO: Calling API for Blocks scope');
     }
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
     
     fetchComplaintsChartData();
-  }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear, districts, blocks, gramPanchayats]);
+  }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear]);
 
   // Fetch performance data when scope or location changes
   useEffect(() => {
     // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
-    }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
+    // CEO: No State scope
+    // CEO: No Districts scope
+    if (activeScope === 'Blocks') {
+      // CEO: Call API immediately for Blocks scope
+      console.log('📡 CEO: Calling API for Blocks scope');
     }
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
     
     fetchPerformanceData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth]);
 
   // Fetch Top 3 data when scope or month changes
   useEffect(() => {
@@ -3584,7 +3581,8 @@ const CEODashboardContent = () => {
                     zIndex: 10,
                     marginTop: '4px'
                   }}>
-                    {['District', 'Block', 'GP'].map((option) => (
+                    {/* CEO: Only Block and GP options (no District) */}
+                    {['Block', 'GP'].map((option) => (
                       <button
                         key={option}
                         onClick={() => {

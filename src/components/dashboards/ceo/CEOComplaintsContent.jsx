@@ -494,7 +494,7 @@ const CEOComplaintsContent = () => {
   useEffect(() => {
     if (activeScope === 'Districts' && districts.length === 0) {
     }
-  }, [activeScope, districts.length]);
+  }, [activeScope]);
 
   // Helper function to calculate complaint counts from API data
   const calculateComplaintCounts = () => {
@@ -777,7 +777,7 @@ const CEOComplaintsContent = () => {
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts, blocks, gramPanchayats, fetchComplaintsData]);
+  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchComplaintsData]);
 
   // Date range functions
   const generateYears = () => {

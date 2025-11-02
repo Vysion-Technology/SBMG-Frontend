@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../../services/api';
@@ -139,8 +139,8 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
   );
 };
 
-const CEOAttendanceContent = () => {
-  // Location state management via shared context
+const AttendanceContent = () => {
+  // CEO: Location state management via CEOLocationContext
   const {
     activeScope,
     selectedLocation,
@@ -149,6 +149,9 @@ const CEOAttendanceContent = () => {
     selectedGPId,
     dropdownLevel,
     selectedBlockForHierarchy,
+    ceoDistrictId,
+    ceoDistrictName,
+    loadingCEOData,
     setActiveScope,
     setSelectedLocation,
     setSelectedLocationId,
@@ -159,15 +162,16 @@ const CEOAttendanceContent = () => {
     updateLocationSelection: contextUpdateLocationSelection,
     trackTabChange: contextTrackTabChange,
     trackDropdownChange: contextTrackDropdownChange,
-    getCurrentLocationInfo: contextGetCurrentLocationInfo,
-    ceoDistrictId,
-    ceoDistrictName,
-    loadingCEOData
+    getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useCEOLocation();
-  
-  // CEO always uses their district ID from /me API
-  const selectedDistrictId = ceoDistrictId || null;
-  const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
+
+  // CEO: District is fixed from /me API
+  const selectedDistrictId = ceoDistrictId;
+  const selectedDistrictForHierarchy = useMemo(
+    () => ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null,
+    [ceoDistrictId, ceoDistrictName]
+  );
+  const setSelectedDistrictId = () => {}; // No-op for CEO
   const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
   
   // UI controls state
@@ -283,7 +287,7 @@ const CEOAttendanceContent = () => {
   const [analyticsError, setAnalyticsError] = useState(null);
 
   // Top 3 section state
-  const [top3Scope, setTop3Scope] = useState('District');
+  const [top3Scope, setTop3Scope] = useState('Block'); // CEO: Default to Block (no District)
   const [top3Data, setTop3Data] = useState([]);
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
@@ -321,10 +325,10 @@ const CEOAttendanceContent = () => {
     }
   };
   
-    const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs
-    const performanceButtons = ['Time', 'Location'];
-    const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
-  const top3ScopeOptions = ['District', 'Block', 'GP'];
+  const scopeButtons = ['Blocks', 'GPs']; // CEO: Only Blocks and GPs (no State or Districts)
+  const performanceButtons = ['Time', 'Location'];
+  const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
+  const top3ScopeOptions = ['Block', 'GP']; // CEO: Only Block and GP (no District)
   const top3PeriodButtons = ['Month', 'Year'];
 
   // Predefined date ranges
@@ -392,10 +396,18 @@ const CEOAttendanceContent = () => {
     }
   }, [contextUpdateLocationSelection]);
 
-  // CEO: Districts are not fetched - district is fixed from /me API
-  const fetchDistricts = () => {
-    // No-op for CEO - district ID comes from /me API (ceoDistrictId)
-    console.log('CEO: Skipping fetchDistricts - using ceoDistrictId:', ceoDistrictId);
+  // Fetch districts from API
+  const fetchDistricts = async () => {
+    try {
+      setLoadingDistricts(true);
+      const response = await apiClient.get('/geography/districts?skip=0&limit=100');
+      console.log('Districts API Response:', response.data);
+      setDistricts(response.data);
+    } catch (error) {
+      console.error('Error fetching districts:', error);
+    } finally {
+      setLoadingDistricts(false);
+    }
   };
 
   // Fetch blocks from API for a given district
@@ -471,7 +483,7 @@ const CEOAttendanceContent = () => {
       // Ensure districts are loaded first, then set first district as selected
       if (districts.length === 0) {
         console.log('⏳ Loading districts first...');
-        // CEO: Skipped await fetchDistricts
+        await fetchDistricts();
       }
       if (districts.length > 0) {
         const firstDistrict = districts[0];
@@ -482,29 +494,17 @@ const CEOAttendanceContent = () => {
       setSelectedDistrictForHierarchy(null);
       setSelectedBlockForHierarchy(null);
     } else if (scope === 'Blocks') {
-      // For blocks, ensure districts are loaded first
-      if (districts.length === 0) {
-        console.log('⏳ Loading districts first...');
-        // CEO: Skipped await fetchDistricts
-      }
-      setBlocks([]);
-      setGramPanchayats([]);
-      updateLocationSelection('Blocks', 'Select Block', null, null, null, null, 'tab_change');
+      // CEO: For Blocks tab, show "Select Block"
+      console.log('🔄 CEO: Scope changed to Blocks');
+      setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
-      setSelectedDistrictForHierarchy(null);
-      setSelectedBlockForHierarchy(null);
+      contextTrackTabChange(scope);
     } else if (scope === 'GPs') {
-      // For GPs, ensure districts are loaded first
-      if (districts.length === 0) {
-        console.log('⏳ Loading districts first...');
-        // CEO: Skipped await fetchDistricts
-      }
-      setBlocks([]);
-      setGramPanchayats([]);
-      updateLocationSelection('GPs', 'Select GP', null, null, null, null, 'tab_change');
-      setDropdownLevel('districts');
-      setSelectedDistrictForHierarchy(null);
-      setSelectedBlockForHierarchy(null);
+      // CEO: For GPs tab, show "Select GP"
+      console.log('🔄 CEO: Scope changed to GPs');
+      setSelectedLocation('Select GP');
+      setDropdownLevel('blocks'); // Start with blocks to load GPs
+      contextTrackTabChange(scope);
     }
   };
 
@@ -720,7 +720,7 @@ const CEOAttendanceContent = () => {
       const params = new URLSearchParams();
 
       // Determine level based on top3Scope
-      const level = 'VILLAGE'; // CEO: Always VILLAGE level // Default
+      let level = 'DISTRICT'; // Default
       if (top3Scope === 'Block') {
         level = 'BLOCK';
       } else if (top3Scope === 'GP') {
@@ -1003,11 +1003,17 @@ const CEOAttendanceContent = () => {
 
   // Fetch districts immediately when attendance page loads
   useEffect(() => {
-  }, []);
+    // CEO: Auto-fetch blocks using ceoDistrictId
+    if (ceoDistrictId) {
+      console.log('🔄 CEO: Auto-fetching blocks for district:', ceoDistrictId);
+      fetchBlocks(ceoDistrictId);
+    }
+  }, [ceoDistrictId]);
 
   // Load additional data based on scope
   useEffect(() => {
     if (activeScope === 'Districts' && districts.length === 0) {
+      fetchDistricts();
     }
   }, [activeScope, districts.length]);
 
@@ -1017,62 +1023,34 @@ const CEOAttendanceContent = () => {
     console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId]);
 
-  // Fetch analytics data for overview section when scope, location, or date range changes
+  // CEO: Fetch analytics data when scope, location, or date range changes
   useEffect(() => {
-    console.log('🔄 Analytics useEffect triggered:', {
+    if (!ceoDistrictId) return;
+    
+    console.log('🔄 CEO Analytics useEffect triggered:', {
       activeScope,
-      districtsLength: districts.length,
-      selectedDistrictId,
+      ceoDistrictId,
       selectedBlockId,
       selectedGPId,
       startDate,
       endDate
     });
     
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (activeScope === 'State') {
-      console.log('📡 Calling API for State scope');
+    // CEO only has Blocks and GPs scopes
+    if (activeScope === 'Blocks') {
+      console.log('📡 CEO: Calling analytics for Blocks scope');
       fetchAnalyticsData();
       return;
     }
     
-    // For other scopes, ensure districts are loaded first
-    if (activeScope === 'Districts') {
-      if (districts.length === 0) {
-        console.log('⏳ Waiting for districts to load first');
-        return;
-      }
-      if (!selectedDistrictId) {
-        console.log('⏳ Waiting for district selection');
-        return;
-      }
+    if (activeScope === 'GPs' && !selectedGPId) {
+      console.log('⏳ CEO: Waiting for GP selection');
+      return;
     }
     
-    if (activeScope === 'Blocks') {
-      if (districts.length === 0) {
-        console.log('⏳ Waiting for districts to load first');
-        return;
-      }
-      if (!selectedBlockId) {
-        console.log('⏳ Waiting for block selection');
-        return;
-      }
-    }
-    
-    if (activeScope === 'GPs') {
-      if (districts.length === 0) {
-        console.log('⏳ Waiting for districts to load first');
-        return;
-      }
-      if (!selectedGPId) {
-        console.log('⏳ Waiting for GP selection');
-        return;
-      }
-    }
-    
-    console.log('📡 Calling API for other scopes');
+    console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, districts.length]);
+  }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, ceoDistrictId]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {
@@ -1243,7 +1221,14 @@ const CEOAttendanceContent = () => {
         const params = new URLSearchParams();
         
         // Determine level based on active scope
-        const level = 'VILLAGE'; // CEO: Always VILLAGE level
+        let level = 'DISTRICT';
+        if (activeScope === 'Districts') {
+          level = 'BLOCK';
+        } else if (activeScope === 'Blocks') {
+          level = 'VILLAGE';
+        } else if (activeScope === 'GPs') {
+          level = 'VILLAGE';
+        }
         params.append('level', level);
         params.append('year', year);
 
@@ -1284,7 +1269,14 @@ const CEOAttendanceContent = () => {
           const params = new URLSearchParams();
           
           // Determine level based on active scope
-          const level = 'VILLAGE'; // CEO: Always VILLAGE level
+          let level = 'DISTRICT';
+          if (activeScope === 'Districts') {
+            level = 'BLOCK';
+          } else if (activeScope === 'Blocks') {
+            level = 'VILLAGE';
+          } else if (activeScope === 'GPs') {
+            level = 'VILLAGE';
+          }
           params.append('level', level);
           params.append('start_date', startDate);
           params.append('end_date', endDate);
@@ -1357,7 +1349,7 @@ const CEOAttendanceContent = () => {
       const params = new URLSearchParams();
       
       // Determine level based on active scope
-      const level = 'VILLAGE'; // CEO: Always VILLAGE level
+      let level = 'DISTRICT';
       if (activeScope === 'Districts') {
         level = 'BLOCK';
       } else if (activeScope === 'Blocks' || activeScope === 'GPs') {
@@ -2172,24 +2164,23 @@ const CEOAttendanceContent = () => {
           <div 
             data-location-dropdown
             style={{
-            position: 'relative',
-            minWidth: '200px'
-            }}
-          >
+              position: 'relative',
+              minWidth: '200px'
+            }}>
             <button 
               onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
               disabled={activeScope === 'State'}
               style={{
-              width: '100%',
-              padding: '5px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '10px',
+                width: '100%',
+                padding: '5px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
                 backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-              fontSize: '14px',
+                fontSize: '14px',
                 color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
                 opacity: activeScope === 'State' ? 0.6 : 1
               }}
@@ -2205,8 +2196,8 @@ const CEOAttendanceContent = () => {
               }} />
             </button>
             
-            {/* Location Dropdown Menu */}
-            {showLocationDropdown && activeScope !== 'State' && (
+            {/* Location Dropdown Menu - CEO: Blocks and GPs ONLY (no districts) */}
+            {showLocationDropdown && (
               <div
                 key={`dropdown-${activeScope}`}
                 style={{
@@ -2222,18 +2213,18 @@ const CEOAttendanceContent = () => {
                   marginTop: '6px',
                   display: 'flex',
                   overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+                  minWidth: activeScope === 'Blocks' ? '280px' : '540px'
                 }}
               >
                 {/* CEO: First column is BLOCKS (no districts!) */}
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
+                <div
+                  style={{
+                    minWidth: '240px',
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                    borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
+                  }}
+                >
                     {loadingBlocks ? (
                       <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
                         Loading blocks...
@@ -2247,7 +2238,6 @@ const CEOAttendanceContent = () => {
                         const isActiveBlock = activeHierarchyBlock?.id === block.id;
                         const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
                         const showArrow = activeScope === 'GPs';
-
                         return (
                           <div
                             key={`block-${block.id}`}
@@ -2264,8 +2254,8 @@ const CEOAttendanceContent = () => {
                       })
                     )}
                   </div>
-                )}
 
+                {/* CEO: Second column is GPs (when GPs tab is active) */}
                 {activeScope === 'GPs' && (
                   <div
                     style={{
@@ -2289,7 +2279,6 @@ const CEOAttendanceContent = () => {
                     ) : (
                       gpsForActiveBlock.map((gp) => {
                         const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-
                         return (
                           <div
                             key={`gp-${gp.id}`}
@@ -3877,4 +3866,4 @@ const CEOAttendanceContent = () => {
   );
 };
 
-export default CEOAttendanceContent;
+export default AttendanceContent;

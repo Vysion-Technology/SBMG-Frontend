@@ -94,8 +94,8 @@ const CEOInspectionContent = () => {
   const [showPerformersDropdown2, setShowPerformersDropdown2] = useState(false);
   const [showPerformanceReportDropdown, setShowPerformanceReportDropdown] = useState(false);
   const [selectedPerformersFilter1, setSelectedPerformersFilter1] = useState('CEO'); // CEO/BDO/VDO for inspectors
-  const [selectedPerformersFilter2, setSelectedPerformersFilter2] = useState('District');
-  const [selectedPerformanceReportFilter, setSelectedPerformanceReportFilter] = useState('District');
+  const [selectedPerformersFilter2, setSelectedPerformersFilter2] = useState('Block'); // CEO: Default to Block (no District)
+  const [selectedPerformanceReportFilter, setSelectedPerformanceReportFilter] = useState('Block'); // CEO: Default to Block (no District)
 
   // Refs to prevent duplicate API calls
   const analyticsCallInProgress = useRef(false);
@@ -1335,7 +1335,7 @@ const CEOInspectionContent = () => {
 
   // Dropdown options for Top Performers
   const performersFilterOptions1 = ['CEO', 'BDO', 'VDO']; // For inspector-based performers
-  const performersFilterOptions2 = ['District', 'Block', 'GP']; // For location-based performers
+  const performersFilterOptions2 = ['Block', 'GP']; // CEO: For location-based performers (no District)
 
   // Helper function to map role to geographic level
   const mapRoleToLevel = (role) => {
