@@ -1172,6 +1172,179 @@ const InspectionContent = () => {
     setShowSendNoticeModal(true);
   }, [selectedDistrictId, selectedBlockId, selectedGPId]);
 
+  // Handler for downloading PDF with inspection data
+  const handleDownloadPDF = useCallback(async (inspection) => {
+    try {
+      console.log('📥 Downloading PDF for inspection:', inspection);
+      
+      // Get inspection_id
+      const inspectionId = inspection.id || 1;
+      
+      // Fetch inspection data
+      const response = await apiClient.get(`/inspections/${inspectionId}`);
+      const inspectionData = response.data;
+      
+      console.log('✅ Inspection data fetched:', inspectionData);
+      
+      // Generate PDF
+      generatePDF(inspectionData);
+      
+    } catch (error) {
+      console.error('❌ Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    }
+  }, []);
+
+  // Function to generate PDF from inspection data
+  const generatePDF = (data) => {
+    // Helper function to format boolean values
+    const formatBoolean = (value) => value ? 'Yes' : 'No';
+    
+    // Create a formatted HTML content for the PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Inspection Report - ${data.village_name || 'Village'}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+          h1 { color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
+          h2 { color: #374151; margin-top: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+          .section { margin-bottom: 20px; }
+          .info-grid { display: grid; grid-template-columns: 250px 1fr; gap: 10px; }
+          .label { font-weight: bold; color: #6b7280; }
+          .value { color: #111827; }
+          .yes { color: #10b981; font-weight: 600; }
+          .no { color: #ef4444; font-weight: 600; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .date { color: #6b7280; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Inspection Report</h1>
+          <p class="date">Inspection Date: ${data.date || 'N/A'}</p>
+        </div>
+
+        <div class="section">
+          <h2>Basic Information</h2>
+          <div class="info-grid">
+            <div class="label">Village Name:</div>
+            <div class="value">${data.village_name || 'N/A'}</div>
+            <div class="label">Block Name:</div>
+            <div class="value">${data.block_name || 'N/A'}</div>
+            <div class="label">District Name:</div>
+            <div class="value">${data.district_name || 'N/A'}</div>
+            <div class="label">Officer Name:</div>
+            <div class="value">${data.officer_name || 'N/A'}</div>
+            <div class="label">Officer Role:</div>
+            <div class="value">${data.officer_role || 'N/A'}</div>
+            <div class="label">Start Time:</div>
+            <div class="value">${data.start_time ? new Date(data.start_time).toLocaleString() : 'N/A'}</div>
+            <div class="label">Register Maintenance:</div>
+            <div class="value ${data.register_maintenance ? 'yes' : 'no'}">${formatBoolean(data.register_maintenance)}</div>
+            <div class="label">Remarks:</div>
+            <div class="value">${data.remarks || 'N/A'}</div>
+          </div>
+        </div>
+
+        ${data.household_waste ? `
+        <div class="section">
+          <h2>Household Waste Collection</h2>
+          <div class="info-grid">
+            <div class="label">Waste Collection Frequency:</div>
+            <div class="value">${data.household_waste.waste_collection_frequency || 'N/A'}</div>
+            <div class="label">Dry-Wet Vehicle Segregation:</div>
+            <div class="value ${data.household_waste.dry_wet_vehicle_segregation ? 'yes' : 'no'}">${formatBoolean(data.household_waste.dry_wet_vehicle_segregation)}</div>
+            <div class="label">Covered Collection in Vehicles:</div>
+            <div class="value ${data.household_waste.covered_collection_in_vehicles ? 'yes' : 'no'}">${formatBoolean(data.household_waste.covered_collection_in_vehicles)}</div>
+            <div class="label">Waste Disposed at RRC:</div>
+            <div class="value ${data.household_waste.waste_disposed_at_rrc ? 'yes' : 'no'}">${formatBoolean(data.household_waste.waste_disposed_at_rrc)}</div>
+            <div class="label">RRC Waste Collection & Disposal Arrangement:</div>
+            <div class="value ${data.household_waste.rrc_waste_collection_and_disposal_arrangement ? 'yes' : 'no'}">${formatBoolean(data.household_waste.rrc_waste_collection_and_disposal_arrangement)}</div>
+            <div class="label">Waste Collection Vehicle Functional:</div>
+            <div class="value ${data.household_waste.waste_collection_vehicle_functional ? 'yes' : 'no'}">${formatBoolean(data.household_waste.waste_collection_vehicle_functional)}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${data.road_and_drain ? `
+        <div class="section">
+          <h2>Road and Drain Cleaning</h2>
+          <div class="info-grid">
+            <div class="label">Road Cleaning Frequency:</div>
+            <div class="value">${data.road_and_drain.road_cleaning_frequency || 'N/A'}</div>
+            <div class="label">Drain Cleaning Frequency:</div>
+            <div class="value">${data.road_and_drain.drain_cleaning_frequency || 'N/A'}</div>
+            <div class="label">Disposal of Sludge from Drains:</div>
+            <div class="value ${data.road_and_drain.disposal_of_sludge_from_drains ? 'yes' : 'no'}">${formatBoolean(data.road_and_drain.disposal_of_sludge_from_drains)}</div>
+            <div class="label">Drain Waste Collected on Roadside:</div>
+            <div class="value ${data.road_and_drain.drain_waste_colllected_on_roadside ? 'yes' : 'no'}">${formatBoolean(data.road_and_drain.drain_waste_colllected_on_roadside)}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${data.community_sanitation ? `
+        <div class="section">
+          <h2>Community Sanitation Complex (CSC)</h2>
+          <div class="info-grid">
+            <div class="label">CSC Cleaning Frequency:</div>
+            <div class="value">${data.community_sanitation.csc_cleaning_frequency || 'N/A'}</div>
+            <div class="label">Electricity and Water Available:</div>
+            <div class="value ${data.community_sanitation.electricity_and_water ? 'yes' : 'no'}">${formatBoolean(data.community_sanitation.electricity_and_water)}</div>
+            <div class="label">CSC Used by Community:</div>
+            <div class="value ${data.community_sanitation.csc_used_by_community ? 'yes' : 'no'}">${formatBoolean(data.community_sanitation.csc_used_by_community)}</div>
+            <div class="label">Pink Toilets Cleaning:</div>
+            <div class="value ${data.community_sanitation.pink_toilets_cleaning ? 'yes' : 'no'}">${formatBoolean(data.community_sanitation.pink_toilets_cleaning)}</div>
+            <div class="label">Pink Toilets Used:</div>
+            <div class="value ${data.community_sanitation.pink_toilets_used ? 'yes' : 'no'}">${formatBoolean(data.community_sanitation.pink_toilets_used)}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        ${data.other_items ? `
+        <div class="section">
+          <h2>Other Items</h2>
+          <div class="info-grid">
+            <div class="label">Firm Paid Regularly:</div>
+            <div class="value ${data.other_items.firm_paid_regularly ? 'yes' : 'no'}">${formatBoolean(data.other_items.firm_paid_regularly)}</div>
+            <div class="label">Cleaning Staff Paid Regularly:</div>
+            <div class="value ${data.other_items.cleaning_staff_paid_regularly ? 'yes' : 'no'}">${formatBoolean(data.other_items.cleaning_staff_paid_regularly)}</div>
+            <div class="label">Firm Provided Safety Equipment:</div>
+            <div class="value ${data.other_items.firm_provided_safety_equipment ? 'yes' : 'no'}">${formatBoolean(data.other_items.firm_provided_safety_equipment)}</div>
+            <div class="label">Regular Feedback Register Entry:</div>
+            <div class="value ${data.other_items.regular_feedback_register_entry ? 'yes' : 'no'}">${formatBoolean(data.other_items.regular_feedback_register_entry)}</div>
+            <div class="label">Chart Prepared for Cleaning Work:</div>
+            <div class="value ${data.other_items.chart_prepared_for_cleaning_work ? 'yes' : 'no'}">${formatBoolean(data.other_items.chart_prepared_for_cleaning_work)}</div>
+            <div class="label">Village Visibly Clean:</div>
+            <div class="value ${data.other_items.village_visibly_clean ? 'yes' : 'no'}">${formatBoolean(data.other_items.village_visibly_clean)}</div>
+            <div class="label">Rate Chart Displayed:</div>
+            <div class="value ${data.other_items.rate_chart_displayed ? 'yes' : 'no'}">${formatBoolean(data.other_items.rate_chart_displayed)}</div>
+          </div>
+        </div>
+        ` : ''}
+
+        <div class="section">
+          <p class="date">Generated on: ${new Date().toLocaleString()}</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    
+    // Wait for content to load, then trigger print dialog
+    printWindow.onload = () => {
+      printWindow.print();
+      
+      // Close the window after printing (optional)
+      // printWindow.onafterprint = () => printWindow.close();
+    };
+  };
+
   // Dropdown options for Top Performers
   const performersFilterOptions1 = ['CEO', 'BDO', 'VDO']; // For inspector-based performers
   const performersFilterOptions2 = ['District', 'Block', 'GP']; // For location-based performers
@@ -1598,8 +1771,9 @@ const InspectionContent = () => {
         </div>
       </div>
 
-   {/* Location Indicator and My Inspections Button OR Back Button */}
-   {!showMyInspections ? (
+   {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
+   {activeScope !== 'GPs' && (
+   !showMyInspections ? (
    <div style={{
         padding: '10px 16px 0px 16px',
         display: 'flex',
@@ -1656,10 +1830,11 @@ const InspectionContent = () => {
           Back
         </button>
       </div>
+   )
    )}
 
-      {/* Overview Section - Hide when My Inspections is active */}
-      {!showMyInspections && (
+      {/* Overview Section - Hide when My Inspections is active (except in GP view) */}
+      {(!showMyInspections || activeScope === 'GPs') && (
       <div style={{
         backgroundColor: 'white',
         padding: '24px',
@@ -2048,7 +2223,8 @@ const InspectionContent = () => {
             </div>
           </div>
 
-          {/* State Performance Score Chart */}
+          {/* State Performance Score Chart - Hidden in GP view */}
+          {activeScope !== 'GPs' && (
           <div style={{
             backgroundColor: 'white',
             padding: '12px',
@@ -2176,11 +2352,12 @@ const InspectionContent = () => {
               </div>
             )}
           </div>
+          )}
         </div>
       )}
 
-        {/* Bottom Sections - Critical Issues and Top Performers */}
-        {!showMyInspections && (
+        {/* Bottom Sections - Critical Issues and Top Performers - Hidden in GP view */}
+        {!showMyInspections && activeScope !== 'GPs' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -2484,8 +2661,8 @@ const InspectionContent = () => {
         </div>
         )}
 
-        {/* Additional Sections - Top 3 Performers and Performance Report */}
-        {!showMyInspections && (
+        {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
+        {!showMyInspections && activeScope !== 'GPs' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 2fr',
@@ -2855,8 +3032,8 @@ const InspectionContent = () => {
         </div>
         )}
 
-        {/* Your Inspections Table - Conditionally rendered */}
-        {showMyInspections && (
+        {/* Your Inspections Table - Conditionally rendered (always show in GP view) */}
+        {(showMyInspections || activeScope === 'GPs') && (
         <div style={{
           marginTop: '16px',
           marginLeft: '16px',
@@ -2876,13 +3053,15 @@ const InspectionContent = () => {
               color: '#111827',
               margin: '0 0 20px 0'
             }}>
-              My Inspections ({yourInspectionsData?.total || '0'})
+              {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
             </h3>
             
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1.5fr 1.5fr 120px 120px 180px',
+              gridTemplateColumns: activeScope === 'GPs' 
+                ? '120px 120px 1.5fr 120px 120px 220px'
+                : '120px 1.5fr 1.5fr 120px 120px 220px',
               gap: '16px',
               padding: '12px 16px',
               backgroundColor: '#f9fafb',
@@ -2900,6 +3079,15 @@ const InspectionContent = () => {
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
                 </div>
               </div>
+              {activeScope === 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Inspection by
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                  </div>
+                </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 Village Name
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2907,13 +3095,15 @@ const InspectionContent = () => {
                   <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                GP Name
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+              {activeScope !== 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  GP Name
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                  </div>
                 </div>
-              </div>
+              )}
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 Cleaning Score
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -2968,7 +3158,9 @@ const InspectionContent = () => {
                 {getYourInspections().map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
-                    gridTemplateColumns: '120px 1.5fr 1.5fr 120px 120px 180px',
+                    gridTemplateColumns: activeScope === 'GPs' 
+                      ? '120px 120px 1.5fr 120px 120px 220px'
+                      : '120px 1.5fr 1.5fr 120px 120px 220px',
                     gap: '16px',
                     padding: '12px 16px',
                     alignItems: 'center',
@@ -2977,12 +3169,19 @@ const InspectionContent = () => {
                     <div style={{ fontSize: '14px', color: '#374151' }}>
                       {formatDate(inspection.date)}
                     </div>
+                    {activeScope === 'GPs' && (
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {inspection.inspector_role || 'CEO'}
+                      </div>
+                    )}
                     <div style={{ fontSize: '14px', color: '#374151' }}>
                       {inspection.village_name || 'Village name'}
                     </div>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {inspection.gp_name || 'GP name'}
-                    </div>
+                    {activeScope !== 'GPs' && (
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {inspection.gp_name || 'GP name'}
+                      </div>
+                    )}
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
                       {inspection.overall_score || 0}%
                     </div>
@@ -3012,14 +3211,24 @@ const InspectionContent = () => {
                       >
                         Send notice
                       </button>
-                      <Download 
-                        style={{ 
-                          width: '18px', 
-                          height: '18px', 
-                          color: '#6b7280',
-                          cursor: 'pointer'
-                        }} 
-                      />
+                      <button
+                        onClick={() => handleDownloadPDF(inspection)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Download style={{ width: '14px', height: '14px' }} />
+                        PDF
+                      </button>
                     </div>
                   </div>
                 ))}

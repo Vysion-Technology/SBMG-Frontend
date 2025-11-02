@@ -691,7 +691,7 @@ const SchemesContent = () => {
                     />
                   </div>
 
-                  {/* Details Field */}
+                  {/* Eligibility Field */}
                   <div>
                     <label style={{
                       display: 'block',
@@ -700,10 +700,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Details
+                      Eligibility
                     </label>
                     <textarea
-                      placeholder="Details"
+                      placeholder="Enter eligibility criteria"
                       value={formData.details}
                       onChange={(e) => setFormData({...formData, details: e.target.value})}
                       rows={4}

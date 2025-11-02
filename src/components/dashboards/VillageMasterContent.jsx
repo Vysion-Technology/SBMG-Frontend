@@ -132,6 +132,232 @@ const VillageMasterContent = () => {
         }
     }, [contextUpdateLocationSelection]);
 
+    // Handler for downloading PDF with master data
+    const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+        try {
+            console.log('📥 Downloading PDF for survey ID:', surveyId);
+            
+            // Fetch annual survey data
+            const response = await apiClient.get(`/annual-surveys/${surveyId}`);
+            const surveyData = response.data;
+            
+            console.log('✅ Survey data fetched:', surveyData);
+            
+            // Generate PDF
+            generatePDF(surveyData);
+            
+        } catch (error) {
+            console.error('❌ Error downloading PDF:', error);
+            alert('Failed to download PDF. Please try again.');
+        }
+    }, []);
+
+    // Function to generate PDF from survey data
+    const generatePDF = (data) => {
+        // Create a formatted HTML content for the PDF
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Annual Survey Report - ${data.gp_name || 'GP'}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+                    h1 { color: #10b981; border-bottom: 2px solid #10b981; padding-bottom: 10px; }
+                    h2 { color: #374151; margin-top: 20px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+                    .section { margin-bottom: 20px; }
+                    .info-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px; }
+                    .label { font-weight: bold; color: #6b7280; }
+                    .value { color: #111827; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+                    th { background-color: #f9fafb; font-weight: 600; color: #374151; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .date { color: #6b7280; font-size: 14px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Annual Survey Report</h1>
+                    <p class="date">Survey Date: ${data.survey_date || 'N/A'}</p>
+                </div>
+
+                <div class="section">
+                    <h2>Basic Information</h2>
+                    <div class="info-grid">
+                        <div class="label">GP Name:</div>
+                        <div class="value">${data.gp_name || 'N/A'}</div>
+                        <div class="label">Block Name:</div>
+                        <div class="value">${data.block_name || 'N/A'}</div>
+                        <div class="label">District Name:</div>
+                        <div class="value">${data.district_name || 'N/A'}</div>
+                        <div class="label">Sarpanch Name:</div>
+                        <div class="value">${data.sarpanch_name || 'N/A'}</div>
+                        <div class="label">Sarpanch Contact:</div>
+                        <div class="value">${data.sarpanch_contact || 'N/A'}</div>
+                        <div class="label">Number of Ward Panchs:</div>
+                        <div class="value">${data.num_ward_panchs || 0}</div>
+                    </div>
+                </div>
+
+                ${data.vdo ? `
+                <div class="section">
+                    <h2>VDO Details</h2>
+                    <div class="info-grid">
+                        <div class="label">Name:</div>
+                        <div class="value">${data.vdo.first_name} ${data.vdo.middle_name || ''} ${data.vdo.last_name}</div>
+                        <div class="label">Username:</div>
+                        <div class="value">${data.vdo.username || 'N/A'}</div>
+                        <div class="label">Email:</div>
+                        <div class="value">${data.vdo.email || 'N/A'}</div>
+                        <div class="label">Date of Joining:</div>
+                        <div class="value">${data.vdo.date_of_joining || 'N/A'}</div>
+                        <div class="label">Role:</div>
+                        <div class="value">${data.vdo.role_name || 'N/A'}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.work_order ? `
+                <div class="section">
+                    <h2>Work Order</h2>
+                    <div class="info-grid">
+                        <div class="label">Work Order No:</div>
+                        <div class="value">${data.work_order.work_order_no || 'N/A'}</div>
+                        <div class="label">Date:</div>
+                        <div class="value">${data.work_order.work_order_date || 'N/A'}</div>
+                        <div class="label">Amount:</div>
+                        <div class="value">₹${data.work_order.work_order_amount?.toLocaleString() || 0}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.fund_sanctioned ? `
+                <div class="section">
+                    <h2>Fund Sanctioned</h2>
+                    <div class="info-grid">
+                        <div class="label">Head:</div>
+                        <div class="value">${data.fund_sanctioned.head || 'N/A'}</div>
+                        <div class="label">Amount:</div>
+                        <div class="value">₹${data.fund_sanctioned.amount?.toLocaleString() || 0}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.door_to_door_collection ? `
+                <div class="section">
+                    <h2>Door to Door Collection</h2>
+                    <div class="info-grid">
+                        <div class="label">Number of Households:</div>
+                        <div class="value">${data.door_to_door_collection.num_households || 0}</div>
+                        <div class="label">Number of Shops:</div>
+                        <div class="value">${data.door_to_door_collection.num_shops || 0}</div>
+                        <div class="label">Collection Frequency:</div>
+                        <div class="value">${data.door_to_door_collection.collection_frequency || 'N/A'}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.road_sweeping ? `
+                <div class="section">
+                    <h2>Road Sweeping</h2>
+                    <div class="info-grid">
+                        <div class="label">Width:</div>
+                        <div class="value">${data.road_sweeping.width || 0} m</div>
+                        <div class="label">Length:</div>
+                        <div class="value">${data.road_sweeping.length || 0} m</div>
+                        <div class="label">Cleaning Frequency:</div>
+                        <div class="value">${data.road_sweeping.cleaning_frequency || 'N/A'}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.drain_cleaning ? `
+                <div class="section">
+                    <h2>Drain Cleaning</h2>
+                    <div class="info-grid">
+                        <div class="label">Length:</div>
+                        <div class="value">${data.drain_cleaning.length || 0} m</div>
+                        <div class="label">Cleaning Frequency:</div>
+                        <div class="value">${data.drain_cleaning.cleaning_frequency || 'N/A'}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.csc_details ? `
+                <div class="section">
+                    <h2>CSC Details</h2>
+                    <div class="info-grid">
+                        <div class="label">Numbers:</div>
+                        <div class="value">${data.csc_details.numbers || 0}</div>
+                        <div class="label">Cleaning Frequency:</div>
+                        <div class="value">${data.csc_details.cleaning_frequency || 'N/A'}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.swm_assets ? `
+                <div class="section">
+                    <h2>SWM Assets</h2>
+                    <div class="info-grid">
+                        <div class="label">RRC:</div>
+                        <div class="value">${data.swm_assets.rrc || 0}</div>
+                        <div class="label">PWMU:</div>
+                        <div class="value">${data.swm_assets.pwmu || 0}</div>
+                        <div class="label">Compost Pit:</div>
+                        <div class="value">${data.swm_assets.compost_pit || 0}</div>
+                        <div class="label">Collection Vehicle:</div>
+                        <div class="value">${data.swm_assets.collection_vehicle || 0}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                ${data.sbmg_targets ? `
+                <div class="section">
+                    <h2>SBMG Targets</h2>
+                    <div class="info-grid">
+                        <div class="label">IHHL:</div>
+                        <div class="value">${data.sbmg_targets.ihhl || 0}</div>
+                        <div class="label">CSC:</div>
+                        <div class="value">${data.sbmg_targets.csc || 0}</div>
+                        <div class="label">RRC:</div>
+                        <div class="value">${data.sbmg_targets.rrc || 0}</div>
+                        <div class="label">PWMU:</div>
+                        <div class="value">${data.sbmg_targets.pwmu || 0}</div>
+                        <div class="label">Soak Pit:</div>
+                        <div class="value">${data.sbmg_targets.soak_pit || 0}</div>
+                        <div class="label">Magic Pit:</div>
+                        <div class="value">${data.sbmg_targets.magic_pit || 0}</div>
+                        <div class="label">Leach Pit:</div>
+                        <div class="value">${data.sbmg_targets.leach_pit || 0}</div>
+                        <div class="label">WSP:</div>
+                        <div class="value">${data.sbmg_targets.wsp || 0}</div>
+                        <div class="label">DEWATS:</div>
+                        <div class="value">${data.sbmg_targets.dewats || 0}</div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="section">
+                    <p class="date">Generated on: ${new Date().toLocaleString()}</p>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+        
+        // Wait for content to load, then trigger print dialog
+        printWindow.onload = () => {
+            printWindow.print();
+            
+            // Close the window after printing (optional)
+            // printWindow.onafterprint = () => printWindow.close();
+        };
+    };
+
     // Fetch districts from API
     const fetchDistricts = async () => {
         try {
@@ -1309,10 +1535,11 @@ const VillageMasterContent = () => {
         {/* Metrics Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(5, 1fr)',
+          gridTemplateColumns: activeScope === 'GPs' ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)',
           gap: '16px'
         }}>
-          {/* Total Village Master Data */}
+          {/* Total Village Master Data - Hidden in GP view */}
+          {activeScope !== 'GPs' && (
           <div style={{
             backgroundColor: 'white',
             padding: '20px',
@@ -1353,8 +1580,10 @@ const VillageMasterContent = () => {
               </div>
             )}
           </div>
+          )}
 
-          {/* Village Master Data Coverage */}
+          {/* Village Master Data Coverage - Hidden in GP view */}
+          {activeScope !== 'GPs' && (
           <div style={{
             backgroundColor: 'white',
             padding: '20px',
@@ -1387,6 +1616,7 @@ const VillageMasterContent = () => {
               {loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`}
             </div>
           </div>
+          )}
 
           {/* Total funds sanctioned */}
           <div style={{
@@ -1500,7 +1730,8 @@ const VillageMasterContent = () => {
           gap: '10px',
           marginTop: '16px'
         }}>
-          {/* SBMG Target vs Achievement Chart */}
+          {/* SBMG Target vs Achievement Chart - Hidden in GP view */}
+          {activeScope !== 'GPs' && (
           <div style={{
             flex: 2,
             backgroundColor: 'white',
@@ -1571,11 +1802,13 @@ const VillageMasterContent = () => {
               />
             </div>
           </div>
+          )}
           <divider />
          
           {/* Annual Overview */}
           <div style={{
-            flex: 1,
+            flex: activeScope === 'GPs' ? 'none' : 1,
+            width: activeScope === 'GPs' ? '100%' : 'auto',
             backgroundColor: 'white',
             padding: '14px',
             borderRadius: '8px',
@@ -1628,7 +1861,8 @@ const VillageMasterContent = () => {
                 </span>
               </div>
 
-              {/* Household covered */}
+              {/* Household covered - Hidden in GP view */}
+              {activeScope !== 'GPs' && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1641,8 +1875,10 @@ const VillageMasterContent = () => {
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.households_covered_d2d !== undefined && analyticsData?.annual_overview?.households_covered_d2d !== null ? formatNumber(analyticsData.annual_overview.households_covered_d2d) : analyticsData?.households_covered_d2d !== undefined && analyticsData?.households_covered_d2d !== null ? formatNumber(analyticsData.households_covered_d2d) : '0')}
                 </span>
               </div>
+              )}
 
-              {/* GPs with Identified Asset Gaps */}
+              {/* GPs with Identified Asset Gaps - Hidden in GP view */}
+              {activeScope !== 'GPs' && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1655,8 +1891,10 @@ const VillageMasterContent = () => {
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.gps_with_asset_gaps !== undefined && analyticsData?.annual_overview?.gps_with_asset_gaps !== null ? formatNumber(analyticsData.annual_overview.gps_with_asset_gaps) : '0')}
                 </span>
               </div>
+              )}
 
-              {/* Active Sanitation Bidders */}
+              {/* Active Sanitation Bidders - Hidden in GP view */}
+              {activeScope !== 'GPs' && (
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1667,6 +1905,7 @@ const VillageMasterContent = () => {
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.active_sanitation_bidders !== undefined && analyticsData?.annual_overview?.active_sanitation_bidders !== null ? formatNumber(analyticsData.annual_overview.active_sanitation_bidders) : '0')}
                 </span>
               </div>
+              )}
             </div>
           </div>
         </div>
@@ -1674,6 +1913,115 @@ const VillageMasterContent = () => {
        
       </div>
 
+      {/* Report Section - Only for GP view */}
+      {activeScope === 'GPs' && (
+        <div style={{
+          backgroundColor: 'white',
+          padding: '24px',
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '16px',
+          borderRadius: '8px',
+          border: '1px solid lightgray'
+        }}>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#111827',
+            margin: '0 0 16px 0'
+          }}>
+            Report
+          </h3>
+
+          {/* Table */}
+          <div style={{
+            borderRadius: '8px',
+            border: '1px solid #e5e7eb',
+            overflow: 'hidden'
+          }}>
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '120px 1fr 200px',
+              backgroundColor: '#f9fafb',
+              padding: '12px 16px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Year
+              </div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Master Data
+              </div>
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151'
+              }}>
+                Action
+              </div>
+            </div>
+
+            {/* Table Body */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '120px 1fr 200px',
+              padding: '12px 16px',
+              alignItems: 'center',
+              borderBottom: '1px solid #f3f4f6'
+            }}>
+              <div style={{ fontSize: '14px', color: '#374151' }}>
+                2025
+              </div>
+              <div style={{ fontSize: '14px', color: '#10b981', fontWeight: '600' }}>
+                Available
+              </div>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '8px' 
+              }}>
+                <button
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#374151',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Send notice
+                </button>
+                <button
+                  onClick={() => handleDownloadPDF(1)}
+                  style={{
+                    padding: '6px',
+                    backgroundColor: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
         {/* Coverage Table Section - Only for State, Districts, and Blocks */}
         {activeScope !== 'GPs' && (
