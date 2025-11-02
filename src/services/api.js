@@ -131,5 +131,43 @@ export const noticesAPI = {
   createNotice: (payload) => apiClient.post('/notices/', payload),
 };
 
+export const vehiclesAPI = {
+  // Get vehicles by location using IDs
+  getVehiclesByLocation: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.district_id) queryParams.append('district_id', params.district_id);
+    if (params.block_id) queryParams.append('block_id', params.block_id);
+    if (params.gp_id) queryParams.append('gp_id', params.gp_id);
+    return apiClient.get(`/gps/vehicles?${queryParams}`);
+  },
+  
+  // Get vehicle details (if endpoint exists)
+  getVehicleDetails: (vehicleId, params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.month) queryParams.append('month', params.month);
+    if (params.year) queryParams.append('year', params.year);
+    return apiClient.get(`/gps/vehicles/${vehicleId}/details?${queryParams}`);
+  },
+  
+  // Add vehicle with gp_id, vehicle_no, and imei
+  addVehicle: (vehicleData) => {
+    return apiClient.post('/gps/vehicles', {
+      gp_id: vehicleData.gp_id,
+      vehicle_no: vehicleData.vehicle_no,
+      imei: vehicleData.imei
+    });
+  },
+  
+  // Update vehicle
+  updateVehicle: (vehicleId, vehicleData) => {
+    return apiClient.put(`/gps/vehicles/${vehicleId}`, vehicleData);
+  },
+  
+  // Delete vehicle
+  deleteVehicle: (vehicleId) => {
+    return apiClient.delete(`/gps/vehicles/${vehicleId}`);
+  },
+};
+
 export default apiClient;
 
