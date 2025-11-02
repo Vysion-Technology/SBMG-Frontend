@@ -8,7 +8,8 @@ import {
   Briefcase,
   Calendar,
   Truck,
-  Bell
+  Bell,
+  CreditCard
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -22,6 +23,7 @@ import BDOSchemesContent from './BDOSchemesContent';
 import BDOEventsContent from './BDOEventsContent';
 import BDONoticeContent from './BDONoticeContent';
 import BDOGpsTrackingContent from './BDOGpsTrackingContent';
+import PaymentsContent from '../PaymentsContent';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
@@ -34,6 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
+    { name: 'Payments', icon: CreditCard },
     { name: 'Notices', icon: Bell }
   ];
 
@@ -201,6 +204,8 @@ const UnifiedDashboardBDO = () => {
         return <BDOEventsContent />;
       case 'GPS Tracking':
         return <BDOGpsTrackingContent />;
+      case 'Payments':
+        return <PaymentsContent />;
       case 'Notices':
         return <BDONoticeContent />;
       default:

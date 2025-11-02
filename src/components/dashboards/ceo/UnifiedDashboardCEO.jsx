@@ -8,7 +8,8 @@ import {
   Briefcase,
   Calendar,
   Truck,
-  Bell
+  Bell,
+  CreditCard
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -22,6 +23,7 @@ import CEOSchemesContent from './CEOSchemesContent';
 import CEOEventsContent from './CEOEventsContent';
 import CEONoticeContent from './CEONoticeContent';
 import CEOGpsTrackingContent from './CEOGpsTrackingContent';
+import PaymentsContent from '../PaymentsContent';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
@@ -34,6 +36,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
+    { name: 'Payments', icon: CreditCard },
     { name: 'Notices', icon: Bell }
   ];
 
@@ -201,6 +204,8 @@ const UnifiedDashboardCEO = () => {
         return <CEOEventsContent />;
       case 'GPS Tracking':
         return <CEOGpsTrackingContent />;
+      case 'Payments':
+        return <PaymentsContent />;
       case 'Notices':
         return <CEONoticeContent />;
       default:

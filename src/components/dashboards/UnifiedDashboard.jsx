@@ -8,7 +8,8 @@ import {
   Briefcase,
   Calendar,
   Truck,
-  Bell
+  Bell,
+  CreditCard
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../assets/logos/swach.png';
@@ -22,6 +23,7 @@ import SchemesContent from './SchemesContent';
 import EventsContent from './EventsContent';
 import NotoficationContent from './NoticeContent';
 import GpsTrackingContent from './GpsTrackingContent';
+import PaymentsContent from './PaymentsContent';
 
 const Sidebar = ({ activeItem, setActiveItem }) => {
   const menuItems = [
@@ -33,6 +35,7 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
     { name: 'Schemes', icon: Briefcase },
     { name: 'Events', icon: Calendar },
     { name: 'GPS Tracking', icon: Truck },
+    { name: 'Payments', icon: CreditCard },
     { name: 'Notices', icon: Bell }
   ];
 
@@ -173,6 +176,8 @@ const UnifiedDashboard = () => {
         return <EventsContent />;
       case 'GPS Tracking':
         return <GpsTrackingContent />;
+      case 'Payments':
+        return <PaymentsContent />;
       case 'Notices':
         return <NotoficationContent />;
       default:
