@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Bell, ChevronDown, Menu, Loader2 } from 'lucide-react';
+import { Search, Bell, ChevronDown, Menu, Loader2, User, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import { useCEOLocation } from '../../context/CEOLocationContext';
@@ -30,10 +31,14 @@ const buildSubtitle = (typeLabel, meta) => {
 };
 
 const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }) => {
-  const { role } = useAuth();
+  const navigate = useNavigate();
+  const { role, logout } = useAuth();
   const isCEO = role === ROLES.CEO;
   const isBDO = role === ROLES.BDO;
   const isVDO = role === ROLES.VDO;
+  
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = useRef(null);
   
   // Try all contexts - one will be available based on which dashboard we're in
   const locationContextSMD = useLocation();
@@ -450,6 +455,29 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
+  const toggleUserDropdown = () => {
+    setShowUserDropdown(!showUserDropdown);
+  };
+
+  // Close user dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserDropdown]);
+
   return (
     <header style={{
       backgroundColor: 'white',
@@ -658,27 +686,129 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
         </div>
 
         {/* User profile - Separate container */}
-        <div style={{
-          backgroundColor: '#f3f4f6',
-          padding: '2px 5px',
-          borderRadius: '20px',
-          border: '1px solid #e5e7eb',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1px'
-        }}>
-          <div style={{
-            width: '28px',
-            height: '28px',
-            backgroundColor: '#d1d5db',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <span style={{fontSize: '12px', fontWeight: '500', color: '#6b7280'}}>U</span>
-          </div>
-          <ChevronDown style={{width: '14px', height: '14px', color: '#6b7280'}} />
+        <div ref={userDropdownRef} style={{ position: 'relative' }}>
+          <button
+            onClick={toggleUserDropdown}
+            style={{
+              backgroundColor: '#f3f4f6',
+              padding: '2px 5px',
+              borderRadius: '20px',
+              border: '1px solid #e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1px',
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            <div style={{
+              width: '28px',
+              height: '28px',
+              backgroundColor: '#d1d5db',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <span style={{fontSize: '12px', fontWeight: '500', color: '#6b7280'}}>U</span>
+            </div>
+            <ChevronDown style={{
+              width: '14px', 
+              height: '14px', 
+              color: '#6b7280',
+              transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s'
+            }} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showUserDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 8px)',
+              right: 0,
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e5e7eb',
+              minWidth: '220px',
+              zIndex: 1000,
+              overflow: 'hidden'
+            }}>
+              {/* User Info Section */}
+              <div style={{
+                padding: '16px',
+                borderBottom: '1px solid #e5e7eb',
+                backgroundColor: '#f9fafb'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    backgroundColor: '#d1d5db',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <User style={{ width: '24px', height: '24px', color: '#6b7280' }} />
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      color: '#111827',
+                      marginBottom: '4px'
+                    }}>
+                      User
+                    </div>
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#6b7280'
+                    }}>
+                      {role === ROLES.CEO ? 'CEO' : role === ROLES.BDO ? 'BDO' : role === ROLES.VDO ? 'VDO' : 'Admin'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: 'none',
+                  backgroundColor: 'white',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#fef2f2';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                }}
+              >
+                <LogOut style={{ width: '20px', height: '20px', color: '#ef4444' }} />
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: '#ef4444'
+                }}>
+                  Logout
+                </span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
