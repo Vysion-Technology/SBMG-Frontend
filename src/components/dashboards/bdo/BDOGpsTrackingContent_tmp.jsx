@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Plus, ChevronDown, X, MapPin, Search, Truck, Circle, AlertCircle } from 'lucide-react';
 
-const CEOGpsTrackingContent = () => {
+const BDOGpsTrackingContent = () => {
     const [activeScope, setActiveScope] = useState('Blocks'); // CEO default scope
     const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
     const [searchQuery, setSearchQuery] = useState('');
@@ -19,7 +19,7 @@ const CEOGpsTrackingContent = () => {
         gramPanchayat: ''
     });
     
-    const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs within their district
+    const scopeButtons = ['GPs']; // CEO can only view Blocks and GPs within their district
     const fleetTabs = ['All(03)', 'Active(01)', 'Running(01)', 'Stopped(01)'];
 
     // Sample vehicle data
@@ -1062,4 +1062,4 @@ const CEOGpsTrackingContent = () => {
     );
 };
 
-export default CEOGpsTrackingContent;
+export default BDOGpsTrackingContent;

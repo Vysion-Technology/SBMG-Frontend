@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Plus, ChevronDown, X, MapPin, Search, Truck, Circle, AlertCircle } from 'lucide-react';
+import { Plus, Calendar, ChevronDown, X, Upload, MapPin, Search, Truck, Circle, AlertCircle } from 'lucide-react';
 
-const CEOGpsTrackingContent = () => {
-    const [activeScope, setActiveScope] = useState('Blocks'); // CEO default scope
+const GpsTrackingContent = () => {
+    const [activeScope, setActiveScope] = useState('Districts');
     const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
     const [searchQuery, setSearchQuery] = useState('');
     const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
@@ -19,7 +19,7 @@ const CEOGpsTrackingContent = () => {
         gramPanchayat: ''
     });
     
-    const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs within their district
+    const scopeButtons = ['All', 'Districts', 'Blocks', 'GPs'];
     const fleetTabs = ['All(03)', 'Active(01)', 'Running(01)', 'Stopped(01)'];
 
     // Sample vehicle data
@@ -62,6 +62,10 @@ const CEOGpsTrackingContent = () => {
         setModalStep(2);
     };
 
+    const handleBack = () => {
+        setModalStep(1);
+    };
+
     const handleSubmit = () => {
         console.log('Form submitted:', formData);
         handleCloseModal();
@@ -85,32 +89,34 @@ const CEOGpsTrackingContent = () => {
         alignItems: 'center',
         justifyContent: 'space-between'
      }}>
-         {/* Left side - Dashboard title */}
+         {/* Left side - Events and Overview */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '24px'
         }}>
+        
+          
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+          gap: '12px'
+        }}>
+          <h1 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#374151',
+            margin: 0
           }}>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#374151',
+            Overview
+          </h1>
+          <span style={{
+              fontSize: '14px',
+              color: '#6b7280',
               margin: 0
             }}>
-              Overview
-            </h1>
-            <span style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                margin: 0
-              }}>
                 12, January 2025
-              </span>
+            </span>
           </div>
         </div>
 
@@ -258,14 +264,14 @@ const CEOGpsTrackingContent = () => {
                 <X 
                   onClick={() => setSearchQuery('')}
                   style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af',
-                    cursor: 'pointer'
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: '#9ca3af',
+                cursor: 'pointer'
                   }} 
                 />
               )}
@@ -276,14 +282,14 @@ const CEOGpsTrackingContent = () => {
               <div 
                 onClick={() => setShowOnlyFlagged(!showOnlyFlagged)}
                 style={{
-                  display: 'flex',
+                display: 'flex',
                   width: '100%',
-                  alignItems: 'center',
+                alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '12px 16px',
                   backgroundColor: '#fef3c7',
                   border: '1px solid #fbbf24',
-                  borderRadius: '8px',
+                borderRadius: '8px',
                   marginBottom: '16px',
                   cursor: 'pointer',
                   transition: 'all 0.2s'
@@ -308,11 +314,11 @@ const CEOGpsTrackingContent = () => {
                   }}>
                     Flagged vehicles
                   </span>
-                </div>
-                
+              </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* Toggle Switch */}
-                  <div style={{
+              <div style={{
                     position: 'relative',
                     width: '44px',
                     height: '24px',
@@ -320,7 +326,7 @@ const CEOGpsTrackingContent = () => {
                     borderRadius: '12px',
                     transition: 'background-color 0.3s ease',
                     boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.2)'
-                  }}>
+              }}>
                     <div style={{
                       position: 'absolute',
                       top: '2px',
@@ -333,12 +339,14 @@ const CEOGpsTrackingContent = () => {
                       boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                     }}></div>
                   </div>
+                  
+                 
                 </div>
               </div>
             )}
 
             {/* Vehicle List */}
-            <div style={{ 
+              <div style={{
               display: 'flex', 
               flexDirection: 'column', 
               gap: '12px',
@@ -365,12 +373,12 @@ const CEOGpsTrackingContent = () => {
                 <div 
                   key={vehicle.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
                     padding: '16px',
                     backgroundColor: vehicle.isFlagged ? '#fef3c7' : '#ffffff',
-                    borderRadius: '8px',
+                borderRadius: '8px',
                     border: vehicle.isFlagged ? '2px solid #fbbf24' : '1px solid #e5e7eb',
                     position: 'relative',
                     cursor: 'pointer',
@@ -386,14 +394,16 @@ const CEOGpsTrackingContent = () => {
                 >
                   <Truck style={{ width: '24px', height: '24px', color: '#4b5563' }} />
                   
-                  <div style={{ flex: 1 }}>
+                <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '13px', fontWeight: '500', color: '#6b7280', marginBottom: '2px' }}>
-                      Vehicle No
+                    Vehicle No
                     </div>
                     <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
                       {vehicle.number}
                     </div>
                   </div>
+
+              
 
                   {/* Status Indicator */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -489,7 +499,7 @@ const CEOGpsTrackingContent = () => {
               <path d="M 0 400 L 1000 400" stroke="#9ca3af" strokeWidth="3" fill="none" />
             </svg>
 
-            {/* Map Labels */}
+            {/* Map Labels (Simulated Location Names) */}
             <div style={{
               position: 'absolute',
               top: '15%',
@@ -500,7 +510,7 @@ const CEOGpsTrackingContent = () => {
               backgroundColor: 'rgba(255,255,255,0.8)',
               padding: '4px 8px',
               borderRadius: '4px'
-            }}>
+          }}>
               Hotel Shivam
             </div>
 
@@ -532,7 +542,8 @@ const CEOGpsTrackingContent = () => {
               Nirvana Restaurant
             </div>
 
-            {/* Vehicle Markers */}
+            {/* Vehicle Markers on Map */}
+            {/* Blue Route with Vehicle */}
             <svg style={{
               position: 'absolute',
               width: '100%',
@@ -632,14 +643,16 @@ const CEOGpsTrackingContent = () => {
                   backgroundColor: 'white',
                   borderRadius: '50%',
                   transform: 'rotate(45deg)'
-                }}></div>
+            }}></div>
               </div>
             </div>
+
+            
           </div>
         </div>
       </div>
 
-      {/* Add Vehicle Modal - Same as SMD */}
+      {/* Add Vehicle Modal */}
       {showAddVehicleModal && (
         <div style={{
           position: 'fixed',
@@ -662,6 +675,7 @@ const CEOGpsTrackingContent = () => {
             position: 'relative',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
           }}>
+            {/* Header */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -670,8 +684,8 @@ const CEOGpsTrackingContent = () => {
             }}>
               <h2 style={{
                 fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
+              fontWeight: '600',
+              color: '#111827',
                 margin: 0
               }}>
                 Add Vehicle
@@ -692,6 +706,7 @@ const CEOGpsTrackingContent = () => {
               </button>
             </div>
 
+            {/* Step Indicator */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -699,6 +714,7 @@ const CEOGpsTrackingContent = () => {
               marginBottom: '32px',
               gap: '16px'
             }}>
+              {/* Step 1 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{
                   width: '36px',
@@ -724,12 +740,14 @@ const CEOGpsTrackingContent = () => {
                 </span>
               </div>
 
+              {/* Connector Line */}
               <div style={{
                 width: '60px',
                 height: '2px',
                 backgroundColor: modalStep > 1 ? '#10b981' : '#d1d5db'
               }}></div>
 
+              {/* Step 2 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{
                   width: '36px',
@@ -743,7 +761,7 @@ const CEOGpsTrackingContent = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   color: modalStep === 2 ? 'white' : '#6b7280'
-                }}>
+            }}>
                   02
                 </div>
                 <span style={{
@@ -756,6 +774,7 @@ const CEOGpsTrackingContent = () => {
               </div>
             </div>
 
+            {/* Step 1: Vehicle Details */}
             {modalStep === 1 && (
               <div>
                 <div style={{ marginBottom: '20px' }}>
@@ -839,6 +858,7 @@ const CEOGpsTrackingContent = () => {
                   />
                 </div>
 
+                {/* Buttons */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'flex-end',
@@ -879,6 +899,7 @@ const CEOGpsTrackingContent = () => {
               </div>
             )}
 
+            {/* Step 2: Location */}
             {modalStep === 2 && (
               <div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
@@ -967,9 +988,9 @@ const CEOGpsTrackingContent = () => {
                         color: '#6b7280',
                         pointerEvents: 'none'
                       }} />
-                    </div>
-                  </div>
-                </div>
+          </div>
+        </div>
+      </div>
 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{
@@ -979,7 +1000,7 @@ const CEOGpsTrackingContent = () => {
                     color: '#374151',
                     marginBottom: '8px'
                   }}>
-                    Gram Panchayat
+                    Gram Pnachayat
                   </label>
                   <div style={{ position: 'relative' }}>
                     <select
@@ -1015,6 +1036,7 @@ const CEOGpsTrackingContent = () => {
                   </div>
                 </div>
 
+                {/* Buttons */}
                 <div style={{
                   display: 'flex',
                   justifyContent: 'flex-end',
@@ -1062,4 +1084,4 @@ const CEOGpsTrackingContent = () => {
     );
 };
 
-export default CEOGpsTrackingContent;
+export default GpsTrackingContent;
