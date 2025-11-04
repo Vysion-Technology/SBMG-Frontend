@@ -98,172 +98,87 @@ const Login = () => {
         />
       </div>
 
-      {/* White Container for Ministers */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '120px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 1000,
-          backgroundColor: 'white',
-          padding: '0px 0px 0px 0px',
-          borderRadius: '12px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
-          width: '90%',
-          maxWidth: '800px',
-          height: '90px',
-          display: 'flex',
-          alignItems: 'flex-end',
-          justifyContent: 'center',
-          flexWrap: 'wrap',
-          gap: '-20px',
-          overflow: 'visible'
-        }}
-      >
-        {/* Minister 1 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img
-            src={minister1}
-            alt="Minister 1"
-            style={{
-              height: '135px',
-              width: 'auto',
-              objectFit: 'cover',
-              transform: 'translateY(-52px)'
-            }}
-          />
-          <div style={{ 
-            marginTop: '-35px',
-            textAlign: 'center',
-            width: '150px',
-            transform: 'translateX(-25px) translateY(-10px)'
-          }}>
-            <div style={{ 
-              fontSize: '15px', 
-              fontWeight: 'bold', 
-              color: '#1F2937',
-              marginBottom: '2px'
-            }}>
+      {/* Ministers Section */}
+      <div className="relative top-[120px] left-1/2 -translate-x-1/2 z-[1000] w-[90%] max-w-[800px]">
+        {/* White Container for Ministers */}
+        <div className="bg-white rounded-xl shadow-lg h-[90px] flex items-end justify-center overflow-visible">
+          <div className="grid grid-cols-4 gap-4 w-full px-4 pb-0">
+            {/* Minister 1 */}
+            <div className="flex justify-center items-end">
+              <img
+                src={minister1}
+                alt="Minister 1"
+                className="h-[150px] w-auto object-cover"
+              />
+            </div>
+
+            {/* Minister 2 */}
+            <div className="flex justify-center items-end">
+              <img
+                src={minister2}
+                alt="Minister 2"
+                className="h-[140px] w-auto object-cover"
+              />
+            </div>
+
+            {/* Minister 3 */}
+            <div className="flex justify-center items-end">
+              <img
+                src={minister3}
+                alt="Minister 3"
+                className="h-[110px] w-auto object-cover"
+              />
+            </div>
+
+            {/* Minister 4 */}
+            <div className="flex justify-center items-end">
+              <img
+                src={minister4}
+                alt="Minister 4"
+                className="h-[110px] w-auto object-cover"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Names below the white container */}
+        <div className="grid grid-cols-4 gap-4 w-full px-4 pt-10 mt-[20px]">
+          {/* Minister 1 Name */}
+          <div className="text-center w-[150px] mx-auto">
+            <div className="text-[15px] font-bold text-gray-800">
               श्री नरेंद्र मोदी
             </div>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#6B7280',
-              lineHeight: '1.3'
-            }}>
+            <div className="text-[12px] text-gray-500 leading-[1.3]">
               माननीय प्रधानमंत्री-भारत
             </div>
           </div>
-        </div>
 
-        {/* Minister 2 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img
-            src={minister2}
-            alt="Minister 2"
-            style={{
-              height: '135px',
-              width: 'auto',
-              objectFit: 'cover',
-              transform: 'translateY(-52px)'
-            }}
-          />
-          <div style={{ 
-            marginTop: '-35px',
-            textAlign: 'center',
-            width: '150px',
-            transform: ' translateY(-10px)'
-
-          }}>
-            <div style={{ 
-              fontSize: '15px', 
-              fontWeight: 'bold', 
-              color: '#1F2937',
-              marginBottom: '2px'
-            }}>
+          {/* Minister 2 Name */}
+          <div className="text-center w-[150px] mx-auto">
+            <div className="text-[15px] font-bold text-gray-800">
               श्री भजन लाल शर्मा
             </div>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#6B7280',
-              lineHeight: '1.3'
-            }}>
+            <div className="text-[12px] text-gray-500 leading-[1.3]">
               माननीय मुख्यमंत्री-राजस्थान
             </div>
           </div>
-        </div>
 
-        {/* Minister 3 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img
-            src={minister3}
-            alt="Minister 3"
-            style={{
-              height: '120px',
-              width: 'auto',
-              objectFit: 'cover',
-              transform: 'translateY(-52px)'
-            }}
-          />
-          <div style={{ 
-            marginTop: '-35px',
-            textAlign: 'center',
-            width: '150px',
-            transform: ' translateX(10px) translateY(-10px)'
-
-          }}>
-            <div style={{ 
-              fontSize: '15px', 
-              fontWeight: 'bold', 
-              color: '#1F2937',
-              marginBottom: '2px'
-            }}>
-              श्री भजन लाल शर्मा
+          {/* Minister 3 Name */}
+          <div className="text-center w-[150px] mx-auto">
+            <div className="text-[15px] font-bold text-gray-800">
+              श्री मदन दिलावर
             </div>
-            <div style={{ 
-              fontSize: '12px', 
-              color: '#6B7280',
-              lineHeight: '1.3'
-            }}>
-              माननीय मुख्यमंत्री-राजस्थान
+            <div className="text-[12px] text-gray-500 leading-[1.3]">
+              माननीय मंत्री-स्कूल शिक्षा, पंचायती राज एवं संस्कृत शिक्षा विभाग, राजस्थान
             </div>
           </div>
-        </div>
 
-        {/* Minister 4 */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <img
-            src={minister4}
-            alt="Minister 4"
-            style={{
-              height: '130px',
-              width: 'auto',
-              objectFit: 'cover',
-              transform: 'translateY(-40px)'
-            }}
-          />
-          <div style={{ 
-            marginTop: '-34px',
-            textAlign: 'center',
-            width: '180px',
-            transform: ' translateX(15px) '
-
-
-          }}>
-            <div style={{ 
-              fontSize: '14px', 
-              fontWeight: 'bold', 
-              color: '#1F2937',
-              marginBottom: '2px'
-            }}>
+          {/* Minister 4 Name */}
+          <div className="text-center w-[180px] mx-auto">
+            <div className="text-sm font-bold text-gray-800">
               श्री ओटाराम देवासी
             </div>
-            <div style={{ 
-              fontSize: '11px', 
-              color: '#6B7280',
-              lineHeight: '1.3'
-            }}>
+            <div className="text-[11px] text-gray-500 leading-[1.3]">
               माननीय राज्य मंत्री-पंचायती राज, ग्रामीण विकास एवं आपदा प्रबंधन, राजस्थान
             </div>
           </div>
@@ -271,7 +186,7 @@ const Login = () => {
       </div>
 
       {/* White dialog box in center */}
-      <div 
+      <div
         style={{
           position: 'absolute',
           top: '58%',
@@ -309,18 +224,18 @@ const Login = () => {
 
         {/* Welcome Message */}
         <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-          <h1 style={{ 
-            fontSize: '22px', 
-            fontWeight: 'bold', 
-            color: '#1F2937', 
-            margin: '0 0 0px 0' 
+          <h1 style={{
+            fontSize: '22px',
+            fontWeight: 'bold',
+            color: '#1F2937',
+            margin: '0 0 0px 0'
           }}>
             Welcome Back!
           </h1>
-          <p style={{ 
-            fontSize: '13px', 
-            color: '#6B7280', 
-            margin: 0 
+          <p style={{
+            fontSize: '13px',
+            color: '#6B7280',
+            margin: 0
           }}>
             Restricted access — SMD, CEO, BDO, and VDO roles are enabled.
           </p>
@@ -347,23 +262,23 @@ const Login = () => {
         <form style={{ width: '100%' }}>
           {/* Username Input */}
           <div style={{ marginBottom: '8px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500', 
-              color: '#374151', 
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
               marginBottom: '8px',
               textAlign: 'left'
             }}>
               Username
             </label>
             <div style={{ position: 'relative' }}>
-              <div style={{ 
-                position: 'absolute', 
-                left: '12px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                color: '#9CA3AF' 
+              <div style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9CA3AF'
               }}>
                 <Mail size={20} />
               </div>
@@ -388,23 +303,23 @@ const Login = () => {
 
           {/* Password Input */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500', 
-              color: '#374151', 
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
               marginBottom: '8px',
               textAlign: 'left'
             }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
-              <div style={{ 
-                position: 'absolute', 
-                left: '12px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                color: '#9CA3AF' 
+              <div style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9CA3AF'
               }}>
                 <Lock size={20} />
               </div>
@@ -444,11 +359,11 @@ const Login = () => {
           </div>
 
           {/* Remember Me & Forgot Password */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '20px' 
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
           }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
@@ -458,14 +373,14 @@ const Login = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 style={{ marginRight: '8px' }}
               />
-              <label htmlFor="remember-me" style={{ 
-                fontSize: '14px', 
-                color: '#374151' 
+              <label htmlFor="remember-me" style={{
+                fontSize: '14px',
+                color: '#374151'
               }}>
                 Remember me
               </label>
             </div>
-          
+
           </div>
 
           {/* Login Button */}
@@ -492,7 +407,7 @@ const Login = () => {
       </div>
 
       {/* White container at bottom */}
-      <div 
+      <div
         style={{
           position: 'absolute',
           bottom: 0,
@@ -524,7 +439,7 @@ const Login = () => {
           © Department of Rural Development & Panchayati Raj, Government of Rajasthan
         </div>
       </div>
-      
+
     </div>
   );
 };
