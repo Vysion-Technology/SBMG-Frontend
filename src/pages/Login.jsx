@@ -6,6 +6,10 @@ import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import backgroundImage from '../assets/images/background.png';
 import swachLogo from '../assets/logos/swach.png';
 import groupLogo from '../assets/logos/Group-.png';
+import minister1 from '../assets/images/minster1.png';
+import minister2 from '../assets/images/minister2.png';
+import minister3 from '../assets/images/minsiter3.png';
+import minister4 from '../assets/images/minister4.png';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -94,11 +98,181 @@ const Login = () => {
         />
       </div>
 
+      {/* White Container for Ministers */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          backgroundColor: 'white',
+          padding: '0px 0px 0px 0px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+          width: '90%',
+          maxWidth: '800px',
+          height: '90px',
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          gap: '-20px',
+          overflow: 'visible'
+        }}
+      >
+        {/* Minister 1 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={minister1}
+            alt="Minister 1"
+            style={{
+              height: '130px',
+              width: 'auto',
+              objectFit: 'cover',
+              transform: 'translateY(-52px)'
+            }}
+          />
+          <div style={{ 
+            marginTop: '-30px',
+            textAlign: 'center',
+            width: '150px',
+            transform: 'translateX(-25px) translateY(-10px)'
+          }}>
+            <div style={{ 
+              fontSize: '15px', 
+              fontWeight: 'bold', 
+              color: '#1F2937',
+              marginBottom: '2px'
+            }}>
+              श्री नरेंद्र मोदी
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6B7280',
+              lineHeight: '1.3'
+            }}>
+              माननीय प्रधानमंत्री-भारत
+            </div>
+          </div>
+        </div>
+
+        {/* Minister 2 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={minister2}
+            alt="Minister 2"
+            style={{
+              height: '130px',
+              width: 'auto',
+              objectFit: 'cover',
+              transform: 'translateY(-52px)'
+            }}
+          />
+          <div style={{ 
+            marginTop: '-30px',
+            textAlign: 'center',
+            width: '150px',
+            transform: ' translateY(-10px)'
+
+          }}>
+            <div style={{ 
+              fontSize: '15px', 
+              fontWeight: 'bold', 
+              color: '#1F2937',
+              marginBottom: '2px'
+            }}>
+              श्री भजन लाल शर्मा
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6B7280',
+              lineHeight: '1.3'
+            }}>
+              माननीय मुख्यमंत्री-राजस्थान
+            </div>
+          </div>
+        </div>
+
+        {/* Minister 3 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={minister3}
+            alt="Minister 3"
+            style={{
+              height: '130px',
+              width: 'auto',
+              objectFit: 'cover',
+              transform: 'translateY(-52px)'
+            }}
+          />
+          <div style={{ 
+            marginTop: '-30px',
+            textAlign: 'center',
+            width: '150px',
+            transform: ' translateX(10px) translateY(-10px)'
+
+          }}>
+            <div style={{ 
+              fontSize: '15px', 
+              fontWeight: 'bold', 
+              color: '#1F2937',
+              marginBottom: '2px'
+            }}>
+              श्री भजन लाल शर्मा
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6B7280',
+              lineHeight: '1.3'
+            }}>
+              माननीय मुख्यमंत्री-राजस्थान
+            </div>
+          </div>
+        </div>
+
+        {/* Minister 4 */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <img
+            src={minister4}
+            alt="Minister 4"
+            style={{
+              height: '130px',
+              width: 'auto',
+              objectFit: 'cover',
+              transform: 'translateY(-40px)'
+            }}
+          />
+          <div style={{ 
+            marginTop: '-34px',
+            textAlign: 'center',
+            width: '180px',
+
+          }}>
+            <div style={{ 
+              fontSize: '15px', 
+              fontWeight: 'bold', 
+              color: '#1F2937',
+              marginBottom: '2px'
+            }}>
+              श्री ओटाराम देवासी
+            </div>
+            <div style={{ 
+              fontSize: '12px', 
+              color: '#6B7280',
+              lineHeight: '1.3'
+            }}>
+              माननीय राज्य मंत्री-पंचायती राज, ग्रामीण विकास एवं आपदा प्रबंधन, राजस्थान
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* White dialog box in center */}
       <div 
         style={{
           position: 'absolute',
-          top: '50%',
+          top: '58%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: '400px',
