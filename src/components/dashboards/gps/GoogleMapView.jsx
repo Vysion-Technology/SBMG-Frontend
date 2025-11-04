@@ -59,16 +59,21 @@ const GoogleMapView = ({
   center = null,
   zoom = 13,
 }) => {
+  // Get API key once and memoize it
+  const apiKey = React.useMemo(() => import.meta.env.VITE_GOOGLE_MAPS_API_KEY, []);
+  
   // Debug: Check if API key is available
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-  console.log('🗺️ Google Maps API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+  React.useEffect(() => {
+    console.log('🗺️ Google Maps API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
+  }, [apiKey]);
 
-  const { isLoaded, loadError } = useJsApiLoader({
+  // Memoize loader options to prevent React Strict Mode re-init issues
+  const loaderOptions = React.useMemo(() => ({
     id: 'google-map-script',
     googleMapsApiKey: apiKey,
-    language: 'en',
-    region: 'IN',
-  });
+  }), [apiKey]);
+
+  const { isLoaded, loadError } = useJsApiLoader(loaderOptions);
 
   // Calculate center based on vehicles if not provided
   const mapCenter = React.useMemo(() => {
