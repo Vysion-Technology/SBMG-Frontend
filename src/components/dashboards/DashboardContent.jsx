@@ -1623,7 +1623,7 @@ const DashboardContent = () => {
         icon: List,
         color: '#f97316',
         trend: 'up',
-        tooltipText: 'Complaints verified on the ground by field teams.',
+        tooltipText: 'Complaints verified by the VDO.',
         chartData: {
           series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -2801,7 +2801,7 @@ const DashboardContent = () => {
               right: '12px'
             }}>
               <InfoTooltip
-                text="Displays complaint closure progress and the share of each status."
+                text="Shows closed vs pending complaints."
                 size={16}
               />
             </div>

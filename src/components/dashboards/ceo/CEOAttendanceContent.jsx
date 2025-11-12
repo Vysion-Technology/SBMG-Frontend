@@ -1925,19 +1925,22 @@ const AttendanceContent = () => {
         title: 'Total Vendor/Supervisor',
         value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
         icon: List,
-        color: '#3b82f6'
+        color: '#3b82f6',
+        tooltipText: 'Total number of vendors and supervisors registered in the selected area.'
       },
       {
         title: 'Vendor/Supervisor Present',
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserCheck,
-        color: '#10b981'
+        color: '#10b981',
+        tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
       },
       {
         title: 'Vendor/Supervisor Absent',
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
-        color: '#ef4444'
+        color: '#ef4444',
+        tooltipText: 'Number of vendors and supervisors who were absent or did not mark attendance for the selected date/period.'
       }
     ];
   };
@@ -2618,7 +2621,11 @@ const AttendanceContent = () => {
                 top: '12px',
                 right: '12px'
               }}>
-                <InfoTooltip size={16} color="#9ca3af" />
+                <InfoTooltip
+                  text={attendanceMetrics[0].tooltipText}
+                  size={16}
+                  color="#9ca3af"
+                />
               </div>
 
               {/* Card content */}
@@ -2699,7 +2706,11 @@ const AttendanceContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <InfoTooltip size={16} color="#9ca3af" />
+                    <InfoTooltip
+                      text={item.tooltipText}
+                      size={16}
+                      color="#9ca3af"
+                    />
                   </div>
 
                   {/* Card content */}
@@ -2780,7 +2791,11 @@ const AttendanceContent = () => {
               top: '12px',
               right: '12px'
             }}>
-              <InfoTooltip size={16} color="#9ca3af" />
+              <InfoTooltip
+                text="Overall attendance statistics for vendors and supervisors in the selected date/period and location."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
 
             {/* Card content */}
@@ -2857,14 +2872,25 @@ const AttendanceContent = () => {
             justifyContent: 'space-between',
             marginBottom: '16px'
           }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              Top 3
-            </h2>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                Top 3
+              </h2>
+              <InfoTooltip
+                text="Top 3 performers ranked by attendance score. Monthly score = attendance % for selected month. Yearly score = average attendance % across all months in the selected year."
+                size={16}
+                color="#9ca3af"
+              />
+            </div>
             
             {/* Right side controls in same row */}
             <div style={{
@@ -3214,7 +3240,11 @@ const AttendanceContent = () => {
                  activeScope === 'Districts' ? 'District performance score' : 
                  activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
               </h2>
-              <InfoTooltip size={16} color="#9ca3af" />
+              <InfoTooltip
+                text="Performance score is calculated based on attendance percentage: (Present count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
             <div style={{
               display: 'flex',

@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { noticesAPI } from '../../../services/api';
 import LocationDisplay from '../../common/LocationDisplay';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const VDOComplaintsContent = () => {
   // VDO Location context - fixed district, block, and GP
@@ -876,6 +877,7 @@ const VDOComplaintsContent = () => {
       icon: List,
       color: '#3b82f6',
         trend: 'up',
+      tooltipText: 'Total complaints logged for the selected scope and period.',
       chartData: {
         series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -930,6 +932,7 @@ const VDOComplaintsContent = () => {
       icon: List,
       color: '#ef4444',
         trend: 'up',
+      tooltipText: 'Complaints that are currently open and awaiting action.',
       chartData: {
         series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -968,6 +971,7 @@ const VDOComplaintsContent = () => {
       icon: List,
       color: '#f97316',
         trend: 'up',
+      tooltipText: 'Complaints verified by the VDO.',
       chartData: {
         series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1006,6 +1010,7 @@ const VDOComplaintsContent = () => {
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
+      tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -1044,6 +1049,7 @@ const VDOComplaintsContent = () => {
       icon: List,
       color: '#10b981',
         trend: 'up',
+      tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
       chartData: {
         series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -1861,7 +1867,11 @@ const VDOComplaintsContent = () => {
                 top: '12px',
                 right: '12px'
               }}>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip
+                  text={item.tooltipText}
+                  size={16}
+                  color="#9ca3af"
+                />
               </div>
 
               {/* Card content */}

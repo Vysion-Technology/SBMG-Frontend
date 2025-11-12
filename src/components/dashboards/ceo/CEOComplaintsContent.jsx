@@ -947,6 +947,7 @@ const CEOComplaintsContent = () => {
       icon: List,
       color: '#3b82f6',
         trend: 'up',
+      tooltipText: 'Total complaints logged for the selected scope and period.',
       chartData: {
         series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -1001,6 +1002,7 @@ const CEOComplaintsContent = () => {
       icon: List,
       color: '#ef4444',
         trend: 'up',
+      tooltipText: 'Complaints that are currently open and awaiting action.',
       chartData: {
         series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -1039,6 +1041,7 @@ const CEOComplaintsContent = () => {
       icon: List,
       color: '#f97316',
         trend: 'up',
+      tooltipText: 'Complaints verified by the VDO.',
       chartData: {
         series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1077,6 +1080,7 @@ const CEOComplaintsContent = () => {
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
+      tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -1115,6 +1119,7 @@ const CEOComplaintsContent = () => {
       icon: List,
       color: '#10b981',
         trend: 'up',
+      tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
       chartData: {
         series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -2129,7 +2134,11 @@ const normalizeStatusForFilter = (rawStatus) => {
                 top: '12px',
                 right: '12px'
               }}>
-                <InfoTooltip size={16} color="#9ca3af" />
+                <InfoTooltip
+                  text={item.tooltipText}
+                  size={16}
+                  color="#9ca3af"
+                />
               </div>
 
               {/* Card content */}

@@ -1508,6 +1508,7 @@ const CEODashboardContent = () => {
         icon: List,
         color: '#3b82f6',
         trend: 'up',
+        tooltipText: 'Total complaints logged for the selected scope and period.',
         chartData: {
           series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -1537,6 +1538,7 @@ const CEODashboardContent = () => {
         icon: List,
         color: '#ef4444',
         trend: 'up',
+        tooltipText: 'Complaints that are currently open and awaiting action.',
         chartData: {
           series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -1566,6 +1568,7 @@ const CEODashboardContent = () => {
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
+        tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -1595,6 +1598,7 @@ const CEODashboardContent = () => {
         icon: List,
         color: '#f97316',
         trend: 'up',
+        tooltipText: 'Complaints verified by the VDO.',
         chartData: {
           series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1624,6 +1628,7 @@ const CEODashboardContent = () => {
         icon: List,
         color: '#10b981',
         trend: 'up',
+        tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
         chartData: {
           series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -2582,7 +2587,7 @@ const CEODashboardContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <InfoTooltip size={16} color="#9ca3af" />
+                    <InfoTooltip text={item.tooltipText} size={16} color="#9ca3af" />
                   </div>
 
                   {/* Card content */}
@@ -2657,7 +2662,7 @@ const CEODashboardContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <InfoTooltip size={16} color="#9ca3af" />
+                    <InfoTooltip text={item.tooltipText} size={16} color="#9ca3af" />
                   </div>
 
                   {/* Card content */}
@@ -2728,7 +2733,11 @@ const CEODashboardContent = () => {
               top: '12px',
               right: '12px'
             }}>
-              <InfoTooltip size={16} color="#9ca3af" />
+              <InfoTooltip
+                text="Displays complaint closure progress and the share of each status."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
 
             <h3 style={{
@@ -3071,7 +3080,12 @@ const CEODashboardContent = () => {
               }}>
                 Vendor details
               </h2>
-              <InfoTooltip size={20} color="#9ca3af" style={{ cursor: 'pointer' }} />
+              <InfoTooltip
+                text="Shows the active vendor’s profile and contract details for this location."
+                size={20}
+                color="#9ca3af"
+                style={{ cursor: 'pointer' }}
+              />
             </div>
 
             {/* Loading State */}
@@ -3541,7 +3555,11 @@ const CEODashboardContent = () => {
               }}>
                 Top 3
               </h2>
-              <InfoTooltip size={16} color="#9ca3af" />
+              <InfoTooltip
+                text="Highlights the top three performing districts, blocks, or GPs based on the selected metric."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div 

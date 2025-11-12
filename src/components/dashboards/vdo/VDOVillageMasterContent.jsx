@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const VDOVillageMasterContent = () => {
     // Refs to prevent duplicate API calls
@@ -1441,7 +1442,7 @@ const VDOVillageMasterContent = () => {
                 Total work order Amount
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Info style={{ width: '16px', height: '16px', color: '#6b7280', cursor: 'pointer' }} />
+                <InfoTooltip size={16} color="#6b7280" style={{ cursor: 'pointer' }} />
                 <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
@@ -1477,7 +1478,7 @@ const VDOVillageMasterContent = () => {
               }}>
                 SBMG Target Achievement Rate
               </h3>
-              <Info style={{ width: '16px', height: '16px', color: '#6b7280', cursor: 'pointer' }} />
+              <InfoTooltip size={16} color="#6b7280" style={{ cursor: 'pointer' }} />
               </div>
             <div style={{
               fontSize: '24px',

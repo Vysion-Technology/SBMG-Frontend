@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
+import { InfoTooltip } from '../common/Tooltip';
 
 const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
@@ -1952,19 +1953,22 @@ const AttendanceContent = () => {
         title: 'Total Vendor/Supervisor',
         value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
         icon: List,
-        color: '#3b82f6'
+        color: '#3b82f6',
+        tooltipText: 'Total number of vendors and supervisors registered in the selected area.'
       },
       {
         title: 'Vendor/Supervisor Present',
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserCheck,
-        color: '#10b981'
+        color: '#10b981',
+        tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
       },
       {
         title: 'Vendor/Supervisor Absent',
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
-        color: '#ef4444'
+        color: '#ef4444',
+        tooltipText: 'Number of vendors and supervisors who were absent or did not mark attendance for the selected date/period.'
       }
     ];
   };
@@ -2691,7 +2695,11 @@ const AttendanceContent = () => {
                 top: '12px',
                 right: '12px'
               }}>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip
+                  text={attendanceMetrics[0].tooltipText}
+                  size={16}
+                  color="#9ca3af"
+                />
               </div>
 
               {/* Card content */}
@@ -2772,7 +2780,11 @@ const AttendanceContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                    <InfoTooltip
+                      text={item.tooltipText}
+                      size={16}
+                      color="#9ca3af"
+                    />
                   </div>
 
                   {/* Card content */}
@@ -2853,7 +2865,11 @@ const AttendanceContent = () => {
               top: '12px',
               right: '12px'
             }}>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip
+                text="Overall attendance statistics for vendors and supervisors in the selected date/period and location."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
 
             {/* Card content */}
@@ -2930,14 +2946,25 @@ const AttendanceContent = () => {
             justifyContent: 'space-between',
             marginBottom: '16px'
           }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              Top 3
-            </h2>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                Top 3
+              </h2>
+              <InfoTooltip
+                text="Top 3 performers ranked by attendance score. Monthly score = attendance % for selected month. Yearly score = average attendance % across all months in the selected year."
+                size={16}
+                color="#9ca3af"
+              />
+            </div>
             
             {/* Right side controls in same row */}
             <div style={{
@@ -3287,7 +3314,11 @@ const AttendanceContent = () => {
                  activeScope === 'Districts' ? 'District performance score' : 
                  activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
               </h2>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip
+                text="Performance score is calculated based on attendance percentage: (Present count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                size={16}
+                color="#9ca3af"
+              />
             </div>
             <div style={{
               display: 'flex',

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, Info, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, List, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import apiClient from '../../../services/api';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const BDONoticeContent = () => {
   const [sentNotices, setSentNotices] = useState([]);
@@ -318,7 +319,7 @@ const BDONoticeContent = () => {
                         top: '16px',
                         right: '16px'
                     }}>
-                        <Info style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+                        <InfoTooltip size={16} color="#6b7280" />
                     </div>
                     <h3 style={{
                                 fontSize: '14px',
@@ -352,7 +353,7 @@ const BDONoticeContent = () => {
                         top: '16px',
                         right: '16px'
                     }}>
-                        <Info style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+                        <InfoTooltip size={16} color="#6b7280" />
                     </div>
                             <div style={{
                                 display: 'flex',
