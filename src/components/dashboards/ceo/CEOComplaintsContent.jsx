@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock , Plus, Upload, X, Star, User} from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { noticesAPI } from '../../../services/api';
 import LocationDisplay from '../../common/LocationDisplay';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const CEOComplaintsContent = () => {
   // Shared location state via context
@@ -2128,7 +2129,7 @@ const normalizeStatusForFilter = (rawStatus) => {
                 top: '12px',
                 right: '12px'
               }}>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip size={16} color="#9ca3af" />
               </div>
 
               {/* Card content */}

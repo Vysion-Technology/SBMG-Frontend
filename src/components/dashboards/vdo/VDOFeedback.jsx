@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MessageSquare, Search, X, Info, ChevronDown, Star } from 'lucide-react';
+import { MessageSquare, Search, X, ChevronDown, Star } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { feedbackAPI } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
-import Tooltip from '../../common/Tooltip';
-import { getTooltipText} from '../../../utils/tooltipTexts';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const VDOFeedbackContent = () => {
   const { user } = useAuth();
@@ -541,7 +540,11 @@ const VDOFeedbackContent = () => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Average Rating</h3>
-                <Tooltip text={getTooltipText("AVERAGE_RATING")}><Info size={16} color="#9CA3AF" style={{ cursor: "help" }} /></Tooltip>
+                <InfoTooltip
+                  tooltipKey="AVERAGE_RATING"
+                  size={16}
+                  color="#9CA3AF"
+                />
               </div>
               <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>
                 {stats?.average_rating?.toFixed(1) || '0.0'}
@@ -578,7 +581,11 @@ const VDOFeedbackContent = () => {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Total Ratings</h3>
-                <Tooltip text={getTooltipText("TOTAL_RATINGS")}><Info size={16} color="#9CA3AF" style={{ cursor: "help" }} /></Tooltip>
+                <InfoTooltip
+                  tooltipKey="TOTAL_RATINGS"
+                  size={16}
+                  color="#9CA3AF"
+                />
               </div>
               <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#111827', marginBottom: '16px' }}>
                 {stats?.total_feedback?.toLocaleString() || '0'}

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../../services/api';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
@@ -2617,7 +2618,7 @@ const AttendanceContent = () => {
                 top: '12px',
                 right: '12px'
               }}>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip size={16} color="#9ca3af" />
               </div>
 
               {/* Card content */}
@@ -2698,7 +2699,7 @@ const AttendanceContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                    <InfoTooltip size={16} color="#9ca3af" />
                   </div>
 
                   {/* Card content */}
@@ -2779,7 +2780,7 @@ const AttendanceContent = () => {
               top: '12px',
               right: '12px'
             }}>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip size={16} color="#9ca3af" />
             </div>
 
             {/* Card content */}
@@ -3213,7 +3214,7 @@ const AttendanceContent = () => {
                  activeScope === 'Districts' ? 'District performance score' : 
                  activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
               </h2>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip size={16} color="#9ca3af" />
             </div>
             <div style={{
               display: 'flex',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, TrendingUp } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, TrendingUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
@@ -9,6 +9,7 @@ import { useCEOLocation } from '../../../context/CEOLocationContext';
 import LocationDisplay from '../../common/LocationDisplay';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -2581,7 +2582,7 @@ const CEODashboardContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                    <InfoTooltip size={16} color="#9ca3af" />
                   </div>
 
                   {/* Card content */}
@@ -2656,7 +2657,7 @@ const CEODashboardContent = () => {
                     top: '12px',
                     right: '12px'
                   }}>
-                    <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                    <InfoTooltip size={16} color="#9ca3af" />
                   </div>
 
                   {/* Card content */}
@@ -2727,7 +2728,7 @@ const CEODashboardContent = () => {
               top: '12px',
               right: '12px'
             }}>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip size={16} color="#9ca3af" />
             </div>
 
             <h3 style={{
@@ -3070,7 +3071,7 @@ const CEODashboardContent = () => {
               }}>
                 Vendor details
               </h2>
-              <Info style={{ width: '20px', height: '20px', color: '#9ca3af', cursor: 'pointer' }} />
+              <InfoTooltip size={20} color="#9ca3af" style={{ cursor: 'pointer' }} />
             </div>
 
             {/* Loading State */}
@@ -3540,7 +3541,7 @@ const CEODashboardContent = () => {
               }}>
                 Top 3
               </h2>
-              <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              <InfoTooltip size={16} color="#9ca3af" />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div 

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Info } from 'lucide-react';
+import { getTooltipText } from '../../utils/tooltipTexts';
 
 const Tooltip = ({ children, text, maxWidth = '300px' }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -68,4 +70,24 @@ const Tooltip = ({ children, text, maxWidth = '300px' }) => {
 };
 
 export default Tooltip;
+
+export const InfoTooltip = ({
+  tooltipKey = 'DEFAULT',
+  text,
+  size = 16,
+  color = '#9CA3AF',
+  style = {}
+}) => {
+  const tooltipText = text || getTooltipText(tooltipKey);
+
+  return (
+    <Tooltip text={tooltipText}>
+      <Info
+        size={size}
+        color={color}
+        style={{ cursor: 'help', ...style }}
+      />
+    </Tooltip>
+  );
+};
 

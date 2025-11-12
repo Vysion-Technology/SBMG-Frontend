@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
@@ -8,6 +8,7 @@ import apiClient from '../../../services/api';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
+import { InfoTooltip } from '../../common/Tooltip';
 
 
 const CEOInspectionContent = () => {
@@ -2087,7 +2088,7 @@ const CEOInspectionContent = () => {
                 }}>
                   Statewide Avg Score
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2123,7 +2124,7 @@ const CEOInspectionContent = () => {
                     Total inspections
                   </h3>
                 </div>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
@@ -2156,7 +2157,7 @@ const CEOInspectionContent = () => {
                 }}>
                   Village covered
                 </h3>
-                <Info style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                <InfoTooltip size={16} color="#9ca3af" />
               </div>
               <div style={{
                 fontSize: '32px',
