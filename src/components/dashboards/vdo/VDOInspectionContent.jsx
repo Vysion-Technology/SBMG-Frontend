@@ -113,6 +113,14 @@ const VDOInspectionContent = () => {
   const topPerformersLocationCallInProgress = useRef(false);
   const yourInspectionsCallInProgress = useRef(false);
   const performanceReportCallInProgress = useRef(false);
+  
+  // Refs to track previous values and prevent unnecessary API calls
+  const prevAnalyticsParams = useRef(null);
+  const prevCriticalIssuesParams = useRef(null);
+  const prevPerformersFilter1 = useRef(null);
+  const prevYourInspectionsParams = useRef(null);
+  const prevPerformanceReportParams = useRef(null);
+  const prevPerformersLocationParams = useRef(null);
 
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -474,7 +482,6 @@ const VDOInspectionContent = () => {
       console.log('🔄 ===== INSPECTION ANALYTICS API CALL =====');
       console.log('📍 Current State:', {
         activeScope,
-        selectedLocation,
         selectedDistrictId,
         selectedBlockId,
         selectedGPId,
@@ -536,7 +543,7 @@ const VDOInspectionContent = () => {
       setLoadingAnalytics(false);
       analyticsCallInProgress.current = false;
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Fetch critical issues data from API
   const fetchCriticalIssuesData = useCallback(async () => {
@@ -554,7 +561,6 @@ const VDOInspectionContent = () => {
       console.log('🔄 ===== CRITICAL ISSUES API CALL =====');
       console.log('📍 Current State:', {
         activeScope,
-        selectedLocation,
         selectedDistrictId,
         selectedBlockId,
         selectedGPId,
@@ -611,7 +617,7 @@ const VDOInspectionContent = () => {
       setLoadingCriticalIssues(false);
       criticalIssuesCallInProgress.current = false;
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Fetch top performers data from API
   const fetchTopPerformersData = useCallback(async (level) => {
@@ -892,39 +898,133 @@ const VDOInspectionContent = () => {
       setLoadingPerformanceReport(false);
       performanceReportCallInProgress.current = false;
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch analytics when scope or location changes
+  // Use refs to track previous values and only call API when relevant values actually change
   useEffect(() => {
-    fetchAnalyticsData();
-  }, [fetchAnalyticsData]);
+    const currentParams = { activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate };
+    if (!prevAnalyticsParams.current) {
+      // First render - initialize and fetch
+      prevAnalyticsParams.current = currentParams;
+      fetchAnalyticsData();
+      return;
+    }
+    
+    const hasChanged = 
+      prevAnalyticsParams.current.activeScope !== currentParams.activeScope ||
+      prevAnalyticsParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
+      prevAnalyticsParams.current.selectedBlockId !== currentParams.selectedBlockId ||
+      prevAnalyticsParams.current.selectedGPId !== currentParams.selectedGPId ||
+      prevAnalyticsParams.current.startDate !== currentParams.startDate ||
+      prevAnalyticsParams.current.endDate !== currentParams.endDate;
+    
+    if (hasChanged) {
+      prevAnalyticsParams.current = currentParams;
+      fetchAnalyticsData();
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchAnalyticsData]);
 
   // Effect to fetch critical issues when scope or location changes
   useEffect(() => {
-    fetchCriticalIssuesData();
-  }, [fetchCriticalIssuesData]);
+    const currentParams = { activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate };
+    if (!prevCriticalIssuesParams.current) {
+      // First render - initialize and fetch
+      prevCriticalIssuesParams.current = currentParams;
+      fetchCriticalIssuesData();
+      return;
+    }
+    
+    const hasChanged = 
+      prevCriticalIssuesParams.current.activeScope !== currentParams.activeScope ||
+      prevCriticalIssuesParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
+      prevCriticalIssuesParams.current.selectedBlockId !== currentParams.selectedBlockId ||
+      prevCriticalIssuesParams.current.selectedGPId !== currentParams.selectedGPId ||
+      prevCriticalIssuesParams.current.startDate !== currentParams.startDate ||
+      prevCriticalIssuesParams.current.endDate !== currentParams.endDate;
+    
+    if (hasChanged) {
+      prevCriticalIssuesParams.current = currentParams;
+      fetchCriticalIssuesData();
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchCriticalIssuesData]);
 
   // Effect to fetch top performers data when dropdown selection changes
   useEffect(() => {
-    // Map CEO/BDO/VDO to District/Block/GP for API call
-    const level = mapRoleToLevel(selectedPerformersFilter1);
-    fetchTopPerformersData(level);
+    if (prevPerformersFilter1.current === null) {
+      // First render - initialize and fetch
+      prevPerformersFilter1.current = selectedPerformersFilter1;
+      const level = mapRoleToLevel(selectedPerformersFilter1);
+      fetchTopPerformersData(level);
+      return;
+    }
+    
+    if (prevPerformersFilter1.current !== selectedPerformersFilter1) {
+      prevPerformersFilter1.current = selectedPerformersFilter1;
+      // Map CEO/BDO/VDO to District/Block/GP for API call
+      const level = mapRoleToLevel(selectedPerformersFilter1);
+      fetchTopPerformersData(level);
+    }
   }, [selectedPerformersFilter1, fetchTopPerformersData]);
 
-  // Effect to fetch Your Inspections data when component mounts
+  // Effect to fetch Your Inspections data when component mounts (only once)
   useEffect(() => {
-    fetchYourInspectionsData(1);
+    if (!prevYourInspectionsParams.current) {
+      // Only fetch on initial mount
+      prevYourInspectionsParams.current = true; // Just mark as initialized
+      fetchYourInspectionsData(1);
+    }
   }, [fetchYourInspectionsData]);
 
   // Effect to fetch performance report data when dropdown selection changes
   useEffect(() => {
-    fetchPerformanceReportData(selectedPerformanceReportFilter);
-  }, [selectedPerformanceReportFilter, fetchPerformanceReportData]);
+    const currentParams = { selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate };
+    if (!prevPerformanceReportParams.current) {
+      // First render - initialize and fetch
+      prevPerformanceReportParams.current = currentParams;
+      fetchPerformanceReportData(selectedPerformanceReportFilter);
+      return;
+    }
+    
+    const hasChanged = 
+      prevPerformanceReportParams.current.selectedPerformanceReportFilter !== currentParams.selectedPerformanceReportFilter ||
+      prevPerformanceReportParams.current.activeScope !== currentParams.activeScope ||
+      prevPerformanceReportParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
+      prevPerformanceReportParams.current.selectedBlockId !== currentParams.selectedBlockId ||
+      prevPerformanceReportParams.current.selectedGPId !== currentParams.selectedGPId ||
+      prevPerformanceReportParams.current.startDate !== currentParams.startDate ||
+      prevPerformanceReportParams.current.endDate !== currentParams.endDate;
+    
+    if (hasChanged) {
+      prevPerformanceReportParams.current = currentParams;
+      fetchPerformanceReportData(selectedPerformanceReportFilter);
+    }
+  }, [selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchPerformanceReportData]);
 
   // Effect to fetch top performers location data when dropdown selection changes
   useEffect(() => {
-    fetchTopPerformersLocationData(selectedPerformersFilter2);
-  }, [selectedPerformersFilter2, fetchTopPerformersLocationData]);
+    const currentParams = { selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate };
+    if (!prevPerformersLocationParams.current) {
+      // First render - initialize and fetch
+      prevPerformersLocationParams.current = currentParams;
+      fetchTopPerformersLocationData(selectedPerformersFilter2);
+      return;
+    }
+    
+    const hasChanged = 
+      prevPerformersLocationParams.current.selectedPerformersFilter2 !== currentParams.selectedPerformersFilter2 ||
+      prevPerformersLocationParams.current.activeScope !== currentParams.activeScope ||
+      prevPerformersLocationParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
+      prevPerformersLocationParams.current.selectedBlockId !== currentParams.selectedBlockId ||
+      prevPerformersLocationParams.current.selectedGPId !== currentParams.selectedGPId ||
+      prevPerformersLocationParams.current.startDate !== currentParams.startDate ||
+      prevPerformersLocationParams.current.endDate !== currentParams.endDate;
+    
+    if (hasChanged) {
+      prevPerformersLocationParams.current = currentParams;
+      fetchTopPerformersLocationData(selectedPerformersFilter2);
+    }
+  }, [selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchTopPerformersLocationData]);
 
   // Effect to close dropdowns when clicking outside
   useEffect(() => {

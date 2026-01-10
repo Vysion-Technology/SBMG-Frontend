@@ -61,7 +61,15 @@ const VDOEventsContent = () => {
             setLoading(true);
             setError(null);
             // Determine active parameter based on filter
-            const activeParam = eventFilter === 'all' ? undefined : (eventFilter === 'active');
+            let activeParam;
+            if (eventFilter === 'active') {
+                activeParam = true;
+            } else if (eventFilter === 'inactive') {
+                activeParam = false;
+            } else {
+                // 'all' filter - don't pass active parameter
+                activeParam = undefined;
+            }
             const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
             console.log('Fetched events data:', response.data);
             setEvents(response.data);

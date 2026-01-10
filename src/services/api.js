@@ -100,10 +100,12 @@ export const eventsAPI = {
   getEvents: (params = {}) => {
     const queryParams = new URLSearchParams({
       skip: params.skip || 0,
-      limit: params.limit || 100,
-      active: params.active !== undefined ? params.active : true,
-      ...params
+      limit: params.limit || 100
     });
+    // Only add active parameter if it's explicitly provided (not undefined)
+    if (params.active !== undefined) {
+      queryParams.append('active', params.active);
+    }
     return apiClient.get(`/events/?${queryParams}`);
   },
   createEvent: (eventData) => {

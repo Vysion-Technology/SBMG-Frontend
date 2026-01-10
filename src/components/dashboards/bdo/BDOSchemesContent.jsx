@@ -11,6 +11,7 @@ const BDOSchemesContent = () => {
     const [schemes, setSchemes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [schemeFilter, setSchemeFilter] = useState('active'); // 'active', 'inactive', 'all'
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -35,10 +36,10 @@ const BDOSchemesContent = () => {
     const [isUpdating, setIsUpdating] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    // Fetch schemes data on component mount
+    // Fetch schemes data on component mount and when filter changes
     useEffect(() => {
         fetchSchemes();
-    }, []);
+    }, [schemeFilter]);
 
     // Close modals if selected scheme is no longer in the filtered list
     useEffect(() => {
@@ -53,11 +54,12 @@ const BDOSchemesContent = () => {
         }
     }, [schemes, selectedScheme, loading]);
 
-    const fetchSchemes = async (showAll = false) => {
+    const fetchSchemes = async () => {
         try {
             setLoading(true);
             setError(null);
-            const activeParam = showAll ? undefined : true;
+            // Determine active parameter based on filter
+            const activeParam = schemeFilter === 'all' ? undefined : (schemeFilter === 'active');
             const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
             
             // Deduplicate schemes by ID and name to prevent duplicate entries
@@ -241,13 +243,15 @@ const BDOSchemesContent = () => {
 
             await schemesAPI.updateScheme(selectedScheme.id, updatePayload);
             
-            // If scheme is set to inactive, fetch all schemes so user can see it as inactive
-            const showAllSchemes = !editFormData.active;
+            // If scheme is set to inactive, switch filter to "All" so user can see it as inactive
+            if (!editFormData.active && schemeFilter === 'active') {
+                setSchemeFilter('all');
+            }
             
             // Close modal and refresh
             setShowEditModal(false);
             setIsUpdating(false);
-            fetchSchemes(showAllSchemes); // Refresh schemes (show all if inactive)
+            fetchSchemes(); // Refresh schemes
         } catch (error) {
             console.error('Error updating scheme:', error);
             setIsUpdating(false);
@@ -323,8 +327,65 @@ const BDOSchemesContent = () => {
                         </h2>
            
           </div>
-          {/* Right side - Add Scheme button */}
-        <div>
+          {/* Right side - Filter and Add Scheme button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {/* Scheme Filter Toggle */}
+                        <div style={{
+                            display: 'flex',
+                            backgroundColor: '#f3f4f6',
+                            borderRadius: '8px',
+                            padding: '2px',
+                            gap: '2px'
+                        }}>
+                            <button
+                                onClick={() => setSchemeFilter('active')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: schemeFilter === 'active' ? '#10b981' : 'transparent',
+                                    color: schemeFilter === 'active' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Active
+                            </button>
+                            <button
+                                onClick={() => setSchemeFilter('inactive')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: schemeFilter === 'inactive' ? '#ef4444' : 'transparent',
+                                    color: schemeFilter === 'inactive' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                Inactive
+                            </button>
+                            <button
+                                onClick={() => setSchemeFilter('all')}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    backgroundColor: schemeFilter === 'all' ? '#3b82f6' : 'transparent',
+                                    color: schemeFilter === 'all' ? 'white' : '#6b7280',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                All
+                            </button>
+                        </div>
           <button 
             onClick={() => setShowModal(true)}
             style={{
@@ -344,7 +405,7 @@ const BDOSchemesContent = () => {
             <Plus style={{ width: '16px', height: '16px' }} />
             Add Scheme
           </button>
-        </div>
+          </div>
         </div>
 
         {/* Loading State */}

@@ -1524,19 +1524,39 @@ const normalizeStatusForFilter = (rawStatus) => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       const districtId = district?.id || null;
-      trackDropdownChange(block.name, block.id, districtId);
-      updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'dropdown_change');
+      const isAlreadySelected = selectedLocation === block.name && selectedBlockId === block.id;
+      
       if (district) {
         setSelectedDistrictForHierarchy(district);
       }
       setSelectedBlockForHierarchy(block);
-      fetchGramPanchayats(districtId, block.id);
-      setShowLocationDropdown(false);
+      setDropdownLevel('blocks');
+      
+      // If clicking on already selected block, keep dropdown open and fetch blocks to show hierarchy
+      if (isAlreadySelected) {
+        if (blocks.length === 0 || !blocks.some(b => b.district_id === districtId)) {
+          fetchBlocks(districtId);
+        }
+        fetchGramPanchayats(districtId, block.id);
+      } else {
+        // If selecting a different block, update selection and close dropdown
+        trackDropdownChange(block.name, block.id, districtId);
+        updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'dropdown_change');
+        fetchGramPanchayats(districtId, block.id);
+        setShowLocationDropdown(false);
+      }
     } else if (activeScope === 'GPs') {
+      const isAlreadySelected = selectedBlockForHierarchy?.id === block.id;
       setSelectedBlockForHierarchy(block);
-      setSelectedLocation('Select GP');
       setDropdownLevel('gps');
-      fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
+      
+      // If clicking on already selected block, keep dropdown open to show hierarchy
+      if (isAlreadySelected) {
+        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
+      } else {
+        setSelectedLocation('Select GP');
+        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
+      }
     }
   };
 
@@ -1545,17 +1565,29 @@ const normalizeStatusForFilter = (rawStatus) => {
     const blockId = block?.id || gp.block_id || null;
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
     const districtId = district?.id || null;
+    const isAlreadySelected = selectedLocation === gp.name && selectedGPId === gp.id;
 
-    trackDropdownChange(gp.name, gp.id, districtId);
-    updateLocationSelection('GPs', gp.name, gp.id, districtId, blockId, gp.id, 'dropdown_change');
     if (district) {
       setSelectedDistrictForHierarchy(district);
     }
     if (block) {
       setSelectedBlockForHierarchy(block);
     }
-    fetchGramPanchayats(districtId, blockId);
-    setShowLocationDropdown(false);
+    setDropdownLevel('gps');
+
+    // If clicking on already selected GP, keep dropdown open to show hierarchy
+    if (isAlreadySelected) {
+      if (blocks.length === 0 || !blocks.some(b => b.district_id === districtId)) {
+        fetchBlocks(districtId);
+      }
+      fetchGramPanchayats(districtId, blockId);
+    } else {
+      // If selecting a different GP, update selection and close dropdown
+      trackDropdownChange(gp.name, gp.id, districtId);
+      updateLocationSelection('GPs', gp.name, gp.id, districtId, blockId, gp.id, 'dropdown_change');
+      fetchGramPanchayats(districtId, blockId);
+      setShowLocationDropdown(false);
+    }
   };
 
   useEffect(() => {
@@ -1571,17 +1603,58 @@ const normalizeStatusForFilter = (rawStatus) => {
           setDropdownLevel(activeScope === 'GPs' && selectedBlockId ? 'gps' : 'blocks');
           fetchBlocks(presetDistrict.id);
         }
+      } else {
+        // If district is already set, ensure blocks are fetched and dropdownLevel is set correctly
+        if (activeScope === 'Blocks') {
+          // For Blocks scope, always show blocks level when dropdown opens
+          setDropdownLevel('blocks');
+          if (blocks.length === 0 || !blocks.some(b => b.district_id === selectedDistrictForHierarchy.id)) {
+            fetchBlocks(selectedDistrictForHierarchy.id);
+          }
+        } else if (activeScope === 'GPs') {
+          // For GPs scope, determine level based on what's selected
+          if (selectedGPId || (selectedBlockForHierarchy && selectedBlockForHierarchy.id)) {
+            setDropdownLevel('gps');
+            // Ensure block hierarchy is set if we have a selected GP
+            if (selectedGPId && !selectedBlockForHierarchy) {
+              const gpBlock = blocks.find(b => b.id === selectedBlockId);
+              if (gpBlock) {
+                setSelectedBlockForHierarchy(gpBlock);
+              }
+            }
+          } else {
+            setDropdownLevel('blocks');
+          }
+          // Ensure blocks are fetched for the selected district
+          if (blocks.length === 0 || !blocks.some(b => b.district_id === selectedDistrictForHierarchy.id)) {
+            fetchBlocks(selectedDistrictForHierarchy.id);
+          }
+        }
       }
     }
 
-    if (activeScope === 'GPs' && selectedDistrictForHierarchy && blocks.length > 0) {
-      if (!selectedBlockForHierarchy) {
-        const presetBlock = (selectedBlockId && blocks.find(b => b.id === selectedBlockId && b.district_id === selectedDistrictForHierarchy.id))
-          || blocks.find(b => b.district_id === selectedDistrictForHierarchy.id);
-        if (presetBlock) {
-          setSelectedBlockForHierarchy(presetBlock);
+    if (activeScope === 'GPs' && selectedDistrictForHierarchy) {
+      // Ensure blocks are fetched first
+      if (blocks.length === 0 || !blocks.some(b => b.district_id === selectedDistrictForHierarchy.id)) {
+        fetchBlocks(selectedDistrictForHierarchy.id);
+      }
+      
+      // Once blocks are available, set up block hierarchy
+      if (blocks.length > 0) {
+        if (!selectedBlockForHierarchy) {
+          const presetBlock = (selectedBlockId && blocks.find(b => b.id === selectedBlockId && b.district_id === selectedDistrictForHierarchy.id))
+            || blocks.find(b => b.district_id === selectedDistrictForHierarchy.id);
+          if (presetBlock) {
+            setSelectedBlockForHierarchy(presetBlock);
+            setDropdownLevel('gps');
+            fetchGramPanchayats(selectedDistrictForHierarchy.id, presetBlock.id);
+          }
+        } else {
+          // If block is already set, ensure dropdownLevel is 'gps' and GPs are fetched
           setDropdownLevel('gps');
-          fetchGramPanchayats(selectedDistrictForHierarchy.id, presetBlock.id);
+          if (!gramPanchayats.length || !gramPanchayats.some(gp => gp.block_id === selectedBlockForHierarchy.id)) {
+            fetchGramPanchayats(selectedDistrictForHierarchy.id, selectedBlockForHierarchy.id);
+          }
         }
       }
     }
@@ -1594,8 +1667,10 @@ const normalizeStatusForFilter = (rawStatus) => {
     selectedBlockForHierarchy,
     selectedDistrictId,
     selectedBlockId,
+    selectedGPId,
     fetchBlocks,
-    fetchGramPanchayats
+    fetchGramPanchayats,
+    gramPanchayats
   ]);
 
   useEffect(() => {
