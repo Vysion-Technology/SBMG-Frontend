@@ -2638,8 +2638,7 @@ const BDOAttendanceContent = () => {
               )}
             </div>
 
-            {/* Present and Absent - In Same Row - Only show for single day */}
-            {!isMultiDayRange() && (
+            {/* Present and Absent - In Same Row */}
             <div style={{
               display: 'flex',
               gap: '12px',
@@ -2728,7 +2727,6 @@ const BDOAttendanceContent = () => {
                 </div>
               ))}
             </div>
-            )}
           </div>
 
           {/* Right Side - Attendance Gauge */}
