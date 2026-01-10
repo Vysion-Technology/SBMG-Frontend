@@ -1106,7 +1106,26 @@ const VDOInspectionContent = () => {
     
     // Get the first item from the response array and return its inspectors
     const firstItem = topPerformersData[0];
-    return firstItem?.inspectors || [];
+    const inspectors = firstItem?.inspectors || [];
+    
+    // Sort by inspections_count (descending), then by name (ascending) for consistency
+    // and limit to exactly top 3 performers
+    const sortedInspectors = [...inspectors]
+      .sort((a, b) => {
+        const countA = a.inspections_count || 0;
+        const countB = b.inspections_count || 0;
+        // Primary sort: by inspections_count (descending)
+        if (countB !== countA) {
+          return countB - countA;
+        }
+        // Secondary sort: by name (ascending) when counts are equal for consistent ordering
+        const nameA = (a.inspector_name || '').toLowerCase();
+        const nameB = (b.inspector_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      })
+      .slice(0, 3); // Limit to exactly top 3
+    
+    return sortedInspectors;
   };
 
   // Helper functions to extract top 3 performers by location from analytics data
@@ -1116,10 +1135,22 @@ const VDOInspectionContent = () => {
       return [];
     }
     
-    // Get response array, sort by average_score (descending), and take top 3
+    // Get response array, sort by average_score (descending), then by name (ascending) for consistency
+    // and limit to exactly top 3 performers
     const sortedData = [...topPerformersLocationData.response]
-      .sort((a, b) => (b.average_score || 0) - (a.average_score || 0))
-      .slice(0, 3);
+      .sort((a, b) => {
+        const scoreA = a.average_score || 0;
+        const scoreB = b.average_score || 0;
+        // Primary sort: by average_score (descending)
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        // Secondary sort: by name (ascending) when scores are equal for consistent ordering
+        const nameA = (a.geography_name || '').toLowerCase();
+        const nameB = (b.geography_name || '').toLowerCase();
+        return nameA.localeCompare(nameB);
+      })
+      .slice(0, 3); // Limit to exactly top 3
     
     return sortedData;
   };
@@ -2331,7 +2362,7 @@ const VDOInspectionContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Top 3 Performers
+                Top 3 Performers(Officers)
               </h3>
               
               {/* Dropdown */}
@@ -2493,7 +2524,7 @@ const VDOInspectionContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Top 3 Performers
+                Top 3 Performers(Locations)
               </h3>
               
               {/* District Dropdown */}

@@ -59,7 +59,15 @@ const SchemesContent = () => {
             setLoading(true);
             setError(null);
             // Determine active parameter based on filter
-            const activeParam = schemeFilter === 'all' ? undefined : (schemeFilter === 'active');
+            let activeParam;
+            if (schemeFilter === 'active') {
+                activeParam = true;
+            } else if (schemeFilter === 'inactive') {
+                activeParam = false;
+            } else {
+                // 'all' filter - don't pass active parameter
+                activeParam = undefined;
+            }
             const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
             
             // Deduplicate schemes by ID and name to prevent duplicate entries

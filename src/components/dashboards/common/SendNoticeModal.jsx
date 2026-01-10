@@ -321,7 +321,7 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent, moduleName, kpiName,
                 color: '#374151',
               }}
             >
-              Subject
+              Subject <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <input
               type="text"
@@ -348,7 +348,7 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent, moduleName, kpiName,
                 color: '#374151',
               }}
             >
-              Category
+              Category <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <select
@@ -409,7 +409,7 @@ const SendNoticeModal = ({ isOpen, onClose, target, onSent, moduleName, kpiName,
                 color: '#374151',
               }}
             >
-              Details
+              Details <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <textarea
               value={form.text}
