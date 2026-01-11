@@ -246,13 +246,15 @@ const CEOInspectionContent = () => {
     if ((activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId) {
       fetchBlocks(selectedDistrictId);
     }
-  }, [activeScope, selectedDistrictId, fetchBlocks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScope, selectedDistrictId]);
 
   useEffect(() => {
     if ((activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId && selectedBlockId) {
       fetchGramPanchayats(selectedDistrictId, selectedBlockId);
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, fetchGramPanchayats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScope, selectedDistrictId, selectedBlockId]);
 
   // Helper functions
   const getLocationOptions = () => {
