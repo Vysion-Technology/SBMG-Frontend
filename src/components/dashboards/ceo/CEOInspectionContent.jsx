@@ -948,7 +948,7 @@ const CEOInspectionContent = () => {
       prevAnalyticsParams.current = currentParams;
       fetchAnalyticsData();
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchAnalyticsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch critical issues when scope or location changes
   useEffect(() => {
@@ -972,7 +972,7 @@ const CEOInspectionContent = () => {
       prevCriticalIssuesParams.current = currentParams;
       fetchCriticalIssuesData();
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchCriticalIssuesData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch top performers data when dropdown selection changes
   useEffect(() => {
@@ -990,7 +990,7 @@ const CEOInspectionContent = () => {
       const level = mapRoleToLevel(selectedPerformersFilter1);
       fetchTopPerformersData(level);
     }
-  }, [selectedPerformersFilter1, fetchTopPerformersData]);
+  }, [selectedPerformersFilter1]);
 
   // Effect to fetch Your Inspections data when component mounts (only once)
   useEffect(() => {
@@ -999,7 +999,7 @@ const CEOInspectionContent = () => {
       prevYourInspectionsParams.current = true; // Just mark as initialized
       fetchYourInspectionsData(1);
     }
-  }, [fetchYourInspectionsData]);
+  }, []);
 
   // Effect to fetch performance report data when dropdown selection changes
   useEffect(() => {
@@ -1024,7 +1024,7 @@ const CEOInspectionContent = () => {
       prevPerformanceReportParams.current = currentParams;
       fetchPerformanceReportData(selectedPerformanceReportFilter);
     }
-  }, [selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchPerformanceReportData]);
+  }, [selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch top performers location data when dropdown selection changes
   useEffect(() => {
@@ -1049,7 +1049,7 @@ const CEOInspectionContent = () => {
       prevPerformersLocationParams.current = currentParams;
       fetchTopPerformersLocationData(selectedPerformersFilter2);
     }
-  }, [selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchTopPerformersLocationData]);
+  }, [selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to close dropdowns when clicking outside
   useEffect(() => {

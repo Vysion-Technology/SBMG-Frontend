@@ -927,7 +927,7 @@ const BDOInspectionContent = () => {
       prevAnalyticsParams.current = currentParams;
       fetchAnalyticsData();
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchAnalyticsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch critical issues when scope or location changes
   useEffect(() => {
@@ -951,7 +951,7 @@ const BDOInspectionContent = () => {
       prevCriticalIssuesParams.current = currentParams;
       fetchCriticalIssuesData();
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchCriticalIssuesData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch top performers data when dropdown selection changes
   useEffect(() => {
@@ -969,7 +969,7 @@ const BDOInspectionContent = () => {
       const level = mapRoleToLevel(selectedPerformersFilter1);
       fetchTopPerformersData(level);
     }
-  }, [selectedPerformersFilter1, fetchTopPerformersData]);
+  }, [selectedPerformersFilter1]);
 
   // Effect to fetch Your Inspections data when component mounts (only once)
   useEffect(() => {
@@ -978,7 +978,7 @@ const BDOInspectionContent = () => {
       prevYourInspectionsParams.current = true; // Just mark as initialized
       fetchYourInspectionsData(1);
     }
-  }, [fetchYourInspectionsData]);
+  }, []);
 
   // Effect to fetch performance report data when dropdown selection changes
   useEffect(() => {
@@ -1003,7 +1003,7 @@ const BDOInspectionContent = () => {
       prevPerformanceReportParams.current = currentParams;
       fetchPerformanceReportData(selectedPerformanceReportFilter);
     }
-  }, [selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchPerformanceReportData]);
+  }, [selectedPerformanceReportFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to fetch top performers location data when dropdown selection changes
   useEffect(() => {
@@ -1028,7 +1028,7 @@ const BDOInspectionContent = () => {
       prevPerformersLocationParams.current = currentParams;
       fetchTopPerformersLocationData(selectedPerformersFilter2);
     }
-  }, [selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, fetchTopPerformersLocationData]);
+  }, [selectedPerformersFilter2, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Effect to close dropdowns when clicking outside
   useEffect(() => {
