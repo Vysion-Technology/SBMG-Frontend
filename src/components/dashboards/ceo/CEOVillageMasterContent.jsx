@@ -1074,7 +1074,7 @@ const CEOVillageMasterContent = () => {
           marginTop: '6px',
           display: 'flex',
           overflow: 'hidden',
-          minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+          minWidth: activeScope === 'Blocks' ? '240px' : '480px'
         }}
       >
         {/* CEO: First column is BLOCKS (no districts!) */}

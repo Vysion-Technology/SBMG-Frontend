@@ -39,12 +39,12 @@ const CEOInspectionContent = () => {
     ceoDistrictName,
     loadingCEOData
   } = useCEOLocation();
-  
+
   // CEO always uses their district ID from /me API
   const selectedDistrictId = ceoDistrictId || null;
   const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
-  
+  const setSelectedDistrictForHierarchy = () => { }; // No-op for CEO
+
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -105,7 +105,7 @@ const CEOInspectionContent = () => {
   const topPerformersLocationCallInProgress = useRef(false);
   const yourInspectionsCallInProgress = useRef(false);
   const performanceReportCallInProgress = useRef(false);
-  
+
   // Refs to track previous values and prevent unnecessary API calls
   const prevAnalyticsParams = useRef(null);
   const prevCriticalIssuesParams = useRef(null);
@@ -120,7 +120,7 @@ const CEOInspectionContent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year');
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -132,10 +132,10 @@ const CEOInspectionContent = () => {
     return today.toISOString().split('T')[0];
   });
   const [isCustomRange, setIsCustomRange] = useState(false);
-  
+
   // My Inspections visibility state
   const [showMyInspections, setShowMyInspections] = useState(false);
-  
+
   // Send Notice Modal state
   const [showSendNoticeModal, setShowSendNoticeModal] = useState(false);
   const [selectedNoticeTarget, setSelectedNoticeTarget] = useState(null);
@@ -144,7 +144,7 @@ const CEOInspectionContent = () => {
     kpiName: '',
     kpiFigure: ''
   });
-  
+
   const handleDateKeyDown = (event) => {
     if (event.key !== 'Tab') {
       event.preventDefault();
@@ -226,7 +226,7 @@ const CEOInspectionContent = () => {
   // Effect to fetch initial data
   useEffect(() => {
     if (hasFetchedInitialData.current) return;
-    
+
     if (activeScope === 'State') {
       hasFetchedInitialData.current = true;
     }
@@ -447,7 +447,7 @@ const CEOInspectionContent = () => {
   const handleDateRangeSelection = (range) => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     if (range.value === 'custom') {
       setIsCustomRange(true);
       setSelectedDateRange('Custom');
@@ -457,7 +457,7 @@ const CEOInspectionContent = () => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       // For "Today" and "Yesterday", both start and end dates should be the same
       if (range.value === 'today') {
         // Today: start = today, end = today
@@ -478,7 +478,7 @@ const CEOInspectionContent = () => {
         setStartDate(startStr);
         setEndDate(todayStr);
       }
-      
+
       // Close dropdown after selection
       setShowDateDropdown(false);
     }
@@ -491,7 +491,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Analytics API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       analyticsCallInProgress.current = true;
       setLoadingAnalytics(true);
@@ -540,19 +540,19 @@ const CEOInspectionContent = () => {
       const url = `/inspections/analytics?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Inspection Analytics API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setAnalyticsData(response.data);
-      
+
       console.log('🔄 ===== END INSPECTION ANALYTICS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== INSPECTION ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -560,7 +560,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END INSPECTION ANALYTICS API ERROR =====\n');
-      
+
       setAnalyticsError(error.message || 'Failed to fetch analytics data');
       setAnalyticsData(null);
     } finally {
@@ -576,7 +576,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Critical Issues API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       criticalIssuesCallInProgress.current = true;
       setLoadingCriticalIssues(true);
@@ -620,19 +620,19 @@ const CEOInspectionContent = () => {
       const url = `/inspections/criticals?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Critical Issues API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setCriticalIssuesData(response.data);
-      
+
       console.log('🔄 ===== END CRITICAL ISSUES API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== CRITICAL ISSUES API ERROR =====');
       console.error('Error Type:', error.name);
@@ -640,7 +640,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END CRITICAL ISSUES API ERROR =====\n');
-      
+
       setCriticalIssuesError(error.message || 'Failed to fetch critical issues data');
       setCriticalIssuesData(null);
     } finally {
@@ -656,7 +656,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Top Performers API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       topPerformersCallInProgress.current = true;
       setLoadingTopPerformers(true);
@@ -676,19 +676,19 @@ const CEOInspectionContent = () => {
       const url = `/inspections/top-performers?level=${apiLevel}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Top Performers API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setTopPerformersData(response.data);
-      
+
       console.log('🔄 ===== END TOP PERFORMERS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== TOP PERFORMERS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -696,7 +696,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END TOP PERFORMERS API ERROR =====\n');
-      
+
       setTopPerformersError(error.message || 'Failed to fetch top performers data');
       setTopPerformersData(null);
     } finally {
@@ -712,7 +712,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Your Inspections API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       yourInspectionsCallInProgress.current = true;
       setLoadingYourInspections(true);
@@ -736,21 +736,21 @@ const CEOInspectionContent = () => {
       const url = `/inspections/my?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Your Inspections API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setYourInspectionsData(response.data);
       setCurrentPage(response.data.page || 1);
       setTotalPages(response.data.total_pages || 1);
-      
+
       console.log('🔄 ===== END YOUR INSPECTIONS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== YOUR INSPECTIONS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -758,7 +758,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END YOUR INSPECTIONS API ERROR =====\n');
-      
+
       setYourInspectionsError(error.message || 'Failed to fetch your inspections data');
       setYourInspectionsData(null);
     } finally {
@@ -774,7 +774,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Top Performers Location API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       topPerformersLocationCallInProgress.current = true;
       setLoadingTopPerformersLocation(true);
@@ -821,19 +821,19 @@ const CEOInspectionContent = () => {
       const url = `/inspections/analytics?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Top Performers Location API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setTopPerformersLocationData(response.data);
-      
+
       console.log('🔄 ===== END TOP PERFORMERS LOCATION API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== TOP PERFORMERS LOCATION API ERROR =====');
       console.error('Error Type:', error.name);
@@ -841,7 +841,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END TOP PERFORMERS LOCATION API ERROR =====\n');
-      
+
       setTopPerformersLocationError(error.message || 'Failed to fetch top performers location data');
       setTopPerformersLocationData(null);
     } finally {
@@ -857,7 +857,7 @@ const CEOInspectionContent = () => {
       console.log('⏸️ Performance Report API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       performanceReportCallInProgress.current = true;
       setLoadingPerformanceReport(true);
@@ -913,19 +913,19 @@ const CEOInspectionContent = () => {
       const url = `/inspections/performance-report?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Performance Report API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setPerformanceReportData(response.data);
-      
+
       console.log('🔄 ===== END PERFORMANCE REPORT API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== PERFORMANCE REPORT API ERROR =====');
       console.error('Error Type:', error.name);
@@ -933,7 +933,7 @@ const CEOInspectionContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END PERFORMANCE REPORT API ERROR =====\n');
-      
+
       setPerformanceReportError(error.message || 'Failed to fetch performance report data');
       setPerformanceReportData(null);
     } finally {
@@ -952,15 +952,15 @@ const CEOInspectionContent = () => {
       fetchAnalyticsData();
       return;
     }
-    
-    const hasChanged = 
+
+    const hasChanged =
       prevAnalyticsParams.current.activeScope !== currentParams.activeScope ||
       prevAnalyticsParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
       prevAnalyticsParams.current.selectedBlockId !== currentParams.selectedBlockId ||
       prevAnalyticsParams.current.selectedGPId !== currentParams.selectedGPId ||
       prevAnalyticsParams.current.startDate !== currentParams.startDate ||
       prevAnalyticsParams.current.endDate !== currentParams.endDate;
-    
+
     if (hasChanged) {
       prevAnalyticsParams.current = currentParams;
       fetchAnalyticsData();
@@ -976,15 +976,15 @@ const CEOInspectionContent = () => {
       fetchCriticalIssuesData();
       return;
     }
-    
-    const hasChanged = 
+
+    const hasChanged =
       prevCriticalIssuesParams.current.activeScope !== currentParams.activeScope ||
       prevCriticalIssuesParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
       prevCriticalIssuesParams.current.selectedBlockId !== currentParams.selectedBlockId ||
       prevCriticalIssuesParams.current.selectedGPId !== currentParams.selectedGPId ||
       prevCriticalIssuesParams.current.startDate !== currentParams.startDate ||
       prevCriticalIssuesParams.current.endDate !== currentParams.endDate;
-    
+
     if (hasChanged) {
       prevCriticalIssuesParams.current = currentParams;
       fetchCriticalIssuesData();
@@ -1000,7 +1000,7 @@ const CEOInspectionContent = () => {
       fetchTopPerformersData(level);
       return;
     }
-    
+
     if (prevPerformersFilter1.current !== selectedPerformersFilter1) {
       prevPerformersFilter1.current = selectedPerformersFilter1;
       // Map CEO/BDO/VDO to District/Block/GP for API call
@@ -1027,8 +1027,8 @@ const CEOInspectionContent = () => {
       fetchPerformanceReportData(selectedPerformanceReportFilter);
       return;
     }
-    
-    const hasChanged = 
+
+    const hasChanged =
       prevPerformanceReportParams.current.selectedPerformanceReportFilter !== currentParams.selectedPerformanceReportFilter ||
       prevPerformanceReportParams.current.activeScope !== currentParams.activeScope ||
       prevPerformanceReportParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
@@ -1036,7 +1036,7 @@ const CEOInspectionContent = () => {
       prevPerformanceReportParams.current.selectedGPId !== currentParams.selectedGPId ||
       prevPerformanceReportParams.current.startDate !== currentParams.startDate ||
       prevPerformanceReportParams.current.endDate !== currentParams.endDate;
-    
+
     if (hasChanged) {
       prevPerformanceReportParams.current = currentParams;
       fetchPerformanceReportData(selectedPerformanceReportFilter);
@@ -1052,8 +1052,8 @@ const CEOInspectionContent = () => {
       fetchTopPerformersLocationData(selectedPerformersFilter2);
       return;
     }
-    
-    const hasChanged = 
+
+    const hasChanged =
       prevPerformersLocationParams.current.selectedPerformersFilter2 !== currentParams.selectedPerformersFilter2 ||
       prevPerformersLocationParams.current.activeScope !== currentParams.activeScope ||
       prevPerformersLocationParams.current.selectedDistrictId !== currentParams.selectedDistrictId ||
@@ -1061,7 +1061,7 @@ const CEOInspectionContent = () => {
       prevPerformersLocationParams.current.selectedGPId !== currentParams.selectedGPId ||
       prevPerformersLocationParams.current.startDate !== currentParams.startDate ||
       prevPerformersLocationParams.current.endDate !== currentParams.endDate;
-    
+
     if (hasChanged) {
       prevPerformersLocationParams.current = currentParams;
       fetchTopPerformersLocationData(selectedPerformersFilter2);
@@ -1091,7 +1091,7 @@ const CEOInspectionContent = () => {
     if (analyticsError || !analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return '0%';
     }
-    
+
     const scores = analyticsData.response.map(item => item.average_score || 0);
     const sum = scores.reduce((acc, score) => acc + score, 0);
     const average = scores.length > 0 ? sum / scores.length : 0;
@@ -1103,7 +1103,7 @@ const CEOInspectionContent = () => {
     if (analyticsError || !analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return '0';
     }
-    
+
     // Sum up inspections based on geo_type
     const total = analyticsData.response.reduce((acc, item) => {
       if (analyticsData.geo_type === 'DISTRICT') {
@@ -1113,7 +1113,7 @@ const CEOInspectionContent = () => {
       }
       return acc;
     }, 0);
-    
+
     return total.toLocaleString();
   };
 
@@ -1122,10 +1122,10 @@ const CEOInspectionContent = () => {
     if (analyticsError || !analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return '0/0';
     }
-    
+
     const inspectedGPs = analyticsData.response.reduce((acc, item) => acc + (item.inspected_gps || 0), 0);
     const totalGPs = analyticsData.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
-    
+
     return `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
   };
 
@@ -1135,7 +1135,7 @@ const CEOInspectionContent = () => {
     if (criticalIssuesError || !criticalIssuesData) {
       return '0';
     }
-    
+
     return criticalIssuesData[issueType]?.toLocaleString() || '0';
   };
 
@@ -1145,11 +1145,11 @@ const CEOInspectionContent = () => {
     if (topPerformersError || !topPerformersData || !Array.isArray(topPerformersData) || topPerformersData.length === 0) {
       return [];
     }
-    
+
     // Get the first item from the response array and return its inspectors
     const firstItem = topPerformersData[0];
     const inspectors = firstItem?.inspectors || [];
-    
+
     // Sort by inspections_count (descending), then by name (ascending) for consistency
     // and limit to exactly top 3 performers
     const sortedInspectors = [...inspectors]
@@ -1166,7 +1166,7 @@ const CEOInspectionContent = () => {
         return nameA.localeCompare(nameB);
       })
       .slice(0, 3); // Limit to exactly top 3
-    
+
     return sortedInspectors;
   };
 
@@ -1176,7 +1176,7 @@ const CEOInspectionContent = () => {
     if (topPerformersLocationError || !topPerformersLocationData || !topPerformersLocationData.response) {
       return [];
     }
-    
+
     // Get response array, sort by average_score (descending), then by name (ascending) for consistency
     // and limit to exactly top 3 performers
     const sortedData = [...topPerformersLocationData.response]
@@ -1193,7 +1193,7 @@ const CEOInspectionContent = () => {
         return nameA.localeCompare(nameB);
       })
       .slice(0, 3); // Limit to exactly top 3
-    
+
     return sortedData;
   };
 
@@ -1203,7 +1203,7 @@ const CEOInspectionContent = () => {
     if (yourInspectionsError || !yourInspectionsData || !yourInspectionsData.items) {
       return [];
     }
-    
+
     return yourInspectionsData.items || [];
   };
 
@@ -1213,7 +1213,7 @@ const CEOInspectionContent = () => {
     if (performanceReportError || !performanceReportData || !performanceReportData.line_items) {
       return [];
     }
-    
+
     return performanceReportData.line_items || [];
   };
 
@@ -1313,19 +1313,19 @@ const CEOInspectionContent = () => {
   const handleDownloadPDF = useCallback(async (inspection) => {
     try {
       console.log('📥 Downloading PDF for inspection:', inspection);
-      
+
       // Get inspection_id
       const inspectionId = inspection.id || 1;
-      
+
       // Fetch inspection data
       const response = await apiClient.get(`/inspections/${inspectionId}`);
       const inspectionData = response.data;
-      
+
       console.log('✅ Inspection data fetched:', inspectionData);
-      
+
       // Generate PDF
       generatePDF(inspectionData);
-      
+
     } catch (error) {
       console.error('❌ Error downloading PDF:', error);
       alert('Failed to download PDF. Please try again.');
@@ -1336,18 +1336,18 @@ const CEOInspectionContent = () => {
   const generatePDF = (data) => {
     // Helper function to format boolean values
     const formatBoolean = (value) => value ? 'Yes' : 'No';
-    
+
     // Get visibly_clean value - check both top-level and nested locations
-    const visiblyClean = data.visibly_clean !== undefined ? data.visibly_clean : 
-                         (data.other_items && data.other_items.village_visibly_clean !== undefined ? data.other_items.village_visibly_clean : null);
-    
+    const visiblyClean = data.visibly_clean !== undefined ? data.visibly_clean :
+      (data.other_items && data.other_items.village_visibly_clean !== undefined ? data.other_items.village_visibly_clean : null);
+
     // Get comments - check multiple possible field names
     const comments = data.comments || data.comment || data.inspector_comments || '';
-    
+
     // Get photos/images - check multiple possible field names and structures
     const photos = data.photos || data.images || data.attachments || data.photo_urls || [];
     const photosArray = Array.isArray(photos) ? photos : (photos ? [photos] : []);
-    
+
     // Create a formatted HTML content for the PDF
     const htmlContent = `
       <!DOCTYPE html>
@@ -1498,17 +1498,17 @@ const CEOInspectionContent = () => {
           <h2>Photos</h2>
           <div class="photos-section">
             ${photosArray.map((photo, index) => {
-              // Handle different photo data structures
-              const photoUrl = typeof photo === 'string' ? photo : (photo.url || photo.path || photo.image_url || photo);
-              const photoCaption = typeof photo === 'object' && photo.caption ? photo.caption : 
-                                 (typeof photo === 'object' && photo.description ? photo.description : `Photo ${index + 1}`);
-              return `
+      // Handle different photo data structures
+      const photoUrl = typeof photo === 'string' ? photo : (photo.url || photo.path || photo.image_url || photo);
+      const photoCaption = typeof photo === 'object' && photo.caption ? photo.caption :
+        (typeof photo === 'object' && photo.description ? photo.description : `Photo ${index + 1}`);
+      return `
                 <div class="photo-item">
                   <img src="${photoUrl}" alt="${photoCaption}" onerror="this.style.display='none'; this.nextElementSibling.innerHTML='Image not available';" />
                   <div class="photo-caption">${photoCaption}</div>
                 </div>
               `;
-            }).join('')}
+    }).join('')}
           </div>
         </div>
         ` : ''}
@@ -1524,11 +1524,11 @@ const CEOInspectionContent = () => {
     const printWindow = window.open('', '_blank');
     printWindow.document.write(htmlContent);
     printWindow.document.close();
-    
+
     // Wait for content to load, then trigger print dialog
     printWindow.onload = () => {
       printWindow.print();
-      
+
       // Close the window after printing (optional)
       // printWindow.onafterprint = () => printWindow.close();
     };
@@ -1560,25 +1560,25 @@ const CEOInspectionContent = () => {
     }
 
     const data = analyticsData.response;
-    
+
     // Calculate state average from coverage_percentage
     const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
     const stateAverage = data.length > 0 ? totalCoverage / data.length : 0;
-    
+
     // Extract categories (geography names)
     const categories = data.map(item => item.geography_name || 'N/A');
-    
+
     // Split data into above and below average
     const belowAverage = data.map(item => {
       const coverage = item.coverage_percentage || 0;
       return coverage < stateAverage ? coverage : 0;
     });
-    
+
     const aboveAverage = data.map(item => {
       const coverage = item.coverage_percentage || 0;
       return coverage >= stateAverage ? coverage : 0;
     });
-    
+
     return {
       categories,
       belowAverage,
@@ -1623,7 +1623,7 @@ const CEOInspectionContent = () => {
 
   // Chart data for State Performance Score - Dynamic based on analyticsData
   const chartData = getChartData();
-  
+
   const chartOptions = {
     chart: {
       type: 'bar',
@@ -1693,9 +1693,9 @@ const CEOInspectionContent = () => {
           borderWidth: 2,
           strokeDashArray: 5,
           label: {
-            text: activeScope === 'State' ? 'District Average' : 
-                  activeScope === 'Districts' ? 'Block Average' : 
-                  activeScope === 'Blocks' ? 'GP Average' : 
+            text: activeScope === 'State' ? 'District Average' :
+              activeScope === 'Districts' ? 'Block Average' :
+                activeScope === 'Blocks' ? 'GP Average' :
                   'Village Average',
             style: {
               color: '#6b7280',
@@ -1708,18 +1708,18 @@ const CEOInspectionContent = () => {
     }
   };
 
-  const averageLabel = activeScope === 'State' ? 'district average' : 
-                        activeScope === 'Districts' ? 'block average' : 
-                        activeScope === 'Blocks' ? 'GP average' : 
-                        'village average';
-  
+  const averageLabel = activeScope === 'State' ? 'district average' :
+    activeScope === 'Districts' ? 'block average' :
+      activeScope === 'Blocks' ? 'GP average' :
+        'village average';
+
   const chartSeries = [
     {
       name: `Below ${averageLabel}`,
       data: chartData.belowAverage
     },
     {
-      name: `Above ${averageLabel}`, 
+      name: `Above ${averageLabel}`,
       data: chartData.aboveAverage
     }
   ];
@@ -1787,7 +1787,7 @@ const CEOInspectionContent = () => {
             position: 'relative',
             minWidth: '200px'
           }}>
-            <button 
+            <button
               onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
               disabled={activeScope === 'State'}
               style={{
@@ -1809,13 +1809,13 @@ const CEOInspectionContent = () => {
                 <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                 <span>{selectedLocation}</span>
               </div>
-              <ChevronDown style={{ 
-                width: '16px', 
-                height: '16px', 
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af' 
+              <ChevronDown style={{
+                width: '16px',
+                height: '16px',
+                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
               }} />
             </button>
-            
+
             {/* Location Dropdown Menu */}
             {showLocationDropdown && activeScope !== 'State' && (
               <div
@@ -1833,47 +1833,47 @@ const CEOInspectionContent = () => {
                   marginTop: '6px',
                   display: 'flex',
                   overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
+                  minWidth: activeScope === 'Blocks' ? '240px' : '480px'
                 }}
               >
                 {/* CEO: First column is BLOCKS (no districts!) */}
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
-                    {loadingBlocks ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading blocks...
-                      </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No blocks found
-                      </div>
-                    ) : (
-                      blocksForActiveDistrict.map((block) => {
-                        const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                        const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                        const showArrow = activeScope === 'GPs';
-                        return (
-                          <div
-                            key={`block-${block.id}`}
-                            onClick={() => handleBlockClick(block)}
-                            onMouseEnter={() => handleBlockHover(block)}
-                            style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                          >
-                            <span>{block.name}</span>
-                            {showArrow && (
-                              <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                <div
+                  style={{
+                    minWidth: '240px',
+                    maxHeight: '280px',
+                    overflowY: 'auto',
+                    borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
+                  }}
+                >
+                  {loadingBlocks ? (
+                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                      Loading blocks...
+                    </div>
+                  ) : blocksForActiveDistrict.length === 0 ? (
+                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                      No blocks found
+                    </div>
+                  ) : (
+                    blocksForActiveDistrict.map((block) => {
+                      const isActiveBlock = activeHierarchyBlock?.id === block.id;
+                      const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
+                      const showArrow = activeScope === 'GPs';
+                      return (
+                        <div
+                          key={`block-${block.id}`}
+                          onClick={() => handleBlockClick(block)}
+                          onMouseEnter={() => handleBlockHover(block)}
+                          style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
+                        >
+                          <span>{block.name}</span>
+                          {showArrow && (
+                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
 
                 {activeScope === 'GPs' && (
                   <div
@@ -1917,361 +1917,361 @@ const CEOInspectionContent = () => {
         </div>
       </div>
 
-   {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
-   {activeScope !== 'GPs' && (
-   !showMyInspections ? (
-   <div style={{
-        padding: '10px 16px 0px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
-            } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
-            }
-            return `Rajasthan / ${selectedLocation}`;
-          })()}
-        </span>
-        
-        {/* My Inspections Button */}
-        <button
-          onClick={() => setShowMyInspections(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '20px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
-          }}
-        >
-          My inspections ({yourInspectionsData?.total || '0'})
-        </button>
-      </div>
-   ) : (
-   <div style={{
-        padding: '10px 16px 0px 16px',
-      }}>
-        <button
-          onClick={() => setShowMyInspections(false)}
-          style={{
+      {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
+      {activeScope !== 'GPs' && (
+        !showMyInspections ? (
+          <div style={{
+            padding: '10px 16px 0px 16px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            fontSize: '16px',
-            color: '#374151',
-            cursor: 'pointer',
-            fontWeight: '500'
-          }}
-        >
-          <ChevronRight style={{ width: '18px', height: '18px', transform: 'rotate(180deg)' }} />
-          Back
-        </button>
-      </div>
-   )
-   )}
+            justifyContent: 'space-between'
+          }}>
+            <span style={{
+              fontSize: '14px',
+              color: '#6B7280',
+              fontWeight: '600'
+            }}>
+              {(() => {
+                if (activeScope === 'State') {
+                  return selectedLocation;
+                } else if (activeScope === 'Districts') {
+                  return `Rajasthan / ${selectedLocation}`;
+                } else if (activeScope === 'Blocks') {
+                  const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
+                  return `Rajasthan / ${districtName} / ${selectedLocation}`;
+                } else if (activeScope === 'GPs') {
+                  const districtName = selectedDistrictForHierarchy?.name || '';
+                  const blockName = selectedBlockForHierarchy?.name || '';
+                  return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
+                }
+                return `Rajasthan / ${selectedLocation}`;
+              })()}
+            </span>
+
+            {/* My Inspections Button */}
+            <button
+              onClick={() => setShowMyInspections(true)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+              }}
+            >
+              My inspections ({yourInspectionsData?.total || '0'})
+            </button>
+          </div>
+        ) : (
+          <div style={{
+            padding: '10px 16px 0px 16px',
+          }}>
+            <button
+              onClick={() => setShowMyInspections(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '16px',
+                color: '#374151',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }}
+            >
+              <ChevronRight style={{ width: '18px', height: '18px', transform: 'rotate(180deg)' }} />
+              Back
+            </button>
+          </div>
+        )
+      )}
 
       {/* Overview Section - Hide when My Inspections is active (except in GP view) */}
       {(!showMyInspections || activeScope === 'GPs') && (
-      <div style={{
-        backgroundColor: 'white',
-        padding: '24px',
-        marginLeft: '16px',
-        marginRight: '16px',
-        marginTop: '6px',
-        borderRadius: '8px',
-        border: '1px solid lightgray'
-      }}>
-        {/* Overview Header */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px'
+          backgroundColor: 'white',
+          padding: '24px',
+          marginLeft: '16px',
+          marginRight: '16px',
+          marginTop: '6px',
+          borderRadius: '8px',
+          border: '1px solid lightgray'
         }}>
+          {/* Overview Header */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'space-between',
+            marginBottom: '24px'
           }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
-            }}>
-              Overview
-            </h2>
-            <span style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: 0
-            }}>
-              • {getDateDisplayText()}
-            </span>
-          </div>
-          <div 
-            onClick={handleCalendarClick}
-            data-date-dropdown
-            style={{
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              color: '#6b7280',
-              fontSize: '14px',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Calendar style={{ width: '16px', height: '16px' }} />
-            <span>{getDateDisplayText()}</span>
-            <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
-            {/* Modern Date Range Picker */}
-            {showDateDropdown && (
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: '0',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '8px',
-                  width: '600px',
-                  maxWidth: '90vw',
-                  display: 'flex',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Left Sidebar - Predefined Ranges */}
-                <div style={{
-                  width: '200px',
-                  backgroundColor: '#f8fafc',
-                  borderRight: '1px solid #e2e8f0',
-                  padding: '16px 0'
-                }}>
-                  <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
-                    }}>
-                      Quick Select
-                    </h3>
+              gap: '8px'
+            }}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                Overview
+              </h2>
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                • {getDateDisplayText()}
+              </span>
+            </div>
+            <div
+              onClick={handleCalendarClick}
+              data-date-dropdown
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#6b7280',
+                fontSize: '14px',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'all 0.2s'
+              }}
+            >
+              <Calendar style={{ width: '16px', height: '16px' }} />
+              <span>{getDateDisplayText()}</span>
+              <ChevronDown style={{ width: '16px', height: '16px' }} />
+
+              {/* Modern Date Range Picker */}
+              {showDateDropdown && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: '0',
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    zIndex: 1000,
+                    marginTop: '8px',
+                    width: '600px',
+                    maxWidth: '90vw',
+                    display: 'flex',
+                    overflow: 'hidden'
+                  }}
+                >
+                  {/* Left Sidebar - Predefined Ranges */}
+                  <div style={{
+                    width: '200px',
+                    backgroundColor: '#f8fafc',
+                    borderRight: '1px solid #e2e8f0',
+                    padding: '16px 0'
+                  }}>
+                    <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
+                      }}>
+                        Quick Select
+                      </h3>
+                    </div>
+
+                    {dateRanges.map((range, index) => (
+                      <div
+                        key={range.value}
+                        onClick={() => handleDateRangeSelection(range)}
+                        style={{
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          color: range.value === 'custom' ? '#10b981' : '#475569',
+                          backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
+                          borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {range.label}
+                      </div>
+                    ))}
                   </div>
 
-                  {dateRanges.map((range, index) => (
-                    <div
-                      key={range.value}
-                      onClick={() => handleDateRangeSelection(range)}
-                      style={{
-                        padding: '12px 16px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: range.value === 'custom' ? '#10b981' : '#475569',
-                        backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
-                        borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {range.label}
-                    </div>
-                  ))}
-                </div>
+                  {/* Right Side - Calendar View */}
+                  <div style={{
+                    flex: 1,
+                    padding: '16px',
+                    minHeight: '300px'
+                  }}>
+                    {isCustomRange ? (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          Select Date Range
+                        </h3>
 
-                {/* Right Side - Calendar View */}
-                <div style={{
-                  flex: 1,
-                  padding: '16px',
-                  minHeight: '300px'
-                }}>
-                  {isCustomRange ? (
-                    <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Select Date Range
-                      </h3>
-                      
-                      {/* Custom Date Inputs */}
-                      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            Start Date
-                          </label>
-                          <input
-                            type="date"
-                            value={startDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            style={{
-                              padding: '8px 12px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              fontSize: '14px',
-                              width: '140px'
-                            }}
-                          />
+                        {/* Custom Date Inputs */}
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              Start Date
+                            </label>
+                            <input
+                              type="date"
+                              value={startDate || ''}
+                              onKeyDown={handleDateKeyDown}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              End Date
+                            </label>
+                            <input
+                              type="date"
+                              value={endDate || ''}
+                              onKeyDown={handleDateKeyDown}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            End Date
-                          </label>
-                          <input
-                            type="date"
-                            value={endDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setEndDate(e.target.value)}
+
+                        {/* Action Buttons */}
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          justifyContent: 'flex-end'
+                        }}>
+                          <button
+                            onClick={() => {
+                              const today = new Date();
+                              const todayStr = today.toISOString().split('T')[0];
+                              setStartDate(todayStr);
+                              setEndDate(todayStr);
+                              setIsCustomRange(false);
+                              setSelectedDateRange('Today');
+                            }}
                             style={{
-                              padding: '8px 12px',
+                              padding: '8px 16px',
                               border: '1px solid #d1d5db',
                               borderRadius: '6px',
+                              backgroundColor: '#f9fafb',
+                              color: '#6b7280',
                               fontSize: '14px',
-                              width: '140px'
+                              cursor: 'pointer'
                             }}
-                          />
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            onClick={() => setShowDateDropdown(false)}
+                            disabled={!startDate || !endDate}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              cursor: startDate && endDate ? 'pointer' : 'not-allowed'
+                            }}
+                          >
+                            Apply
+                          </button>
                         </div>
                       </div>
+                    ) : (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          Selected Range
+                        </h3>
 
-                      {/* Action Buttons */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '8px', 
-                        justifyContent: 'flex-end'
-                      }}>
-                        <button
-                          onClick={() => {
-                            const today = new Date();
-                            const todayStr = today.toISOString().split('T')[0];
-                            setStartDate(todayStr);
-                            setEndDate(todayStr);
-                            setIsCustomRange(false);
-                            setSelectedDateRange('Today');
-                          }}
-                          style={{
-                            padding: '8px 16px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            backgroundColor: '#f9fafb',
-                            color: '#6b7280',
-                            fontSize: '14px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        
+                        <div style={{
+                          padding: '12px',
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '6px',
+                          marginBottom: '16px'
+                        }}>
+                          <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
+                            {selectedDateRange}
+                          </div>
+                          {startDate && endDate && (
+                            <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                              {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+
                         <button
                           onClick={() => setShowDateDropdown(false)}
-                          disabled={!startDate || !endDate}
                           style={{
                             padding: '8px 16px',
-                            backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
+                            backgroundColor: '#10b981',
                             color: 'white',
                             border: 'none',
                             borderRadius: '6px',
                             fontSize: '14px',
-                            cursor: startDate && endDate ? 'pointer' : 'not-allowed'
+                            cursor: 'pointer'
                           }}
                         >
                           Apply
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Selected Range
-                      </h3>
-                      
-                      <div style={{
-                        padding: '12px',
-                        backgroundColor: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '6px',
-                        marginBottom: '16px'
-                      }}>
-                        <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-                          {selectedDateRange}
-                        </div>
-                        {startDate && endDate && (
-                          <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
-                            {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={() => setShowDateDropdown(false)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '14px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
 
           {/* KPI Cards */}
           <div style={{
@@ -2385,139 +2385,139 @@ const CEOInspectionContent = () => {
 
           {/* State Performance Score Chart - Hidden in GP view */}
           {activeScope !== 'GPs' && (
-          <div style={{
-            backgroundColor: 'white',
-            padding: '12px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb'
-          }}>
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '4px'
+              backgroundColor: 'white',
+              padding: '12px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb'
             }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                {activeScope === 'State' ? 'District performance score' : 
-                 activeScope === 'Districts' ? 'Block performance score' : 
-                 activeScope === 'Blocks' ? 'GP performance score' : 
-                 'Village performance score'}
-              </h3>
-              
-              {/* Legend */}
               <div style={{
                 display: 'flex',
-                  gap: '6px'
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '4px'
+              }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
                 }}>
+                  {activeScope === 'State' ? 'District performance score' :
+                    activeScope === 'Districts' ? 'Block performance score' :
+                      activeScope === 'Blocks' ? 'GP performance score' :
+                        'Village performance score'}
+                </h3>
+
+                {/* Legend */}
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
                   gap: '6px'
                 }}>
                   <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ef4444'
-                  }}></div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                    Below {activeScope === 'State' ? 'district average' : 
-                           activeScope === 'Districts' ? 'block average' : 
-                           activeScope === 'Blocks' ? 'GP average' : 
-                           'village average'}
-                  </span>
-                </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px'
-                }}>
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: '#ef4444'
+                    }}></div>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Below {activeScope === 'State' ? 'district average' :
+                        activeScope === 'Districts' ? 'block average' :
+                          activeScope === 'Blocks' ? 'GP average' :
+                            'village average'}
+                    </span>
+                  </div>
                   <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: '#10b981'
-                  }}></div>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                    Above {activeScope === 'State' ? 'district average' : 
-                           activeScope === 'Districts' ? 'block average' : 
-                           activeScope === 'Blocks' ? 'GP average' : 
-                           'village average'}
-                  </span>
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <div style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: '#10b981'
+                    }}></div>
+                    <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Above {activeScope === 'State' ? 'district average' :
+                        activeScope === 'Districts' ? 'block average' :
+                          activeScope === 'Blocks' ? 'GP average' :
+                            'village average'}
+                    </span>
+                  </div>
                 </div>
               </div>
+              <divider />
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '12px 0'
+              }}></div>
+
+              {/* Loading State */}
+              {loadingAnalytics && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '300px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  Loading chart data...
+                </div>
+              )}
+
+              {/* Error State */}
+              {analyticsError && !loadingAnalytics && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '300px',
+                  color: '#ef4444',
+                  fontSize: '14px'
+                }}>
+                  Error loading chart data
+                </div>
+              )}
+
+              {/* Chart */}
+              {!loadingAnalytics && !analyticsError && chartData.categories.length > 0 && (
+                <Chart
+                  options={chartOptions}
+                  series={chartSeries}
+                  type="bar"
+                  height={300}
+                  width="100%"
+                />
+              )}
+
+              {/* Empty State */}
+              {!loadingAnalytics && !analyticsError && chartData.categories.length === 0 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  height: '300px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  No data available for chart
+                </div>
+              )}
             </div>
-            <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
-            
-            {/* Loading State */}
-            {loadingAnalytics && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '300px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading chart data...
-              </div>
-            )}
-            
-            {/* Error State */}
-            {analyticsError && !loadingAnalytics && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '300px',
-                color: '#ef4444',
-                fontSize: '14px'
-              }}>
-                Error loading chart data
-              </div>
-            )}
-            
-            {/* Chart */}
-            {!loadingAnalytics && !analyticsError && chartData.categories.length > 0 && (
-              <Chart
-                options={chartOptions}
-                series={chartSeries}
-                type="bar"
-                height={300}
-                width="100%"
-              />
-            )}
-            
-            {/* Empty State */}
-            {!loadingAnalytics && !analyticsError && chartData.categories.length === 0 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                height: '300px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                No data available for chart
-              </div>
-            )}
-          </div>
           )}
         </div>
       )}
 
-        {/* Bottom Sections - Critical Issues and Top Performers - Hidden in GP view */}
-        {!showMyInspections && activeScope !== 'GPs' && (
+      {/* Bottom Sections - Critical Issues and Top Performers - Hidden in GP view */}
+      {!showMyInspections && activeScope !== 'GPs' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -2541,7 +2541,7 @@ const CEOInspectionContent = () => {
             }}>
               Top Critical Issues
             </h3>
-            
+
             <divider />
             <div style={{
               height: '1px',
@@ -2570,76 +2570,76 @@ const CEOInspectionContent = () => {
 
             {/* Data State */}
             {!loadingCriticalIssues && !criticalIssuesError && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-              {/* Issue 1 */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 12px',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <span style={{ fontSize: '16px', color: '#374151' }}>No Safety Equipment</span>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {getCriticalIssuesCount('no_safety_equipment')}
-                </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {/* Issue 1 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 12px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#374151' }}>No Safety Equipment</span>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {getCriticalIssuesCount('no_safety_equipment')}
+                  </span>
+                </div>
+
+                {/* Issue 2 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 12px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>CSC without water/Elec.</span>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {getCriticalIssuesCount('csc_wo_water_or_electricity')}
+                  </span>
+                </div>
+
+                {/* Issue 3 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 12px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#374151' }}>Firm Not Paid</span>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {getCriticalIssuesCount('firm_not_paid')}
+                  </span>
+                </div>
+
+                {/* Issue 4 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 12px',
+                  borderBottom: '1px solid #f3f4f6'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Staff Not Paid</span>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {getCriticalIssuesCount('staff_not_paid')}
+                  </span>
+                </div>
+
+                {/* Issue 5 */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 12px'
+                }}>
+                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Visibly Not Clean</span>
+                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                    {getCriticalIssuesCount('visibly_unclean_village')}
+                  </span>
+                </div>
               </div>
-              
-              {/* Issue 2 */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 12px',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>CSC without water/Elec.</span>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {getCriticalIssuesCount('csc_wo_water_or_electricity')}
-                </span>
-              </div>
-              
-              {/* Issue 3 */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 12px',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <span style={{ fontSize: '16px', color: '#374151' }}>Firm Not Paid</span>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {getCriticalIssuesCount('firm_not_paid')}
-                </span>
-              </div>
-              
-              {/* Issue 4 */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 12px',
-                borderBottom: '1px solid #f3f4f6'
-              }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Staff Not Paid</span>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {getCriticalIssuesCount('staff_not_paid')}
-                </span>
-              </div>
-              
-              {/* Issue 5 */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '12px 12px'
-              }}>
-                <span style={{ fontSize: '16px', color: '#6b7280' }}>Visibly Not Clean</span>
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                  {getCriticalIssuesCount('visibly_unclean_village')}
-                </span>
-              </div>
-            </div>
             )}
           </div>
 
@@ -2666,9 +2666,9 @@ const CEOInspectionContent = () => {
               }}>
                 Top 3 Performers(Officers)
               </h3>
-              
+
               {/* Dropdown */}
-              <div 
+              <div
                 data-dropdown
                 style={{
                   position: 'relative',
@@ -2684,7 +2684,7 @@ const CEOInspectionContent = () => {
                 onClick={handlePerformersDropdown1Click}>
                 <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter1}</span>
                 <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-                
+
                 {/* Dropdown Menu */}
                 {showPerformersDropdown1 && (
                   <div style={{
@@ -2722,7 +2722,7 @@ const CEOInspectionContent = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Table Header */}
             <div style={{
               display: 'grid',
@@ -2742,7 +2742,7 @@ const CEOInspectionContent = () => {
               <div>Location</div>
               <div>Inspections</div>
             </div>
-            
+
             {/* Loading State */}
             {loadingTopPerformers && (
               <div style={{
@@ -2766,7 +2766,7 @@ const CEOInspectionContent = () => {
             {!loadingTopPerformers && !topPerformersError && getTopPerformers().map((performer, index) => {
               const rankImages = [number1, number2, number3];
               const rankImage = rankImages[index] || number3;
-              
+
               return (
                 <div key={performer.geo_id || index} style={{
                   display: 'grid',
@@ -2777,14 +2777,14 @@ const CEOInspectionContent = () => {
                   borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
-                    <img 
-                      src={rankImage} 
-                      alt={`Rank ${index + 1}`} 
-                      style={{ 
-                        width: '52px', 
+                    <img
+                      src={rankImage}
+                      alt={`Rank ${index + 1}`}
+                      style={{
+                        width: '52px',
                         height: '52px',
                         objectFit: 'contain'
-                      }} 
+                      }}
                     />
                   </div>
                   <div style={{ fontSize: '14px', color: '#374151' }}>{performer.inspector_name || 'N/A'}</div>
@@ -2795,10 +2795,10 @@ const CEOInspectionContent = () => {
             })}
           </div>
         </div>
-        )}
+      )}
 
-        {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
-        {!showMyInspections && activeScope !== 'GPs' && (
+      {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
+      {!showMyInspections && activeScope !== 'GPs' && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 2fr',
@@ -2828,9 +2828,9 @@ const CEOInspectionContent = () => {
               }}>
                 Top 3 Performers(Locations)
               </h3>
-              
+
               {/* District Dropdown */}
-              <div 
+              <div
                 data-dropdown
                 style={{
                   position: 'relative',
@@ -2846,7 +2846,7 @@ const CEOInspectionContent = () => {
                 onClick={handlePerformersDropdown2Click}>
                 <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter2}</span>
                 <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-                
+
                 {/* Dropdown Menu */}
                 {showPerformersDropdown2 && (
                   <div style={{
@@ -2884,7 +2884,7 @@ const CEOInspectionContent = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Table Header */}
             <div style={{
               display: 'grid',
@@ -2903,7 +2903,7 @@ const CEOInspectionContent = () => {
               <div>{selectedPerformersFilter2}</div>
               <div>Score</div>
             </div>
-            
+
             {/* Loading State */}
             {loadingTopPerformersLocation && (
               <div style={{
@@ -2927,7 +2927,7 @@ const CEOInspectionContent = () => {
             {!loadingTopPerformersLocation && !topPerformersLocationError && getTopPerformersLocation().map((performer, index) => {
               const rankImages = [number1, number2, number3];
               const rankImage = rankImages[index] || number3;
-              
+
               return (
                 <div key={performer.geography_id || index} style={{
                   display: 'grid',
@@ -2938,14 +2938,14 @@ const CEOInspectionContent = () => {
                   borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
-                    <img 
-                      src={rankImage} 
-                      alt={`Rank ${index + 1}`} 
-                      style={{ 
-                        width: '50px', 
+                    <img
+                      src={rankImage}
+                      alt={`Rank ${index + 1}`}
+                      style={{
+                        width: '50px',
                         height: '50px',
                         objectFit: 'contain'
-                      }} 
+                      }}
                     />
                   </div>
                   <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geography_name || 'N/A'}</div>
@@ -2980,9 +2980,9 @@ const CEOInspectionContent = () => {
               }}>
                 Performance report
               </h3>
-              
+
               {/* District Dropdown */}
-              <div 
+              <div
                 data-dropdown
                 style={{
                   position: 'relative',
@@ -2998,7 +2998,7 @@ const CEOInspectionContent = () => {
                 onClick={handlePerformanceReportDropdownClick}>
                 <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformanceReportFilter}</span>
                 <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-                
+
                 {/* Dropdown Menu */}
                 {showPerformanceReportDropdown && (
                   <div style={{
@@ -3036,7 +3036,7 @@ const CEOInspectionContent = () => {
                 )}
               </div>
             </div>
-            
+
             {/* Table Header with Sort Icons */}
             <div style={{
               display: 'grid',
@@ -3068,7 +3068,7 @@ const CEOInspectionContent = () => {
               </div>
               <div></div>
             </div>
-            
+
             {/* Loading State */}
             {loadingPerformanceReport && (
               <div style={{
@@ -3090,178 +3090,178 @@ const CEOInspectionContent = () => {
 
             {/* Performance Data Rows - From API */}
             {!loadingPerformanceReport && !performanceReportError && (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {getPerformanceReportItems().map((item, index) => (
-                <div key={item.geo_id || index} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 100px 120px',
-                  gap: '1px',
-                  padding: '12px',
-                  alignItems: 'center',
-                  borderBottom: index < getPerformanceReportItems().length - 1 ? '1px solid #f3f4f6' : 'none'
-                }}>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>
-                    {item.geo_name || 'N/A'}
+              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                {getPerformanceReportItems().map((item, index) => (
+                  <div key={item.geo_id || index} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 100px 120px',
+                    gap: '1px',
+                    padding: '12px',
+                    alignItems: 'center',
+                    borderBottom: index < getPerformanceReportItems().length - 1 ? '1px solid #f3f4f6' : 'none'
+                  }}>
+                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                      {item.geo_name || 'N/A'}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                      {item.coverage_percentage ? `${item.coverage_percentage.toFixed(0)}%` : '0%'}
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => handleOpenNoticeModal(item, selectedPerformanceReportFilter)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#f3f4f6',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap'
+                        }}
+                      >
+                        Send notice
+                      </button>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>
-                    {item.coverage_percentage ? `${item.coverage_percentage.toFixed(0)}%` : '0%'}
+                ))}
+
+                {/* Empty State */}
+                {getPerformanceReportItems().length === 0 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '40px 20px',
+                    color: '#6b7280',
+                    fontSize: '14px'
+                  }}>
+                    No performance data available
                   </div>
-                  <div>
-                    <button
-                      onClick={() => handleOpenNoticeModal(item, selectedPerformanceReportFilter)}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        color: '#374151',
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      Send notice
-                    </button>
-                  </div>
-                </div>
-              ))}
-              
-              {/* Empty State */}
-              {getPerformanceReportItems().length === 0 && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '40px 20px',
-                  color: '#6b7280',
-                  fontSize: '14px'
-                }}>
-                  No performance data available
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             )}
           </div>
         </div>
-        )}
+      )}
 
-        {/* Your Inspections Table - Always visible at bottom */}
+      {/* Your Inspections Table - Always visible at bottom */}
+      <div style={{
+        marginTop: '16px',
+        marginLeft: '16px',
+        marginRight: '16px',
+      }}>
         <div style={{
-          marginTop: '16px',
-          marginLeft: '16px',
-          marginRight: '16px',
+          backgroundColor: 'white',
+          padding: '20px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
         }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          {/* Header */}
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#111827',
+            margin: '0 0 20px 0'
           }}>
-            {/* Header */}
-            <h3 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: '0 0 20px 0'
-            }}>
-              {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
-            </h3>
-            
-            {/* Table Header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: activeScope === 'GPs' 
-                ? '120px 120px 1.5fr 120px 120px 220px'
-                : '120px 1.5fr 1.5fr 120px 120px 220px',
-              gap: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Date
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
+            {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
+          </h3>
+
+          {/* Table Header */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: activeScope === 'GPs'
+              ? '120px 120px 1.5fr 120px 120px 220px'
+              : '120px 1.5fr 1.5fr 120px 120px 220px',
+            gap: '16px',
+            padding: '12px 16px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            marginBottom: '8px',
+            fontSize: '12px',
+            fontWeight: '600',
+            color: '#6b7280',
+            textTransform: 'uppercase'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Date
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
               </div>
-              {activeScope === 'GPs' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Inspection by
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                  </div>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Village Name
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  GP Name
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                  </div>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Cleaning Score
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Visibly Clean
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div>Action</div>
             </div>
-            
-            {/* Loading State */}
-            {loadingYourInspections && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading your inspections...
+            {activeScope === 'GPs' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Inspection by
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                </div>
               </div>
             )}
-
-            {/* Error State */}
-            {yourInspectionsError && !loadingYourInspections && (
-              <NoDataFound size="small" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Village Name
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+              </div>
+            </div>
+            {activeScope !== 'GPs' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                GP Name
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                </div>
+              </div>
             )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Cleaning Score
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              Visibly Clean
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+              </div>
+            </div>
+            <div>Action</div>
+          </div>
 
-            {/* Data State */}
-            {!loadingYourInspections && !yourInspectionsError && (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {getYourInspections().length === 0 ? (
-                  <NoDataFound size="small" />
-                ) : (
-                  getYourInspections().map((inspection, index) => (
+          {/* Loading State */}
+          {loadingYourInspections && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '40px 20px',
+              color: '#6b7280',
+              fontSize: '14px'
+            }}>
+              Loading your inspections...
+            </div>
+          )}
+
+          {/* Error State */}
+          {yourInspectionsError && !loadingYourInspections && (
+            <NoDataFound size="small" />
+          )}
+
+          {/* Data State */}
+          {!loadingYourInspections && !yourInspectionsError && (
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              {getYourInspections().length === 0 ? (
+                <NoDataFound size="small" />
+              ) : (
+                getYourInspections().map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
-                    gridTemplateColumns: activeScope === 'GPs' 
+                    gridTemplateColumns: activeScope === 'GPs'
                       ? '120px 120px 1.5fr 120px 120px 220px'
                       : '120px 1.5fr 1.5fr 120px 120px 220px',
                     gap: '16px',
@@ -3288,17 +3288,17 @@ const CEOInspectionContent = () => {
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
                       {inspection.overall_score || 0}%
                     </div>
-                    <div style={{ 
-                      fontSize: '14px', 
+                    <div style={{
+                      fontSize: '14px',
                       fontWeight: '600',
                       color: inspection.visibly_clean ? '#10b981' : '#ef4444'
                     }}>
                       {inspection.visibly_clean ? 'Yes' : 'No'}
                     </div>
-                    <div style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      gap: '8px' 
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
                     }}>
                       <button
                         onClick={() => handleOpenNoticeModalFromInspection(inspection)}
@@ -3334,60 +3334,60 @@ const CEOInspectionContent = () => {
                       </button>
                     </div>
                   </div>
-                  ))
-                )}
-                
-                {/* Pagination */}
-                {getYourInspections().length > 0 && totalPages > 1 && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '20px',
-                    borderTop: '1px solid #f3f4f6'
-                  }}>
-                    <button
-                      onClick={() => fetchYourInspectionsData(currentPage - 1)}
-                      disabled={currentPage <= 1}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
-                        color: currentPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Previous
-                    </button>
-                    
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    
-                    <button
-                      onClick={() => fetchYourInspectionsData(currentPage + 1)}
-                      disabled={currentPage >= totalPages}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
-                        color: currentPage >= totalPages ? '#9ca3af' : '#374151',
-                        cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Next
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                ))
+              )}
+
+              {/* Pagination */}
+              {getYourInspections().length > 0 && totalPages > 1 && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '20px',
+                  borderTop: '1px solid #f3f4f6'
+                }}>
+                  <button
+                    onClick={() => fetchYourInspectionsData(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
+                      color: currentPage <= 1 ? '#9ca3af' : '#374151',
+                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => fetchYourInspectionsData(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
+                      color: currentPage >= totalPages ? '#9ca3af' : '#374151',
+                      cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+      </div>
 
       {/* Send Notice Modal */}
       <SendNoticeModal
@@ -3399,7 +3399,7 @@ const CEOInspectionContent = () => {
         kpiName={noticeModuleData.kpiName}
         kpiFigure={noticeModuleData.kpiFigure}
       />
-      </div>
+    </div>
   );
 };
 

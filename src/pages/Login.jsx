@@ -161,14 +161,14 @@ const Login = () => {
             padding-bottom: 25px !important;
           }
         }
-           /* => change top postion 68% to 66% */
+           /* => change top postion 68% to 70% */
         @media (min-width: 1367px) and (max-width: 1600px) {
           .login-dialog-responsive {
-            top: 66% !important;
+            top: 70% !important;
             transform: translate(-50%, -50%) !important;
             max-width: 400px !important;
             padding: 24px !important;
-            padding-bottom: 38px !important;
+            padding-bottom: 48px !important;
            
           }
         }
