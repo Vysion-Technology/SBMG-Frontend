@@ -1566,7 +1566,7 @@ const CEODashboardContent = () => {
         title: 'Resolved complaints',
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
-        color: '#f97316',
+        color: '#8b5cf6',
         trend: 'up',
         tooltipText: 'Complaints resolved after action was taken.',
         chartData: {
@@ -3016,7 +3016,7 @@ const CEODashboardContent = () => {
               width: '12px',
               height: '12px',
               borderRadius: '50%',
-              backgroundColor: '#3b82f6'
+              backgroundColor: '#9ca3af'
             }}></div>
             <span style={{ fontSize: '14px', color: '#374151' }}>Total</span>
           </div>
@@ -3064,7 +3064,7 @@ const CEODashboardContent = () => {
               fill: {
                 opacity: 1
               },
-              colors: ['#ef4444', '#14b8a6', '#9ca3af'],
+              colors: ['#ef4444', '#10b981', '#9ca3af'],
               legend: {
                 show: false
               },
