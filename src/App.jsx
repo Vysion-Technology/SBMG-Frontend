@@ -83,7 +83,7 @@ function App() {
           }
         />
         <Route
-          path="/dashboard"
+          path="/dashboard*"
           element={
             <ProtectedRoute allowedRoles={[ROLES.SMD]}>
               <LocationProvider>
