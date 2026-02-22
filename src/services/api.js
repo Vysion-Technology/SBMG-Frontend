@@ -48,7 +48,7 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
-      
+
       // Redirect to login page
       // window.location.href = '/login';
     }
@@ -147,7 +147,7 @@ export const vehiclesAPI = {
     if (params.gp_id) queryParams.append('gp_id', params.gp_id);
     return apiClient.get(`/gps/vehicles?${queryParams}`);
   },
-  
+
   // Get vehicle details (if endpoint exists)
   getVehicleDetails: (vehicleId, params = {}) => {
     const queryParams = new URLSearchParams();
@@ -155,7 +155,7 @@ export const vehiclesAPI = {
     if (params.year) queryParams.append('year', params.year);
     return apiClient.get(`/gps/vehicles/${vehicleId}/details?${queryParams}`);
   },
-  
+
   // Add vehicle with gp_id, vehicle_no, imei, and name
   addVehicle: (vehicleData) => {
     return apiClient.post('/gps/vehicles', {
@@ -165,7 +165,7 @@ export const vehiclesAPI = {
       name: vehicleData.name || ''
     });
   },
-  
+
   // Update vehicle (gp_id, vehicle_no, imei, name)
   updateVehicle: (vehicleId, vehicleData) => {
     return apiClient.put(`/gps/vehicles/${vehicleId}`, {
@@ -175,7 +175,7 @@ export const vehiclesAPI = {
       name: vehicleData.name || ''
     });
   },
-  
+
   // Delete vehicle
   deleteVehicle: (vehicleId) => {
     return apiClient.delete(`/gps/vehicles/${vehicleId}`);
@@ -184,6 +184,7 @@ export const vehiclesAPI = {
 
 export const annualSurveysAPI = {
   getSurvey: (id) => apiClient.get(`/annual-surveys/${id}`),
+  addsurvey: (data) => apiClient.post('/annual-surveys/fill', data),
   updateSurvey: (id, data) => apiClient.put(`/annual-surveys/${id}`, data),
   listSurveys: (params = {}) => {
     const q = new URLSearchParams();
@@ -197,10 +198,11 @@ export const annualSurveysAPI = {
   },
 };
 
+
 export const feedbackAPI = {
   // Get feedback statistics
   getStats: () => apiClient.get('/feedback/stats/summary'),
-  
+
   // Get all feedbacks (authority users only)
   getFeedbacks: (params = {}) => {
     const queryParams = new URLSearchParams();
@@ -209,13 +211,13 @@ export const feedbackAPI = {
     if (params.limit !== undefined) queryParams.append('limit', params.limit);
     return apiClient.get(`/feedback/?${queryParams.toString()}`);
   },
-  
+
   // Get feedback by ID (authority users only)
   getFeedbackById: (feedbackId) => apiClient.get(`/feedback/${feedbackId}`),
-  
+
   // Get authenticated user's own feedback
   getMyFeedback: () => apiClient.get('/feedback/my/'),
-  
+
   // Create new feedback
   createFeedback: (feedbackData) => {
     return apiClient.post('/feedback/', {
@@ -223,12 +225,30 @@ export const feedbackAPI = {
       rating: feedbackData.rating
     });
   },
-  
+
   // Update authenticated user's own feedback
   updateMyFeedback: (feedbackData) => {
     return apiClient.put('/feedback/my/', {
       comment: feedbackData.comment,
       rating: feedbackData.rating
+    });
+  },
+};
+
+export const villagesAPI = {
+  // Get villages (optionally by gp_id)
+  getVillages: (gp_id) => {
+    return apiClient.get('/geography/villages', {
+      params: { gp_id }
+    });
+  },
+
+  // Create village
+  createVillage: (villageData) => {
+    return apiClient.post('/geography/villages', {
+      name: villageData.name,
+      gp_id: villageData.gp_id,
+      description: villageData.description || ''
     });
   },
 };

@@ -1521,11 +1521,11 @@ const BDODashboardContent = () => {
               height: 40,
               sparkline: { enabled: true }
             },
-            stroke: { curve: 'smooth', width: 2, colors: ['#f97316'] },
+            stroke: { curve: 'smooth', width: 2, colors: ['#8b5cf6'] },
             fill: {
               type: 'solid',
               opacity: 0.10,
-              colors: ['#f97316']
+              colors: ['#8b5cf6']
             },
             tooltip: { enabled: false },
             grid: { show: false },
@@ -3019,7 +3019,7 @@ const BDODashboardContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Vendor details
+                Contractor details
               </h2>
               <InfoTooltip
                 text="Shows the active vendor’s profile and contract details for this location."
@@ -3039,7 +3039,7 @@ const BDODashboardContent = () => {
                 color: '#6b7280',
                 fontSize: '14px'
               }}>
-                Loading vendor details...
+                Loading Contractor details...
               </div>
             )}
 
@@ -3098,7 +3098,7 @@ const BDODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.annual_amount || 'N/A'}
+                      {vendorData.contract_amount || 'N/A'}
                     </div>
                   </div>
 
@@ -3116,7 +3116,7 @@ const BDODashboardContent = () => {
                       fontWeight: '600',
                       color: '#111827'
                     }}>
-                      {vendorData.frequency || 'N/A'}
+                      {vendorData.contract_frequency || 'N/A'}
                     </div>
                   </div>
                 </div>

@@ -1,27 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
-import { annualSurveysAPI } from '../../services/api';
+import apiClient, { annualSurveysAPI, villagesAPI } from '../../services/api';
 
-const FREQ_OPTIONS = ['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY'];
-const FUND_HEAD_OPTIONS = ['FFC', 'SBMG', 'Other'];
+const FREQ_OPTIONS = ['DAILY',
+  'ALTERNATE_DAYS',
+  'TWICE_A_WEEK',
+  'WEEKLY',
+  'FORTNIGHTLY',
+  'NONE'];
+const FUND_HEAD_OPTIONS = ['FFC', 'SFC', 'CSR', 'OWN_INCOME', 'OTHER'];
 
-const emptyWorkOrder = () => ({ work_order_no: '', work_order_date: '', work_order_amount: 0 });
-const emptyFundSanctioned = () => ({ amount: 0, head: 'FFC' });
-const emptyDoorToDoor = () => ({ num_households: 0, num_shops: 0, collection_frequency: 'DAILY' });
-const emptyRoadSweeping = () => ({ width: 0, length: 0, cleaning_frequency: 'DAILY' });
-const emptyDrainCleaning = () => ({ length: 0, cleaning_frequency: 'DAILY' });
-const emptyCscDetails = () => ({ numbers: 0, cleaning_frequency: 'DAILY' });
-const emptySwmAssets = () => ({ rrc: 0, pwmu: 0, compost_pit: 0, collection_vehicle: 0 });
+
+
+const emptyWorkOrder = () => ({ work_order_no: '', work_order_date: '', work_order_amount: '' });
+const emptyFundSanctioned = () => ({ amount: '', head: 'FFC' });
+const emptyDoorToDoor = () => ({ num_households: '', num_shops: '', collection_frequency: 'DAILY' });
+const emptyRoadSweeping = () => ({ width: '', length: '', cleaning_frequency: 'DAILY' });
+const emptyDrainCleaning = () => ({ length: '', cleaning_frequency: 'DAILY' });
+const emptyCscDetails = () => ({ numbers: '', cleaning_frequency: 'DAILY' });
+const emptySwmAssets = () => ({ rrc: '', pwmu: '', compost_pit: '', collection_vehicle: '' });
 const emptySbmgTargets = () => ({
-  ihhl: 0, csc: 0, rrc: 0, pwmu: 0, soak_pit: 0, magic_pit: 0, leach_pit: 0, wsp: 0, dewats: 0
+  ihhl: '', csc: '', rrc: '', pwmu: '', soak_pit: '', magic_pit: '', leach_pit: '', wsp: '', dewats: ''
 });
 const emptyVillage = () => ({
   village_id: 0,
   village_name: '',
-  population: 0,
-  num_households: 0,
-  sbmg_assets: { ihhl: 0, csc: 0 },
-  gwm_assets: { soak_pit: 0, magic_pit: 0, leach_pit: 0, wsp: 0, dewats: 0 }
+  population: '',
+  num_households: '',
+  sbmg_assets: { ihhl: '', csc: '' },
+  gwm_assets: { soak_pit: '', magic_pit: '', leach_pit: '', wsp: '', dewats: '' }
 });
 
 function mapGetToForm(data) {
@@ -41,26 +48,29 @@ function mapGetToForm(data) {
   const vlist = Array.isArray(data.village_data) ? data.village_data : [];
   const village_data = vlist.length > 0
     ? vlist.map((v) => ({
-        village_id: n(v.village_id),
-        village_name: s(v.village_name),
-        population: n(v.population),
-        num_households: n(v.num_households),
-        sbmg_assets: {
-          ihhl: n(o(v.sbmg_assets, {}).ihhl),
-          csc: n(o(v.sbmg_assets, {}).csc)
-        },
-        gwm_assets: {
-          soak_pit: n(o(v.gwm_assets, {}).soak_pit),
-          magic_pit: n(o(v.gwm_assets, {}).magic_pit),
-          leach_pit: n(o(v.gwm_assets, {}).leach_pit),
-          wsp: n(o(v.gwm_assets, {}).wsp),
-          dewats: n(o(v.gwm_assets, {}).dewats)
-        }
-      }))
+      village_id: n(v.village_id),
+      agency_id: o(data.agency_id || ''),
+      village_name: s(v.village_name),
+      population: n(v.population),
+      num_households: n(v.num_households),
+      sbmg_assets: {
+        ihhl: n(o(v.sbmg_assets, {}).ihhl),
+        csc: n(o(v.sbmg_assets, {}).csc)
+      },
+      gwm_assets: {
+        soak_pit: n(o(v.gwm_assets, {}).soak_pit),
+        magic_pit: n(o(v.gwm_assets, {}).magic_pit),
+        leach_pit: n(o(v.gwm_assets, {}).leach_pit),
+        wsp: n(o(v.gwm_assets, {}).wsp),
+        dewats: n(o(v.gwm_assets, {}).dewats)
+      }
+    }))
     : [emptyVillage()];
 
   return {
+    agency_id: data.agency_id ?? '',
     sarpanch_name: s(data.sarpanch_name),
+    vdo_name: s(data.vdo_name),
     sarpanch_contact: s(data.sarpanch_contact),
     num_ward_panchs: n(data.num_ward_panchs),
     work_order: {
@@ -116,6 +126,8 @@ function formToPayload(form) {
   const s = (x) => (x != null ? String(x) : '');
 
   return {
+    vdo_name: s(form.vdo_name),
+    agency_id: form.agency_id ? Number(form.agency_id) : null,  // ✅ ADD THIS
     sarpanch_name: s(form.sarpanch_name),
     sarpanch_contact: s(form.sarpanch_contact),
     num_ward_panchs: n(form.num_ward_panchs),
@@ -190,6 +202,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabl
       placeholder={placeholder}
       disabled={disabled}
       min={min}
+      required
       style={{
         padding: '8px 10px',
         border: '1px solid #d1d5db',
@@ -224,11 +237,42 @@ const Select = ({ label, value, onChange, options, disabled }) => (
   </div>
 );
 
-const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess }) => {
+const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess, vdoGPId, fy_id }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [errorInagency, setErrorInagency] = useState(null);
   const [form, setForm] = useState(null);
+  const [agencyesData, setAgencyesData] = useState([])
+  const [moduleAgency, SetModuleAgency] = useState(false)
+  const [agencyForm, setAgencyForm] = useState({
+    name: "",
+    email: "",
+    contact_number: "", address: ""
+  });
+
+  const [agencySearch, setAgencySearch] = useState("");
+  const [agencyDropdownOpen, setAgencyDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchAgencies = async () => {
+      try {
+        const res = await apiClient.get('contractors/agencies?limit=1000');
+        setAgencyesData(res.data.results || res.data);
+      } catch (error) {
+        console.log("Agencies Error:", error);
+      }
+    };
+
+    if (isOpen) {
+      fetchAgencies();
+    }
+  }, [isOpen]);
+
+  const isEdit = !!surveyId;
+  console.log('id->', fy_id)
+
+
 
   const loadSurvey = useCallback(async () => {
     if (!surveyId || !isOpen) return;
@@ -237,6 +281,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       setError(null);
       const res = await annualSurveysAPI.getSurvey(surveyId);
       setForm(mapGetToForm(res.data));
+      // view gps dataaa
+      console.log(res.data)
     } catch (e) {
       console.error('Failed to load survey:', e);
       setError(e.response?.data?.detail || e.message || 'Failed to load survey.');
@@ -247,13 +293,37 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   }, [surveyId, isOpen]);
 
   useEffect(() => {
-    if (isOpen && surveyId) {
-      loadSurvey();
+    if (!isOpen) return;
+
+    if (surveyId) {
+      loadSurvey();   // Edit mode
     } else {
-      setForm(null);
+      // ✅ Create mode
+      setForm({
+        agency_id: '',
+        vdo_name: '',
+        sarpanch_name: '',
+        sarpanch_contact: '',
+        num_ward_panchs: '',
+        work_order: emptyWorkOrder(),
+        fund_sanctioned: emptyFundSanctioned(),
+        door_to_door_collection: emptyDoorToDoor(),
+        road_sweeping: emptyRoadSweeping(),
+        drain_cleaning: emptyDrainCleaning(),
+        csc_details: emptyCscDetails(),
+        swm_assets: emptySwmAssets(),
+        sbmg_targets: emptySbmgTargets(),
+        village_data: [emptyVillage()]
+      });
+
       setError(null);
     }
   }, [isOpen, surveyId, loadSurvey]);
+  useEffect(() => {
+    if (!isOpen) {
+      SetModuleAgency(false);   // 🔥 Reset agency modal
+    }
+  }, [isOpen]);
 
   const update = useCallback((path, value) => {
     setForm((prev) => {
@@ -279,28 +349,36 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   const updateVillage = useCallback((index, field, value) => {
     setForm((prev) => {
       if (!prev || !prev.village_data) return prev;
+
       const next = JSON.parse(JSON.stringify(prev));
       const v = next.village_data[index];
       if (!v) return prev;
+
       if (field.includes('.')) {
         const [a, b] = field.split('.');
+
         if (a === 'sbmg_assets') {
-          v.sbmg_assets = v.sbmg_assets || { ihhl: 0, csc: 0 };
-          v.sbmg_assets[b] = typeof value === 'number' ? value : (parseFloat(value) || 0);
-        } else if (a === 'gwm_assets') {
-          v.gwm_assets = v.gwm_assets || { soak_pit: 0, magic_pit: 0, leach_pit: 0, wsp: 0, dewats: 0 };
-          v.gwm_assets[b] = typeof value === 'number' ? value : (parseFloat(value) || 0);
+          v.sbmg_assets = v.sbmg_assets || {};
+          v.sbmg_assets[b] = value;   // ❌ no parse
         }
+
+        if (a === 'gwm_assets') {
+          v.gwm_assets = v.gwm_assets || {};
+          v.gwm_assets[b] = value;   // ❌ no parse
+        }
+
       } else {
-        if (['village_id', 'population', 'num_households'].includes(field)) {
-          v[field] = typeof value === 'number' ? value : (parseFloat(value) || 0);
-        } else {
-          v[field] = value;
-        }
+        v[field] = value;   // ❌ no parse
       }
+
       return next;
     });
   }, []);
+
+  const handlePhoneChange = (value) => {
+    const cleaned = value.replace(/[^0-9]/g, "").slice(0, 10);
+    update('sarpanch_contact', cleaned);
+  };
 
   const addVillage = useCallback(() => {
     setForm((prev) => {
@@ -321,22 +399,213 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     });
   }, []);
 
+  // Check and store when existing villgages have
+  const [existingVillages, setExistingVillages] = useState([]);
+
+  useEffect(() => {
+    const loadVillages = async () => {
+      try {
+        const res = await villagesAPI.getVillages(vdoGPId);
+        setExistingVillages(res.data || []);
+      } catch (err) {
+        console.log("Failed to load villages", err);
+      }
+    };
+
+    if (isOpen && vdoGPId) {
+      loadVillages();
+    }
+  }, [isOpen, vdoGPId]);
+
+  const handleCreateAgency = async () => {
+    try {
+      // Basic Validation
+      if (!agencyForm.name.trim()) {
+        setErrorInagency("Agency name is required");
+        return;
+      }
+
+      if (!agencyForm.email.trim()) {
+        setErrorInagency("Email is required");
+        return;
+      } else if (agencyForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(agencyForm.email)) {
+        setErrorInagency("Invalid email format");
+        return;
+      }
+
+      if (!agencyForm.contact_number.trim()) {
+        setErrorInagency("Contact Number is required");
+        return;
+      } else if (agencyForm.contact_number && !/^\d{10}$/.test(agencyForm.contact_number)) {
+        setErrorInagency("Contact number must be 10 digits");
+        return;
+      }
+
+      const res = await apiClient.post("contractors/agencies", {
+        name: agencyForm.name.trim(),
+        email: agencyForm.email.trim(),
+        phone: agencyForm.contact_number.trim(),
+        address: agencyForm.address?.trim() || ""
+      });
+
+      const fresh = await apiClient.get("contractors/agencies");
+      setAgencyesData(fresh.data.results || fresh.data);
+
+      update("agency_id", res.data.id);
+
+      setAgencySearch(res.data.name); // 🔥 immediately show selected
+
+      SetModuleAgency(false);
+
+      setAgencyForm({
+        name: "",
+        email: "",
+        contact_number: "",
+        address: ""
+      });
+      setErrorInagency(null)
+      alert("Agency created successfully ✅");
+
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to create agency");
+    }
+  };
+
+  useEffect(() => {
+    if (!agencyDropdownOpen) return;
+
+    const delay = setTimeout(async () => {
+      try {
+        const res = await apiClient.get(
+          `contractors/agencies?name_like=${agencySearch}`
+        );
+
+        setAgencyesData(res.data.results || res.data);
+      } catch (err) {
+        console.log("Agency search error", err);
+      }
+    }, 400); // debounce 400ms
+
+    return () => clearTimeout(delay);
+  }, [agencySearch, agencyDropdownOpen]);
+
+  useEffect(() => {
+    const close = () => setAgencyDropdownOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, []);
+
+
   const handleSubmit = useCallback(async () => {
-    if (!form || saving || !surveyId) return;
+    if (!form || saving) return;
+
     try {
       setSaving(true);
       setError(null);
-      const payload = formToPayload(form);
-      await annualSurveysAPI.updateSurvey(surveyId, payload);
+
+      if (!form.sarpanch_contact || form.sarpanch_contact.length !== 10) {
+        setError("Phone number must be exactly 10 digits ❌");
+        setSaving(false);
+        return;
+      }
+
+      // 🔥 1️⃣ Deep clone (state mutate nahi karna)
+      const updatedForm = JSON.parse(JSON.stringify(form));
+
+      // 🔥 2️⃣ Pehle naye villages create karo
+      for (let i = 0; i < updatedForm.village_data.length; i++) {
+        const v = updatedForm.village_data[i];
+
+        if (!v.village_id || v.village_id === 0) {
+
+          if (!v.village_name.trim()) {
+            throw new Error("Village name required.");
+          }
+
+          try {
+            const res = await villagesAPI.createVillage({
+              name: v.village_name.trim(),
+              gp_id: Number(vdoGPId),
+              description: v.village_name.trim()
+            });
+
+            updatedForm.village_data[i].village_id = res.data.id;
+
+          } catch (err) {
+
+            // Agar duplicate aaye toh existing ID le lo
+            if (err.response?.data?.message?.includes("unique")) {
+
+              const fresh = await villagesAPI.getVillages(vdoGPId);
+
+              const existing = fresh.data.find(ev =>
+                ev.name.toLowerCase() === v.village_name.trim().toLowerCase()
+              );
+
+              if (existing) {
+                updatedForm.village_data[i].village_id = existing.id;
+              } else {
+                throw err;
+              }
+
+            } else {
+              throw err;
+            }
+          }
+        }
+      }
+
+      // 🔥 3️⃣ Ab final payload banao
+      const payload = formToPayload(updatedForm);
+
+      console.log("FINAL PAYLOAD:", JSON.stringify(payload, null, 2));
+      if (isEdit) {
+        // 🔥 4️⃣ Survey update
+        await annualSurveysAPI.updateSurvey(surveyId, payload);
+      } else {
+        const basePayload = formToPayload(updatedForm);
+
+        const finalPayload = {
+          ...basePayload,
+          fy_id: Number(fy_id),   // ✅ ADD THIS
+          gp_id: Number(vdoGPId),
+          survey_date: new Date().toISOString().split('T')[0], // ✅ ADD THIS
+          agency_id: Number(updatedForm.agency_id) || null
+        };
+
+        console.log("FINAL PAYLOAD:", JSON.stringify(finalPayload, null, 2));
+
+        await annualSurveysAPI.addsurvey(finalPayload);
+      }
+
+      alert("Survey & villages saved successfully ✅");
+
       onSuccess?.();
       onClose?.();
+
     } catch (e) {
-      console.error('Failed to update survey:', e);
-      setError(e.response?.data?.detail || e.message || 'Failed to update.');
+      console.log("FULL ERROR:", e.response?.data);
+
+      const data = e.response?.data;
+
+      if (data?.detail) {
+        if (Array.isArray(data.detail)) {
+          alert(data.detail.map(d => d.msg).join(", "));
+        } else {
+          alert(data.detail);
+        }
+      }
+      else if (data?.message) {
+        // 🔥 Duplicate village error
+        alert(data.message);
+      }
+      else {
+        alert(e.message || "Something went wrong");
+      }
     } finally {
       setSaving(false);
     }
-  }, [form, saving, surveyId, onSuccess, onClose]);
+  }, [form, saving, surveyId, onSuccess, onClose, vdoGPId]);
 
   const handleOverlayClick = useCallback(() => {
     if (!saving) onClose?.();
@@ -357,6 +626,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   const grid3 = (children) => (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>{children}</div>
   );
+
 
   return (
     <div
@@ -385,7 +655,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       >
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
-            Edit GP Master Data {gpName ? `— ${gpName}` : ''}
+            {isEdit ? "Edit GP Master Data" : "Add GP Master Data"} {gpName ? `— ${gpName}` : ''}
           </h2>
           <button onClick={handleOverlayClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280' }} disabled={saving}>
             <X size={22} />
@@ -401,23 +671,113 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           )}
           {!loading && form && (
             <>
+              {section('VDO Details', grid2(
+                <>
+                  <Input label="VDO name" value={form.vdo_name} onChange={(v) => update('vdo_name', v)} disabled={saving} />
+                </>
+              ))}
               {section('Basic information', grid2(
                 <>
                   <Input label="Sarpanch name" value={form.sarpanch_name} onChange={(v) => update('sarpanch_name', v)} disabled={saving} />
-                  <Input label="Sarpanch contact" value={form.sarpanch_contact} onChange={(v) => update('sarpanch_contact', v)} disabled={saving} />
-                  <Input label="Number of ward panchs" type="number" min={0} value={form.num_ward_panchs} onChange={(v) => update('num_ward_panchs', parseInt(v, 10) || 0)} disabled={saving} />
+                  <Input label="Sarpanch contact" value={form.sarpanch_contact} onChange={handlePhoneChange} disabled={saving} />
+                  <Input label="Number of ward panchs" type="number" min={0} value={form.num_ward_panchs} onChange={(v) => update('num_ward_panchs', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+              {section('Agency', grid2(
+                <>
+                  {/* Agency Filed */}
+                  <div className=''>
+                    <div className='text-end'>
+                      <button
+                        onClick={() => SetModuleAgency(true)}
+                        style={{ color: '#10b981', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
+                        className='uppercase'>+ ADD Agency</button>
+                    </div>
+                    <div style={{ position: "relative", width: "100%" }}>
+
+                      {/* Search Input */}
+                      <input
+                        type="text"
+                        placeholder="Search Agency..."
+                        value={agencySearch}
+                        onChange={(e) => {
+                          setAgencySearch(e.target.value);
+                          setAgencyDropdownOpen(true);
+                        }}
+                        onFocus={() => setAgencyDropdownOpen(true)}
+                        style={{
+                          padding: "8px 10px",
+                          border: "1px solid #d1d5db",
+                          borderRadius: "6px",
+                          fontSize: "14px",
+                          width: "100%"
+                        }}
+                      />
+
+                      {/* Dropdown */}
+                      {agencyDropdownOpen && (
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: "100%",
+                            left: 0,
+                            right: 0,
+                            background: "#fff",
+                            border: "1px solid #d1d5db",
+                            borderRadius: "6px",
+                            maxHeight: "200px",
+                            overflowY: "auto",
+                            zIndex: 1000
+                          }}
+                        >
+                          {agencyesData.length === 0 && (
+                            <div style={{ padding: "8px", fontSize: "13px" }}>
+                              No agency found
+                            </div>
+                          )}
+
+                          {agencyesData.map((agency) => (
+                            <div
+                              key={agency.id}
+                              onClick={() => {
+                                update("agency_id", agency.id);
+                                setAgencySearch(agency.name);  // 👈 yaha name set karo
+                                setAgencyDropdownOpen(false);
+                              }}
+                              style={{
+                                padding: "8px",
+                                cursor: "pointer",
+                                fontSize: "14px"
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = "#f3f4f6")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "#fff")
+                              }
+                            >
+                              {agency.name}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+
+                  </div>
+
                 </>
               ))}
               {section('Work order', grid3(
                 <>
                   <Input label="Work order no" value={form.work_order?.work_order_no} onChange={(v) => update('work_order.work_order_no', v)} disabled={saving} />
                   <Input label="Work order date" type="date" value={form.work_order?.work_order_date} onChange={(v) => update('work_order.work_order_date', v)} disabled={saving} />
-                  <Input label="Work order amount" type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="Work order amount" type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
               {section('Fund sanctioned', grid2(
                 <>
-                  <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount',v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Head" value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
                 </>
               ))}
@@ -425,8 +785,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {grid3(
                     <>
-                      <Input label="Number of households" type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households', parseFloat(v) || 0)} disabled={saving} />
-                      <Input label="Number of shops" type="number" min={0} value={form.door_to_door_collection?.num_shops} onChange={(v) => update('door_to_door_collection.num_shops', parseFloat(v) || 0)} disabled={saving} />
+                      <Input label="Number of households" type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households',v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Number of shops" type="number" min={0} value={form.door_to_door_collection?.num_shops} onChange={(v) => update('door_to_door_collection.num_shops', v === '' ? '' : Number(v))} disabled={saving} />
                       <Select label="Collection frequency" value={form.door_to_door_collection?.collection_frequency} onChange={(v) => update('door_to_door_collection.collection_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                     </>
                   )}
@@ -434,35 +794,35 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               ))}
               {section('Road sweeping', grid3(
                 <>
-                  <Input label="Width (m)" type="number" min={0} value={form.road_sweeping?.width} onChange={(v) => update('road_sweeping.width', parseFloat(v) || 0)} disabled={saving} />
-                  <Input label="Length (m)" type="number" min={0} value={form.road_sweeping?.length} onChange={(v) => update('road_sweeping.length', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="Width (m)" type="number" min={0} value={form.road_sweeping?.width} onChange={(v) => update('road_sweeping.width', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Length (m)" type="number" min={0} value={form.road_sweeping?.length} onChange={(v) => update('road_sweeping.length', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Cleaning frequency" value={form.road_sweeping?.cleaning_frequency} onChange={(v) => update('road_sweeping.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
               {section('Drain cleaning', grid2(
                 <>
-                  <Input label="Length (m)" type="number" min={0} value={form.drain_cleaning?.length} onChange={(v) => update('drain_cleaning.length', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="Length (m)" type="number" min={0} value={form.drain_cleaning?.length} onChange={(v) => update('drain_cleaning.length', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Cleaning frequency" value={form.drain_cleaning?.cleaning_frequency} onChange={(v) => update('drain_cleaning.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
               {section('CSC details', grid2(
                 <>
-                  <Input label="Numbers" type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="Numbers" type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers',v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Cleaning frequency" value={form.csc_details?.cleaning_frequency} onChange={(v) => update('csc_details.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
               {section('SWM assets', grid3(
                 <>
-                  <Input label="RRC" type="number" min={0} value={form.swm_assets?.rrc} onChange={(v) => update('swm_assets.rrc', parseFloat(v) || 0)} disabled={saving} />
-                  <Input label="PWMU" type="number" min={0} value={form.swm_assets?.pwmu} onChange={(v) => update('swm_assets.pwmu', parseFloat(v) || 0)} disabled={saving} />
-                  <Input label="Compost pit" type="number" min={0} value={form.swm_assets?.compost_pit} onChange={(v) => update('swm_assets.compost_pit', parseFloat(v) || 0)} disabled={saving} />
-                  <Input label="Collection vehicle" type="number" min={0} value={form.swm_assets?.collection_vehicle} onChange={(v) => update('swm_assets.collection_vehicle', parseFloat(v) || 0)} disabled={saving} />
+                  <Input label="RRC" type="number" min={0} value={form.swm_assets?.rrc} onChange={(v) => update('swm_assets.rrc', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='PWMU' type="number" min={0} value={form.swm_assets?.pwmu} onChange={(v) => update('swm_assets.pwmu', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Compost pit" type="number" min={0} value={form.swm_assets?.compost_pit} onChange={(v) => update('swm_assets.compost_pit', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Collection vehicle" type="number" min={0} value={form.swm_assets?.collection_vehicle} onChange={(v) => update('swm_assets.collection_vehicle', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
               {section('SBMG targets', (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                  {['ihhl','csc','rrc','pwmu','soak_pit','magic_pit','leach_pit','wsp','dewats'].map((k) => (
-                    <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`, parseFloat(v) || 0)} disabled={saving} />
+                  {['ihhl', 'csc', 'rrc', 'pwmu', 'soak_pit', 'magic_pit', 'leach_pit', 'wsp', 'dewats'].map((k) => (
+                    <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`,v === '' ? '' : Number(v))} disabled={saving} />
                   ))}
                 </div>
               ))}
@@ -478,16 +838,15 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                         <Input label="Village name" value={v.village_name} onChange={(val) => updateVillage(i, 'village_name', val)} disabled={saving} />
-                        <Input label="Village ID" type="number" min={0} value={v.village_id} onChange={(val) => updateVillage(i, 'village_id', parseInt(val, 10) || 0)} disabled={saving} />
-                        <Input label="Population" type="number" min={0} value={v.population} onChange={(val) => updateVillage(i, 'population', parseInt(val, 10) || 0)} disabled={saving} />
-                        <Input label="Number of households" type="number" min={0} value={v.num_households} onChange={(val) => updateVillage(i, 'num_households', parseInt(val, 10) || 0)} disabled={saving} />
-                        <Input label="SBMG IHHL" type="number" min={0} value={v.sbmg_assets?.ihhl} onChange={(val) => updateVillage(i, 'sbmg_assets.ihhl', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="SBMG CSC" type="number" min={0} value={v.sbmg_assets?.csc} onChange={(val) => updateVillage(i, 'sbmg_assets.csc', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="Soak pit" type="number" min={0} value={v.gwm_assets?.soak_pit} onChange={(val) => updateVillage(i, 'gwm_assets.soak_pit', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="Magic pit" type="number" min={0} value={v.gwm_assets?.magic_pit} onChange={(val) => updateVillage(i, 'gwm_assets.magic_pit', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="Leach pit" type="number" min={0} value={v.gwm_assets?.leach_pit} onChange={(val) => updateVillage(i, 'gwm_assets.leach_pit', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="WSP" type="number" min={0} value={v.gwm_assets?.wsp} onChange={(val) => updateVillage(i, 'gwm_assets.wsp', parseFloat(val) || 0)} disabled={saving} />
-                        <Input label="DEWATS" type="number" min={0} value={v.gwm_assets?.dewats} onChange={(val) => updateVillage(i, 'gwm_assets.dewats', parseFloat(val) || 0)} disabled={saving} />
+                        <Input label="Population" type="number" min={0} value={v.population ?? ''} onChange={(val) => updateVillage(i, 'population', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="Number of households" type="number" min={0} value={v.num_households ?? ''} onChange={(val) => updateVillage(i, 'num_households', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="SBMG IHHL" type="number" min={0} value={v.sbmg_assets?.ihhl ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.ihhl', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="SBMG CSC" type="number" min={0} value={v.sbmg_assets?.csc ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.csc', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="Soak pit" type="number" min={0} value={v.gwm_assets?.soak_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.soak_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="Magic pit" type="number" min={0} value={v.gwm_assets?.magic_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.magic_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="Leach pit" type="number" min={0} value={v.gwm_assets?.leach_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.leach_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="WSP" type="number" min={0} value={v.gwm_assets?.wsp ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.wsp', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label="DEWATS" type="number" min={0} value={v.gwm_assets?.dewats ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.dewats', val === '' ? '' : Number(val))} disabled={saving} />
                       </div>
                     </div>
                   ))}
@@ -500,6 +859,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           )}
         </div>
 
+
         {!loading && form && (
           <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button onClick={handleOverlayClick} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
@@ -511,7 +871,111 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           </div>
         )}
       </div>
+
+
+      {/* Agency create module */}
+      {moduleAgency && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 2000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}  // 🔥 ALSO HERE
+            style={{
+              background: "#fff",
+              padding: "20px",
+              borderRadius: "12px",
+              width: "400px",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
+            }}
+          >
+            <h3 style={{ marginBottom: "15px" }}>Create Agency</h3>
+
+            {errorInagency && !loading && (
+              <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', marginBottom: '16px' }}>
+                {errorInagency}
+              </div>
+            )}
+
+            <Input
+              label="Agency Name"
+              value={agencyForm.name}
+              onChange={(v) =>
+                setAgencyForm((prev) => ({ ...prev, name: v }))
+              }
+            />
+
+            <Input
+              label="Email"
+              value={agencyForm.email}
+              onChange={(v) =>
+                setAgencyForm((prev) => ({ ...prev, email: v }))
+              }
+            />
+
+            <Input
+              label="Contact Number"
+              value={agencyForm.contact_number}
+              onChange={(v) =>
+                setAgencyForm((prev) => ({
+                  ...prev,
+                  contact_number: v.replace(/[^0-9]/g, "").slice(0, 10)
+                }))
+              }
+            />
+            <Input
+              label="Address"
+              value={agencyForm.address}
+              onChange={(v) =>
+                setAgencyForm((prev) => ({ ...prev, address: v }))
+              }
+            />
+
+            <div style={{ marginTop: "15px", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button
+                onClick={() => SetModuleAgency(false)}
+                style={{
+                  padding: "8px 14px",
+                  background: "#e5e7eb",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer"
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleCreateAgency}
+                style={{
+                  padding: "8px 14px",
+                  background: "#10b981",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer"
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 };
 
