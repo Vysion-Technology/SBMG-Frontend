@@ -490,7 +490,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       } catch (err) {
         console.log("Agency search error", err);
       }
-    }, 400); // debounce 400ms
+    }, 200); // debounce 400ms
 
     return () => clearTimeout(delay);
   }, [agencySearch, agencyDropdownOpen]);
@@ -964,6 +964,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               </button>
 
               <button
+                disabled={loading}
                 onClick={handleCreateAgency}
                 style={{
                   padding: "8px 14px",
@@ -974,7 +975,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   cursor: "pointer"
                 }}
               >
-                Save
+                {loading ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

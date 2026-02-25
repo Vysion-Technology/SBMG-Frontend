@@ -2105,7 +2105,6 @@ const BDODashboardContent = () => {
                   top: '100%',
                   right: 0,
                   left: 'auto',
-                  backgroundColor: 'white',
                   border: '1px solid #d1d5db',
                   borderRadius: '10px',
                   boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
