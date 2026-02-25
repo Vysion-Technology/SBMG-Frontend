@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: "/",
   build: {
     sourcemap: false,
-    minify: 'terser',
+    minify: "terser",
     terserOptions: {
       format: {
         comments: false,
@@ -20,11 +20,14 @@ export default defineConfig({
       plugins: [
         // Strip React Router version from bundle so Wappalyzer can't detect it from script content
         {
-          name: 'strip-react-router-version',
+          name: "strip-react-router-version",
           generateBundle(_, bundle) {
             for (const file of Object.values(bundle)) {
-              if (file.type === 'chunk' && file.code) {
-                file.code = file.code.replace(/window\.__reactRouterVersion\s*=\s*["'][^"']*["']/g, 'window.__reactRouterVersion=""');
+              if (file.type === "chunk" && file.code) {
+                file.code = file.code.replace(
+                  /window\.__reactRouterVersion\s*=\s*["'][^"']*["']/g,
+                  'window.__reactRouterVersion=""',
+                );
                 file.code = file.code.replace(/["']7\.13\.0["']/g, '""');
               }
             }
@@ -33,4 +36,4 @@ export default defineConfig({
       ],
     },
   },
-})
+});
