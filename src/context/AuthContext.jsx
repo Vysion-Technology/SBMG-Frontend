@@ -1,6 +1,8 @@
+// src/context/AuthContext.jsx
 import { createContext, useState, useContext, useEffect } from 'react';
 import { authAPI } from '../services/api';
 import { ROLES } from '../utils/roleConfig';
+import { rsaEncrypt } from '../utils/crypto'; // Make sure this file exists!
 
 const ENABLED_ROLES = [ROLES.SMD, ROLES.CEO, ROLES.BDO, ROLES.VDO];
 
@@ -45,8 +47,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (username, password, rememberMe = false) => {
     try {
-      // Call login API
-      const loginResponse = await authAPI.login({ username, password });
+      // 1. FETCH THE PUBLIC KEY
+      const keyResponse = await authAPI.getPublicKey();
+      const publicKeyPem = keyResponse.data.public_key;
+
+      if (!publicKeyPem) {
+        throw new Error("Security initialization failed: Missing public key.");
+      }
+
+      // 2. ENCRYPT THE CREDENTIALS
+      const encryptedUsername = await rsaEncrypt(publicKeyPem, username);
+      const encryptedPassword = await rsaEncrypt(publicKeyPem, password);
+
+      // 3. SEND ENCRYPTED CREDENTIALS TO LOGIN
+      const loginResponse = await authAPI.login({ 
+        username: encryptedUsername, 
+        password: encryptedPassword 
+      });
       const { access_token } = loginResponse.data;
       
       // Store token
@@ -125,4 +142,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

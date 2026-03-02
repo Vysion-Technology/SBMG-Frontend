@@ -60,6 +60,7 @@ apiClient.interceptors.response.use(
 
 // API functions
 export const authAPI = {
+  getPublicKey: () => apiClient.get('/auth/public-key'),
   login: (credentials) => apiClient.post('/auth/login', credentials),
   getMe: () => apiClient.get('/auth/me'),
   logout: () => apiClient.post('/auth/logout'),
