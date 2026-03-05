@@ -178,7 +178,7 @@ const UnifiedDashboard = () => {
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardContent />;
+        return <DashboardContent setActiveItem={setActiveItem} />;
       case 'Complaints':
         return <ComplaintsContent />;
       case 'Attendance':
