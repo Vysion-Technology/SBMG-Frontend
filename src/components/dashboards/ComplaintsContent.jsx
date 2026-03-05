@@ -137,10 +137,11 @@ const ComplaintsContent = () => {
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
 
   // Date range state
-  const [selectedDateRange, setSelectedDateRange] = useState('Today');
+  const [selectedDateRange, setSelectedDateRange] = useState('Year');
   const [startDate, setStartDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    return startOfYear.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => {
     const today = new Date();
@@ -159,12 +160,12 @@ const ComplaintsContent = () => {
 
   // Predefined date ranges
   const dateRanges = [
-    { label: 'Today', value: 'today', days: 0 },
-    { label: 'Yesterday', value: 'yesterday', days: 1 },
-    { label: 'Last 7 Days', value: 'last7days', days: 7 },
-    { label: 'Last 30 Days', value: 'last30days', days: 30 },
-    { label: 'Last 60 Days', value: 'last60days', days: 60 },
-    { label: 'Custom', value: 'custom', days: null }
+    { label: 'Year', value: 'year' },
+    { label: 'Quarter', value: 'quarter' },
+    { label: 'Month', value: 'month' },
+    { label: 'Week', value: 'week' },
+    { label: 'Today', value: 'today' },
+    { label: 'Custom', value: 'custom' }
   ];
 
   // Months array
@@ -899,28 +900,35 @@ const ComplaintsContent = () => {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
 
-      const today = new Date();
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      let start = new Date();
 
-      // For "Today" and "Yesterday", both start and end dates should be the same
-      if (range.value === 'today') {
-        // Today: start = today, end = today
-        setStartDate(today.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
-      } else if (range.value === 'yesterday') {
-        // Yesterday: start = yesterday, end = yesterday
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        setStartDate(yesterday.toISOString().split('T')[0]);
-        setEndDate(yesterday.toISOString().split('T')[0]);
-      } else {
-        // For ranges like "Last 7 Days", "Last 30 Days"
-        // start = today - N days, end = today
-        const start = new Date(today);
-        start.setDate(today.getDate() - range.days);
-        setStartDate(start.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
+      switch (range.value) {
+        case 'year':
+          start = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'quarter':
+          const currentQuarter = Math.floor(now.getMonth() / 3);
+          start = new Date(now.getFullYear(), currentQuarter * 3, 1);
+          break;
+        case 'month':
+          start = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'week':
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          start = new Date(now.setDate(diff));
+          break;
+        case 'today':
+          start = now;
+          break;
+        default:
+          start = now;
       }
 
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(todayStr);
       setShowDateDropdown(false);
     }
   };

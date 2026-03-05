@@ -211,8 +211,13 @@ const VillageMasterContent = () => {
       console.error("Font Load Error:", error);
     }
 
-    const formatCurrency = (amount) =>
-      "Rs. " + (amount || 0).toLocaleString("en-IN");
+    const formatCurrency = (amount) => {
+      if (amount === null || amount === undefined || isNaN(amount)) return '0';
+      if (amount >= 100000) {
+        return `₹${(amount / 100000).toFixed(1)} L`;
+      }
+      return `₹${amount.toLocaleString('en-IN')}`;
+    };
 
     const checkPageBreak = (neededHeight = 10) => {
       if (y + neededHeight > 275) {
@@ -1042,6 +1047,41 @@ const VillageMasterContent = () => {
     setShowLocationDropdown(false);
   };
 
+  const handleRowClick = (item) => {
+    if (activeScope === 'State') {
+      // Navigate to District
+      const district = districts.find(d => d.id === item.geography_id) || { id: item.geography_id, name: item.geography_name };
+      trackTabChange('Districts');
+      setActiveScope('Districts');
+      trackDropdownChange(district.name);
+      updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
+      fetchBlocks(district.id);
+    } else if (activeScope === 'Districts') {
+      // Navigate to Block
+      const block = blocks.find(b => b.id === item.geography_id) || { id: item.geography_id, name: item.geography_name, district_id: selectedDistrictId };
+      trackTabChange('Blocks');
+      setActiveScope('Blocks');
+      const district = districts.find(d => d.id === selectedDistrictId) || selectedDistrictForHierarchy;
+      if (district) setSelectedDistrictForHierarchy(district);
+      setSelectedBlockForHierarchy(block);
+      trackDropdownChange(block.name);
+      updateLocationSelection('Blocks', block.name, block.id, selectedDistrictId, block.id, null, 'dropdown_change');
+      fetchGramPanchayats(selectedDistrictId, block.id);
+    } else if (activeScope === 'Blocks') {
+      // Navigate to GP
+      const gp = gramPanchayats.find(g => g.id === item.geography_id) || { id: item.geography_id, name: item.geography_name, block_id: selectedBlockId };
+      trackTabChange('GPs');
+      setActiveScope('GPs');
+      const block = blocks.find(b => b.id === selectedBlockId) || selectedBlockForHierarchy;
+      const district = districts.find(d => d.id === selectedDistrictId) || selectedDistrictForHierarchy;
+      if (district) setSelectedDistrictForHierarchy(district);
+      if (block) setSelectedBlockForHierarchy(block);
+      trackDropdownChange(gp.name);
+      updateLocationSelection('GPs', gp.name, gp.id, selectedDistrictId, selectedBlockId, gp.id, 'dropdown_change');
+      // No need to fetchGPs as they should be already loaded or will load via useEffect
+    }
+  };
+
   useEffect(() => {
     if (!showLocationDropdown) {
       return;
@@ -1173,9 +1213,7 @@ const VillageMasterContent = () => {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(1)} Cr`;
-    } else if (amount >= 100000) {
+    if (amount >= 100000) {
       return `₹${(amount / 100000).toFixed(1)} L`;
     }
     return `₹${amount.toLocaleString('en-IN')}`;
@@ -1728,9 +1766,7 @@ const VillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_funds_sanctioned', 0))}
-
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
 
@@ -1766,9 +1802,7 @@ const VillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_work_order_amount', 0))}
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
-
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
 
@@ -2341,7 +2375,15 @@ const VillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                      <div 
+                        onClick={() => handleRowClick(item)}
+                        style={{ 
+                          fontSize: '14px', 
+                          color: activeScope === 'GPs' ? '#111827' : '#10b981', 
+                          fontWeight: '500',
+                          cursor: activeScope === 'GPs' ? 'default' : 'pointer',
+                          textDecoration: activeScope === 'GPs' ? 'none' : 'underline'
+                        }}>
                         {item.geography_name}
                       </div>
                       {activeScope !== 'Blocks' && (

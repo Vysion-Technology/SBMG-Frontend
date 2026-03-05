@@ -163,8 +163,13 @@ const VDOVillageMasterContent = () => {
       console.error("Font Load Error:", error);
     }
 
-    const formatCurrency = (amount) =>
-      "Rs. " + (amount || 0).toLocaleString("en-IN");
+    const formatCurrency = (amount) => {
+      if (amount === null || amount === undefined || isNaN(amount)) return '0';
+      if (amount >= 100000) {
+        return `₹${(amount / 100000).toFixed(1)} L`;
+      }
+      return `₹${amount.toLocaleString('en-IN')}`;
+    };
 
     const checkPageBreak = (neededHeight = 10) => {
       if (y + neededHeight > 275) {
@@ -705,9 +710,7 @@ const VDOVillageMasterContent = () => {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(1)} Cr`;
-    } else if (amount >= 100000) {
+    if (amount >= 100000) {
       return `₹${(amount / 100000).toFixed(1)} L`;
     }
     return `₹${amount.toLocaleString('en-IN')}`;
@@ -862,7 +865,7 @@ const VDOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_funds_sanctioned', 0))}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
 
@@ -899,7 +902,7 @@ const VDOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_work_order_amount', 0))}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
 

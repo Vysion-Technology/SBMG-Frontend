@@ -245,8 +245,13 @@ const CEOVillageMasterContent = () => {
       console.error("Font Load Error:", error);
     }
 
-    const formatCurrency = (amount) =>
-      "Rs. " + (amount || 0).toLocaleString("en-IN");
+    const formatCurrency = (amount) => {
+      if (amount === null || amount === undefined || isNaN(amount)) return '0';
+      if (amount >= 100000) {
+        return `₹${(amount / 100000).toFixed(1)} L`;
+      }
+      return `₹${amount.toLocaleString('en-IN')}`;
+    };
 
     const checkPageBreak = (neededHeight = 10) => {
       if (y + neededHeight > 275) {
@@ -1021,6 +1026,29 @@ const CEOVillageMasterContent = () => {
     setShowLocationDropdown(false);
   };
 
+  const handleRowClick = (item) => {
+    if (activeScope === 'Districts') {
+      // Navigate to Blocks scope
+      trackTabChange('Blocks');
+      setActiveScope('Blocks');
+      updateLocationSelection('Blocks', 'Select Block', null, ceoDistrictId, null, null, 'table_navigation');
+      fetchBlocks(ceoDistrictId);
+    } else if (activeScope === 'Blocks') {
+      // Navigate to GPs scope
+      const block = blocks.find(b => b.id === item.geography_id) || { id: item.geography_id, name: item.geography_name, district_id: ceoDistrictId };
+      trackTabChange('GPs');
+      setActiveScope('GPs');
+      setSelectedBlockForHierarchy(block);
+      trackDropdownChange(block.name);
+      updateLocationSelection('GPs', 'Select GP', null, ceoDistrictId, block.id, null, 'table_navigation');
+      fetchGramPanchayats(ceoDistrictId, block.id);
+    } else if (activeScope === 'GPs') {
+      // Already in GP view, select this GP
+      trackDropdownChange(item.geography_name);
+      updateLocationSelection('GPs', item.geography_name, item.geography_id, ceoDistrictId, selectedBlockId, item.geography_id, 'table_navigation');
+    }
+  };
+
 
 
 
@@ -1158,9 +1186,7 @@ const CEOVillageMasterContent = () => {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(1)} Cr`;
-    } else if (amount >= 100000) {
+    if (amount >= 100000) {
       return `₹${(amount / 100000).toFixed(1)} L`;
     }
     return `₹${amount.toLocaleString('en-IN')}`;
@@ -1672,53 +1698,50 @@ const CEOVillageMasterContent = () => {
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
               </div>
             </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_funds_sanctioned', 0))}
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
-            </div>
-          </div>
-
-          {/* Total work order Amount */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                Total work order Amount
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-              </div>
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_work_order_amount', 0))}
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
-            </div>
-          </div>
+                        <div style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: analyticsError ? '#ef4444' : '#111827',
+                          margin: 0
+                        }}>
+                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
+                        </div>
+                      </div>
+            
+                      {/* Total work order Amount */}
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '12px'
+                        }}>
+                          <h3 style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#6b7280',
+                            margin: 0
+                          }}>
+                            Total work order Amount
+                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: analyticsError ? '#ef4444' : '#111827',
+                          margin: 0
+                        }}>
+                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
+                        </div>          </div>
 
           {/* SBMG Target Achievement Rate */}
           <div style={{
@@ -2304,7 +2327,15 @@ const CEOVillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                      <div 
+                        onClick={() => handleRowClick(item)}
+                        style={{ 
+                          fontSize: '14px', 
+                          color: '#10b981', 
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}>
                         {item.geography_name}
                       </div>
 
