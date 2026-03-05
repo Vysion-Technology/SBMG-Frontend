@@ -1,6 +1,6 @@
 import { Loader2, X } from 'lucide-react';
 import { useEffect, useState } from "react";
-import { schemesAPI } from '../../../services/api';
+import { schemesAPI, MEDIA_BASE_URL } from '../../../services/api';
 import NoDataFound from '../common/NoDataFound';
 
 const CEOSchemesContent = () => {
@@ -141,14 +141,13 @@ const CEOSchemesContent = () => {
   };
 
   // Helper function to get scheme image
-  const getSchemeImage = (scheme) => {
-    if (scheme.media && scheme.media.length > 0) {
-      // Use the public media API endpoint
-      return `http://139.59.34.99:8000/api/v1/public/media/${encodeURIComponent(scheme.media[0].media_url)}`;
-    }
-    return '/background.png'; // Fallback to placeholder
-  };
-
+      const getSchemeImage = (scheme) => {
+          if (scheme.media && scheme.media.length > 0) {
+              // Use the public media API endpoint
+              return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
+          }
+          return '/background.png'; // Fallback to placeholder
+      };
   // Handle file selection
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -703,10 +702,9 @@ const CEOSchemesContent = () => {
                           border: '1px solid #e5e7eb',
                           backgroundColor: '#f3f4f6'
                         }}>
-                          <img
-                            src={`http://139.59.34.99:8000/api/v1/public/media/${encodeURIComponent(mediaItem.media_url)}`}
-                            alt={`Scheme media ${index + 1}`}
-                            style={{
+                                                      <img
+                                                        src={`${MEDIA_BASE_URL}/${encodeURIComponent(mediaItem.media_url)}`}
+                                                        alt={`Scheme media ${index + 1}`}                            style={{
                               width: '100%',
                               height: '150px',
                               objectFit: 'cover',

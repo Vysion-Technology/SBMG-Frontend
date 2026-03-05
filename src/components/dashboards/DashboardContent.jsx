@@ -2215,7 +2215,11 @@ const DashboardContent = () => {
         padding: '5px 15px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: '53px',
+        zIndex: 999,
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}>
         {/* Left side - Dashboard title */}
         <div>

@@ -6,6 +6,11 @@ import axios from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? '/api/v1' : 'http://139.59.34.99:8000/api/v1');
 
+// Base URL for public media assets
+export const MEDIA_BASE_URL = import.meta.env.PROD 
+  ? '/api/v1/public/media' 
+  : 'http://139.59.34.99:8000/api/v1/public/media';
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -96,11 +101,7 @@ export const schemesAPI = {
   uploadSchemeMedia: (schemeId, mediaFile) => {
     const formData = new FormData();
     formData.append('media', mediaFile);
-    return apiClient.post(`/schemes/${schemeId}/media`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    return apiClient.post(`/schemes/${schemeId}/media`, formData);
   },
 };
 
@@ -128,11 +129,7 @@ export const eventsAPI = {
   uploadEventMedia: (eventId, mediaFile) => {
     const formData = new FormData();
     formData.append('media', mediaFile);
-    return apiClient.post(`/events/${eventId}/media`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    return apiClient.post(`/events/${eventId}/media`, formData);
   },
 };
 

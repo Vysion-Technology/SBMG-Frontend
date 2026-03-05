@@ -486,7 +486,11 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
         padding: '6px 0px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 1000,
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}>
       {/* Left side - Menu icon */}
       <div style={{display: 'flex', alignItems: 'center'}}>

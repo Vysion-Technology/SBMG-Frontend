@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
-import { eventsAPI } from '../../../services/api';
+import { eventsAPI, MEDIA_BASE_URL } from '../../../services/api';
 import NoDataFound from '../common/NoDataFound';
 
 const BDOEventsContent = () => {
@@ -140,7 +140,7 @@ const BDOEventsContent = () => {
     const getEventImage = (event) => {
         console.log('Event data for image:', event);
         if (event.media && event.media.length > 0) {
-            const mediaUrl = `http://139.59.34.99:8000/api/v1/public/media/${encodeURIComponent(event.media[0].media_url)}`;
+            const mediaUrl = `${MEDIA_BASE_URL}/${encodeURIComponent(event.media[0].media_url)}`;
             console.log('Generated media URL:', mediaUrl);
 
             // Test if the URL is accessible
