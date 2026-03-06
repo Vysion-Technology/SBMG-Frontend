@@ -524,6 +524,66 @@ const CEOVillageMasterContent = () => {
     }
   };
 
+  const coverageTablePDF = (isView = false) => {
+    try {
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      let y = 20;
+
+      const coverageData = activeScope === 'State'
+        ? analyticsData?.district_wise_coverage || []
+        : activeScope === 'Districts'
+          ? analyticsData?.block_wise_coverage || []
+          : analyticsData?.gp_wise_coverage || [];
+
+      if (!coverageData.length) {
+        alert("No data available to generate PDF");
+        return;
+      }
+
+      const geoLabel = activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP';
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(16, 185, 129);
+      doc.text(`${geoLabel} Wise Coverage Report`, pageWidth / 2, y, { align: "center" });
+      y += 10;
+
+      const headers = [["Sr. No.", `${geoLabel} Name`]];
+      if (activeScope !== 'Blocks') {
+        headers[0].push("Total GPs", "GPs with Data", "Coverage %");
+      }
+      headers[0].push("Status");
+
+      const body = coverageData.map((item, index) => {
+        const row = [index + 1, item.geography_name];
+        if (activeScope !== 'Blocks') {
+          row.push(item.total_gps || 0, item.gps_with_data || 0, `${item.coverage_percentage || 0}%`);
+        }
+        row.push(item.master_data_status || 'Not Available');
+        return row;
+      });
+
+      autoTable(doc, {
+        startY: y,
+        head: headers,
+        body: body,
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255] }
+      });
+
+      if (isView) {
+        window.open(doc.output('bloburl'), '_blank');
+      } else {
+        doc.save(`${geoLabel}_Wise_Coverage_Report.pdf`);
+      }
+    } catch (error) {
+      console.error("PDF Error:", error);
+      alert("Failed to generate PDF.");
+    }
+  };
+
   const tableDataDownload = () => {
     try {
       // 1. Pehle data identify karo activeScope ke hisaab se
@@ -2115,11 +2175,29 @@ const CEOVillageMasterContent = () => {
                   ? 'Block'
                   : 'GP'} Wise Coverage
             </h3>
-            <h3>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <button
-                onClick={tableDataDownload}
+                onClick={() => coverageTablePDF(true)}
                 type="button"
-                title="Download Data"
+                title="View PDF"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '6px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '6px',
+                  backgroundColor: '#3B82F6',
+                  cursor: 'pointer',
+                  color: 'white'
+                }}
+              >
+                <Eye style={{ width: '20px', height: '20px' }} />
+              </button>
+              <button
+                onClick={() => coverageTablePDF(false)}
+                type="button"
+                title="Download PDF"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2134,7 +2212,7 @@ const CEOVillageMasterContent = () => {
               >
                 <Download style={{ width: '20px', height: '20px' }} />
               </button>
-            </h3>
+            </div>
           </div>
 
           {/* Table */}
