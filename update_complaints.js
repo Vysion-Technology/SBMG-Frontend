@@ -1,4 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+const fs = require('fs');
+
+const content = fs.readFileSync('src/components/dashboards/DashboardComplaints.jsx', 'utf8');
+
+const newCode = `import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Chart from 'react-apexcharts';
 import { Info, List, Calendar, ChevronDown } from 'lucide-react';
 import Card from '../common/Card';
@@ -57,7 +61,7 @@ export default function DashboardComplaints({ setActiveItem }) {
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
 
-      const response = await apiClient.get(`/complaints/analytics/geo?${params.toString()}`);
+      const response = await apiClient.get(\`/complaints/analytics/geo?\${params.toString()}\`);
       setAnalyticsData(response.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
@@ -148,7 +152,7 @@ export default function DashboardComplaints({ setActiveItem }) {
 
   // Chart configuration
   const chartOptions = {
-    chart: { type: 'bar', toolbar: { show: false }, stacked: false, parentHeightOffset: 0 },
+    chart: { type: 'bar', toolbar: { show: false }, stacked: false },
     plotOptions: { bar: { columnWidth: '45%', borderRadius: 2 } },
     dataLabels: { enabled: false },
     stroke: { show: true, width: 3, colors: ['transparent'] },
@@ -156,12 +160,11 @@ export default function DashboardComplaints({ setActiveItem }) {
       categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       axisBorder: { show: true, color: '#d1d5db' },
       axisTicks: { show: false },
-      labels: { style: { colors: '#38394e', fontSize: '10px', fontWeight: 600, fontFamily: 'Inter' } }
+      labels: { style: { colors: '#38394e', fontSize: '10px', fontWeight: 600 } }
     },
     yaxis: {
-      labels: { style: { colors: '#000000b3', fontSize: '12px', fontFamily: 'Lato' } },
+      labels: { style: { colors: '#000000b3', fontSize: '12px' } },
       min: 0,
-      max: 300,
       tickAmount: 5
     },
     colors: ['#9ca3af', '#04ce9a', '#f05c51'],
@@ -212,7 +215,7 @@ export default function DashboardComplaints({ setActiveItem }) {
                 <div
                   key={range.value}
                   onClick={() => handleDateRangeSelection(range)}
-                  className={`px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors ${selectedDateRange === range.label ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                  className={\`px-4 py-2 text-sm cursor-pointer hover:bg-gray-50 transition-colors \${selectedDateRange === range.label ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}\`}
                 >
                   {range.label}
                 </div>
@@ -231,7 +234,7 @@ export default function DashboardComplaints({ setActiveItem }) {
               </div>
               <div className="flex flex-col gap-[4px]">
                 <span className="text-[16px] font-normal text-[#111827] leading-[normal]">Total complaints</span>
-                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.total.toLocaleString()}</span>
+                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.total}</span>
               </div>
             </div>
             <Info className="w-[16px] h-[16px] text-[#9ca3af]" />
@@ -249,7 +252,7 @@ export default function DashboardComplaints({ setActiveItem }) {
               </div>
               <div className="flex flex-col gap-[4px]">
                 <span className="text-[16px] font-normal text-[#111827] leading-[normal]">Open complaints</span>
-                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.open.toLocaleString()}</span>
+                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.open}</span>
               </div>
             </div>
             <Info className="w-[16px] h-[16px] text-[#9ca3af]" />
@@ -267,7 +270,7 @@ export default function DashboardComplaints({ setActiveItem }) {
               </div>
               <div className="flex flex-col gap-[4px]">
                 <span className="text-[16px] font-normal text-[#111827] leading-[normal]">Disposed complaints</span>
-                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.disposed.toLocaleString()}</span>
+                <span className="text-[28px] font-semibold text-[#111827] leading-[normal]">{loadingAnalytics ? '...' : counts.disposed}</span>
               </div>
             </div>
             <Info className="w-[16px] h-[16px] text-[#9ca3af]" />
@@ -293,24 +296,6 @@ export default function DashboardComplaints({ setActiveItem }) {
              <span className="text-[12px] font-medium text-[#4b5563] tracking-[0.5px]">Open</span>
            </div>
         </div>
-        <div className="flex items-center gap-[8px]" onClick={(e) => e.stopPropagation()}>
-          <div className="bg-white border border-[#d1d5db] flex h-[32px] items-center justify-between overflow-clip px-[3px] py-[4px] rounded-[8px] w-[176px]">
-            <div className="bg-[#009b56] flex flex-[1_0_0] items-center justify-center px-[16px] py-[4px] rounded-[6px] cursor-pointer h-full">
-              <span className="font-medium text-[#f9fafb] text-[14px] leading-[normal]">Time</span>
-            </div>
-            <div className="flex flex-[1_0_0] items-center justify-center px-[16px] py-[4px] rounded-[8px] cursor-pointer h-full">
-              <span className="font-medium text-[#6b7280] text-[14px] leading-[normal]">Location</span>
-            </div>
-          </div>
-          
-          <div className="bg-white border border-[#d1d5db] flex h-[32px] items-center justify-between px-[8px] py-[9px] rounded-[8px] w-[141px] cursor-pointer">
-            <div className="flex items-center gap-[8px]">
-              <Calendar className="w-[18px] h-[18px] text-[#4b5563]" />
-              <span className="font-normal text-[#4b5563] text-[14px] leading-[normal]">Select Year</span>
-            </div>
-            <ChevronDown className="w-[16px] h-[16px] text-[#4b5563]" />
-          </div>
-        </div>
       </div>
 
       <div className="h-[220px] w-full">
@@ -319,3 +304,6 @@ export default function DashboardComplaints({ setActiveItem }) {
     </Card>
   );
 }
+`;
+
+fs.writeFileSync('src/components/dashboards/DashboardComplaints.jsx', newCode);
