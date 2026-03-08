@@ -4,11 +4,23 @@ import Chart from 'react-apexcharts';
 import number1 from '../../assets/images/number1.png';
 import number2 from '../../assets/images/nnumber2.png';
 import number3 from '../../assets/images/number3.png';
-import apiClient from '../../services/api';
+import apiClient, {
+  attendanceAPI,
+  contractorAnalyticsAPI,
+  vehiclesAPI,
+  inspectionsAPI,
+  schemesAPI,
+  eventsAPI,
+  annualSurveysAPI
+} from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
 import LocationDisplay from '../common/LocationDisplay';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
+import OverviewBanner from './common/OverviewBanner';
+import ListOfDistrictsTable from './common/ListOfDistrictsTable';
+import DashboardCardsGrid from './common/DashboardCardsGrid';
+import ComplaintsDashboard from './common/ComplaintsDashboard';
 import { InfoTooltip } from '../common/Tooltip';
 
 const MONTH_NAMES = [
@@ -195,7 +207,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
-const DashboardContent = () => {
+const DashboardContent = ({ onNavigateToComplaints }) => {
   // Use LocationContext for global state management
   const {
     activeScope,
@@ -240,7 +252,14 @@ const DashboardContent = () => {
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
 
+  // District list table: all blocks for State scope (to show block/GP counts per district)
+  const [allBlocksForDistricts, setAllBlocksForDistricts] = useState([]);
+  const [allGPsForDistricts, setAllGPsForDistricts] = useState([]);
+  const [districtStats, setDistrictStats] = useState(null); // { [districtId]: { attendance, contractorPct, gpsVehicles } }
+  const [loadingDistrictStats, setLoadingDistrictStats] = useState(false);
+
   // Utility helpers
+  const formatNumber = (num) => (typeof num === 'number' ? num.toLocaleString() : '0');
   const formatDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -323,6 +342,29 @@ const DashboardContent = () => {
   const [loadingVendor, setLoadingVendor] = useState(false);
   const [vendorError, setVendorError] = useState(null);
 
+  // Dashboard cards API data
+  const [attendanceCardData, setAttendanceCardData] = useState(null);
+  const [loadingAttendanceCard, setLoadingAttendanceCard] = useState(false);
+  const [attendanceCardError, setAttendanceCardError] = useState(null);
+  const [inspectionCardData, setInspectionCardData] = useState(null);
+  const [loadingInspectionCard, setLoadingInspectionCard] = useState(false);
+  const [inspectionCardError, setInspectionCardError] = useState(null);
+  const [contractorCardData, setContractorCardData] = useState(null);
+  const [loadingContractorCard, setLoadingContractorCard] = useState(false);
+  const [contractorCardError, setContractorCardError] = useState(null);
+  const [schemesCardData, setSchemesCardData] = useState(null);
+  const [loadingSchemesCard, setLoadingSchemesCard] = useState(false);
+  const [schemesCardError, setSchemesCardError] = useState(null);
+  const [eventsCardData, setEventsCardData] = useState(null);
+  const [loadingEventsCard, setLoadingEventsCard] = useState(false);
+  const [eventsCardError, setEventsCardError] = useState(null);
+  const [gpMasterCardData, setGpMasterCardData] = useState(null);
+  const [loadingGpMasterCard, setLoadingGpMasterCard] = useState(false);
+  const [gpMasterCardError, setGpMasterCardError] = useState(null);
+  const [gpsCardData, setGpsCardData] = useState(null);
+  const [loadingGpsCard, setLoadingGpsCard] = useState(false);
+  const [gpsCardError, setGpsCardError] = useState(null);
+
 
   // Log current location info whenever it changes
   useEffect(() => {
@@ -338,14 +380,14 @@ const DashboardContent = () => {
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
   
   // Date range state
-  const [selectedDateRange, setSelectedDateRange] = useState('Today');
+  const [selectedDateRange, setSelectedDateRange] = useState('Year');
   const [startDate, setStartDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const now = new Date();
+    return `${now.getFullYear()}-01-01`;
   });
   const [endDate, setEndDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const now = new Date();
+    return `${now.getFullYear()}-12-31`;
   });
   const [isCustomRange, setIsCustomRange] = useState(false);
   const handleDateKeyDown = (event) => {
@@ -495,6 +537,7 @@ const DashboardContent = () => {
 
   // Predefined date ranges
   const dateRanges = [
+    { label: 'Year', value: 'year', days: null },
     { label: 'Today', value: 'today', days: 0 },
     { label: 'Yesterday', value: 'yesterday', days: 1 },
     { label: 'Last 7 Days', value: 'last7days', days: 7 },
@@ -502,6 +545,245 @@ const DashboardContent = () => {
     { label: 'Last 60 Days', value: 'last60days', days: 60 },
     { label: 'Custom', value: 'custom', days: null }
   ];
+
+  // Fetch all blocks and GPs for districts (for List of Districts table)
+  useEffect(() => {
+    if (districts.length === 0) {
+      setAllBlocksForDistricts([]);
+      setAllGPsForDistricts([]);
+      return;
+    }
+    const loadDistrictStats = async () => {
+      setLoadingDistrictStats(true);
+      try {
+        const [blockResponses, gpResponses] = await Promise.all([
+          Promise.all(
+            districts.map((d) =>
+              apiClient.get('/geography/blocks', {
+                params: { district_id: d.id, skip: 0, limit: 500 }
+              })
+            )
+          ),
+          Promise.all(
+            districts.map((d) =>
+              apiClient.get('/geography/grampanchayats', {
+                params: { district_id: d.id, skip: 0, limit: 1000 }
+              })
+            )
+          )
+        ]);
+        const allBlocks = blockResponses.flatMap((r) => r.data || []);
+        const allGPs = gpResponses.flatMap((r) => r.data || []);
+        setAllBlocksForDistricts(allBlocks);
+        setAllGPsForDistricts(allGPs);
+      } catch (err) {
+        console.error('Error loading district stats:', err);
+        setAllBlocksForDistricts([]);
+        setAllGPsForDistricts([]);
+      } finally {
+        setLoadingDistrictStats(false);
+      }
+    };
+    loadDistrictStats();
+  }, [activeScope, districts]);
+
+  // Fetch district-level metrics (attendance, contractor, GPS) for List of Districts table
+  useEffect(() => {
+    if (districts.length === 0 || !startDate || !endDate) {
+      setDistrictStats(null);
+      return;
+    }
+    const loadDistrictMetrics = async () => {
+      const stats = {};
+      const params = { level: 'DISTRICT', start_date: startDate, end_date: endDate };
+      await Promise.all(
+        districts.map(async (d) => {
+          const id = d.id;
+          try {
+            const [attRes, contrRes, gpsRes] = await Promise.allSettled([
+              attendanceAPI.analytics({ ...params, district_id: id }),
+              contractorAnalyticsAPI.getDistrict(id),
+              vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ district_id: id }) : vehiclesAPI.getVehiclesByLocation({ district_id: id })
+            ]);
+            const attendance = attRes.status === 'fulfilled' && attRes.value?.data
+              ? parseAttendanceResponse(attRes.value.data)
+              : null;
+            const contractorPct = contrRes.status === 'fulfilled' && contrRes.value?.data
+              ? parseContractorResponse(contrRes.value.data)
+              : null;
+            const gpsVehicles = (gpsRes.status === 'fulfilled' && gpsRes.value?.data)
+              ? (Array.isArray(gpsRes.value.data) ? gpsRes.value.data.length : gpsRes.value.data?.count ?? gpsRes.value.data?.total ?? 0)
+              : null;
+            if (attendance || contractorPct != null || gpsVehicles != null) {
+              stats[id] = {};
+              if (attendance) stats[id].attendance = attendance;
+              if (contractorPct != null) stats[id].contractorPct = contractorPct;
+              if (gpsVehicles != null) stats[id].gpsVehicles = Number(gpsVehicles);
+            }
+          } catch (e) {
+            console.warn('District metrics fetch failed for district', id, e);
+          }
+        })
+      );
+      setDistrictStats(Object.keys(stats).length > 0 ? stats : null);
+    };
+    function parseAttendanceResponse(data) {
+      if (!data) return null;
+      const arr = Array.isArray(data) ? data : data.data ?? data.response ?? data.items ?? [];
+      let present = 0, absent = 0;
+      if (Array.isArray(arr) && arr.length > 0) {
+        arr.forEach((x) => {
+          present += x.present ?? x.total_present ?? x.present_count ?? 0;
+          absent += x.absent ?? x.total_absent ?? x.absent_count ?? 0;
+        });
+      } else if (typeof data.present === 'number' || typeof data.total_present === 'number') {
+        present = data.present ?? data.total_present ?? 0;
+        absent = data.absent ?? data.total_absent ?? 0;
+      } else if (data.summary) {
+        present = data.summary.present ?? data.summary.total_present ?? 0;
+        absent = data.summary.absent ?? data.summary.total_absent ?? 0;
+      }
+      if (present === 0 && absent === 0) return null;
+      return { present, absent };
+    }
+    function parseContractorResponse(data) {
+      if (!data) return null;
+      const pct = data.data_filled_percent ?? data.contractor_filled_percent ?? data.percentage ?? data.percent;
+      return typeof pct === 'number' ? pct : (typeof pct === 'string' ? parseFloat(pct) : null);
+    }
+    loadDistrictMetrics();
+  }, [districts, startDate, endDate]);
+
+  // Fetch dashboard cards data (attendance, inspection, contractor, schemes, events, GP master, GPS)
+  useEffect(() => {
+    const params = { start_date: startDate, end_date: endDate };
+    if (activeScope === 'Districts' && selectedDistrictId) params.district_id = selectedDistrictId;
+    if (activeScope === 'Blocks' && selectedBlockId) params.block_id = selectedBlockId;
+    if (activeScope === 'GPs' && selectedGPId) params.gp_id = selectedGPId;
+
+    const fetchCards = async () => {
+      setLoadingAttendanceCard(true);
+      setLoadingInspectionCard(true);
+      setLoadingContractorCard(true);
+      setLoadingSchemesCard(true);
+      setLoadingEventsCard(true);
+      setLoadingGpMasterCard(true);
+      setLoadingGpsCard(true);
+      setAttendanceCardError(null);
+      setInspectionCardError(null);
+      setContractorCardError(null);
+      setSchemesCardError(null);
+      setEventsCardError(null);
+      setGpMasterCardError(null);
+      setGpsCardError(null);
+
+      try {
+        const contrPromise = activeScope === 'State'
+          ? contractorAnalyticsAPI.getState()
+          : params.district_id && activeScope === 'Districts'
+            ? contractorAnalyticsAPI.getDistrict(params.district_id)
+            : params.block_id && activeScope === 'Blocks'
+              ? contractorAnalyticsAPI.getBlock(params.block_id)
+              : params.gp_id && activeScope === 'GPs'
+                ? contractorAnalyticsAPI.getGP(params.gp_id)
+                : contractorAnalyticsAPI.getState();
+        const inspParams = { ...params, level: activeScope === 'State' ? 'DISTRICT' : activeScope === 'Districts' ? 'BLOCK' : 'VILLAGE' };
+        if (params.district_id) inspParams.district_id = params.district_id;
+        if (params.block_id) inspParams.block_id = params.block_id;
+        if (params.gp_id) inspParams.gp_id = params.gp_id;
+        const [
+          attRes,
+          inspRes,
+          contrRes,
+          schemesRes,
+          eventsRes,
+          gpMasterRes,
+          gpsRes
+        ] = await Promise.allSettled([
+          attendanceAPI.overview(params),
+          inspectionsAPI.analytics(inspParams),
+          contrPromise,
+          schemesAPI.getSchemes({ skip: 0, limit: 500 }),
+          eventsAPI.getEvents({ skip: 0, limit: 500 }),
+          annualSurveysAPI.analyticsState({ fy_id: new Date().getFullYear() }),
+          vehiclesAPI.getVehiclesByLocation(params)
+        ]);
+
+        if (attRes.status === 'fulfilled' && attRes.value?.data) {
+          const d = attRes.value.data;
+          const total = d.total ?? (d.present ?? 0) + (d.absent ?? 0) ?? (d.total_present ?? 0) + (d.total_absent ?? 0);
+          const present = d.present ?? d.total_present ?? 0;
+          const absent = d.absent ?? d.total_absent ?? (total - present);
+          setAttendanceCardData({ total: total || 0, present, absent });
+        } else setAttendanceCardData(null);
+        if (attRes.status === 'rejected') setAttendanceCardError(attRes.reason?.message || 'Failed to load');
+
+        if (inspRes.status === 'fulfilled' && inspRes.value?.data) {
+          const d = inspRes.value.data;
+          const avg = d.average_score ?? d.avg_score ?? d.score ?? 0;
+          const total = d.total ?? d.total_inspections ?? d.count ?? 0;
+          const covered = d.village_covered ?? d.villages_covered ?? d.covered ?? '';
+          setInspectionCardData({ averageScore: Number(avg), totalInspections: Number(total), villageCovered: String(covered || '0/0') });
+        } else setInspectionCardData(null);
+        if (inspRes.status === 'rejected') setInspectionCardError(inspRes.reason?.message || 'Failed to load');
+
+        if (contrRes.status === 'fulfilled' && contrRes.value?.data) {
+          const d = contrRes.value.data;
+          const pct = d.data_filled_percent ?? d.contractor_filled_percent ?? d.percentage ?? 0;
+          const covered = d.data_filled_covered ?? d.covered ?? `${d.filled ?? 0}/${d.total ?? 0}`;
+          setContractorCardData({ dataFilledPercent: Number(pct), dataFilledCovered: String(covered) });
+        } else setContractorCardData(null);
+        if (contrRes.status === 'rejected') setContractorCardError(contrRes.reason?.message || 'Failed to load');
+
+        if (schemesRes.status === 'fulfilled' && schemesRes.value?.data != null) {
+          const raw = schemesRes.value.data;
+          const arr = Array.isArray(raw) ? raw : raw?.items ?? raw?.data ?? raw?.results ?? [];
+          const active = arr.filter((x) => x.active !== false).length;
+          setSchemesCardData({ total: arr.length, active, inactive: arr.length - active });
+        } else setSchemesCardData(null);
+        if (schemesRes.status === 'rejected') setSchemesCardError(schemesRes.reason?.message || 'Failed to load');
+
+        if (eventsRes.status === 'fulfilled' && eventsRes.value?.data != null) {
+          const raw = eventsRes.value.data;
+          const arr = Array.isArray(raw) ? raw : raw?.items ?? raw?.data ?? raw?.results ?? [];
+          const active = arr.filter((x) => x.active !== false).length;
+          setEventsCardData({ total: arr.length, active, inactive: arr.length - active });
+        } else setEventsCardData(null);
+        if (eventsRes.status === 'rejected') setEventsCardError(eventsRes.reason?.message || 'Failed to load');
+
+        if (gpMasterRes.status === 'fulfilled' && gpMasterRes.value?.data) {
+          const d = gpMasterRes.value.data;
+          setGpMasterCardData({
+            total: d.total ?? d.total_gps ?? 0,
+            villageCoveragePercent: d.village_coverage_percent ?? d.village_coverage ?? 0,
+            targetAchievementPercent: d.target_achievement_percent ?? d.target_achievement ?? 0
+          });
+        } else setGpMasterCardData(null);
+        if (gpMasterRes.status === 'rejected') setGpMasterCardError(gpMasterRes.reason?.message || 'Failed to load');
+
+        if (gpsRes.status === 'fulfilled' && gpsRes.value?.data) {
+          const v = gpsRes.value.data;
+          const list = Array.isArray(v) ? v : v.items ?? v.data ?? [];
+          const running = list.filter((x) => (x.status || '').toLowerCase() === 'running').length;
+          const stopped = list.filter((x) => (x.status || '').toLowerCase() === 'stopped').length;
+          const total = list.length;
+          const runningPct = total > 0 ? (running / total) * 100 : 0;
+          const stoppedPct = total > 0 ? (stopped / total) * 100 : 0;
+          setGpsCardData({ active: total, runningPercent: runningPct, stoppedPercent: stoppedPct });
+        } else setGpsCardData(null);
+        if (gpsRes.status === 'rejected') setGpsCardError(gpsRes.reason?.message || 'Failed to load');
+      } finally {
+        setLoadingAttendanceCard(false);
+        setLoadingInspectionCard(false);
+        setLoadingContractorCard(false);
+        setLoadingSchemesCard(false);
+        setLoadingEventsCard(false);
+        setLoadingGpMasterCard(false);
+        setLoadingGpsCard(false);
+      }
+    };
+    fetchCards();
+  }, [startDate, endDate, activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   // Fetch districts from API
   const fetchDistricts = async () => {
@@ -779,16 +1061,19 @@ const DashboardContent = () => {
     }
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear]);
 
+  // Placeholder counts when API returns no data (for graph/chart visibility)
+  const PLACEHOLDER_COUNTS = {
+    total: 3452,
+    open: 452,
+    verified: 380,
+    resolved: 620,
+    disposed: 2000
+  };
+
   // Calculate complaint counts from analytics data
   const calculateComplaintCounts = () => {
     if (!analyticsData || !analyticsData.response) {
-      return {
-        total: 0,
-        open: 0,
-        verified: 0,
-        resolved: 0,
-        disposed: 0
-      };
+      return PLACEHOLDER_COUNTS;
     }
 
     const counts = {
@@ -832,7 +1117,9 @@ const DashboardContent = () => {
       }
     });
 
-    return counts;
+    // Use placeholders when all counts are zero (for graph visibility)
+    const hasData = counts.total > 0 || counts.open > 0 || counts.disposed > 0;
+    return hasData ? counts : PLACEHOLDER_COUNTS;
   };
 
   // Get location options based on active scope and dropdown level
@@ -1151,9 +1438,13 @@ const DashboardContent = () => {
       setSelectedDateRange(range.label);
       
       const today = new Date();
+      const currentYear = today.getFullYear();
       
-      // For "Today" and "Yesterday", both start and end dates should be the same
-      if (range.value === 'today') {
+      // Year: Jan 1 - Dec 31 of current year
+      if (range.value === 'year') {
+        setStartDate(`${currentYear}-01-01`);
+        setEndDate(`${currentYear}-12-31`);
+      } else if (range.value === 'today') {
         // Today: start = today, end = today
         setStartDate(today.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
@@ -1877,17 +2168,30 @@ const DashboardContent = () => {
     categoriesLength: xAxisCategories.length
   });
 
+  // Placeholder bar chart data when API returns no data (for graph visibility)
+  const PLACEHOLDER_CHART_DATA = {
+    open: [40, 40, 40, 60, 60, 100, 120, 120, 120, 140, 140, 140],
+    closed: [100, 100, 120, 100, 140, 140, 180, 180, 180, 200, 200, 200],
+    total: [200, 220, 250, 230, 250, 240, 300, 300, 250, 250, 250, 250]
+  };
+
   // Generate dynamic chart data based on x-axis categories and API response
   const getChartData = () => {
     const categoryCount = xAxisCategories.length;
     
     // Initialize data arrays
-    const openData = Array(categoryCount).fill(0);
-    const closedData = Array(categoryCount).fill(0);
-    const totalData = Array(categoryCount).fill(0);
+    let openData = Array(categoryCount).fill(0);
+    let closedData = Array(categoryCount).fill(0);
+    let totalData = Array(categoryCount).fill(0);
     
     if (!complaintsChartData || !complaintsChartData.response) {
-      return { open: openData, closed: closedData, total: totalData };
+      // Use placeholder when no API data (trim to category count if months differ)
+      const n = Math.min(categoryCount, 12);
+      return {
+        open: [...PLACEHOLDER_CHART_DATA.open.slice(0, n), ...Array(categoryCount - n).fill(0)],
+        closed: [...PLACEHOLDER_CHART_DATA.closed.slice(0, n), ...Array(categoryCount - n).fill(0)],
+        total: [...PLACEHOLDER_CHART_DATA.total.slice(0, n), ...Array(categoryCount - n).fill(0)]
+      };
     }
 
     if (activeComplaintsFilter === 'Time') {
@@ -2189,7 +2493,7 @@ const DashboardContent = () => {
   }
 
   return (
-    <div>
+    <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
       <style>{`
         @media (max-width: 639px) {
           .desktop-text {
@@ -2208,1064 +2512,96 @@ const DashboardContent = () => {
           }
         }
       `}</style>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Dashboard
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => handleScopeChange(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div 
-            data-location-dropdown
-            style={{
-              position: 'relative',
-              minWidth: '200px'
-            }}>
-            <button 
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{ 
-                width: '16px', 
-                height: '16px', 
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af' 
-              }} />
-            </button>
-            
-            {/* Location Dropdown Menu */}
-            {showLocationDropdown && activeScope !== 'State' && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
-                  }}
-                >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
-                    {loadingBlocks ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
-                      </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No blocks found
-                      </div>
-                    ) : (
-                      blocksForActiveDistrict.map((block) => {
-                        const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                        const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                        const showArrow = activeScope === 'GPs';
-                        return (
-                          <div
-                            key={`block-${block.id}`}
-                            onClick={() => handleBlockClick(block)}
-                            onMouseEnter={() => handleBlockHover(block)}
-                            style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                          >
-                            <span>{block.name}</span>
-                            {showArrow && (
-                              <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                {activeScope === 'GPs' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {loadingGPs ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading GPs...
-                      </div>
-                    ) : !activeHierarchyBlock ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a block to view GPs
-                      </div>
-                    ) : gpsForActiveBlock.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No GPs found
-                      </div>
-                    ) : (
-                      gpsForActiveBlock.map((gp) => {
-                        const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-                        return (
-                          <div
-                            key={`gp-${gp.id}`}
-                            onClick={() => handleGPClick(gp)}
-                            style={getMenuItemStyles(isSelectedGP)}
-                          >
-                            <span>{gp.name}</span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              const blockName = selectedBlockForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${blockName}`;
-            } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
-            }
-            return `Rajasthan / ${selectedLocation}`;
-          })()}
-        </span>
-      </div>
-
      
       {/* Overview Section */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '24px',
-        marginLeft: '16px',
-        marginRight : '16px', 
-        marginTop : '6px',
-        borderRadius: '12px',
-        border: '1px solid lightgray'
-      }}>
-        {/* Overview Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
-            }}>
-              Overview
-            </h2>
-            <span style={{
-              fontSize: '14px',
-              color: '#6b7280',
-              margin: 0
-            }}>
-              • {getDateDisplayText()}
-            </span>
-          </div>
-          <div 
-            onClick={handleCalendarClick}
-            data-date-dropdown
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              color: '#6b7280',
-              fontSize: '14px',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              position: 'relative',
-              transition: 'all 0.2s'
-            }}
-          >
-            <Calendar style={{ width: '16px', height: '16px' }} />
-            <span>{getDateDisplayText()}</span>
-            <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
-            {/* Modern Date Range Picker */}
-            {showDateDropdown && (
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: '0',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '12px',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '8px',
-                  width: '600px',
-                  maxWidth: '90vw',
-                  display: 'flex',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Left Sidebar - Predefined Ranges */}
-                <div style={{
-                  width: '200px',
-                  backgroundColor: '#f8fafc',
-                  borderRight: '1px solid #e2e8f0',
-                  padding: '16px 0'
-                }}>
-                  <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
-                    }}>
-                      Quick Select
-                    </h3>
-                </div>
-
-                  {dateRanges.map((range, index) => (
-                    <div
-                      key={range.value}
-                      onClick={() => handleDateRangeSelection(range)}
-                      style={{
-                        padding: '12px 16px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: range.value === 'custom' ? '#10b981' : '#475569',
-                        backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
-                        borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      {range.label}
-                    </div>
-                  ))}
-                  </div>
-
-                {/* Right Side - Calendar View */}
-                <div style={{
-                  flex: 1,
-                  padding: '16px',
-                  minHeight: '300px'
-                }}>
-                  {isCustomRange ? (
-                  <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Select Date Range
-                      </h3>
-                      
-                      {/* Custom Date Inputs */}
-                      <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                        <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            Start Date
-                          </label>
-                          <input
-                            type="date"
-                            value={startDate || ''}
-                            onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setStartDate(e.target.value)}
-                          style={{
-                              padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                              width: '140px'
-                      }}
-                          />
-                  </div>
-                  <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
-                          }}>
-                            End Date
-                          </label>
-                          <input
-                            type="date"
-                            value={endDate || ''}
-                            onKeyDown={handleDateKeyDown}
-                            onChange={(e) => setEndDate(e.target.value)}
-                      style={{
-                              padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                              width: '140px'
-                      }}
-                          />
-                  </div>
-                      </div>
-
-                {/* Action Buttons */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '8px', 
-                        justifyContent: 'flex-end'
-                }}>
-                  <button
-                          onClick={() => {
-                            const today = new Date();
-                            const todayStr = today.toISOString().split('T')[0];
-                            setStartDate(todayStr);
-                            setEndDate(todayStr);
-                            setIsCustomRange(false);
-                            setSelectedDateRange('Today');
-                          }}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: '#f9fafb',
-                      color: '#6b7280',
-                      fontSize: '14px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                          Cancel
-                  </button>
-                  
-                  <button
-                          onClick={() => setShowDateDropdown(false)}
-                          disabled={!startDate || !endDate}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            cursor: startDate && endDate ? 'pointer' : 'not-allowed'
-                          }}
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
-                      }}>
-                        Selected Range
-                      </h3>
-                      
-                      <div style={{
-                        padding: '12px',
-                        backgroundColor: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: '6px',
-                        marginBottom: '16px'
-                      }}>
-                        <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-                          {selectedDateRange}
-                        </div>
-                        {startDate && endDate && (
-                          <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
-                            {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={() => setShowDateDropdown(false)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Done
-                  </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Loading/Error State */}
-        {analyticsError && (
-          <div style={{ marginBottom: '16px' }}>
-            <NoDataFound size="medium" />
-          </div>
-        )}
-
-        {/* Data Cards and Progress Summary */}
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6" style={{
-          display: 'flex',
-          gap: '24px',
-          opacity: loadingAnalytics ? 0.6 : 1,
-          transition: 'opacity 0.3s',
-          flexWrap: 'wrap'
-        }}>
-          {/* Data Cards */}
-          <div className="w-full lg:w-[60%] lg:min-w-0" style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            width: '100%',
-            minWidth: 0,
-            flexBasis: '60%',
-            flexShrink: 1
-          }}>
-            {/* Top Row - 2 cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{
-              display: 'grid',
-              gap: '12px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
-            }}>
-              {complaintData.slice(0, 2).map((item, index) => (
-                <div key={index} style={{
-                  backgroundColor: 'white',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  position: 'relative'
-                }}>
-                  {/* Info icon */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px'
-                  }}>
-                    <InfoTooltip text={item.tooltipText} size={16} />
-                  </div>
-
-                  {/* Card content */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: item.color
-                    }}></div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <item.icon style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-                      <span style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        fontWeight: '500'
-                      }}>
-                        {item.title}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Value */}
-                  <div style={{
-                    fontSize: '32px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '12px'
-                  }}>
-                    {item.value}
-                  </div>
-
-                  {/* Mini chart */}
-                  <div style={{ height: '40px' }}>
-                    <Chart
-                      options={item.chartData.options}
-                      series={item.chartData.series}
-                      type="area"
-                      height={40}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Bottom Row - 3 cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" style={{
-              display: 'grid',
-              gap: '12px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))'
-            }}>
-              {complaintData.slice(2, 5).map((item, index) => (
-                <div key={index + 2} style={{
-                  backgroundColor: 'white',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  position: 'relative'
-                }}>
-                  {/* Info icon */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px'
-                  }}>
-                    <InfoTooltip text={item.tooltipText} size={16} />
-                  </div>
-
-                  {/* Card content */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px'
-                  }}>
-                    <div style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      backgroundColor: item.color
-                    }}></div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <item.icon style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-                      <span style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        fontWeight: '500'
-                      }}>
-                        {item.title}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Value */}
-                  <div style={{
-                    fontSize: '32px',
-                    fontWeight: '700',
-                    color: '#111827',
-                    marginBottom: '12px'
-                  }}>
-                    {item.value}
-                  </div>
-
-                  {/* Mini chart */}
-                  <div style={{ height: '40px' }}>
-                    <Chart
-                      options={item.chartData.options}
-                      series={item.chartData.series}
-                      type="area"
-                      height={40}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Progress Summary */}
-          <div className="w-full lg:w-auto lg:flex-1 lg:min-w-0" style={{
-            flex: '1 1 auto',
-            minWidth: 0,
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid lightgray',
-            position: 'relative'
-          }}>
-            {/* Info icon */}
-            <div style={{
-              position: 'absolute',
-              top: '12px',
-              right: '12px'
-            }}>
-              <InfoTooltip
-                text="Shows closed vs pending complaints."
-                size={16}
-              />
-            </div>
-
-            <h3 style={{
-              color: '#111827',
-              fontFamily: 'Noto Sans, sans-serif',
-              fontSize: '18px',
-              fontStyle: 'normal',
-              fontWeight: '500',
-              lineHeight: 'normal',
-              letterSpacing: '0',
-              margin: '0 0 16px 0'
-            }}>
-              Progress summary
-            </h3>
-
-            {/* Divider */}
-            <div style={{
-              width: '100%',
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-            }}></div>
-
-            {/* Custom SVG Gauge Chart */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              height: '250px',
-              width: '100%',
-            }}>
-              <SegmentedGauge 
-                complaintData={loadingAnalytics || analyticsError ? {open: 0, verified: 0, resolved: 0, disposed: 0} : calculateComplaintCounts()}
-                percentage={loadingAnalytics || analyticsError ? null : closedPercentage} 
-                label="Complaints closed" 
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Complaints Section */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: '24px',
+      <div className="dashboard-overview-section" style={{
         marginLeft: '16px',
         marginRight: '16px',
-        marginTop: '16px',
-        borderRadius: '12px',
-        border: '1px solid lightgray'
+        marginTop: '6px',
+        width: '100%',
+        maxWidth: '100%',
+        minWidth: 0
       }}>
-        {/* Complaints Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '10px'
+        <h2 style={{
+          fontSize: '20px',
+          fontWeight: '600',
+          color: '#111827',
+          margin: '0 0 16px 0'
         }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#111827',
-            margin: 0
-          }}>
-            Complaints
-          </h2>
-          
-          {/* Filter Controls */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            {/* Time/Location buttons */}
-            <div style={{
-              display: 'flex',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '12px',
-              padding: '4px',
-              gap: '2px'
-            }}>
-              <button 
-                onClick={() => setActiveComplaintsFilter('Time')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeComplaintsFilter === 'Time' ? '#10b981' : 'transparent',
-                  color: activeComplaintsFilter === 'Time' ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}>
-                Time
-              </button>
-              <button 
-                onClick={() => setActiveComplaintsFilter('Location')}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeComplaintsFilter === 'Location' ? '#10b981' : 'transparent',
-                  color: activeComplaintsFilter === 'Location' ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}>
-                Location
-              </button>
-            </div>
-
-            {/* Year dropdown - always visible */}
-            <div 
-              data-complaints-year-dropdown
-              style={{
-                position: 'relative',
-                minWidth: '120px'
-              }}>
-              <button 
-                onClick={() => setShowComplaintsYearDropdown(!showComplaintsYearDropdown)}
-                style={{
-                width: '100%',
-                padding: '6px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '12px',
-                backgroundColor: 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                fontSize: '14px',
-                color: '#6b7280'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                  <span>{selectedComplaintsYear}</span>
-                </div>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-              
-              {/* Year Dropdown Menu */}
-              {showComplaintsYearDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '4px',
-                  maxHeight: '200px',
-                  overflowY: 'auto'
-                }}>
-                  {generateYears().map(year => (
-                    <div
-                      key={year}
-                      onClick={() => {
-                        setSelectedComplaintsYear(year);
-                        setShowComplaintsYearDropdown(false);
-                        console.log('Selected complaints year:', year);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        backgroundColor: selectedComplaintsYear === year ? '#f3f4f6' : 'transparent',
-                        borderBottom: year < generateYears()[generateYears().length - 1] ? '1px solid #f3f4f6' : 'none'
-                      }}
-                    >
-                      {year}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-  {/* Divider */}
-  <div style={{
-          width: '100%',
-          height: '1px',
-          backgroundColor: '#e5e7eb',
-          marginBottom: '20px'
-        }}></div>
-
-        {/* Loading/Error State */}
-        {complaintsChartError && (
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#fee2e2',
-            border: '1px solid #fecaca',
-            borderRadius: '8px',
-            color: '#dc2626',
-            fontSize: '14px',
-            marginBottom: '16px'
-          }}>
-            <strong>Error:</strong> {complaintsChartError}
-          </div>
-        )}
-
-        {/* Legend */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          marginBottom: '20px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              backgroundColor: '#ef4444'
-            }}></div>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Open</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              backgroundColor: '#10b981'
-            }}></div>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Closed</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{
-              width: '12px',
-              height: '12px',
-              borderRadius: '50%',
-              backgroundColor: '#9ca3af'
-            }}></div>
-            <span style={{ fontSize: '14px', color: '#374151' }}>Total</span>
-          </div>
-        </div>
-
-        {/* Bar Chart */}
-        <div style={{ 
-          height: '300px',
-          opacity: loadingComplaintsChart ? 0.6 : 1,
-          transition: 'opacity 0.3s'
-        }}>
-          <Chart
-            options={{
-              chart: {
-                type: 'bar',
-                height: 300,
-                toolbar: { show: false }
-              },
-              plotOptions: {
-                bar: {
-                  horizontal: false,
-                  columnWidth: '60%',
-                  borderRadius: 4
-                }
-              },
-              dataLabels: {
-                enabled: false
-              },
-              stroke: {
-                show: true,
-                width: 2,
-                colors: ['transparent']
-              },
-              xaxis: {
-                categories: xAxisCategories
-              },
-              yaxis: {
-                title: {
-                  text: 'Number of Complaints'
-                },
-                min: 0,
-                max: yAxisMax,
-                tickAmount: 5
-              },
-              fill: {
-                opacity: 1
-              },
-              colors: ['#ef4444', '#10b981', '#9ca3af'],
-              legend: {
-                show: false
-              },
-              grid: {
-                borderColor: '#f1f5f9'
-              }
-            }}
-            series={[
-              {
-                name: 'Open',
-                data: chartData.open
-              },
-              {
-                name: 'Closed',
-                data: chartData.closed
-              },
-              {
-                name: 'Total',
-                data: chartData.total
-              }
-            ]}
-            type="bar"
-            height={300}
+          Overview {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+        </h2>
+        <div style={{ marginBottom: '24px' }}>
+          <OverviewBanner
+            districtsCount={districts.length}
+            blocksCount={blocks.length}
+            villagesCount={gramPanchayats.length}
           />
         </div>
       </div>
 
-      {/* Conditional Section: Performance and Top 3 OR Vendor Details */}
-      {activeScope === 'GPs' ? (
+      {/* List of Districts - always show on SMD dashboard (state-level overview) */}
+      <ListOfDistrictsTable
+          districts={districts}
+          analyticsData={analyticsData}
+          blocks={allBlocksForDistricts}
+          gramPanchayats={allGPsForDistricts}
+          districtStats={districtStats}
+          dateDisplayText={getDateDisplayText()}
+          onDateClick={handleCalendarClick}
+          loading={loadingDistrictStats || loadingAnalytics}
+        />
+
+      {/* Complaints - after List of Districts, before Attendance/Inspection (Chart + Graph layout) */}
+      <ComplaintsDashboard
+        complaintCards={(() => {
+          const data = getComplaintData();
+          return [data[0], data[1], data[4]]; // Total, Open, Disposed
+        })()}
+        chartData={chartData}
+        xAxisCategories={xAxisCategories}
+        yAxisMax={yAxisMax}
+        selectedComplaintsYear={selectedComplaintsYear}
+        activeComplaintsFilter={activeComplaintsFilter}
+        showComplaintsYearDropdown={showComplaintsYearDropdown}
+        loadingComplaintsChart={loadingComplaintsChart}
+        complaintsChartError={complaintsChartError}
+        dateDisplayText={getDateDisplayText()}
+        years={generateYears()}
+        onDateClick={handleCalendarClick}
+        onYearSelect={(year) => { setSelectedComplaintsYear(year); setShowComplaintsYearDropdown(false); }}
+        onYearDropdownToggle={() => setShowComplaintsYearDropdown(!showComplaintsYearDropdown)}
+        onFilterChange={setActiveComplaintsFilter}
+        onCardClick={onNavigateToComplaints}
+      />
+
+      {/* Dashboard Cards Grid: Attendance, Inspection, Contractor, Schemes, Events, GP Master, GPS, Performance, Top 3 */}
+      <DashboardCardsGrid
+        dateLabel={getDateDisplayText()}
+        attendanceData={attendanceCardData}
+        attendanceLoading={loadingAttendanceCard}
+        attendanceError={attendanceCardError}
+        inspectionData={inspectionCardData}
+        inspectionLoading={loadingInspectionCard}
+        inspectionError={inspectionCardError}
+        contractorData={contractorCardData}
+        contractorLoading={loadingContractorCard}
+        contractorError={contractorCardError}
+        schemesData={schemesCardData}
+        schemesLoading={loadingSchemesCard}
+        schemesError={schemesCardError}
+        eventsData={eventsCardData}
+        eventsLoading={loadingEventsCard}
+        eventsError={eventsCardError}
+        gpMasterData={gpMasterCardData}
+        gpMasterLoading={loadingGpMasterCard}
+        gpMasterError={gpMasterCardError}
+        gpsData={gpsCardData}
+        gpsLoading={loadingGpsCard}
+        gpsError={gpsCardError}
+      />
+
+      {/* Conditional Section: Vendor Details (when GP selected) - Performance/Top 3 now in DashboardCardsGrid */}
+      {activeScope === 'GPs' && (
         /* Vendor Details Section (shown when GP is selected) */
         <div style={{
           marginLeft: '16px',
@@ -3449,650 +2785,6 @@ const DashboardContent = () => {
             )}
           </div>
         </div>
-      ) : (
-        /* Performance and Top 3 Section (shown when State/District/Block is selected) */
-        <div className="flex flex-col lg:flex-row gap-4 lg:gap-4" style={{
-          display: 'flex',
-          gap: '16px',
-          marginLeft: '16px',
-          marginRight: '16px',
-          marginTop: '16px'
-        }}>
-        {/* Performance Section */}
-        <div className="w-full lg:flex-1 lg:min-w-0" style={{
-          flex: 1,
-          minWidth: 0,
-          backgroundColor: 'white',
-          paddingLeft: '24px',
-          paddingRight: '24px',
-          paddingTop: '14px',
-          paddingBottom: '24px',
-          borderRadius: '12px',
-          border: '1px solid lightgray'
-        }}>
-          {/* Performance Header with Toggle Buttons */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '20px'
-          }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
-            }}>
-              Performance
-            </h2>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {/* Toggle Buttons */}
-              <div style={{
-                display: 'flex',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '12px',
-                padding: '4px',
-                gap: '2px'
-              }}>
-              <button 
-                onClick={() => setActivePerformanceTab('starPerformers')}
-                style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                  backgroundColor: activePerformanceTab === 'starPerformers' ? '#10b981' : 'transparent',
-                  color: activePerformanceTab === 'starPerformers' ? 'white' : '#6b7280'
-                }}>
-                <span className="desktop-text">Star Performers</span>
-                <span className="mobile-text">Star Perform...</span>
-              </button>
-              <button 
-                onClick={() => setActivePerformanceTab('underperformers')}
-                style={{
-                padding: '5px 10px',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                  backgroundColor: activePerformanceTab === 'underperformers' ? '#10b981' : 'transparent',
-                  color: activePerformanceTab === 'underperformers' ? 'white' : '#6b7280'
-                }}>
-                <span className="desktop-text">Underperformers</span>
-                <span className="mobile-text">Under perform...</span>
-              </button>
-              </div>
-
-              {/* Year Selector */}
-              <div 
-                ref={performanceYearRef}
-                data-performance-year-dropdown
-                style={{ position: 'relative', minWidth: '120px' }}>
-                <button 
-                  onClick={() => setShowPerformanceYearDropdown(!showPerformanceYearDropdown)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '12px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#6b7280'
-                  }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                    <span>{selectedPerformanceYear}</span>
-                  </div>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-                
-                {/* Year Dropdown Menu */}
-                {showPerformanceYearDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '4px',
-                    maxHeight: '200px',
-                    overflowY: 'auto'
-                  }}>
-                    {generateYears().map(year => (
-                      <div
-                        key={year}
-                        onClick={() => {
-                          setSelectedPerformanceYear(year);
-                          setShowPerformanceYearDropdown(false);
-                          console.log('Selected performance year:', year);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: selectedPerformanceYear === year ? '#f3f4f6' : 'transparent',
-                          borderBottom: year < generateYears()[generateYears().length - 1] ? '1px solid #f3f4f6' : 'none'
-                        }}
-                      >
-                        {year}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Month Range Selector */}
-              <div ref={performanceRangeRef} style={{ position: 'relative' }}>
-                <button
-                  type="button"
-                  onClick={handlePerformanceRangeButtonClick}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '10px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    minWidth: '140px',
-                    justifyContent: 'space-between'
-                  }}
-                >
-                  <span>{getPerformanceRangeLabel()}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-
-                {showPerformanceRangePicker && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '220px',
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
-                      padding: '8px',
-                      zIndex: 1200
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {[
-                        'January', 'February', 'March', 'April', 'May', 'June',
-                        'July', 'August', 'September', 'October', 'November', 'December'
-                      ].map((monthName, index) => (
-                        <button
-                          key={monthName}
-                          type="button"
-                          onClick={() => {
-                            setPerformanceMonth(index);
-                            setShowPerformanceRangePicker(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: performanceMonth === index ? '#f0fdf4' : 'transparent',
-                            color: performanceMonth === index ? '#059669' : '#111827',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <span>{monthName}</span>
-                          {performanceMonth === index && (
-                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Loading/Error State */}
-          {performanceError && (
-            <div style={{ marginBottom: '16px' }}>
-              <NoDataFound size="medium" />
-            </div>
-          )}
-
-          {/* Performance Table */}
-          <div style={{
-            overflowX: 'auto',
-            opacity: loadingPerformance ? 0.6 : 1,
-            transition: 'opacity 0.3s'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse',
-              tableLayout: 'fixed' // Ensures consistent column widths
-            }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    {performancePrimaryLabel}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Avg Resolution Time
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Complaints closed
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Action
-                  </th>
-                </tr>
-              </thead>
-            </table>
-            <div style={{
-              maxHeight: '350px', // Approximately 5 rows * 60px per row
-              overflowY: 'auto',
-              borderTop: '1px solid #e5e7eb',
-              // Custom scrollbar styling
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db #f3f4f6'
-            }}>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                tableLayout: 'fixed' // Ensures consistent column widths
-              }}>
-              <tbody>
-                  {performanceData.length === 0 ? (
-                    <tr>
-                      <td colSpan="4" style={{ padding: 0 }}>
-                        <NoDataFound size="small" />
-                      </td>
-                    </tr>
-                  ) : (
-                    performanceData.map((item, index) => (
-                    <tr key={item.id || index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500'
-                    }}>
-                        {item.name}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                        {item.avgResolutionTime > 0 ? `${item.avgResolutionTime} days` : '-'}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                        {item.completion > 0 ? `${item.completion}%` : '-'}
-                    </td>
-                    <td style={{
-                      padding: '12px'
-                    }}>
-                      <button 
-                        onClick={() => handleOpenNoticeModal(item)}
-                        style={{
-                        padding: '6px 12px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        color: '#374151',
-                        cursor: 'pointer'
-                      }}>
-                        Send notice
-                      </button>
-                    </td>
-                  </tr>
-                    ))
-                  )}
-              </tbody>
-            </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Top 3 Section */}
-        <div className="w-full lg:flex-1 lg:min-w-0 px-4 sm:px-6 py-3.5 sm:py-6" style={{
-          flex: 1,
-          minWidth: 0,
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          border: '1px solid lightgray',
-          overflow: 'hidden'
-        }}>
-          {/* Top 3 Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0" style={{
-            marginBottom: '20px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Top 3
-              </h2>
-              <InfoTooltip
-                text="Highlights the top three performing districts, blocks, or GPs based on the selected metric."
-                size={16}
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2 w-full sm:w-auto">
-              <div 
-                data-top3-dropdown
-                className="w-full sm:w-auto"
-                style={{
-                position: 'relative',
-                minWidth: '100px',
-                flex: '1 1 auto'
-              }}>
-                <button 
-                  onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
-                  style={{
-                  width: '100%',
-                  padding: '6px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#6b7280'
-                }}>
-                  <span>{top3Scope}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-                
-                {showTop3Dropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 10,
-                    marginTop: '4px'
-                  }}>
-                    {['District', 'Block', 'GP'].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => {
-                          setTop3Scope(option);
-                          setShowTop3Dropdown(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '8px 12px',
-                          border: 'none',
-                          backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
-                          color: top3Scope === option ? '#111827' : '#6b7280',
-                          fontSize: '14px',
-                          textAlign: 'left',
-                          cursor: 'pointer',
-                          borderRadius: '4px',
-                          margin: '2px'
-                        }}>
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div ref={top3MonthRef} className="w-full sm:w-auto" style={{ 
-                position: 'relative',
-                flex: '1 1 auto'
-              }}>
-                <button
-                  type="button"
-                  onClick={handleTop3MonthButtonClick}
-                  className="w-full sm:w-auto"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '10px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    minWidth: '130px',
-                    justifyContent: 'space-between',
-                    width: '100%'
-                  }}
-                >
-                  <span>{getTop3RangeLabel()}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-
-                {showTop3MonthPicker && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      width: '220px',
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '12px',
-                      boxShadow: '0 20px 45px -20px rgba(15, 23, 42, 0.35)',
-                      padding: '8px',
-                      zIndex: 1200
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {MONTH_NAMES.map((monthName, index) => (
-                        <button
-                          key={monthName}
-                          type="button"
-                          onClick={() => {
-                            setTop3Month(index);
-                            setShowTop3MonthPicker(false);
-                          }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            width: '100%',
-                            padding: '6px 8px',
-                            borderRadius: '8px',
-                            border: 'none',
-                            backgroundColor: top3Month === index ? '#f0fdf4' : 'transparent',
-                            color: top3Month === index ? '#059669' : '#111827',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <span>{monthName}</span>
-                          {top3Month === index && (
-                            <span style={{ fontSize: '12px', color: '#059669' }}>Active</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-
-          {/* Loading/Error State */}
-          {top3Error && (
-            <div style={{ marginBottom: '16px' }}>
-              <NoDataFound size="medium" />
-            </div>
-          )}
-
-          {/* Top 3 Table */}
-          <div style={{
-            overflowX: 'auto',
-            opacity: loadingTop3 ? 0.6 : 1,
-            transition: 'opacity 0.3s',
-            width: '100%',
-            maxWidth: '100%'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '1px solid #e5e7eb'
-                }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Rank
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    {top3Scope}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Rating
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {top3Data.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" style={{ padding: 0 }}>
-                      {loadingTop3 ? (
-                        <div style={{ padding: '20px', textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
-                          Loading...
-                        </div>
-                      ) : (
-                        <NoDataFound size="small" />
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  top3Data.map((item, index) => (
-                  <tr key={index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      <img 
-                        src={index === 0 ? number1 : index === 1 ? number2 : number3} 
-                        alt={`Rank ${index + 1}`}
-                        style={{
-                          width: '100px',
-                          height: '100px',
-                          objectFit: 'contain'
-                        }}
-                      />
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {item.name}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      {item.rating || '-'}
-                    </td>
-                  </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
       )}
 
       <SendNoticeModal

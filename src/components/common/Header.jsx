@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Bell, ChevronDown, Menu, Loader2, User, LogOut } from 'lucide-react';
+import { Search, Bell, ChevronDown, LayoutDashboard, Loader2, User, LogOut, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
@@ -30,13 +30,11 @@ const buildSubtitle = (typeLabel, meta) => {
   return typeLabel;
 };
 
-const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }) => {
+const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, pageTitle = 'Dashboard', isMobile = false }) => {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
   const isCEO = role === ROLES.CEO;
   const isBDO = role === ROLES.BDO;
-  const isVDO = role === ROLES.VDO;
-  
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const userDropdownRef = useRef(null);
   
@@ -60,8 +58,15 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
     setActiveScope,
     setDropdownLevel,
     setSelectedDistrictForHierarchy,
-    setSelectedBlockForHierarchy
-  } = locationContext;
+    setSelectedBlockForHierarchy,
+    activeScope,
+    selectedLocation,
+    selectedDistrictForHierarchy,
+    selectedBlockForHierarchy,
+    ceoDistrictName,
+    bdoDistrictName,
+    bdoBlockName
+  } = locationContext || {};
 
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -479,38 +484,93 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
   }, [showUserDropdown]);
 
   return (
-    <header className="bg-white border-b border-gray-200 py-1.5 px-0 flex items-center justify-between"
+    <header className="app-header"
       style={{
+        width: '100%',
+        
+        maxWidth: '100%',
+        minWidth: 0,
+        boxSizing: 'border-box',
         backgroundColor: 'white',
         borderBottom: '1px solid #e5e7eb',
         padding: '6px 0px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 8,
         position: 'sticky',
         top: 0,
         zIndex: 1000,
+        paddingRight: '24px',
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}>
-      {/* Left side - Menu icon */}
-      <div style={{display: 'flex', alignItems: 'center'}}>
+      {/* Left side - Dashboard icon + title + breadcrumb */}
+      <div className="app-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 auto', minWidth: 0 }}>
         <button onClick={onMenuClick} style={{
-          padding: '8px',
-          marginLeft: '8px',
+          padding: 8,
+          marginLeft: 8,
           backgroundColor: 'transparent',
           border: 'none',
-          borderRadius: '8px',
-          cursor: 'pointer'
+          borderRadius: 8,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
         }}>
-          <Menu style={{width: '20px', height: '20px', color: '#6b7280'}} />
+          {isMobile ? (
+            <Menu style={{ width: 22, height: 22, color: '#6b7280' }} />
+          ) : (
+            <LayoutDashboard style={{ width: 22, height: 22, color: '#6b7280' }} />
+          )}
         </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+          <h1 style={{
+            fontSize: 20,
+            fontWeight: 600,
+            color: '#111827',
+            margin: 0,
+            lineHeight: 1.2
+          }}>
+            {pageTitle}
+          </h1>
+          <div className="breadcrumb-text" style={{
+            fontSize: 14,
+            color: '#6b7280',
+            fontWeight: 500,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            flexWrap: 'wrap'
+          }}>
+            {(() => {
+              const districtName = ceoDistrictName || bdoDistrictName || selectedDistrictForHierarchy?.name || '';
+              const blockName = bdoBlockName || selectedBlockForHierarchy?.name || '';
+              const parts = ['Rajasthan'];
+              if (districtName) parts.push(districtName);
+              if (blockName) parts.push(blockName);
+              if (selectedLocation && activeScope === 'GPs') parts.push(selectedLocation);
+              else if (selectedLocation && !districtName && !blockName) parts.push(selectedLocation);
+              return parts.join(' / ') || 'Rajasthan';
+            })()}
+          </div>
+        </div>
       </div>
 
       {/* Right side - Search bar, Notifications and Profile */}
-      <div className="flex items-center gap-2 md:gap-4 mr-2 md:mr-4" style={{display: 'flex', alignItems: 'center', gap: '16px', marginRight: '16px'}}>
+      <div className="app-header-right" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: isMobile ? 8 : 16
+      }}>
         {/* Search bar - hidden for VDO */}
         {showLocationSearch && (
-          <div ref={containerRef} className="relative w-48 md:w-64 lg:w-80" style={{position: 'relative', width: '320px'}}>
+          <div ref={containerRef} className="app-header-search" style={{
+            position: 'relative',
+            width: 320,
+            minWidth: 120
+          }}>
             <Search style={{
               position: 'absolute',
               left: '12px',
@@ -768,13 +828,13 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true }
                       fontSize: '15px',
                       fontWeight: '600',
                       color: '#111827',
-                      marginBottom: '4px'
+                      marginBottom: '4px',
                     }}>
                       User
                     </div>
                     <div style={{
                       fontSize: '13px',
-                      color: '#6b7280'
+                      color: '#6b7280',
                     }}>
                       {role === ROLES.CEO ? 'CEO' : role === ROLES.BDO ? 'BDO' : role === ROLES.VDO ? 'VDO' : 'Admin'}
                     </div>

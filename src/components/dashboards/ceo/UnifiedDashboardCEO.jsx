@@ -16,6 +16,7 @@ import {
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
 import Header from '../../common/Header';
+import TopHeaderBar from '../../common/TopHeaderBar';
 import CEODashboardContent from './CEODashboardContent';
 import CEOComplaintsContent from './CEOComplaintsContent';
 import CEOAttendanceContent from './CEOAttendanceContent';
@@ -47,10 +48,10 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
   ];
 
  return (
-    <aside className="h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
+    <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
       height: '100vh',
-      backgroundColor: '#F0FDF4',
+      backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
@@ -141,8 +142,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                     borderRadius: '8px',
                     textAlign: 'left',
                     position: 'relative',
-                    backgroundColor: isActive ? '#009B56' : 'transparent',
-                    color: isActive ? 'white' : '#374151',
+                    borderLeft: isActive ? '4px solid #22c55e' : '4px solid transparent',
+                    backgroundColor: isActive ? '#f3f4f6' : 'transparent',
+                    color: '#374151',
                     border: 'none',
                     cursor: 'pointer',
                     padding: '12px 8px',
@@ -241,13 +243,22 @@ const UnifiedDashboardCEO = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white m-0 p-0" style={{
+    <div style={{
       display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
       backgroundColor: 'white',
       margin: 0,
-      padding: 0
+      padding: 0,
+      overflow: 'hidden'
     }}>
+      <TopHeaderBar />
+      <div className="flex flex-1 min-h-0" style={{
+        display: 'flex',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden'
+      }}>
       <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
         width: isSidebarOpen ? '272px' : '80px',
         transition: 'width 0.25s ease',
@@ -260,7 +271,7 @@ const UnifiedDashboardCEO = () => {
           isSidebarOpen={isSidebarOpen}
         />
       </div>
-      <div className="flex-1 bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+      <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
         flex: 1,
         backgroundColor: '#F3F4F6',
         margin: 0,
@@ -270,10 +281,14 @@ const UnifiedDashboardCEO = () => {
         overflow: 'auto'
       }}>
         <Header
+          pageTitle={activeItem}
           onMenuClick={() => setIsSidebarOpen(prev => !prev)}
           onNotificationsClick={() => setActiveItem('Notices')}
         />
-        {renderContent()}
+        <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          {renderContent()}
+        </div>
+      </div>
       </div>
     </div>
   );

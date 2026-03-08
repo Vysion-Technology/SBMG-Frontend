@@ -7,7 +7,7 @@ import { useLocation } from '../../context/LocationContext';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
 
-const ComplaintsContent = () => {
+const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Shared location state via context
   const {
     activeScope,
@@ -157,6 +157,14 @@ const ComplaintsContent = () => {
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
 
   const filterButtons = ['Open', 'Resolved', 'Verified', 'Closed'];
+
+  // Apply initial filter when navigating from dashboard cards
+  useEffect(() => {
+    if (initialFilter === undefined) return;
+    const valid = ['Open', 'Resolved', 'Verified', 'Closed'].includes(initialFilter);
+    setActiveFilter(valid ? initialFilter : '');
+    onFilterConsumed?.();
+  }, [initialFilter]);
 
   // Predefined date ranges
   const dateRanges = [

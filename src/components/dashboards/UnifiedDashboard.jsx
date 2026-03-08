@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -11,11 +11,12 @@ import {
   Bell,
   CreditCard,
   MessageSquare,
-  Building
+  Building,
+  Menu
 } from 'lucide-react';
-import { useState } from 'react';
 import swachLogo from '../../assets/logos/swach.png';
 import Header from '../common/Header';
+import TopHeaderBar from '../common/TopHeaderBar';
 import DashboardContent from './DashboardContent';
 import ComplaintsContent from './ComplaintsContent';
 import AttendanceContent from './AttendanceContent';
@@ -29,7 +30,24 @@ import PaymentsContent from './PaymentsContent';
 import FeedbacksContent from './FeedbacksContent';
 import ContractorDetails from './ContractorDetails';
 
-const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
+const useMediaQuery = (query) => {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia(query).matches : false
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(query);
+    const handler = (e) => setMatches(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+  return matches;
+};
+
+const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => {
+  const handleItemClick = (item) => {
+    setActiveItem(item.name);
+    onItemSelect?.();
+  };
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
@@ -46,10 +64,10 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
   ];
 
   return (
-    <aside className="h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
+    <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
       height: '100vh',
-      backgroundColor: '#F0FDF4',
+      backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
@@ -129,7 +147,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
             return (
               <li key={item.name} style={{ marginTop: '10px' }}>
                 <button
-                  onClick={() => setActiveItem(item.name)}
+                  onClick={() => handleItemClick(item)}
                   title={!isSidebarOpen ? item.name : ''}
                   style={{
                     width: '100%',
@@ -140,8 +158,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                     borderRadius: '8px',
                     textAlign: 'left',
                     position: 'relative',
-                    backgroundColor: isActive ? '#009B56' : 'transparent',
-                    color: isActive ? 'white' : '#374151',
+                    borderLeft: isActive ? '4px solid #22c55e' : '4px solid transparent',
+                    backgroundColor: isActive ? '#f3f4f6' : 'transparent',
+                    color: '#374151',
                     border: 'none',
                     cursor: 'pointer',
                     padding: '12px 8px',
@@ -172,15 +191,32 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 };
 
 const UnifiedDashboard = () => {
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [activeItem, setActiveItem] = useState('Dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
+
+  const handleNavigateToComplaints = (filter) => {
+    setComplaintsInitialFilter(filter);
+    setActiveItem('Complaints');
+  };
+
+  useEffect(() => {
+    if (isMobile) setIsSidebarOpen(false);
+    else setIsSidebarOpen(true);
+  }, [isMobile]);
+
+  const handleMenuClick = () => setIsSidebarOpen((prev) => !prev);
+  const handleSidebarItemSelect = () => {
+    if (isMobile) setIsSidebarOpen(false);
+  };
 
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardContent />;
+        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} />;
       case 'Complaints':
-        return <ComplaintsContent />;
+        return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
       case 'Attendance':
         return <AttendanceContent />;
       case 'Inspection':
@@ -212,39 +248,84 @@ const UnifiedDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white m-0 p-0" style={{
+    <div className="unified-dashboard" style={{
       display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
+      width: '100%',
+      minWidth: 0,
+      maxWidth: '100vw',
       backgroundColor: 'white',
       margin: 0,
-      padding: 0
+      padding: 0,
+      overflow: 'hidden'
     }}>
-      <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
-        width: isSidebarOpen ? '272px' : '80px',
-        transition: 'width 0.25s ease',
-        overflow: 'hidden',
-        flexShrink: 0
-      }}>
-        <Sidebar 
-          activeItem={activeItem} 
-          setActiveItem={setActiveItem} 
-          isSidebarOpen={isSidebarOpen} 
-        />
-      </div>
-      <div className="flex-1 bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
-        flex: 1,
-        backgroundColor: '#F3F4F6',
-        margin: 0,
-        padding: 0,
+      <TopHeaderBar />
+      <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
-        flexDirection: 'column',
-        overflow: 'auto'
+        flex: 1,
+        minHeight: 0,
+        minWidth: 0,
+        width: '100%',
+        overflow: 'hidden',
+        position: 'relative'
       }}>
-        <Header
-          onMenuClick={() => setIsSidebarOpen(prev => !prev)}
-          onNotificationsClick={() => setActiveItem('Notices')}
-        />
-        {renderContent()}
+        {/* Mobile overlay backdrop */}
+        {isMobile && isSidebarOpen && (
+          <div
+            className="sidebar-mobile-overlay"
+            onClick={handleMenuClick}
+            aria-hidden="true"
+          />
+        )}
+        {/* Sidebar: on mobile = overlay (takes no layout space), on desktop = inline */}
+        <div
+          className={`sidebar-wrapper ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
+          style={{
+            ...(!isMobile && {
+              width: isSidebarOpen ? 272 : 80,
+              minWidth: isSidebarOpen ? 272 : 80,
+              transition: 'width 0.25s ease',
+              flexShrink: 0
+            }),
+            ...(isMobile && {
+              width: 0,
+              minWidth: 0,
+              maxWidth: 0,
+              overflow: 'visible',
+              flexShrink: 0
+            })
+          }}
+        >
+          <Sidebar
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            isSidebarOpen={isMobile ? true : isSidebarOpen}
+            onItemSelect={handleSidebarItemSelect}
+          />
+        </div>
+        <div className="flex-1 dashboard-main-content" style={{
+          flex: 1,
+          minWidth: 0,
+          width: '100%',
+          maxWidth: '100%',
+          backgroundColor: '#F3F4F6',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'visible'
+        }}>
+          <Header
+            pageTitle={activeItem}
+            onMenuClick={handleMenuClick}
+            onNotificationsClick={() => setActiveItem('Notices')}
+            isMobile={isMobile}
+          />
+          <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+            {renderContent()}
+          </div>
+        </div>
       </div>
     </div>
   );

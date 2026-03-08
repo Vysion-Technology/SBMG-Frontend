@@ -147,6 +147,14 @@ export const vehiclesAPI = {
     if (params.gp_id) queryParams.append('gp_id', params.gp_id);
     return apiClient.get(`/gps/vehicles?${queryParams}`);
   },
+  // Get vehicles list (for counts) - GET /gps/vehicles-list
+  getVehiclesList: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.district_id != null) queryParams.append('district_id', params.district_id);
+    if (params.block_id != null) queryParams.append('block_id', params.block_id);
+    if (params.gp_id != null) queryParams.append('gp_id', params.gp_id);
+    return apiClient.get(`/gps/vehicles-list?${queryParams.toString()}`);
+  },
 
   // Get vehicle details (if endpoint exists)
   getVehicleDetails: (vehicleId, params = {}) => {
@@ -196,6 +204,13 @@ export const annualSurveysAPI = {
     if (params.block_id != null) q.append('block_id', params.block_id);
     return apiClient.get(`/annual-surveys/?${q.toString()}`);
   },
+  analyticsState: (params = {}) => apiClient.get('/annual-surveys/analytics/state', { params }),
+  analyticsDistrict: (districtId, params = {}) =>
+    apiClient.get(`/annual-surveys/analytics/district/${districtId}`, { params }),
+  analyticsBlock: (blockId, params = {}) =>
+    apiClient.get(`/annual-surveys/analytics/block/${blockId}`, { params }),
+  analyticsGP: (gpId, params = {}) =>
+    apiClient.get(`/annual-surveys/analytics/gp/${gpId}`, { params }),
 };
 
 
@@ -251,6 +266,27 @@ export const villagesAPI = {
       description: villageData.description || ''
     });
   },
+};
+
+// Attendance API
+export const attendanceAPI = {
+  analytics: (params = {}) => apiClient.get('/attendance/analytics', { params }),
+  overview: (params = {}) => apiClient.get('/attendance/overview', { params }),
+  daySummary: (params = {}) => apiClient.get('/attendance/day-summary', { params }),
+};
+
+// Inspections API
+export const inspectionsAPI = {
+  analytics: (params = {}) => apiClient.get('/inspections/analytics', { params }),
+  performanceReport: (params = {}) => apiClient.get('/inspections/performance-report', { params }),
+};
+
+// Contractor Analytics API
+export const contractorAnalyticsAPI = {
+  getState: () => apiClient.get('/contractor-analytics/analytics/state'),
+  getDistrict: (districtId) => apiClient.get(`/contractor-analytics/analytics/district/${districtId}`),
+  getBlock: (blockId) => apiClient.get(`/contractor-analytics/analytics/block/${blockId}`),
+  getGP: (gpId) => apiClient.get(`/contractor-analytics/analytics/gp/${gpId}`),
 };
 
 export default apiClient;
