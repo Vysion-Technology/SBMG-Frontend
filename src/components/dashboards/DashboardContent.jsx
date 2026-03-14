@@ -248,6 +248,9 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const [loadingGPs, setLoadingGPs] = useState(false);
   const [totalCountOfGPs, setTotalCountOfGPs] = useState(0);
 
+  const [location, setLocation] = useState(null)
+
+
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
@@ -2470,6 +2473,21 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
+            onLocationChange={(loc) => {
+
+              console.log("Selected location:", loc)
+
+              updateLocationSelection(
+                "GPs",          // scope
+                loc.name,       // location name
+                loc.gpId,       // selected location id
+                loc.districtId, // district
+                loc.blockId,    // block
+                loc.gpId,       // gp
+                "popup_select"  // source
+              )
+
+            }}
             districtsCount={districts.length}
             blocksCount={allBlocksForDistricts.length}
             villagesCount={totalCountOfGPs}

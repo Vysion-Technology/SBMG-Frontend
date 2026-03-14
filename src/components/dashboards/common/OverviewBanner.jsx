@@ -1,13 +1,17 @@
-import React from 'react';
-
+import React, { useState } from 'react';
 import visualsImg from '../../../assets/header/visuals.png';
+import LocationHierarchyPopup from './LocationHierarchyPopup';
 
-/**
- * Overview banner with rural illustration theme.
- * Displays three metrics: Districts, Blocks, Villages.
- * Uses visuals.png as background (repeat-x, low opacity).
- */
-const OverviewBanner = ({ districtsCount = 0, blocksCount = 0, villagesCount = 0 }) => {
+const OverviewBanner = ({
+  districtsCount = 0,
+  blocksCount = 0,
+  villagesCount = 0,
+  onLocationChange,
+  selectedLocation
+}) => {
+
+  const [openPopup, setOpenPopup] = useState(false);
+
   const metrics = [
     { value: districtsCount, label: 'Districts', color: '#2563eb' },
     { value: blocksCount, label: 'Blocks', color: '#ea580c' },
@@ -15,91 +19,105 @@ const OverviewBanner = ({ districtsCount = 0, blocksCount = 0, villagesCount = 0
   ];
 
   return (
-    <div
-      className="overview-banner"
-      style={{
-        width: '100%',
-        maxWidth: '100%',
-        minWidth: 0,
-        boxSizing: 'border-box',
-        minHeight: 140,
-        borderRadius: 12,
-        border: '1px solid #e5e7eb',
-        position: 'relative',
-        overflow: 'hidden'
-      }}
-    >
-      {/* visuals.png background - repeat, low opacity (no gradient) */}
+    <>
       <div
         style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `url(${visualsImg})`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: 'auto 100%',
-          opacity: 0.45
-        }}
-      />
-      {/* Content overlay */}
-      <div
-        className="overview-banner-content"
-        style={{
-          position: 'relative',
-          zIndex: 1,
           width: '100%',
           minHeight: 140,
-          backgroundColor: 'rgba(255,255,255,0.6)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '28px 40px'
+          borderRadius: 12,
+          border: '1px solid #e5e7eb',
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
-      {metrics.map((m) => (
+
+        {/* background */}
         <div
-          key={m.label}
-          className="overview-metric overview-metric-hover"
           style={{
-            '--metric-color': m.color,
+            position: 'absolute',
+            inset: 0,
+            backgroundImage: `url(${visualsImg})`,
+            backgroundRepeat: 'repeat',
+            backgroundSize: 'auto 100%',
+            opacity: 0.45
+          }}
+        />
+
+        {/* content */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            padding: '24px 40px',
-            minWidth: 300,
-            minHeight: 100,
-            borderRadius: 12,
-            cursor: 'default',
-            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-            border: '2px solid transparent'
+            justifyContent: 'space-between',
+            padding: '28px 40px'
           }}
         >
-          <span
-            className="overview-metric-value"
-            style={{
-              fontSize: 36,
-              fontWeight: 700,
-              color: m.color,
-              lineHeight: 1.2,
-              transition: 'color 0.2s ease, text-decoration 0.2s ease'
-            }}
-          >
-            {typeof m.value === 'number' ? m.value.toLocaleString() : m.value}
-          </span>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: '#6b7280'
-            }}
-          >
-            {m.label}
-          </span>
+
+          {metrics.map((m) => (
+            <div
+              key={m.label}
+              onClick={() => setOpenPopup(true)}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                padding: '24px 40px',
+                minWidth: 220,
+                borderRadius: 12,
+                cursor: 'pointer'
+              }}
+            >
+
+              <span
+                style={{
+                  fontSize: 34,
+                  fontWeight: 700,
+                  color: m.color
+                }}
+              >
+                {typeof m.value === 'number'
+                  ? m.value.toLocaleString()
+                  : m.value}
+              </span>
+
+              <span
+                style={{
+                  fontSize: 14,
+                  color: '#6b7280'
+                }}
+              >
+                {m.label}
+              </span>
+
+            </div>
+          ))}
+
         </div>
-      ))}
       </div>
-    </div>
+
+      {/* Popup render condition */}
+      {openPopup && (
+        <LocationHierarchyPopup
+          selectedLocation={selectedLocation}
+          onClose={() => setOpenPopup(false)}
+          onSelect={(location) => {
+
+            // send location to dashboard
+            if (onLocationChange) {
+              onLocationChange(location);
+            }
+
+            // close popup
+            setOpenPopup(false);
+
+          }}
+        />
+      )}
+
+    </>
   );
 };
 
