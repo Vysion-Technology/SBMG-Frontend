@@ -49,7 +49,7 @@ const TooltipPopover = ({ children, items, show }) => (
  * Segmented horizontal bar for Complains column with hover tooltip.
  * Colors: open=red, verified=orange, resolved=purple, disposed=green
  */
-const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0 }) => {
+const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0, onClick }) => {
   const [hover, setHover] = useState(false);
   let total = open + verified + resolved + disposed;
   if (total === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
@@ -69,11 +69,12 @@ const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0 }) =
   ];
 
   return (
-    <TooltipPopover items={tooltipItems} show={hover}>
+    <TooltipPopover items={tooltipItems} show={hover} position="bottom">
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'default' }}
+        onClick={() => onClick?.()}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
         <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total}</span>
         <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
@@ -89,7 +90,7 @@ const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0 }) =
 /**
  * Attendance bar: present (green) vs absent (red) with hover tooltip
  */
-const AttendanceBar = ({ present = 0, absent = 0 }) => {
+const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
   const [hover, setHover] = useState(false);
   const total = present + absent;
   if (total === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
@@ -107,7 +108,8 @@ const AttendanceBar = ({ present = 0, absent = 0 }) => {
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'default' }}
+        onClick={() => onClick?.()}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
         <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total}</span>
         <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
@@ -122,12 +124,12 @@ const AttendanceBar = ({ present = 0, absent = 0 }) => {
 /**
  * Contractor Data Filled: color-coded progress bar (red <50%, orange 50-80%, green >80%)
  */
-const ContractorDataBar = ({ percentage = 0 }) => {
+const ContractorDataBar = ({ percentage = 0, onClick }) => {
   const pct = Math.min(100, Math.max(0, percentage));
   if (pct === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
   const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f97316' : '#ef4444';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div onClick={() => onClick?.()} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}>
       <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 48 }}>{pct.toFixed(2)}%</span>
       {/* <div style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: '#f3f4f6', overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
         <div style={{ width: `${pct}%`, height: '100%', backgroundColor: barColor, borderRadius: 4 }} />
@@ -137,12 +139,32 @@ const ContractorDataBar = ({ percentage = 0 }) => {
 };
 
 /**
- * GPS Tracking: vehicles count only (no chart)
+ * GP Data Coverage: percentage with clickable interactive behavior
  */
-const GpsTrackingBar = ({ vehicles = 0 }) => {
+const GPDataCoverageBar = ({ percentage = 0, onClick }) => {
+  if (percentage === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
+  return (
+    <span
+      onClick={() => onClick?.()}
+      style={{ fontSize: '14px', fontWeight: 500, color: '#374151', cursor: onClick ? 'pointer' : 'default' }}
+    >
+      {percentage}%
+    </span>
+  );
+};
+
+/**
+ * GPS Tracking: vehicles count only (with clickable interactive behavior)
+ */
+const GpsTrackingBar = ({ vehicles = 0, onClick }) => {
   if (vehicles === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
   return (
-    <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151' }}>{vehicles} Vehicles</span>
+    <span
+      onClick={() => onClick?.()}
+      style={{ fontSize: '14px', fontWeight: 500, color: '#374151', cursor: onClick ? 'pointer' : 'default' }}
+    >
+      {vehicles} Vehicles
+    </span>
   );
 };
 
@@ -158,6 +180,11 @@ const ListOfDistrictsTable = ({
   districtStats = null,
   dateDisplayText = 'Today',
   onDateClick,
+  onComplaintsClick,
+  onAttendanceClick,
+  onGPDataCoverageClick,
+  onGPSTrackingClick,
+  onContractorDataClick,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState(null);
@@ -1118,13 +1145,13 @@ const ListOfDistrictsTable = ({
                                                               <span style={{ fontWeight: 500, color: '#059669' }}>{gp.name}</span>
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <ComplaintsBar {...gpStatics.complaints[gp.id]} />
+                                                              <ComplaintsBar {...gpStatics.complaints[gp.id]} onClick={() => onComplaintsClick?.()} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <AttendanceBar {...gpStatics.attendance[gp.id]} />
+                                                              <AttendanceBar {...gpStatics.attendance[gp.id]} onClick={() => onAttendanceClick?.()} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              {gpStatics.gpsTracker[gp.id]?.gpsVehicles ? `${gpStatics.gpsTracker[gp.id]?.gpsVehicles} Vehicles` : '—'}
+                                                              <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
                                                             </td>
                                                           </tr>
                                                         ))
@@ -1138,19 +1165,19 @@ const ListOfDistrictsTable = ({
                                           </RightDrawer>
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <ComplaintsBar {...blockStats.complaints[block.id]} />
+                                          <ComplaintsBar {...blockStats.complaints[block.id]} onClick={() => onComplaintsClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <AttendanceBar {...blockStats.attendance[block.id]} />
+                                          <AttendanceBar {...blockStats.attendance[block.id]} onClick={() => onAttendanceClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          {selectedBlockDetails?.village_master_data_coverage_percentage}%
+                                          <GPDataCoverageBar percentage={selectedBlockDetails?.village_master_data_coverage_percentage} onClick={() => onGPDataCoverageClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          {blockStats.contractor[block.id]?.contractorDataPercent || 0}%
+                                          <ContractorDataBar percentage={blockStats.contractor[block.id]?.contractorDataPercent} onClick={() => onContractorDataClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          {blockStats.gpsTracker[block.id]?.gpsVehicles ? `${blockStats.gpsTracker[block.id]?.gpsVehicles} Vehicles` : '—'}
+                                          <GpsTrackingBar vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
                                         </td>
                                       </tr>
                                     );
@@ -1168,19 +1195,19 @@ const ListOfDistrictsTable = ({
                     {row.gpsDisplay} GPs
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <ComplaintsBar {...row.complaints} />
+                    <ComplaintsBar {...row.complaints} onClick={() => onComplaintsClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <AttendanceBar {...row.attendance} />
+                    <AttendanceBar {...row.attendance} onClick={() => onAttendanceClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                    {row.gpDataCoverage}%
+                    <GPDataCoverageBar percentage={row.gpDataCoverage} onClick={() => onGPDataCoverageClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <ContractorDataBar percentage={row.contractorPct} />
+                    <ContractorDataBar percentage={row.contractorPct} onClick={() => onContractorDataClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <GpsTrackingBar vehicles={row.gpsVehicles} />
+                    <GpsTrackingBar vehicles={row.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
                   </td>
                 </tr>
               ))

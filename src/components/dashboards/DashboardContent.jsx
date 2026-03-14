@@ -207,7 +207,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
-const DashboardContent = ({ onNavigateToComplaints }) => {
+const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNavigateToGPMasterData, onNavigateToGPSTracking, onNavigateToContractorDetails, onNavigateToInspection }) => {
   // Use LocationContext for global state management
   const {
     activeScope,
@@ -2486,6 +2486,11 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         districtStats={districtStats}
         dateDisplayText={getDateDisplayText()}
         onDateClick={handleCalendarClick}
+        onComplaintsClick={() => onNavigateToComplaints?.()}
+        onAttendanceClick={() => onNavigateToAttendance?.()}
+        onGPDataCoverageClick={() => onNavigateToGPMasterData?.()}
+        onGPSTrackingClick={() => onNavigateToGPSTracking?.()}
+        onContractorDataClick={() => onNavigateToContractorDetails?.()}
         loading={loadingDistrictStats || loadingAnalytics}
       />
 
@@ -2540,6 +2545,11 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         gpsLoading={loadingGpsCard}
         gpsError={gpsCardError}
         topPerformers={topPerformersByLoc}
+        onAttendanceClick={() => onNavigateToAttendance?.()}
+        onInspectionClick={() => onNavigateToInspection?.()}
+        onContractorClick={() => onNavigateToContractorDetails?.()}
+        onGPMasterDataClick={() => onNavigateToGPMasterData?.()}
+        onGPSTrackingClick={() => onNavigateToGPSTracking?.()}
       />
 
       {/* Conditional Section: Vendor Details (when GP selected) - Performance/Top 3 now in DashboardCardsGrid */}

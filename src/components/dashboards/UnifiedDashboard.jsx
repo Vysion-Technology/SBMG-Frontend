@@ -202,6 +202,26 @@ const UnifiedDashboard = () => {
     setActiveItem('Complaints');
   };
 
+  const handleNavigateToAttendance = () => {
+    setActiveItem('Attendance');
+  };
+
+  const handleNavigateToGPMasterData = () => {
+    setActiveItem('GP Master Data');
+  };
+
+  const handleNavigateToGPSTracking = () => {
+    setActiveItem('GPS Tracking');
+  };
+
+  const handleNavigateToContractorDetails = () => {
+    setActiveItem('Contractor Details');
+  };
+
+  const handleNavigateToInspection = () => {
+    setActiveItem('Inspection');
+  };
+
   useEffect(() => {
     if (isMobile) setIsSidebarOpen(false);
     else setIsSidebarOpen(true);
@@ -215,7 +235,7 @@ const UnifiedDashboard = () => {
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} />;
+        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} />;
       case 'Complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
       case 'Attendance':
