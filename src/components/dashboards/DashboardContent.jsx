@@ -1042,11 +1042,11 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
 
   // Placeholder counts when API returns no data (for graph/chart visibility)
   const PLACEHOLDER_COUNTS = {
-    total: 3452,
-    open: 452,
-    verified: 380,
-    resolved: 620,
-    disposed: 2000
+    total: 0,
+    open: 0,
+    verified: 0,
+    resolved: 0,
+    disposed: 0
   };
 
   // Calculate complaint counts from analytics data

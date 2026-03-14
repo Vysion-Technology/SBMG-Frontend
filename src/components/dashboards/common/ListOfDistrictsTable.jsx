@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, ChevronDown, ChevronUp, ChevronsUpDown, MoreVertical } from 'lucide-react';
 import RightDrawer from '../../common/rightDrawer';
-import apiClient from '../../../services/api';
+import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI } from '../../../services/api';
 
 /** Dark tooltip with list of items (dot + label + count) */
 const TooltipPopover = ({ children, items, show }) => (
@@ -172,6 +172,15 @@ const ListOfDistrictsTable = ({
   const [attendanceData, setAttendanceData] = useState([]);
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [blockStats, setBlockStats] = useState([]);
+  const [gpStatics, setGpStatics] = useState([]);
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-01-01`;
+  });
+  const [endDate, setEndDate] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-12-31`;
+  });
 
   // Fetch complaints data from API
   useEffect(() => {
@@ -520,11 +529,13 @@ const ListOfDistrictsTable = ({
     // Count complaints and attendance for each block
     const blockComplaints = {};
     const blockAttendance = {};
+    const contractorData = {};
+    const gpsTrackingData = {};
 
     // API for fetching block-wise attendance data
     const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'BLOCK', start_date: '2026-01-01', end_date: '2026-12-31' } });
 
-    result.forEach((block) => {
+    result.forEach(async (block) => {
       const blockName = block.name;
 
       // Filter complaints for this block
@@ -571,40 +582,129 @@ const ListOfDistrictsTable = ({
         absent
       };
 
-      // console.log(`📊 Block ${blockName} - Complaints: Open: ${open}, Verified: ${verified}, Resolved: ${resolved}, Disposed: ${disposed}, Total: ${complaintsForBlock.length}`);
-      // console.log(`📊 Block ${blockName} - Attendance: Present: ${present}, Absent: ${absent}`);
+      // Count contractor data filled percentage and GPS tracking vehicles for this block from respective APIs
+      const [contrRes, gpsRes] = await Promise.allSettled([
+        contractorAnalyticsAPI.getBlock(block.id),
+        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ block_id: block.id }) : vehiclesAPI.getVehiclesByLocation({ block_id: block.id })
+      ]);
+
+      const contractorRes = contrRes.status === 'fulfilled' && contrRes.value?.data
+        ? contrRes.value.data : null;
+
+      const gpsResData = gpsRes.status === 'fulfilled' && gpsRes.value?.data ? gpsRes.value.data : null;
+
+      contractorData[block.id] = {
+        block_name: blockName,
+        contractorDataPercent: contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 || 0
+      };
+
+      gpsTrackingData[block.id] = {
+        block_name: blockName,
+        gpsVehicles: gpsResData.length
+      };
     });
 
     setBlocksForDistrict(result);
-    setBlockStats({ complaints: blockComplaints, attendance: blockAttendance });
+    setBlockStats({ complaints: blockComplaints, attendance: blockAttendance, contractor: contractorData, gpsTracker: gpsTrackingData });
 
     // Compute block-wise statistics
     const stats = computeBlockStats(districtId);
     setBlockStatsForDistrict(stats);
   };
 
-  const filterGPsByBlock = async (blockId, blockName) => {
-    setGpsForBlock([]); // Clear previous data
-    setLoadingGps(true);
-    try {
-      // Fetch GP data from the API for this specific block
-      const response = await apiClient.get(`/annual-surveys/analytics/block/${blockId}`);
-      if (!response.data) {
-        throw new Error('Failed to fetch block GPs');
+  const filterGPsByBlock = async (blockId) => {
+    setGpsForBlock([]); // Clear previous data to show loading state in drawer
+
+    let allGps = await apiClient.get('/geography/grampanchayats', {
+      params: {
+        block_id: blockId,
+        skip: 0,
+        limit: 100
       }
+    });
+    allGps = allGps.data || [];
 
-      const data = response.data;
+    // Count complaints and attendance for each block
+    const gpComplaints = {};
+    const gpAttendance = {};
+    const contractorData = {};
+    const gpsTrackingData = {};
 
-      // The API should return GPs data - structure depends on your backend
-      setGpsForBlock(data.gp_wise_coverage || []);
-    } catch (error) {
-      console.error('Error fetching GPs for block:', error);
-      // Fallback to filtering from gpStats
-      const result = gpStats.filter(gp => gp.block_id === blockId);
-      setGpsForBlock(result);
-    } finally {
-      setLoadingGps(false);
-    }
+    // API for fetching block-wise attendance data
+    const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'VILLAGE', start_date: '2026-01-01', end_date: '2026-12-31' } });
+
+    allGps.forEach(async (gp) => {
+      const gpName = gp.name;
+
+      // Filter complaints for this gp
+      const complaintsForgp = complaintsData.filter(complaint => {
+        const compGpName = complaint.village_name;
+        return String(compGpName).toLowerCase().trim() === String(gpName).toLowerCase().trim();
+      });
+
+      // Count complaints by status
+      const open = complaintsForgp.filter(c => (c.status || c.complaint_status || '').toUpperCase() === 'OPEN' || (c.status || c.complaint_status || '').toUpperCase() === 'PENDING').length;
+      const verified = complaintsForgp.filter(c => (c.status || c.complaint_status || '').toUpperCase() === 'VERIFIED').length;
+      const resolved = complaintsForgp.filter(c => (c.status || c.complaint_status || '').toUpperCase() === 'RESOLVED').length;
+      const disposed = complaintsForgp.filter(c => (c.status || c.complaint_status || '').toUpperCase() === 'CLOSED' || (c.status || c.complaint_status || '').toUpperCase() === 'DISPOSED').length;
+
+      gpComplaints[gp.id] = {
+        gp_name: gpName,
+        open,
+        verified,
+        resolved,
+        disposed
+      };
+
+      // Filter attendance data for this GP
+      const attendanceForGp = (attendanceRes.data.response).filter(record => {
+        const recordGpId = record.geography_id;
+        const recordGpName = record.geography_name;
+        return (
+          String(recordGpId).toLowerCase().trim() === String(gp.id).toLowerCase().trim() ||
+          String(recordGpName).toLowerCase().trim() === String(gpName).toLowerCase().trim()
+        );
+      });
+
+      // Count attendance
+      let present = 0;
+      let absent = 0;
+      attendanceForGp.forEach(record => {
+        present += record.present_count || 0;
+        absent += record.absent_count || 0;
+      });
+
+      gpAttendance[gp.id] = {
+        gp_name: gpName,
+        present,
+        absent
+      };
+
+      // Count contractor data filled percentage and GPS tracking vehicles for this block from respective APIs
+      const [contrRes, gpsRes] = await Promise.allSettled([
+        contractorAnalyticsAPI.getGP(gp.id),
+        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ gp_id: gp.id }) : vehiclesAPI.getVehiclesByLocation({ gp_id: gp.id })
+      ]);
+
+      const contractorRes = contrRes.status === 'fulfilled' && contrRes.value?.data
+        ? contrRes.value.data : null;
+
+      const gpsResData = gpsRes.status === 'fulfilled' && gpsRes.value?.data ? gpsRes.value.data : null;
+
+      contractorData[gp.id] = {
+        gp_name: gpName,
+        contractorDataPercent: contractorRes.total_contractors ? contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 : 0
+      };
+
+      gpsTrackingData[gp.id] = {
+        gp_name: gpName,
+        gpsVehicles: gpsResData.length
+      };
+    });
+
+    setGpsForBlock(allGps);
+
+    setGpStatics({ complaints: gpComplaints, attendance: gpAttendance, contractor: contractorData, gpsTracker: gpsTrackingData });
   };
 
   return (
@@ -775,7 +875,6 @@ const ListOfDistrictsTable = ({
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking <SortIcon col="gpsTrack" /></span>
               </th>
-              <th style={{ padding: '12px 16px', width: 40 }} />
             </tr>
           </thead>
           <tbody>
@@ -826,7 +925,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Block Name</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Block</span>
                                   </th>
                                   <th
                                     style={{
@@ -839,7 +938,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Total GPs</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPs</span>
                                   </th>
                                   <th
                                     style={{
@@ -878,7 +977,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPs with Data</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Coverage</span>
                                   </th>
                                   <th
                                     style={{
@@ -891,7 +990,20 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Coverage</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Filled</span>
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: '12px 16px',
+                                      textAlign: 'left',
+                                      fontSize: 14,
+                                      fontWeight: 600,
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
                                   </th>
                                   <th style={{ padding: '12px 16px', width: 40 }} />
                                 </tr>
@@ -945,7 +1057,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Name</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -981,7 +1093,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Status</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
                                                         </th>
                                                         <th style={{ padding: '12px 16px', width: 40 }} />
                                                       </tr>
@@ -1001,24 +1113,18 @@ const ListOfDistrictsTable = ({
                                                         </tr>
                                                       ) : (
                                                         gpsForBlock.map((gp) => (
-                                                          <tr key={gp.geography_id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                                          <tr key={gp.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <span style={{ fontWeight: 500, color: '#059669' }}>{gp.geography_name}</span>
+                                                              <span style={{ fontWeight: 500, color: '#059669' }}>{gp.name}</span>
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <ComplaintsBar {...blockStats.complaints[block.id]} />
+                                                              <ComplaintsBar {...gpStatics.complaints[gp.id]} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <AttendanceBar {...blockStats.attendance[block.id]} />
+                                                              <AttendanceBar {...gpStatics.attendance[gp.id]} />
                                                             </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 13, color: '#6b7280' }}>
-                                                              {gp.master_data_status ? (
-                                                                <span style={{ padding: '4px 8px', borderRadius: '4px', backgroundColor: gp.master_data_status === 'Available' ? '#dcfce7' : '#fee2e2', color: gp.master_data_status === 'Available' ? '#166534' : '#991b1b', fontSize: 12, fontWeight: 500 }}>
-                                                                  {gp.master_data_status}
-                                                                </span>
-                                                              ) : (
-                                                                <span style={{ color: '#d1d5db' }}>—</span>
-                                                              )}
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              {gpStatics.gpsTracker[gp.id]?.gpsVehicles ? `${gpStatics.gpsTracker[gp.id]?.gpsVehicles} Vehicles` : '—'}
                                                             </td>
                                                           </tr>
                                                         ))
@@ -1038,10 +1144,13 @@ const ListOfDistrictsTable = ({
                                           <AttendanceBar {...blockStats.attendance[block.id]} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          {selectedBlockDetails?.total_village_master_data}
+                                          {selectedBlockDetails?.village_master_data_coverage_percentage}%
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          {selectedBlockDetails?.village_master_data_coverage_percentage}%
+                                          {blockStats.contractor[block.id]?.contractorDataPercent || 0}%
+                                        </td>
+                                        <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                          {blockStats.gpsTracker[block.id]?.gpsVehicles ? `${blockStats.gpsTracker[block.id]?.gpsVehicles} Vehicles` : '—'}
                                         </td>
                                       </tr>
                                     );
@@ -1073,27 +1182,13 @@ const ListOfDistrictsTable = ({
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
                     <GpsTrackingBar vehicles={row.gpsVehicles} />
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <button
-                      style={{
-                        border: 'none',
-                        background: 'none',
-                        cursor: 'pointer',
-                        padding: 4,
-                        color: '#6b7280'
-                      }}
-                      title="Actions"
-                    >
-                      <MoreVertical style={{ width: 18, height: 18 }} />
-                    </button>
-                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
       </div>
-    </div>
+    </div >
   );
 };
 
