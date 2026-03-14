@@ -153,6 +153,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   const [selectedBlockForGPs, setSelectedBlockForGPs] = useState(null);
   const [viewingGPsForBlock, setViewingGPsForBlock] = useState(false);
 
+  // Individual GP complaints view state
+  const [selectedGPForComplaints, setSelectedGPForComplaints] = useState(null);
+  const [viewingGPComplaints, setViewingGPComplaints] = useState(false);
+
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null); // null means not selected
@@ -2793,12 +2797,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             }}>
               Complaints
             </h2>
-            {viewingGPsForBlock && (
+            {viewingGPsForBlock && !viewingGPComplaints && (
               <span style={{
                 fontSize: '14px',
                 color: '#6b7280'
               }}>
                 {selectedBlockForGPs?.name}
+              </span>
+            )}
+            {viewingGPComplaints && (
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280'
+              }}>
+                {selectedBlockForGPs?.name} / {selectedGPForComplaints?.name}
               </span>
             )}
             {viewingBlocksForDistrict && !viewingGPsForBlock && (
@@ -2810,7 +2822,30 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               </span>
             )}
           </div>
-          {viewingGPsForBlock && (
+          {viewingGPComplaints && (
+            <button
+              onClick={() => {
+                setSelectedGPForComplaints(null);
+                setViewingGPComplaints(false);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            >
+              ← Back to GPs
+            </button>
+          )}
+          {viewingGPsForBlock && !viewingGPComplaints && (
             <button
               onClick={() => {
                 setViewingGPsForBlock(false);
@@ -2860,7 +2895,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
           )}
         </div>
 
-        {/* District Table */}
+        {/* District Table or GP Complaints Table */}
         <div style={{
           overflowX: 'auto',
           maxHeight: '400px',
@@ -2881,83 +2916,111 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Avg. Resolution (Days)
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Complaints Closed %
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(viewingGPsForBlock ? loadingGpsSummary : viewingBlocksForDistrict ? loadingBlocksSummary : loadingDistrictSummary) ? (
-                <tr>
-                  <td colSpan="5" style={{
-                    padding: '40px',
-                    textAlign: 'center',
-                    fontSize: '14px',
-                    color: '#6b7280'
-                  }}>
-                    Loading {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data...
-                  </td>
-                </tr>
-              ) : (() => {
-                const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
-                const isEmpty = dataToDisplay.length === 0;
-
-                return isEmpty ? (
-                  <tr>
-                    <td colSpan="5" style={{
-                      padding: '40px',
+                {viewingGPComplaints ? (
+                  <>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Complaint ID
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Complaint Type
+                    </th>
+                    <th style={{
+                      padding: '12px',
                       textAlign: 'center',
                       fontSize: '14px',
-                      color: '#6b7280'
+                      fontWeight: '600',
+                      color: '#374151'
                     }}>
-                      No {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data available
-                    </td>
-                  </tr>
+                      Status
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Created Date
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Resolved Date
+                    </th>
+                  </>
                 ) : (
-                  dataToDisplay.map((item) => (
-                    <tr key={item.id} style={{
+                  <>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Avg. Resolution (Days)
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Complaints Closed %
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Status
+                    </th>
+                  </>
+                )}
+              </tr>
+            </thead>
+            <tbody key={viewingGPComplaints ? 'complaints-view' : 'summary-view'}>
+              {viewingGPComplaints ? (
+                // Individual complaints view for a GP
+                selectedGPForComplaints?.complaints && selectedGPForComplaints.complaints.length > 0 ? (
+                  selectedGPForComplaints.complaints.map((complaint) => (
+                    <tr key={complaint.id} style={{
                       borderBottom: '1px solid #f3f4f6'
                     }}>
                       <td style={{
@@ -2966,102 +3029,14 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         color: '#374151',
                         fontWeight: '500'
                       }}>
-                        <div>
-                          <div
-                            onClick={() => {
-                              if (viewingGPsForBlock) {
-                                // GPs are not clickable
-                              } else if (viewingBlocksForDistrict) {
-                                // Clicking on block to view GPs
-                                fetchGPsSummaryData(item);
-                              } else {
-                                // Clicking on district to view blocks
-                                fetchBlocksSummaryData(item);
-                              }
-                            }}
-                            style={{
-                              cursor: !viewingGPsForBlock ? 'pointer' : 'default',
-                              color: !viewingGPsForBlock ? '#0866c6' : '#374151',
-                              textDecoration: 'none',
-                              transition: 'color 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!viewingGPsForBlock) {
-                                e.target.style.color = '#0550a3';
-                                e.target.style.textDecoration = 'underline';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!viewingGPsForBlock) {
-                                e.target.style.color = '#0866c6';
-                                e.target.style.textDecoration = 'none';
-                              }
-                            }}
-                          >
-                            {item.name}
-                          </div>
-                          <div style={{
-                            fontSize: '12px',
-                            color: '#6b7280',
-                            marginTop: '4px'
-                          }}>
-                            Total Complaints: {item.totalComplaints}
-                          </div>
-                        </div>
+                        {complaint.id}
                       </td>
                       <td style={{
                         padding: '12px',
-                        textAlign: 'center',
                         fontSize: '14px',
                         color: '#374151'
                       }}>
-                        <div style={{
-                          display: 'inline-block',
-                          backgroundColor: '#fef2f2',
-                          color: '#ef4444',
-                          padding: '6px 12px',
-                          borderRadius: '12px',
-                          fontWeight: '500'
-                        }}>
-                          {item.openComplaints}
-                        </div>
-                      </td>
-                      <td style={{
-                        padding: '12px',
-                        textAlign: 'center',
-                        fontSize: '14px',
-                        color: '#374151'
-                      }}>
-                        {item.avgResolution === 'N/A' ? (
-                          <span style={{ color: '#9ca3af' }}>N/A</span>
-                        ) : (
-                          <span>{item.avgResolution}</span>
-                        )}
-                      </td>
-                      <td style={{
-                        padding: '12px',
-                        textAlign: 'center',
-                        fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500'
-                      }}>
-                        <div style={{
-                          display: 'inline-block',
-                          backgroundColor: parseFloat(item.closedPercent) >= 75
-                            ? '#f0fdf4'
-                            : parseFloat(item.closedPercent) >= 50
-                              ? '#fef3c7'
-                              : '#fef2f2',
-                          color: parseFloat(item.closedPercent) >= 75
-                            ? '#10b981'
-                            : parseFloat(item.closedPercent) >= 50
-                              ? '#f59e0b'
-                              : '#ef4444',
-                          padding: '6px 12px',
-                          borderRadius: '12px'
-                        }}>
-                          {item.closedPercent}%
-                        </div>
+                        {complaint.complaint_type || 'N/A'}
                       </td>
                       <td style={{
                         padding: '12px',
@@ -3070,24 +3045,224 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       }}>
                         <div style={{
                           display: 'inline-block',
-                          backgroundColor: item.status === 'Star Performer'
-                            ? '#f0fdf4'
-                            : '#fef2f2',
-                          color: item.status === 'Star Performer'
-                            ? '#10b981'
-                            : '#ef4444',
+                          backgroundColor: complaint.status?.toUpperCase() === 'OPEN'
+                            ? '#fef2f2'
+                            : complaint.status?.toUpperCase() === 'RESOLVED'
+                              ? '#f0fdf4'
+                              : complaint.status?.toUpperCase() === 'VERIFIED'
+                                ? '#fef3c7'
+                                : '#f3f4f6',
+                          color: complaint.status?.toUpperCase() === 'OPEN'
+                            ? '#ef4444'
+                            : complaint.status?.toUpperCase() === 'RESOLVED'
+                              ? '#10b981'
+                              : complaint.status?.toUpperCase() === 'VERIFIED'
+                                ? '#f59e0b'
+                                : '#6b7280',
                           padding: '4px 12px',
                           borderRadius: '12px',
                           fontSize: '12px',
                           fontWeight: '500'
                         }}>
-                          {item.status}
+                          {complaint.status || 'N/A'}
                         </div>
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {complaint.created_at
+                          ? new Date(complaint.created_at).toLocaleDateString()
+                          : 'N/A'
+                        }
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {complaint.resolved_at
+                          ? new Date(complaint.resolved_at).toLocaleDateString()
+                          : 'N/A'
+                        }
                       </td>
                     </tr>
                   ))
-                );
-              })()}
+                ) : (
+                  <tr>
+                    <td colSpan="5" style={{
+                      padding: '40px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      No complaints found for this GP
+                    </td>
+                  </tr>
+                )
+              ) : (
+                // Summary table view
+                (viewingGPsForBlock ? loadingGpsSummary : viewingBlocksForDistrict ? loadingBlocksSummary : loadingDistrictSummary) ? (
+                  <tr>
+                    <td colSpan="5" style={{
+                      padding: '40px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      Loading {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data...
+                    </td>
+                  </tr>
+                ) : (() => {
+                  const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
+                  const isEmpty = dataToDisplay.length === 0;
+
+                  return isEmpty ? (
+                    <tr>
+                      <td colSpan="5" style={{
+                        padding: '40px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#6b7280'
+                      }}>
+                        No {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data available
+                      </td>
+                    </tr>
+                  ) : (
+                    dataToDisplay.map((item) => (
+                      <tr key={item.id} style={{
+                        borderBottom: '1px solid #f3f4f6'
+                      }}>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151',
+                          fontWeight: '500'
+                        }}>
+                          <div>
+                            <div
+                              onClick={() => {
+                                if (viewingGPsForBlock) {
+                                  // GPs are now clickable - show their individual complaints
+                                  setSelectedGPForComplaints(item);
+                                  setViewingGPComplaints(true);
+                                } else if (viewingBlocksForDistrict) {
+                                  // Clicking on block to view GPs
+                                  fetchGPsSummaryData(item);
+                                } else {
+                                  // Clicking on district to view blocks
+                                  fetchBlocksSummaryData(item);
+                                }
+                              }}
+                              style={{
+                                cursor: 'pointer',
+                                color: '#0866c6',
+                                textDecoration: 'none',
+                                transition: 'color 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.color = '#0550a3';
+                                e.target.style.textDecoration = 'underline';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.color = '#0866c6';
+                                e.target.style.textDecoration = 'none';
+                              }}
+                            >
+                              {item.name}
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: '#6b7280',
+                              marginTop: '4px'
+                            }}>
+                              Total Complaints: {item.totalComplaints}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          <div style={{
+                            display: 'inline-block',
+                            backgroundColor: '#fef2f2',
+                            color: '#ef4444',
+                            padding: '6px 12px',
+                            borderRadius: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {item.openComplaints}
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {item.avgResolution === 'N/A' ? (
+                            <span style={{ color: '#9ca3af' }}>N/A</span>
+                          ) : (
+                            <span>{item.avgResolution}</span>
+                          )}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          textAlign: 'center',
+                          fontSize: '14px',
+                          color: '#374151',
+                          fontWeight: '500'
+                        }}>
+                          <div style={{
+                            display: 'inline-block',
+                            backgroundColor: parseFloat(item.closedPercent) >= 75
+                              ? '#f0fdf4'
+                              : parseFloat(item.closedPercent) >= 50
+                                ? '#fef3c7'
+                                : '#fef2f2',
+                            color: parseFloat(item.closedPercent) >= 75
+                              ? '#10b981'
+                              : parseFloat(item.closedPercent) >= 50
+                                ? '#f59e0b'
+                                : '#ef4444',
+                            padding: '6px 12px',
+                            borderRadius: '12px'
+                          }}>
+                            {item.closedPercent}%
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          textAlign: 'center',
+                          fontSize: '14px'
+                        }}>
+                          <div style={{
+                            display: 'inline-block',
+                            backgroundColor: item.status === 'Star Performer'
+                              ? '#f0fdf4'
+                              : '#fef2f2',
+                            color: item.status === 'Star Performer'
+                              ? '#10b981'
+                              : '#ef4444',
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {item.status}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  );
+                })()
+              )}
             </tbody>
           </table>
         </div>
