@@ -129,6 +129,30 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   const [loadingComplaints, setLoadingComplaints] = useState(false);
   const [complaintsError, setComplaintsError] = useState(null);
 
+  // District summary table state
+  const [districtSummaryData, setDistrictSummaryData] = useState([]);
+  const [loadingDistrictSummary, setLoadingDistrictSummary] = useState(false);
+  const [districtSummaryError, setDistrictSummaryError] = useState(null);
+
+  // All complaints data state (fetched from /complaints API)
+  const [allComplaintsData, setAllComplaintsData] = useState([]);
+  const [loadingAllComplaints, setLoadingAllComplaints] = useState(false);
+  const [allComplaintsError, setAllComplaintsError] = useState(null);
+
+  // Blocks summary table state
+  const [blocksSummaryData, setBlocksSummaryData] = useState([]);
+  const [loadingBlocksSummary, setLoadingBlocksSummary] = useState(false);
+  const [blocksSummaryError, setBlocksSummaryError] = useState(null);
+  const [selectedDistrictForBlocks, setSelectedDistrictForBlocks] = useState(null);
+  const [viewingBlocksForDistrict, setViewingBlocksForDistrict] = useState(false);
+
+  // GPs summary table state
+  const [gpsSummaryData, setGpsSummaryData] = useState([]);
+  const [loadingGpsSummary, setLoadingGpsSummary] = useState(false);
+  const [gpsSummaryError, setGpsSummaryError] = useState(null);
+  const [selectedBlockForGPs, setSelectedBlockForGPs] = useState(null);
+  const [viewingGPsForBlock, setViewingGPsForBlock] = useState(false);
+
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null); // null means not selected
@@ -562,6 +586,89 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     return num.toLocaleString();
   };
 
+  // Build district summary data
+  const buildDistrictSummary = useCallback(() => {
+    if (!complaintsListData || complaintsListData.length === 0) {
+      return [];
+    }
+
+    const districtMap = {};
+
+    // Group complaints by district
+    complaintsListData.forEach(complaint => {
+      const districtName = complaint.district || 'Unknown District';
+      const districtId = complaint.district_id || districtName;
+
+      if (!districtMap[districtId]) {
+        districtMap[districtId] = {
+          id: districtId,
+          name: districtName,
+          totalComplaints: 0,
+          openComplaints: 0,
+          verifiedComplaints: 0,
+          resolvedComplaints: 0,
+          disposedComplaints: 0,
+          resolutionTimes: [], // Array of resolution times in days
+          complaints: []
+        };
+      }
+
+      const district = districtMap[districtId];
+      district.totalComplaints += 1;
+      district.complaints.push(complaint);
+
+      // Count by status
+      const status = complaint.status?.toUpperCase() || 'UNKNOWN';
+      switch (status) {
+        case 'OPEN':
+          district.openComplaints += 1;
+          break;
+        case 'VERIFIED':
+          district.verifiedComplaints += 1;
+          break;
+        case 'RESOLVED':
+          district.resolvedComplaints += 1;
+          break;
+        case 'CLOSED':
+        case 'DISPOSED':
+          district.disposedComplaints += 1;
+          break;
+      }
+
+      // Calculate resolution time if available
+      if (complaint.created_at && complaint.resolved_at) {
+        const createdDate = new Date(complaint.created_at);
+        const resolvedDate = new Date(complaint.resolved_at);
+        const resolutionDays = Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+        district.resolutionTimes.push(resolutionDays);
+      }
+    });
+
+    // Convert to array and calculate averages
+    const summaryArray = Object.values(districtMap).map(district => {
+      const avgResolution = district.resolutionTimes.length > 0
+        ? (district.resolutionTimes.reduce((a, b) => a + b, 0) / district.resolutionTimes.length).toFixed(1)
+        : 'N/A';
+
+      const closedPercent = district.totalComplaints > 0
+        ? ((district.disposedComplaints / district.totalComplaints) * 100).toFixed(1)
+        : 0;
+
+      const status = parseFloat(closedPercent) > 50
+        ? 'Star Performer'
+        : 'Under Performer';
+
+      return {
+        ...district,
+        avgResolution,
+        closedPercent,
+        status
+      };
+    });
+
+    return summaryArray.sort((a, b) => b.totalComplaints - a.totalComplaints);
+  }, [complaintsListData]);
+
   // Fetch complaints list from API
   const fetchComplaintsData = useCallback(async () => {
     try {
@@ -631,6 +738,344 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       setLoadingComplaints(false);
     }
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+
+  // Fetch all complaints from API without filters
+  const fetchAllComplaintsData = useCallback(async () => {
+    try {
+      setLoadingAllComplaints(true);
+      setAllComplaintsError(null);
+
+      console.log('🔄 ===== FETCH ALL COMPLAINTS API CALL =====');
+
+      // Fetch all complaints with a high limit
+      const response = await apiClient.get('/complaints', {
+        params: { limit: 1000, order_by: 'newest' }
+      });
+
+      console.log('✅ All Complaints API Response:', {
+        status: response.status,
+        count: response.data?.length || 0,
+        sample: response.data?.slice(0, 2)
+      });
+
+      setAllComplaintsData(response.data || []);
+      console.log('📊 All complaints data set:', response.data?.length || 0, 'total complaints');
+      console.log('🔄 ===== END ALL COMPLAINTS API CALL =====\n');
+
+    } catch (error) {
+      console.error('❌ ===== ALL COMPLAINTS API ERROR =====');
+      console.error('Error:', error);
+      console.error('🔄 ===== END ALL COMPLAINTS API ERROR =====\n');
+
+      setAllComplaintsError(error.message || 'Failed to fetch all complaints data');
+      setAllComplaintsData([]);
+    } finally {
+      setLoadingAllComplaints(false);
+    }
+  }, []);
+
+  // Fetch all districts from API and enrich with complaint data
+  const fetchDistrictSummaryData = useCallback(async () => {
+    try {
+      setLoadingDistrictSummary(true);
+      setDistrictSummaryError(null);
+
+      console.log('🔄 ===== DISTRICTS API CALL =====');
+
+      // Fetch all districts
+      const districtResponse = await apiClient.get('/geography/districts?skip=0&limit=100');
+      const allDistricts = districtResponse.data || [];
+
+      // console.log('✅ Districts API Response:', {
+      //   status: districtResponse.status,
+      //   count: allDistricts.length,
+      //   sample: allDistricts.slice(0, 2)
+      // });
+
+      // Enrich districts with complaint data from allComplaintsData
+      const enrichedDistricts = allDistricts.map(district => {
+        // Filter complaints for this district by matching district_name with name
+        const districtComplaints = allComplaintsData.filter(
+          complaint => complaint.district_name?.toLowerCase() === district.name?.toLowerCase()
+        );
+
+        // console.log(`📍 District "${district.name}" matched with ${districtComplaints.length} complaints`);
+
+        // Calculate metrics
+        const totalComplaints = districtComplaints.length;
+        const openComplaints = districtComplaints.filter(
+          c => c.status?.toUpperCase() === 'OPEN'
+        ).length;
+        const verifiedComplaints = districtComplaints.filter(
+          c => c.status?.toUpperCase() === 'VERIFIED'
+        ).length;
+        const resolvedComplaints = districtComplaints.filter(
+          c => c.status?.toUpperCase() === 'RESOLVED'
+        ).length;
+        const disposedComplaints = districtComplaints.filter(
+          c => (c.status?.toUpperCase() === 'CLOSED' || c.status?.toUpperCase() === 'DISPOSED')
+        ).length;
+
+        // Calculate average resolution time
+        const resolutionTimes = districtComplaints
+          .filter(c => c.created_at && c.resolved_at)
+          .map(c => {
+            const createdDate = new Date(c.created_at);
+            const resolvedDate = new Date(c.resolved_at);
+            return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+          });
+
+        const avgResolution = resolutionTimes.length > 0
+          ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1)
+          : 'N/A';
+
+        // Calculate closed percentage
+        const closedPercent = totalComplaints > 0
+          ? ((disposedComplaints / totalComplaints) * 100).toFixed(2)
+          : 0;
+
+        // Determine status
+        const status = parseFloat(closedPercent) > 50
+          ? 'Star Performer'
+          : 'Under Performer';
+
+        return {
+          id: district.id,
+          name: district.name,
+          totalComplaints,
+          openComplaints,
+          verifiedComplaints,
+          resolvedComplaints,
+          disposedComplaints,
+          avgResolution,
+          closedPercent,
+          status,
+          complaints: districtComplaints // Include all complaints for this district
+        };
+      });
+
+      // Sort by total complaints (highest first)
+      enrichedDistricts.sort((a, b) => b.totalComplaints - a.totalComplaints);
+
+      setDistrictSummaryData(enrichedDistricts);
+      console.log('📊 District summary data set:', enrichedDistricts.length, 'districts with matched complaints');
+      console.log('🔄 ===== END DISTRICTS API CALL =====\n');
+
+    } catch (error) {
+      console.error('❌ ===== DISTRICTS API ERROR =====');
+      console.error('Error:', error);
+      console.error('🔄 ===== END DISTRICTS API ERROR =====\n');
+
+      setDistrictSummaryError(error.message || 'Failed to fetch districts data');
+      setDistrictSummaryData([]);
+    } finally {
+      setLoadingDistrictSummary(false);
+    }
+  }, [allComplaintsData]);
+
+  // Fetch all blocks for a specific district and enrich with complaint data
+  const fetchBlocksSummaryData = useCallback(async (district) => {
+    try {
+      setLoadingBlocksSummary(true);
+      setBlocksSummaryError(null);
+
+      console.log('🔄 ===== BLOCKS API CALL =====');
+
+      // Fetch all blocks for the district
+      const blocksResponse = await apiClient.get(`/geography/blocks?district_id=${district.id}&skip=0&limit=100`);
+      const allBlocks = blocksResponse.data || [];
+
+      console.log('✅ Blocks API Response:', {
+        status: blocksResponse.status,
+        count: allBlocks.length,
+        districtId: district.id,
+        districtName: district.name
+      });
+
+      // Enrich blocks with complaint data from allComplaintsData
+      const enrichedBlocks = allBlocks.map(block => {
+        // Filter complaints for this block by matching block_name with name
+        const blockComplaints = allComplaintsData.filter(
+          complaint => complaint.block_name?.toLowerCase() === block.name?.toLowerCase()
+        );
+
+        console.log(`📍 Block "${block.name}" matched with ${blockComplaints.length} complaints`);
+
+        // Calculate metrics
+        const totalComplaints = blockComplaints.length;
+        const openComplaints = blockComplaints.filter(
+          c => c.status?.toUpperCase() === 'OPEN'
+        ).length;
+        const verifiedComplaints = blockComplaints.filter(
+          c => c.status?.toUpperCase() === 'VERIFIED'
+        ).length;
+        const resolvedComplaints = blockComplaints.filter(
+          c => c.status?.toUpperCase() === 'RESOLVED'
+        ).length;
+        const disposedComplaints = blockComplaints.filter(
+          c => (c.status?.toUpperCase() === 'CLOSED' || c.status?.toUpperCase() === 'DISPOSED')
+        ).length;
+
+        // Calculate average resolution time
+        const resolutionTimes = blockComplaints
+          .filter(c => c.created_at && c.resolved_at)
+          .map(c => {
+            const createdDate = new Date(c.created_at);
+            const resolvedDate = new Date(c.resolved_at);
+            return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+          });
+
+        const avgResolution = resolutionTimes.length > 0
+          ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1)
+          : 'N/A';
+
+        // Calculate closed percentage
+        const closedPercent = totalComplaints > 0
+          ? ((disposedComplaints / totalComplaints) * 100).toFixed(1)
+          : 0;
+
+        // Determine status
+        const status = parseFloat(closedPercent) > 50
+          ? 'Star Performer'
+          : 'Under Performer';
+
+        return {
+          id: block.id,
+          name: block.name,
+          totalComplaints,
+          openComplaints,
+          verifiedComplaints,
+          resolvedComplaints,
+          disposedComplaints,
+          avgResolution,
+          closedPercent,
+          status,
+          complaints: blockComplaints // Include all complaints for this block
+        };
+      });
+
+      // Sort by total complaints (highest first)
+      enrichedBlocks.sort((a, b) => b.totalComplaints - a.totalComplaints);
+
+      setBlocksSummaryData(enrichedBlocks);
+      setSelectedDistrictForBlocks(district);  // Store full district object with totalComplaints
+      setViewingBlocksForDistrict(true);
+      console.log('📊 Block summary data set:', enrichedBlocks.length, 'blocks with matched complaints');
+      console.log('🔄 ===== END BLOCKS API CALL =====\n');
+
+    } catch (error) {
+      console.error('❌ ===== BLOCKS API ERROR =====');
+      console.error('Error:', error);
+      console.error('🔄 ===== END BLOCKS API ERROR =====\n');
+
+      setBlocksSummaryError(error.message || 'Failed to fetch blocks data');
+      setBlocksSummaryData([]);
+    } finally {
+      setLoadingBlocksSummary(false);
+    }
+  }, [allComplaintsData]);
+
+  // Fetch all GPs for a specific block and enrich with complaint data
+  const fetchGPsSummaryData = useCallback(async (block) => {
+    try {
+      setLoadingGpsSummary(true);
+      setGpsSummaryError(null);
+
+      console.log('🔄 ===== GPs API CALL =====');
+
+      // Fetch all GPs for the block
+      const gpsResponse = await apiClient.get(`/geography/grampanchayats?block_id=${block.id}&skip=0&limit=100`);
+      const allGPs = gpsResponse.data || [];
+
+      console.log('✅ GPs API Response:', {
+        status: gpsResponse.status,
+        count: allGPs.length,
+        blockId: block.id,
+        blockName: block.name
+      });
+
+      // Enrich GPs with complaint data from allComplaintsData
+      const enrichedGPs = allGPs.map(gp => {
+        // Filter complaints for this GP by matching village_name with name
+        const gpComplaints = allComplaintsData.filter(
+          complaint => complaint.village_name?.toLowerCase() === gp.name?.toLowerCase()
+        );
+
+        console.log(`📍 GP "${gp.name}" matched with ${gpComplaints.length} complaints`);
+
+        // Calculate metrics
+        const totalComplaints = gpComplaints.length;
+        const openComplaints = gpComplaints.filter(
+          c => c.status?.toUpperCase() === 'OPEN'
+        ).length;
+        const verifiedComplaints = gpComplaints.filter(
+          c => c.status?.toUpperCase() === 'VERIFIED'
+        ).length;
+        const resolvedComplaints = gpComplaints.filter(
+          c => c.status?.toUpperCase() === 'RESOLVED'
+        ).length;
+        const disposedComplaints = gpComplaints.filter(
+          c => (c.status?.toUpperCase() === 'CLOSED' || c.status?.toUpperCase() === 'DISPOSED')
+        ).length;
+
+        // Calculate average resolution time
+        const resolutionTimes = gpComplaints
+          .filter(c => c.created_at && c.resolved_at)
+          .map(c => {
+            const createdDate = new Date(c.created_at);
+            const resolvedDate = new Date(c.resolved_at);
+            return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+          });
+
+        const avgResolution = resolutionTimes.length > 0
+          ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1)
+          : 'N/A';
+
+        // Calculate closed percentage
+        const closedPercent = totalComplaints > 0
+          ? ((disposedComplaints / totalComplaints) * 100).toFixed(1)
+          : 0;
+
+        // Determine status
+        const status = parseFloat(closedPercent) > 50
+          ? 'Star Performer'
+          : 'Under Performer';
+
+        return {
+          id: gp.id,
+          name: gp.name,
+          totalComplaints,
+          openComplaints,
+          verifiedComplaints,
+          resolvedComplaints,
+          disposedComplaints,
+          avgResolution,
+          closedPercent,
+          status,
+          complaints: gpComplaints // Include all complaints for this GP
+        };
+      });
+
+      // Sort by total complaints (highest first)
+      enrichedGPs.sort((a, b) => b.totalComplaints - a.totalComplaints);
+
+      setGpsSummaryData(enrichedGPs);
+      setSelectedBlockForGPs(block);  // Store full block object with totalComplaints
+      setViewingGPsForBlock(true);
+      console.log('📊 GP summary data set:', enrichedGPs.length, 'GPs with matched complaints');
+      console.log('🔄 ===== END GPs API CALL =====\n');
+
+    } catch (error) {
+      console.error('❌ ===== GPs API ERROR =====');
+      console.error('Error:', error);
+      console.error('🔄 ===== END GPs API ERROR =====\n');
+
+      setGpsSummaryError(error.message || 'Failed to fetch GPs data');
+      setGpsSummaryData([]);
+    } finally {
+      setLoadingGpsSummary(false);
+    }
+  }, [allComplaintsData]);
 
   // Fetch analytics data from API
   const fetchAnalyticsData = useCallback(async () => {
@@ -1194,60 +1639,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
   const complaintMetrics = getComplaintMetrics();
 
-  const normalizeStatusForFilter = (rawStatus) => {
-    if (!rawStatus) return '';
-
-    let s = String(rawStatus)
-      .toUpperCase()
-      .replace(/[_-]+/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    // Handle common variations
-    switch (s) {
-      case 'OPEN':
-      case 'PENDING':
-      case 'PENDING REVIEW':
-      case 'NEW':
-      case 'AWAITING ACTION':
-      case 'AWAITING RESPONSE':
-      case 'OPEN COMPLAINT':
-        return 'OPEN';
-
-      case 'VERIFIED':
-      case 'IN PROGRESS':
-      case 'INPROGRESS':
-      case 'IN PROGRESS WITH DEO':
-      case 'IN PROCESS':
-      case 'VERIFICATION PENDING':
-      case 'PENDING VERIFICATION':
-      case 'UNDER VERIFICATION':
-      case 'VERIFICATION COMPLETED':
-        return 'VERIFIED';
-
-      case 'RESOLVED':
-      case 'RESOLUTION SUBMITTED':
-      case 'RESOLUTION IN PROGRESS':
-      case 'ACTION TAKEN':
-      case 'ADDRESSED':
-        return 'RESOLVED';
-
-      case 'CLOSED':
-      case 'CLOSE':
-      case 'CLOS':
-      case 'DISPOSED':
-      case 'DISPOSED OFF':
-      case 'REJECTED':
-      case 'NOT ACTIONABLE':
-      case 'INVALID COMPLAINT':
-        return 'CLOSED';
-
-      default:
-        // Return uppercase version of original if no match
-        return s.toUpperCase();
-    }
-  };
-
   // Use dynamic complaints data from API, or empty array if loading/error
   // CSV Export Function
   const exportToCSV = () => {
@@ -1326,7 +1717,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     }
   };
 
-  // Normalize incoming statuses and compute a normalized status + color to use for filtering and display
   // Deduplicate complaints by ID to avoid duplicate keys
   const uniqueComplaintsMap = new Map();
   complaintsListData.forEach((complaint, idx) => {
@@ -1337,26 +1727,33 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   });
   const uniqueComplaintsList = Array.from(uniqueComplaintsMap.values());
 
-  const complaintsData = uniqueComplaintsList.map((complaint, idx) => {
-    const rawStatus = complaint.status || 'OPEN';
-    const statusNormalized = normalizeStatusForFilter(rawStatus) || 'OPEN';
-    const statusDisplay = statusNormalized === 'OPEN' ? 'Open'
-      : statusNormalized === 'VERIFIED' ? 'Verified'
-        : statusNormalized === 'RESOLVED' ? 'Resolved'
-          : statusNormalized === 'CLOSED' ? 'Closed' : rawStatus;
+  // Helper function to get status color
+  const getStatusColor = (status) => {
+    const s = status?.toUpperCase() || 'OPEN';
+    switch (s) {
+      case 'OPEN':
+        return '#ef4444';
+      case 'VERIFIED':
+        return '#f97316';
+      case 'RESOLVED':
+        return '#8b5cf6';
+      case 'CLOSED':
+      case 'DISPOSED':
+        return '#10b981';
+      default:
+        return '#6b7280';
+    }
+  };
 
-    const statusColor = statusNormalized === 'OPEN' ? '#ef4444'
-      : statusNormalized === 'VERIFIED' ? '#f97316'
-        : statusNormalized === 'RESOLVED' ? '#8b5cf6'
-          : '#10b981';
+  const complaintsData = uniqueComplaintsList.map((complaint, idx) => {
+    const status = complaint.status || 'OPEN';
+    const statusColor = getStatusColor(status);
 
     return {
       id: `COMP-${complaint.id}`,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
-      status: rawStatus,
-      statusNormalized,
-      statusDisplay,
+      status,
       priority: 'Medium', // API doesn't provide priority, using default
       location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
       submittedBy: complaint.mobile_number || 'N/A',
@@ -1408,19 +1805,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   };
 
   // Normalize the active filter once
-  const normalizedFilterStatus = activeFilter && activeFilter.trim().length > 0
-    ? normalizeStatusForFilter(activeFilter).trim().toUpperCase()
-    : null;
+  const normalizedFilterStatus = activeFilter?.trim().toUpperCase() || null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
-    // Get normalized status from complaint (already normalized during mapping)
-    const complaintStatusNormalized = (complaint.statusNormalized || normalizeStatusForFilter(complaint.status || 'OPEN'))
-      .trim()
-      .toUpperCase();
-
-    // Only filter if we have a valid filter selection
-    const matchesFilter = normalizedFilterStatus && normalizedFilterStatus.length > 0
-      ? complaintStatusNormalized === normalizedFilterStatus
+    // Match status directly (case-insensitive)
+    const matchesFilter = normalizedFilterStatus
+      ? (complaint.status?.toUpperCase() === normalizedFilterStatus)
       : true; // if no filter selected, show all
 
     const q = searchTerm?.toLowerCase() || '';
@@ -1431,7 +1821,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       (complaint.location || '').toLowerCase().includes(q) ||
       (complaint.submittedBy || '').toLowerCase().includes(q) ||
       (complaint.submittedDate || '').toLowerCase().includes(q) ||
-      (complaint.statusDisplay || complaint.status || '').toLowerCase().includes(q) ||
+      (complaint.status || '').toLowerCase().includes(q) ||
       (complaint.assignedTo || '').toLowerCase().includes(q) ||
       (complaint.village || '').toLowerCase().includes(q) ||
       (complaint.block || '').toLowerCase().includes(q) ||
@@ -1450,30 +1840,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     sampleRawStatusesFromAPI: sampleRawStatuses,
     sampleTransformed: complaintsData.slice(0, 3).map(c => ({
       id: c.id,
-      rawStatus: c.status,
-      normalized: c.statusNormalized,
-      display: c.statusDisplay
+      status: c.status
     })),
     filteredComplaintsLength: filteredComplaints.length,
     activeFilter,
     normalizedFilterStatus,
     searchTerm,
     uniqueStatuses: [...new Set(complaintsData.map(c => c.status))],
-    uniqueNormalized: [...new Set(complaintsData.map(c => c.statusNormalized))],
     filterBreakdown: {
-      open: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'OPEN').length,
-      verified: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'VERIFIED').length,
-      resolved: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'RESOLVED').length,
-      closed: complaintsData.filter(c => (c.statusNormalized || normalizeStatusForFilter(c.status)).toUpperCase() === 'CLOSED').length
+      open: complaintsData.filter(c => c.status?.toUpperCase() === 'OPEN').length,
+      verified: complaintsData.filter(c => c.status?.toUpperCase() === 'VERIFIED').length,
+      resolved: complaintsData.filter(c => c.status?.toUpperCase() === 'RESOLVED').length,
+      closed: complaintsData.filter(c => c.status?.toUpperCase() === 'CLOSED').length
     },
-    filteredByStatus: normalizedFilterStatus ? filteredComplaints.length : 'N/A (showing all)',
-    filterTest: normalizedFilterStatus ? {
-      lookingFor: normalizedFilterStatus,
-      foundCount: complaintsData.filter(c => {
-        const normalized = (c.statusNormalized || normalizeStatusForFilter(c.status || 'OPEN')).trim().toUpperCase();
-        return normalized === normalizedFilterStatus;
-      }).length
-    } : null
+    filteredByStatus: normalizedFilterStatus ? filteredComplaints.length : 'N/A (showing all)'
   });
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
@@ -1709,6 +2089,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       fetchGramPanchayats(selectedDistrictId, selectedBlockId);
     }
   }, [activeScope, selectedDistrictId, selectedBlockId, fetchGramPanchayats]);
+
+  // Fetch district summary data whenever complaints data changes
+  useEffect(() => {
+    fetchDistrictSummaryData();
+  }, [fetchDistrictSummaryData]);
+
+  // Fetch all complaints data on component mount
+  useEffect(() => {
+    fetchAllComplaintsData();
+  }, [fetchAllComplaintsData]);
 
   return (
     <div>
@@ -2373,6 +2763,336 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         </div>
       </div>
 
+      {/* District Summary Table Section */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '24px',
+        marginLeft: '16px',
+        marginRight: '16px',
+        marginTop: '16px',
+        borderRadius: '8px',
+        border: '1px solid lightgray'
+      }}>
+        {/* Table Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '20px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0
+            }}>
+              Complaints
+            </h2>
+            {viewingGPsForBlock && (
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280'
+              }}>
+                {selectedBlockForGPs?.name}
+              </span>
+            )}
+            {viewingBlocksForDistrict && !viewingGPsForBlock && (
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280'
+              }}>
+                {selectedDistrictForBlocks?.name}
+              </span>
+            )}
+          </div>
+          {viewingGPsForBlock && (
+            <button
+              onClick={() => {
+                setViewingGPsForBlock(false);
+                setSelectedBlockForGPs(null);
+                setGpsSummaryData([]);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            >
+              ← Back to Blocks
+            </button>
+          )}
+          {viewingBlocksForDistrict && !viewingGPsForBlock && (
+            <button
+              onClick={() => {
+                setViewingBlocksForDistrict(false);
+                setSelectedDistrictForBlocks(null);
+                setBlocksSummaryData([]);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            >
+              ← Back to Districts
+            </button>
+          )}
+        </div>
+
+        {/* District Table */}
+        <div style={{
+          overflowX: 'auto',
+          maxHeight: '400px',
+          overflowY: 'auto',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px'
+        }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse'
+          }}>
+            <thead style={{
+              position: 'sticky',
+              top: 0,
+              backgroundColor: 'white',
+              zIndex: 10
+            }}>
+              <tr style={{
+                borderBottom: '2px solid #e5e7eb'
+              }}>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Avg. Resolution (Days)
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Complaints Closed %
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {(viewingGPsForBlock ? loadingGpsSummary : viewingBlocksForDistrict ? loadingBlocksSummary : loadingDistrictSummary) ? (
+                <tr>
+                  <td colSpan="5" style={{
+                    padding: '40px',
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    color: '#6b7280'
+                  }}>
+                    Loading {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data...
+                  </td>
+                </tr>
+              ) : (() => {
+                const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
+                const isEmpty = dataToDisplay.length === 0;
+
+                return isEmpty ? (
+                  <tr>
+                    <td colSpan="5" style={{
+                      padding: '40px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      No {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data available
+                    </td>
+                  </tr>
+                ) : (
+                  dataToDisplay.map((item) => (
+                    <tr key={item.id} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        <div>
+                          <div
+                            onClick={() => {
+                              if (viewingGPsForBlock) {
+                                // GPs are not clickable
+                              } else if (viewingBlocksForDistrict) {
+                                // Clicking on block to view GPs
+                                fetchGPsSummaryData(item);
+                              } else {
+                                // Clicking on district to view blocks
+                                fetchBlocksSummaryData(item);
+                              }
+                            }}
+                            style={{
+                              cursor: !viewingGPsForBlock ? 'pointer' : 'default',
+                              color: !viewingGPsForBlock ? '#0866c6' : '#374151',
+                              textDecoration: 'none',
+                              transition: 'color 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!viewingGPsForBlock) {
+                                e.target.style.color = '#0550a3';
+                                e.target.style.textDecoration = 'underline';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!viewingGPsForBlock) {
+                                e.target.style.color = '#0866c6';
+                                e.target.style.textDecoration = 'none';
+                              }
+                            }}
+                          >
+                            {item.name}
+                          </div>
+                          <div style={{
+                            fontSize: '12px',
+                            color: '#6b7280',
+                            marginTop: '4px'
+                          }}>
+                            Total Complaints: {item.totalComplaints}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: '#fef2f2',
+                          color: '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {item.openComplaints}
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {item.avgResolution === 'N/A' ? (
+                          <span style={{ color: '#9ca3af' }}>N/A</span>
+                        ) : (
+                          <span>{item.avgResolution}</span>
+                        )}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: parseFloat(item.closedPercent) >= 75
+                            ? '#f0fdf4'
+                            : parseFloat(item.closedPercent) >= 50
+                              ? '#fef3c7'
+                              : '#fef2f2',
+                          color: parseFloat(item.closedPercent) >= 75
+                            ? '#10b981'
+                            : parseFloat(item.closedPercent) >= 50
+                              ? '#f59e0b'
+                              : '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '12px'
+                        }}>
+                          {item.closedPercent}%
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: item.status === 'Star Performer'
+                            ? '#f0fdf4'
+                            : '#fef2f2',
+                          color: item.status === 'Star Performer'
+                            ? '#10b981'
+                            : '#ef4444',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {item.status}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                );
+              })()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {/* Complaints Table Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2456,7 +3176,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     <div
                       key={filter}
                       onClick={() => {
-                        console.log('🎯 Filter clicked:', filter, 'Normalized:', normalizeStatusForFilter(filter));
+                        console.log('🎯 Filter clicked:', filter);
                         setActiveFilter(filter);
                         setShowFilterDropdown(false);
                       }}

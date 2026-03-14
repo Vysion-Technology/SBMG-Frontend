@@ -1,4 +1,4 @@
-import { ArrowUpDown, Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Filter, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -6,7 +6,6 @@ import apiClient, { annualSurveysAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 import EditGPMasterModal from './EditGPMasterModal';
 import { generateAnnualSurveysPDF } from '../../utils/annualSurveysPdf';
-import { InfoTooltip } from '../common/Tooltip';
 import { Link } from 'react-router-dom';
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -28,7 +27,6 @@ const VillageMasterContent = () => {
     selectedDistrictId,
     selectedBlockId,
     selectedGPId,
-
     dropdownLevel,
     selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
@@ -982,6 +980,8 @@ const VillageMasterContent = () => {
     if (activeScope === 'Districts') {
       trackDropdownChange(district.name);
       updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
+      setSelectedDistrictForHierarchy(district);
+      setSelectedBlockForHierarchy(null);
       fetchBlocks(district.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'Blocks') {
@@ -1570,7 +1570,11 @@ const VillageMasterContent = () => {
             } else if (activeScope === 'GPs') {
               const districtName = selectedDistrictForHierarchy?.name || '';
               const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
+              const parts = ['Rajasthan'];
+              if (districtName) parts.push(districtName);
+              if (blockName) parts.push(blockName);
+              if (selectedLocation) parts.push(selectedLocation);
+              return parts.join(' / ');
             }
             return `Rajasthan / ${selectedLocation}`;
           })()}
@@ -1670,10 +1674,6 @@ const VillageMasterContent = () => {
                 }}>
                   Total GP Master Data
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <InfoTooltip tooltipKey="TOTAL_GP_MASTER_DATA" size={16} color="#6b7280" />
-                  <Database style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                </div>
               </div>
               <div style={{
                 fontSize: '24px',
@@ -1718,10 +1718,6 @@ const VillageMasterContent = () => {
                 }}>
                   Village GP Data Coverage
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
-                  <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                </div>
               </div>
               <div style={{
                 fontSize: '24px',
@@ -1756,9 +1752,6 @@ const VillageMasterContent = () => {
               }}>
                 Total funds sanctioned
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
-              </div>
             </div>
             <div style={{
               fontSize: '24px',
@@ -1792,9 +1785,6 @@ const VillageMasterContent = () => {
               }}>
                 Total work order Amount
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-              </div>
             </div>
             <div style={{
               fontSize: '24px',
@@ -1828,7 +1818,6 @@ const VillageMasterContent = () => {
               }}>
                 SBMG Target Achievement Rate
               </h3>
-              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
             </div>
             <div style={{
               fontSize: '24px',
@@ -1935,7 +1924,6 @@ const VillageMasterContent = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
-                  <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate ?? analyticsData?.fund_utilization_rate ?? '0')}%
@@ -1946,7 +1934,6 @@ const VillageMasterContent = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
-                  <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : `₹${formatNumber(analyticsData?.annual_overview?.average_cost_per_household_d2d || 0)}`}
@@ -1958,7 +1945,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
-                    <InfoTooltip tooltipKey="HOUSEHOLDS_COVERED_D2D" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.households_covered_d2d ?? analyticsData?.households_covered_d2d ?? 0)}
@@ -1971,7 +1957,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
-                    <InfoTooltip tooltipKey="GPS_WITH_ASSET_GAPS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.gps_with_asset_gaps || 0)}
@@ -1984,7 +1969,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
-                    <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.active_sanitation_bidders || 0)}
@@ -2153,53 +2137,88 @@ const VillageMasterContent = () => {
       {activeScope !== 'GPs' && (
         <div style={{
           backgroundColor: 'white',
-          padding: '14px',
+          padding: '24px',
           marginLeft: '16px',
           marginRight: '16px',
           marginTop: '16px',
           borderRadius: '8px',
           border: '1px solid lightgray'
         }}>
-          <div
-            style={{
+          {/* Header with title and back buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px'
+          }}>
+            <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              padding: '0 5px'
-            }}
-          >
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '12px'
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
-            </h3>
-            <h3>
+              <div>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  GP Master Data
+                </h2>
+              </div>
+              <span style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '4px'
+              }}>
+                {activeScope === 'Districts'
+                  ? `${selectedLocation || ''}`
+                  : activeScope === 'Blocks'
+                    ? `${selectedBlockForHierarchy?.name || ''}`
+                    : ''}
+              </span>
+            </div>
+            {activeScope === 'Blocks' && (
               <button
-                onClick={tableDataDownload}
-                type="button"
-                title="Download Data"
+                onClick={() => { setActiveScope('Districts'); setSelectedLocation(selectedDistrictForHierarchy?.name || 'Select District'); }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '6px',
-                  border: '1px solid #e5e7eb',
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
                   borderRadius: '6px',
-                  backgroundColor: '#10B981',
+                  fontSize: '14px',
+                  fontWeight: '500',
                   cursor: 'pointer',
-                  color: 'white'
+                  transition: 'background-color 0.2s ease'
                 }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                <Download style={{ width: '20px', height: '20px' }} />
+                ← Back to Districts
               </button>
-            </h3>
+            )}
+            {activeScope === 'Districts' && (
+              <button
+                onClick={() => setActiveScope('State')}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              >
+                ← Back to State
+              </button>
+            )}
           </div>
-
-
-
 
           {/* Table */}
           {(() => {
@@ -2257,12 +2276,12 @@ const VillageMasterContent = () => {
               <div style={{
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
+                maxHeight: '400px',
+                overflowY: 'auto',
                 overflowX: 'auto'
               }}>
                 <div style={{
-                  minWidth: '600px',
-                  overflowY: 'auto',
-                  overflowX: 'auto'
+                  minWidth: '600px'
                 }}>
                   {/* Table Header - Sticky */}
                   <div style={{
@@ -2275,81 +2294,66 @@ const VillageMasterContent = () => {
                     top: 0,
                     zIndex: 10
                   }}>
-                    <div onClick={() => handleSort('geography_name')} style={{ /* aapka existing style */ }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
                       {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
                       ({totalGeographyCount})
-
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
 
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('total_gps')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151',
-                          cursor: 'pointer'
+                          color: '#374151'
                         }}>
                         Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Gps'}
                         ({totalGpsSum})
-
-                        <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>)}
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('gps_with_data')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151',
-                          cursor: 'pointer'
+                          color: '#374151'
                         }}>
                         {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
                         ({loadingAnalytics ? '...' : formatNumber(getAnalyticsValue('total_village_master_data', 0))})
-                        <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>)}
 
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('coverage_percentage')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151',
-                          cursor: 'pointer'
+                          color: '#374151'
                         }}>
                         Coverage   ({loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`})
-
-                        <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                       </div>
                     )}
 
                     <div
-                      onClick={() => handleSort('master_data_status')}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontSize: '14px',
                         fontWeight: '600',
-                        color: '#374151',
-                        cursor: 'pointer'
+                        color: '#374151'
                       }}>
                       Status
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
                     <div style={{
                       display: 'flex',
@@ -2375,11 +2379,11 @@ const VillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div 
+                      <div
                         onClick={() => handleRowClick(item)}
-                        style={{ 
-                          fontSize: '14px', 
-                          color: activeScope === 'GPs' ? '#111827' : '#10b981', 
+                        style={{
+                          fontSize: '14px',
+                          color: activeScope === 'GPs' ? '#111827' : '#10b981',
                           fontWeight: '500',
                           cursor: activeScope === 'GPs' ? 'default' : 'pointer',
                           textDecoration: activeScope === 'GPs' ? 'none' : 'underline'

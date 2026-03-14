@@ -4,12 +4,13 @@ import axios from 'axios';
 // In production (Vercel), use the proxied endpoint
 // In development, use the direct backend URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '/api/v1' : 'http://139.59.34.99:8000/api/v1');
+  // (import.meta.env.PROD ? '/api/v1' : 'http://139.59.34.99:8000/api/v1');
+  (import.meta.env.PROD ? '/api/v1' : 'https://sbmg.techvysion.com/api/v1');
 
 // Base URL for public media assets
-export const MEDIA_BASE_URL = import.meta.env.PROD 
-  ? '/api/v1/public/media' 
-  : 'http://139.59.34.99:8000/api/v1/public/media';
+export const MEDIA_BASE_URL = import.meta.env.PROD
+  ? '/api/v1/public/media'
+  : 'https://sbmg.techvysion.com/api/v1/public/media';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -24,11 +25,11 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Adding Bearer token to request headers');
-      console.log('🔐 Request headers:', {
-        'Content-Type': config.headers['Content-Type'],
-        'Authorization': config.headers.Authorization ? 'Bearer [TOKEN]' : 'Not set'
-      });
+      // console.log('🔐 Adding Bearer token to request headers');
+      // console.log('🔐 Request headers:', {
+      //   'Content-Type': config.headers['Content-Type'],
+      //   'Authorization': config.headers.Authorization ? 'Bearer [TOKEN]' : 'Not set'
+      // });
     } else {
       console.warn('⚠️ No access token found in localStorage');
     }

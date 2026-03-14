@@ -37,20 +37,20 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   const isBDO = role === ROLES.BDO;
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const userDropdownRef = useRef(null);
-  
+
   // Try all contexts - one will be available based on which dashboard we're in
   const locationContextSMD = useLocation();
   const locationContextCEO = useCEOLocation();
   const locationContextBDO = useBDOLocation();
   const locationContextVDO = useVDOLocation();
-  
+
   // Use whichever context is available
   const locationContext = locationContextCEO || locationContextBDO || locationContextVDO || locationContextSMD || {
-    updateLocationSelection: () => {},
-    setActiveScope: () => {},
-    setDropdownLevel: () => {},
-    setSelectedDistrictForHierarchy: () => {},
-    setSelectedBlockForHierarchy: () => {}
+    updateLocationSelection: () => { },
+    setActiveScope: () => { },
+    setDropdownLevel: () => { },
+    setSelectedDistrictForHierarchy: () => { },
+    setSelectedBlockForHierarchy: () => { }
   };
 
   const {
@@ -75,10 +75,18 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
+  // Breadcrumb dropdown states
+  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
+  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
+  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
+  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
+  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
+
   const searchTimeoutRef = useRef(null);
   const activeRequestRef = useRef(0);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
+  const breadcrumbDropdownRef = useRef(null);
   const suggestionCache = useRef(new Map());
   const userInteractedRef = useRef(false);
 
@@ -132,22 +140,22 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
       // BDO only searches GPs, not districts or blocks
       const searchPromises = isBDO
         ? [
-            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for BDO
-            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip blocks for BDO
-            apiClient.get('/geography/grampanchayats', commonParams)
-          ]
-        : isCEO 
-        ? [
+          Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for BDO
+          Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip blocks for BDO
+          apiClient.get('/geography/grampanchayats', commonParams)
+        ]
+        : isCEO
+          ? [
             Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for CEO
             apiClient.get('/geography/blocks', commonParams),
             apiClient.get('/geography/grampanchayats', commonParams)
           ]
-        : [
+          : [
             apiClient.get('/geography/districts', commonParams),
             apiClient.get('/geography/blocks', commonParams),
             apiClient.get('/geography/grampanchayats', commonParams)
           ];
-      
+
       const [districtResult, blockResult, gpResult] = await Promise.allSettled(searchPromises);
 
       if (activeRequestRef.current !== requestId) {
@@ -281,6 +289,77 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     }
   }, []);
 
+  // Fetch districts for breadcrumb
+  const fetchBreadcrumbDistricts = useCallback(async () => {
+    setLoadingBreadcrumb(true);
+    try {
+      const response = await apiClient.get('/geography/districts', {
+        params: { skip: 0, limit: 100 }
+      });
+      if (Array.isArray(response.data)) {
+        const districts = response.data.map(d => ({
+          id: d.id ?? d.district_id,
+          name: d.name || d.district_name || 'Unnamed'
+        }));
+        setBreadcrumbDistricts(districts.sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch districts for breadcrumb:', error);
+      setBreadcrumbDistricts([]);
+    } finally {
+      setLoadingBreadcrumb(false);
+    }
+  }, []);
+
+  // Fetch blocks for breadcrumb
+  const fetchBreadcrumbBlocks = useCallback(async (districtId) => {
+    setLoadingBreadcrumb(true);
+    try {
+      const response = await apiClient.get('/geography/blocks', {
+        params: { skip: 0, limit: 100, district_id: districtId }
+      });
+      if (Array.isArray(response.data)) {
+        const blocks = response.data.map(b => ({
+          id: b.id ?? b.block_id,
+          name: b.name || b.block_name || 'Unnamed',
+          district_id: b.district_id ?? districtId
+        }));
+        setBreadcrumbBlocks(blocks.sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch blocks for breadcrumb:', error);
+      setBreadcrumbBlocks([]);
+    } finally {
+      setLoadingBreadcrumb(false);
+    }
+  }, []);
+
+  // Fetch GPs for breadcrumb
+  const fetchBreadcrumbGps = useCallback(async (districtId, blockId) => {
+    setLoadingBreadcrumb(true);
+    try {
+      const params = { skip: 0, limit: 100 };
+      if (blockId) params.block_id = blockId;
+      if (districtId && !blockId) params.district_id = districtId;
+
+      const response = await apiClient.get('/geography/grampanchayats', { params });
+      if (Array.isArray(response.data)) {
+        const gps = response.data.map(g => ({
+          id: g.id ?? g.gp_id,
+          name: g.name || g.gp_name || 'Unnamed',
+          block_id: g.block_id ?? blockId,
+          district_id: g.district_id ?? districtId
+        }));
+        setBreadcrumbGps(gps.sort((a, b) => a.name.localeCompare(b.name)));
+      }
+    } catch (error) {
+      console.error('Failed to fetch GPs for breadcrumb:', error);
+      setBreadcrumbGps([]);
+    } finally {
+      setLoadingBreadcrumb(false);
+    }
+  }, []);
+
   useEffect(() => {
     clearSearchTimeout();
 
@@ -289,7 +368,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
       setShowSuggestions(false);
       setSearchError(null);
       setHighlightedIndex(-1);
-      return () => {};
+      return () => { };
     }
 
     searchTimeoutRef.current = setTimeout(() => {
@@ -469,6 +548,83 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     setShowUserDropdown(!showUserDropdown);
   };
 
+  // Breadcrumb dropdown handlers
+  const handleDistrictDropdownOpen = () => {
+    if (!isBDO) {
+      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'district' ? null : 'district');
+      if (openBreadcrumbDropdown !== 'district') {
+        fetchBreadcrumbDistricts();
+      }
+    }
+  };
+
+  const handleBlockDropdownOpen = () => {
+    if (!isCEO && selectedDistrictForHierarchy) {
+      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'block' ? null : 'block');
+      if (openBreadcrumbDropdown !== 'block') {
+        fetchBreadcrumbBlocks(selectedDistrictForHierarchy.id);
+      }
+    }
+  };
+
+  const handleGpDropdownOpen = () => {
+    if (selectedDistrictForHierarchy || selectedBlockForHierarchy) {
+      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'gp' ? null : 'gp');
+      if (openBreadcrumbDropdown !== 'gp') {
+        fetchBreadcrumbGps(selectedDistrictForHierarchy?.id, selectedBlockForHierarchy?.id);
+      }
+    }
+  };
+
+  const handleDistrictSelect = (district) => {
+    setSelectedDistrictForHierarchy(district);
+    setSelectedBlockForHierarchy(null);
+    setActiveScope('Districts');
+    setDropdownLevel('blocks');
+    updateLocationSelection('Districts', '', district.id, district.id, null, null, 'breadcrumb');
+    // Fetch blocks for the selected district
+    fetchBreadcrumbBlocks(district.id);
+    setOpenBreadcrumbDropdown(null);
+  };
+
+  const handleBlockSelect = (block) => {
+    setSelectedBlockForHierarchy(block);
+    setActiveScope('Blocks');
+    setDropdownLevel('gps');
+    updateLocationSelection('Blocks', '', block.id, block.district_id, block.id, null, 'breadcrumb');
+    setOpenBreadcrumbDropdown(null);
+  };
+
+  const handleGpSelect = (gp) => {
+    setActiveScope('GPs');
+    setDropdownLevel('gps');
+    updateLocationSelection('GPs', gp.name, gp.id, gp.district_id, gp.block_id, gp.id, 'breadcrumb');
+    setOpenBreadcrumbDropdown(null);
+  };
+
+  const handleRajasthanClick = () => {
+    setSelectedDistrictForHierarchy(null);
+    setSelectedBlockForHierarchy(null);
+    setActiveScope('Districts');
+    setDropdownLevel('districts');
+    updateLocationSelection('Districts', '', null, null, null, null, 'breadcrumb');
+    setOpenBreadcrumbDropdown(null);
+  };
+
+  // Close breadcrumb dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openBreadcrumbDropdown && breadcrumbDropdownRef.current && !breadcrumbDropdownRef.current.contains(event.target)) {
+        setOpenBreadcrumbDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openBreadcrumbDropdown]);
+
   // Close user dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -487,7 +643,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     <header className="app-header"
       style={{
         width: '100%',
-        
+
         maxWidth: '100%',
         minWidth: 0,
         boxSizing: 'border-box',
@@ -501,7 +657,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
         gap: 8,
         position: 'sticky',
         top: 0,
-        zIndex: 1000,
+        zIndex: 35,
         paddingRight: '24px',
         boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}>
@@ -535,7 +691,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
           }}>
             {pageTitle}
           </h1>
-          <div className="breadcrumb-text" style={{
+          <div className="breadcrumb-text" ref={breadcrumbDropdownRef} style={{
             fontSize: 14,
             color: '#6b7280',
             fontWeight: 500,
@@ -544,16 +700,253 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
             gap: 4,
             flexWrap: 'wrap'
           }}>
-            {(() => {
-              const districtName = ceoDistrictName || bdoDistrictName || selectedDistrictForHierarchy?.name || '';
-              const blockName = bdoBlockName || selectedBlockForHierarchy?.name || '';
-              const parts = ['Rajasthan'];
-              if (districtName) parts.push(districtName);
-              if (blockName) parts.push(blockName);
-              if (selectedLocation && activeScope === 'GPs') parts.push(selectedLocation);
-              else if (selectedLocation && !districtName && !blockName) parts.push(selectedLocation);
-              return parts.join(' / ') || 'Rajasthan';
-            })()}
+            {/* Rajasthan */}
+            <button
+              onClick={handleRajasthanClick}
+              style={{
+                border: 'none',
+                background: 'none',
+                color: '#6b7280',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: 500,
+                transition: 'background-color 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+            >
+              Rajasthan
+            </button>
+
+            {/* District Dropdown */}
+            {!isBDO && (
+              <>
+                <span style={{ color: '#d1d5db' }}>{'/'}</span>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={handleDistrictDropdownOpen}
+                    style={{
+                      border: 'none',
+                      background: openBreadcrumbDropdown === 'district' ? '#e5e7eb' : 'none',
+                      color: selectedDistrictForHierarchy?.name ? '#111827' : '#9ca3af',
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: selectedDistrictForHierarchy?.name ? 600 : 500,
+                      transition: 'background-color 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'district' && (e.target.style.backgroundColor = '#f3f4f6')}
+                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'district' && (e.target.style.backgroundColor = 'transparent')}
+                  >
+                    {selectedDistrictForHierarchy?.name || 'All'}
+                    <ChevronDown style={{ width: 16, height: 16 }} />
+                  </button>
+
+                  {openBreadcrumbDropdown === 'district' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #e5e7eb',
+                      zIndex: 1100,
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      minWidth: '200px'
+                    }}>
+                      {loadingBreadcrumb ? (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
+                      ) : breadcrumbDistricts.length > 0 ? (
+                        breadcrumbDistricts.map((district) => (
+                          <button
+                            key={district.id}
+                            onClick={() => handleDistrictSelect(district)}
+                            style={{
+                              width: '100%',
+                              border: 'none',
+                              backgroundColor: selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : 'transparent',
+                              textAlign: 'left',
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#111827',
+                              fontWeight: selectedDistrictForHierarchy?.id === district.id ? 600 : 400,
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : '#f9fafb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : 'transparent'}
+                          >
+                            {district.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No districts found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Block Dropdown */}
+            {!isCEO && selectedDistrictForHierarchy && (
+              <>
+                <span style={{ color: '#d1d5db' }}>{'/'}</span>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={handleBlockDropdownOpen}
+                    style={{
+                      border: 'none',
+                      background: openBreadcrumbDropdown === 'block' ? '#e5e7eb' : 'none',
+                      color: selectedBlockForHierarchy?.name ? '#111827' : '#9ca3af',
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: selectedBlockForHierarchy?.name ? 600 : 500,
+                      transition: 'background-color 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'block' && (e.target.style.backgroundColor = '#f3f4f6')}
+                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'block' && (e.target.style.backgroundColor = 'transparent')}
+                  >
+                    {selectedBlockForHierarchy?.name || 'All'}
+                    <ChevronDown style={{ width: 16, height: 16 }} />
+                  </button>
+
+                  {openBreadcrumbDropdown === 'block' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #e5e7eb',
+                      zIndex: 1100,
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      minWidth: '200px'
+                    }}>
+                      {loadingBreadcrumb ? (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
+                      ) : breadcrumbBlocks.length > 0 ? (
+                        breadcrumbBlocks.map((block) => (
+                          <button
+                            key={block.id}
+                            onClick={() => handleBlockSelect(block)}
+                            style={{
+                              width: '100%',
+                              border: 'none',
+                              backgroundColor: selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : 'transparent',
+                              textAlign: 'left',
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#111827',
+                              fontWeight: selectedBlockForHierarchy?.id === block.id ? 600 : 400,
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : '#f9fafb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : 'transparent'}
+                          >
+                            {block.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No blocks found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* GP Dropdown */}
+            {selectedBlockForHierarchy && (
+              <>
+                <span style={{ color: '#d1d5db' }}>{'/'}</span>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={handleGpDropdownOpen}
+                    style={{
+                      border: 'none',
+                      background: openBreadcrumbDropdown === 'gp' ? '#e5e7eb' : 'none',
+                      color: selectedLocation ? '#111827' : '#9ca3af',
+                      cursor: 'pointer',
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: selectedLocation ? 600 : 500,
+                      transition: 'background-color 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = '#f3f4f6')}
+                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = 'transparent')}
+                  >
+                    {selectedLocation || 'All'}
+                    <ChevronDown style={{ width: 16, height: 16 }} />
+                  </button>
+
+                  {openBreadcrumbDropdown === 'gp' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      backgroundColor: '#ffffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                      border: '1px solid #e5e7eb',
+                      zIndex: 1100,
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      minWidth: '200px'
+                    }}>
+                      {loadingBreadcrumb ? (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
+                      ) : breadcrumbGps.length > 0 ? (
+                        breadcrumbGps.map((gp) => (
+                          <button
+                            key={gp.id}
+                            onClick={() => handleGpSelect(gp)}
+                            style={{
+                              width: '100%',
+                              border: 'none',
+                              backgroundColor: selectedLocation === gp.name ? '#dcfce7' : 'transparent',
+                              textAlign: 'left',
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#111827',
+                              fontWeight: selectedLocation === gp.name ? 600 : 400,
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedLocation === gp.name ? '#dcfce7' : '#f9fafb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedLocation === gp.name ? '#dcfce7' : 'transparent'}
+                          >
+                            {gp.name}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No GPs found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -588,42 +981,54 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onKeyDown={handleKeyDown}
-            className="w-full pl-10 pr-12 py-1.5 border border-gray-300 rounded-full outline-none text-sm md:text-base"
-            style={{
-              width: '100%',
-              paddingLeft: '40px',
-              paddingRight: '48px',
-              paddingTop: '7px',
-              paddingBottom: '7px',
-              border: '1px solid #d1d5db',
-              borderRadius: '28px',
-              outline: 'none',
-              fontSize: '14px'
-            }}
-          />
-          {(searchTerm || isSearching || showSuggestions) && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
+              className="w-full pl-10 pr-12 py-1.5 border border-gray-300 rounded-full outline-none text-sm md:text-base"
               style={{
-                position: 'absolute',
-                right: '36px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#9ca3af',
-                backgroundColor: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0
+                width: '100%',
+                paddingLeft: '40px',
+                paddingRight: '48px',
+                paddingTop: '7px',
+                paddingBottom: '7px',
+                border: '1px solid #d1d5db',
+                borderRadius: '28px',
+                outline: 'none',
+                fontSize: '14px'
               }}
-              aria-label="Clear search"
-            >
-              <span style={{fontSize: '14px'}}>×</span>
-            </button>
-          )}
-          {isSearching && (
-            <Loader2
-              style={{
+            />
+            {(searchTerm || isSearching || showSuggestions) && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                style={{
+                  position: 'absolute',
+                  right: '36px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0
+                }}
+                aria-label="Clear search"
+              >
+                <span style={{ fontSize: '14px' }}>×</span>
+              </button>
+            )}
+            {isSearching && (
+              <Loader2
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '16px',
+                  height: '16px',
+                  color: '#9ca3af'
+                }}
+              />
+            )}
+            {!isSearching && !searchTerm && showSuggestions && suggestions.length === 0 && (
+              <div style={{
                 position: 'absolute',
                 right: '12px',
                 top: '50%',
@@ -631,85 +1036,73 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                 width: '16px',
                 height: '16px',
                 color: '#9ca3af'
-              }}
-            />
-          )}
-          {!isSearching && !searchTerm && showSuggestions && suggestions.length === 0 && (
-            <div style={{
-              position: 'absolute',
-              right: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '16px',
-              height: '16px',
-              color: '#9ca3af'
-            }}>
-              <Search style={{ width: '16px', height: '16px' }} />
-            </div>
-          )}
-          {showSuggestions && (
-            <div style={{
-              position: 'absolute',
-              top: 'calc(100% + 8px)',
-              left: 0,
-              width: '100%',
-              backgroundColor: '#ffffff',
-              borderRadius: '14px',
-              boxShadow: '0 16px 32px -20px rgba(15, 23, 42, 0.4)',
-              border: '1px solid rgba(226, 232, 240, 0.9)',
-              zIndex: 1200,
-              maxHeight: '320px',
-              overflowY: 'auto'
-            }}>
-              {isSearching ? (
-                <div style={{ padding: '16px', fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Loader2 style={{ width: '16px', height: '16px' }} />
-                  Searching locations...
-                </div>
-              ) : (
-                <>
-                  {suggestions.map((suggestion, index) => {
-                    const isActive = index === highlightedIndex;
-                    return (
-                      <button
-                        key={`${suggestion.type}-${suggestion.id}-${index}`}
-                        type="button"
-                        onMouseEnter={() => {
-                          userInteractedRef.current = true;
-                          setHighlightedIndex(index);
-                        }}
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => handleSuggestionSelect(suggestion)}
-                        style={{
-                          width: '100%',
-                          border: 'none',
-                          backgroundColor: isActive ? '#f0fdf4' : 'transparent',
-                          textAlign: 'left',
-                          padding: '12px 16px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '4px'
-                        }}
-                      >
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                          {suggestion.name} <span style={{ color: '#059669', fontWeight: 500 }}>({suggestion.typeLabel})</span>
-                        </span>
-                        {suggestion.subtitle && (
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>{suggestion.subtitle}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                  {searchError && (
-                    <div style={{ padding: '14px 16px', fontSize: '13px', color: '#b91c1c', borderTop: suggestions.length > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                      {searchError}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          )}
+              }}>
+                <Search style={{ width: '16px', height: '16px' }} />
+              </div>
+            )}
+            {showSuggestions && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 8px)',
+                left: 0,
+                width: '100%',
+                backgroundColor: '#ffffff',
+                borderRadius: '14px',
+                boxShadow: '0 16px 32px -20px rgba(15, 23, 42, 0.4)',
+                border: '1px solid rgba(226, 232, 240, 0.9)',
+                zIndex: 1200,
+                maxHeight: '320px',
+                overflowY: 'auto'
+              }}>
+                {isSearching ? (
+                  <div style={{ padding: '16px', fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Loader2 style={{ width: '16px', height: '16px' }} />
+                    Searching locations...
+                  </div>
+                ) : (
+                  <>
+                    {suggestions.map((suggestion, index) => {
+                      const isActive = index === highlightedIndex;
+                      return (
+                        <button
+                          key={`${suggestion.type}-${suggestion.id}-${index}`}
+                          type="button"
+                          onMouseEnter={() => {
+                            userInteractedRef.current = true;
+                            setHighlightedIndex(index);
+                          }}
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => handleSuggestionSelect(suggestion)}
+                          style={{
+                            width: '100%',
+                            border: 'none',
+                            backgroundColor: isActive ? '#f0fdf4' : 'transparent',
+                            textAlign: 'left',
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '4px'
+                          }}
+                        >
+                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                            {suggestion.name} <span style={{ color: '#059669', fontWeight: 500 }}>({suggestion.typeLabel})</span>
+                          </span>
+                          {suggestion.subtitle && (
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>{suggestion.subtitle}</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                    {searchError && (
+                      <div style={{ padding: '14px 16px', fontSize: '13px', color: '#b91c1c', borderTop: suggestions.length > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                        {searchError}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
         {/* Notification bell - Separate container */}
@@ -747,7 +1140,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               }
             }}
           >
-            <Bell style={{width: '18px', height: '18px', color: '#6b7280'}} />
+            <Bell style={{ width: '18px', height: '18px', color: '#6b7280' }} />
           </button>
         </div>
 
@@ -776,11 +1169,11 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <span style={{fontSize: '12px', fontWeight: '500', color: '#6b7280'}}>U</span>
+              <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>U</span>
             </div>
             <ChevronDown style={{
-              width: '14px', 
-              height: '14px', 
+              width: '14px',
+              height: '14px',
               color: '#6b7280',
               transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s'

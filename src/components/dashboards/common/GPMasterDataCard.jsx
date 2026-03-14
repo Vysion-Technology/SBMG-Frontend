@@ -13,7 +13,7 @@ const formatNumber = (n) => {
 const GPMasterDataCard = ({
   total = 8453,
   villageCoveragePercent = 75.43,
-  targetAchievementPercent = 0,
+  totalFundsSanctioned = 0,
   dateLabel = 'Today',
   tooltipText = 'GP (Gram Panchayat) master data coverage and target achievement for the selected date.',
   loading = false,
@@ -21,8 +21,8 @@ const GPMasterDataCard = ({
 }) => {
   const metrics = [
     { value: formatNumber(total), label: 'Total GP Master Data', color: '#111827' },
-    { value: `${villageCoveragePercent}%`, label: 'Village GP Data Coverage', color: '#22c55e' },
-    { value: `${targetAchievementPercent}%`, label: 'Target Achievement Rate', color: '#ef4444' }
+    { value: `${villageCoveragePercent}%`, label: 'GP Data Coverage', color: '#22c55e' },
+    { value: `${totalFundsSanctioned}`, label: 'Total funds sanctioned', color: '#ef4444' }
   ];
 
   return (
@@ -59,20 +59,20 @@ const GPMasterDataCard = ({
         <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading...</div>
       )}
       {(!loading || total > 0) && (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        flexWrap: 'wrap'
-      }}>
-        {metrics.map((m, i) => (
-          <div key={i} style={{ flex: 1, minWidth: 80, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: m.color }}>{m.value}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap'
+        }}>
+          {metrics.map((m, i) => (
+            <div key={i} style={{ flex: 1, minWidth: 80, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: m.color }}>{m.value}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -10,16 +10,16 @@ const labelColor = accentColor;
  * Light peach background, orange accent.
  */
 const InspectionCard = ({
-  averageScore = 60.9,
-  totalInspections = 39,
-  villageCovered = '33/50',
+  averageScore,
+  totalInspections,
+  villageCovered,
   dateLabel = 'Today',
   tooltipText = 'Inspection scores and coverage for the selected date.',
   loading = false,
   error = null
 }) => {
   const metrics = [
-    { value: `${averageScore}%`, label: 'Statewide average score' },
+    { value: `${averageScore}`, label: 'Statewide average score' },
     { value: totalInspections, label: 'Total Inspections' },
     { value: villageCovered, label: 'Village covered' }
   ];
@@ -59,20 +59,20 @@ const InspectionCard = ({
         <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading...</div>
       )}
       {(!loading || averageScore > 0 || totalInspections > 0) && (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        flexWrap: 'wrap'
-      }}>
-        {metrics.map((m, i) => (
-          <div key={i} className="metric-box" style={{ flex: 1, minWidth: 60, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{m.value}</div>
-            <div style={{ fontSize: 12, color: labelColor, marginTop: 4 }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap'
+        }}>
+          {metrics.map((m, i) => (
+            <div key={i} className="metric-box" style={{ flex: 1, minWidth: 60, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{m.value}</div>
+              <div style={{ fontSize: 12, color: labelColor, marginTop: 4 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

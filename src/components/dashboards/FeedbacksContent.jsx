@@ -12,17 +12,17 @@ const FeedbacksContent = () => {
   const [feedback, setFeedback] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('All');
-  
+
   // Stats state
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState(null);
-  
+
   // Feedbacks list state
   const [feedbacks, setFeedbacks] = useState([]);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
   const [feedbacksError, setFeedbacksError] = useState(null);
-  
+
   // User's own feedback state
   const [myFeedback, setMyFeedback] = useState(null);
   const [loadingMyFeedback, setLoadingMyFeedback] = useState(true); // Start as true to show initial loading
@@ -94,19 +94,19 @@ const FeedbacksContent = () => {
       try {
         setLoadingFeedbacks(true);
         setFeedbacksError(null);
-        
+
         // Fetch all feedbacks using pagination (max 999 per request)
         let allFeedbacks = [];
         let skip = 0;
-        const limit = 999; // API max is 999
+        const limit = 100; // API max is 999
         let hasMore = true;
-        
+
         while (hasMore) {
           const params = {
             skip,
             limit
           };
-          
+
           // Map user filter to feedback_source
           if (userFilter === 'AUTH_USER') {
             params.feedback_source = 'AUTH_USER';
@@ -114,11 +114,11 @@ const FeedbacksContent = () => {
             params.feedback_source = 'PUBLIC_USER';
           }
           // If 'All', don't add feedback_source filter
-          
+
           const response = await feedbackAPI.getFeedbacks(params);
           const fetchedFeedbacks = response.data || [];
           allFeedbacks = [...allFeedbacks, ...fetchedFeedbacks];
-          
+
           // If we got fewer than the limit, we've reached the end
           if (fetchedFeedbacks.length < limit) {
             hasMore = false;
@@ -126,7 +126,7 @@ const FeedbacksContent = () => {
             skip += limit;
           }
         }
-        
+
         setFeedbacks(allFeedbacks);
       } catch (error) {
         console.error('Error fetching feedbacks:', error);
@@ -231,18 +231,18 @@ const FeedbacksContent = () => {
   // Filter reviews based on search query
   const filteredReviews = useMemo(() => {
     if (!feedbacks) return [];
-    
+
     let filtered = feedbacks;
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(fb => 
+      filtered = filtered.filter(fb =>
         (fb.comment && fb.comment.toLowerCase().includes(query)) ||
         (fb.id && fb.id.toString().includes(query))
       );
     }
-    
+
     return filtered;
   }, [feedbacks, searchQuery]);
 
@@ -276,7 +276,7 @@ const FeedbacksContent = () => {
 
     try {
       setSavingFeedback(true);
-      
+
       // If user already has feedback, always update it (users can only have one feedback)
       if (myFeedback) {
         // Update existing feedback using PUT
@@ -297,20 +297,20 @@ const FeedbacksContent = () => {
           setMyFeedback(response.data);
         } catch (createError) {
           // If user already has feedback but we didn't know about it
-          if (createError.response?.status === 400 && 
-              (createError.response?.data?.message?.includes('already exists') ||
-               createError.response?.data?.detail?.includes('already exists'))) {
+          if (createError.response?.status === 400 &&
+            (createError.response?.data?.message?.includes('already exists') ||
+              createError.response?.data?.detail?.includes('already exists'))) {
             // Fetch the user's existing feedback
             const existingFeedbackResponse = await feedbackAPI.getMyFeedback();
             setMyFeedback(existingFeedbackResponse.data);
-            
+
             // Update the existing feedback instead
             const response = await feedbackAPI.updateMyFeedback({
               comment: feedback,
               rating: selectedRating
             });
             setMyFeedback(response.data);
-            
+
             alert('You already have a review. Your review has been updated.');
           } else {
             throw createError; // Re-throw if it's a different error
@@ -321,39 +321,39 @@ const FeedbacksContent = () => {
       // Refresh stats
       const statsResponse = await feedbackAPI.getStats();
       setStats(statsResponse.data);
-      
+
       // Refresh feedbacks using pagination
       let allFeedbacks = [];
       let skip = 0;
       const limit = 999; // API max is 999
       let hasMore = true;
-      
+
       while (hasMore) {
         const params = {
           skip,
           limit
         };
-        
+
         // Apply current filter
         if (userFilter === 'AUTH_USER') {
           params.feedback_source = 'AUTH_USER';
         } else if (userFilter === 'PUBLIC_USER') {
           params.feedback_source = 'PUBLIC_USER';
         }
-        
+
         const feedbacksResponse = await feedbackAPI.getFeedbacks(params);
         const fetchedFeedbacks = feedbacksResponse.data || [];
         allFeedbacks = [...allFeedbacks, ...fetchedFeedbacks];
-        
+
         if (fetchedFeedbacks.length < limit) {
           hasMore = false;
         } else {
           skip += limit;
         }
       }
-      
+
       setFeedbacks(allFeedbacks);
-      
+
       handleCloseModal();
     } catch (error) {
       console.error('Error saving feedback:', error);
@@ -498,10 +498,10 @@ const FeedbacksContent = () => {
             opacity: loadingMyFeedback ? 0.6 : 1
           }}
         >
-          {loadingMyFeedback 
-            ? 'Loading...' 
-            : myFeedback 
-              ? 'Change Review' 
+          {loadingMyFeedback
+            ? 'Loading...'
+            : myFeedback
+              ? 'Change Review'
               : 'Give Review'}
         </button>
       </div>

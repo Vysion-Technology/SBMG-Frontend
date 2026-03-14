@@ -7,6 +7,16 @@ const formatCount = (n) => (n < 10 ? `0${n}` : String(n));
  * Reusable card for Schemes and Events: Total (blue), Active (green), Inactive (red).
  * White background, no date picker.
  */
+
+const getFilterFromCardTitle = (title) => {
+  if (!title) return null;
+  const t = String(title).toLowerCase();
+  if (t.includes('total')) return null;
+  if (t.includes('active')) return 'Active';
+  if (t.includes('inactive')) return 'Inactive';
+  return null;
+};
+
 const SchemesEventsCard = ({
   title,
   total = 0,
@@ -45,20 +55,20 @@ const SchemesEventsCard = ({
         <div style={{ padding: 16, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading...</div>
       )}
       {(!loading || total > 0) && (
-      <div className="schemes-metrics-row" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 8,
-        flexWrap: 'wrap'
-      }}>
-        {metrics.map((m, i) => (
-          <div key={i} className="schemes-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: m.color }}>{formatCount(m.value)}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+        <div className="schemes-metrics-row" style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+          flexWrap: 'wrap'
+        }}>
+          {metrics.map((m, i) => (
+            <div key={i} className="schemes-metric cursor-pointer" onClick={() => getFilterFromCardTitle(m.label)} style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: m.color }}>{formatCount(m.value)}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

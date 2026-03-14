@@ -10,8 +10,8 @@ const labelColor = accentColor;
  * Light purple background.
  */
 const ContractorDetailsCard = ({
-  dataFilledPercent = 0,
-  dataFilledCovered = '0/11,207',
+  dataFilledPercent,
+  dataFilledCovered,
   dateLabel = 'Today',
   tooltipText = 'Contractor data completion status for the selected date.',
   loading = false,
@@ -61,20 +61,20 @@ const ContractorDetailsCard = ({
         <div style={{ padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading...</div>
       )}
       {(!loading || dataFilledPercent > 0 || dataFilledCovered !== '0/0') && (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        flexWrap: 'wrap'
-      }}>
-        {metrics.map((m, i) => (
-          <div key={i} className="metric-box" style={{ flex: 1, minWidth: 60, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{m.value}</div>
-            <div style={{ fontSize: 12, color: labelColor, marginTop: 4 }}>{m.label}</div>
-          </div>
-        ))}
-      </div>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          flexWrap: 'wrap'
+        }}>
+          {metrics.map((m, i) => (
+            <div key={i} className="metric-box" style={{ flex: 1, minWidth: 60, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{m.value}</div>
+              <div style={{ fontSize: 12, color: labelColor, marginTop: 4 }}>{m.label}</div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -4,14 +4,9 @@ import { InfoTooltip } from '../../common/Tooltip';
 import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
 import number3 from '../../../assets/images/number3.png';
+import { inspectionsAPI } from '../../../services/api';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-const defaultData = [
-  { id: 1, name: 'District name', rating: 9.8 },
-  { id: 2, name: 'District name', rating: 9.2 },
-  { id: 3, name: 'District name', rating: 8.9 }
-];
 
 const rankImages = [number1, number2, number3];
 
@@ -19,7 +14,7 @@ const rankImages = [number1, number2, number3];
  * Top 3 card: District/Month filters, Ranks table with Rating.
  */
 const Top3Card = ({
-  data = defaultData,
+  topPerformersByLoc = [],
   districtLabel = 'District',
   monthLabel = 'Month',
   tooltipText = 'Top 3 performers ranked by score. Filter by district and month.',
@@ -27,8 +22,6 @@ const Top3Card = ({
 }) => {
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
-
-  const rows = data;
 
   const DropdownButton = ({ label, open, onToggle }) => (
     <button
@@ -84,15 +77,15 @@ const Top3Card = ({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Ranks</th>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Rank</th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>District</th>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Rating</th>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Score</th>
               <th style={{ padding: '10px 8px', width: 32 }} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.id || index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+            {topPerformersByLoc?.map((row, index) => (
+              <tr key={row.district_id || index} style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
                   <img
                     src={rankImages[index] || number3}
@@ -100,9 +93,9 @@ const Top3Card = ({
                     style={{ width: 56, height: 56, objectFit: 'contain' }}
                   />
                 </td>
-                <td style={{ padding: '10px 8px', color: '#374151' }}>{row.name}</td>
+                <td style={{ padding: '10px 8px', color: '#374151' }}>{row.geography_name}</td>
                 <td style={{ padding: '10px 8px', color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {row.rating}
+                  {row.average_score.toFixed(0)}%
                   <MoreVertical size={14} color="#9ca3af" style={{ cursor: 'pointer' }} />
                 </td>
                 <td style={{ padding: '10px 8px' }} />

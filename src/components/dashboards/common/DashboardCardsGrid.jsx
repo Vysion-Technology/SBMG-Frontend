@@ -67,7 +67,8 @@ const DashboardCardsGrid = ({
   gpMasterError,
   gpsData,
   gpsLoading,
-  gpsError
+  gpsError,
+  topPerformers
 }) => (
   <div className="dashboard-cards-grid" style={{ marginLeft: 16, marginRight: 16, marginTop: 16, width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
     {/* Top section: Attendance (full height) | Stack (Inspection, Contractor, Schemes+Events) */}
@@ -134,32 +135,32 @@ const DashboardCardsGrid = ({
       gridTemplateRows: 'auto auto',
       alignItems: 'stretch'
     }}>
-    <div style={{ gridArea: 'gpMaster', minHeight: 0 }}>
-      <GPMasterDataCard
-        total={gpMasterData?.total ?? 0}
-        villageCoveragePercent={gpMasterData?.villageCoveragePercent ?? 0}
-        targetAchievementPercent={gpMasterData?.targetAchievementPercent ?? 0}
-        dateLabel={dateLabel}
-        loading={gpMasterLoading}
-        error={gpMasterError}
-      />
-    </div>
-    <div style={{ gridArea: 'gpsTracking', minHeight: 0 }}>
-      <GPSTrackingCard
-        active={gpsData?.active ?? 0}
-        runningPercent={gpsData?.runningPercent ?? 0}
-        stoppedPercent={gpsData?.stoppedPercent ?? 0}
-        dateLabel={dateLabel}
-        loading={gpsLoading}
-        error={gpsError}
-      />
-    </div>
-    <div style={{ gridArea: 'performance', minHeight: 0, height: '100%' }}>
-      <PerformanceCard fillHeight />
-    </div>
-    <div style={{ gridArea: 'top3', minHeight: 0, height: '100%' }}>
-      <Top3Card fillHeight />
-    </div>
+      <div style={{ gridArea: 'gpMaster', minHeight: 0 }}>
+        <GPMasterDataCard
+          total={gpMasterData?.total ?? 0}
+          villageCoveragePercent={gpMasterData?.villageCoveragePercent ?? 0}
+          totalFundsSanctioned={gpMasterData?.totalFundsSanctioned ?? 0}
+          dateLabel={dateLabel}
+          loading={gpMasterLoading}
+          error={gpMasterError}
+        />
+      </div>
+      <div style={{ gridArea: 'gpsTracking', minHeight: 0 }}>
+        <GPSTrackingCard
+          total={gpsData?.total ?? 0}
+          running={gpsData?.running ?? 0}
+          stopped={gpsData?.stopped ?? 0}
+          dateLabel={dateLabel}
+          loading={gpsLoading}
+          error={gpsError}
+        />
+      </div>
+      <div style={{ gridArea: 'performance', minHeight: 0, height: '100%' }}>
+        <PerformanceCard fillHeight />
+      </div>
+      <div style={{ gridArea: 'top3', minHeight: 0, height: '100%' }}>
+        <Top3Card topPerformersByLoc={topPerformers} fillHeight />
+      </div>
     </div>
   </div>
 );

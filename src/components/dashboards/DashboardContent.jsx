@@ -31,13 +31,13 @@ const MONTH_NAMES = [
 const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed" }) => {
   // Calculate total complaints for percentage calculation
   const total = complaintData.open + complaintData.verified + complaintData.resolved + complaintData.disposed;
-  
+
   // Calculate percentages for each status
   const openPercent = total > 0 ? (complaintData.open / total) * 100 : 0;
   const verifiedPercent = total > 0 ? (complaintData.verified / total) * 100 : 0;
   const resolvedPercent = total > 0 ? (complaintData.resolved / total) * 100 : 0;
   const disposedPercent = total > 0 ? (complaintData.disposed / total) * 100 : 0;
-  
+
   // Define colors for each status
   const statusColors = {
     open: '#ef4444',      // Red
@@ -51,15 +51,15 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const innerRadius = radius - strokeWidth;
     const centerX = 100;
     const centerY = 100;
-    
+
     // Calculate the main arc points
     const start = polarToCartesian(centerX, centerY, radius, endAngle);
     const end = polarToCartesian(centerX, centerY, radius, startAngle);
     const innerStart = polarToCartesian(centerX, centerY, innerRadius, endAngle);
     const innerEnd = polarToCartesian(centerX, centerY, innerRadius, startAngle);
-    
+
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
+
     return `M ${start.x} ${start.y} 
             A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}
             L ${innerEnd.x} ${innerEnd.y}
@@ -81,7 +81,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const totalAngle = 180; // strict half-circle
     const gapSize = 20; // degrees between adjacent segments; large enough for rounded caps
     // availableAngle will be computed dynamically after we know how many segments we have
-    
+
     // Only create segments for statuses that have complaints
     const statuses = [
       { name: 'open', percent: openPercent, color: statusColors.open },
@@ -89,51 +89,51 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
       { name: 'verified', percent: verifiedPercent, color: statusColors.verified },
       { name: 'disposed', percent: disposedPercent, color: statusColors.disposed }
     ].filter(status => status.percent > 0);
-    
+
     // If no complaints, return empty array
     if (statuses.length === 0) {
       return [];
     }
-    
+
     // Calculate total percentage of active statuses
     const totalActivePercent = statuses.reduce((sum, status) => sum + status.percent, 0);
-    
+
     // Distribute segments proportionally within 180° minus dynamic gaps
     let currentAngle = -90; // center the 180° sweep from -90° to +90°
     const segmentCount = statuses.length; // show all active statuses
     const gapsCount = Math.max(segmentCount - 1, 0);
     const availableAngle = totalAngle - (gapsCount * gapSize);
-    
+
     for (let i = 0; i < segmentCount; i++) {
       const status = statuses[i];
       const segmentAngle = totalActivePercent > 0 ? (status.percent / totalActivePercent) * availableAngle : 0;
       const endAngle = currentAngle + segmentAngle;
-      
+
       segments.push({
         start: currentAngle,
         end: endAngle,
         color: status.color,
         name: status.name
       });
-      
+
       if (i < segmentCount - 1) {
         currentAngle = endAngle + gapSize; // add gap after this segment
       } else {
         currentAngle = endAngle; // no gap after the last segment
       }
     }
-    
+
     // Don't add gray filler - only show actual data segments
-    
+
     return segments;
   };
-  
+
   const segments = createSegments();
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       width: '100%'
     }}>
@@ -145,11 +145,11 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           const radius = 80;
           const strokeWidth = 20;
           const innerRadius = radius - strokeWidth;
-          
+
           // Calculate circular end cap positions
-          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, endAngle);
-          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, startAngle);
-          
+          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, endAngle);
+          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, startAngle);
+
           return (
             <g key={index}>
               <path
@@ -163,19 +163,19 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
               <circle
                 cx={startCapPos.x}
                 cy={startCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
               <circle
                 cx={endCapPos.x}
                 cy={endCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
             </g>
           );
         })}
-        
+
         {/* Center text - percentage */}
         <text
           x="100"
@@ -188,7 +188,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {percentage == null || isNaN(percentage) ? 'NaN' : `${percentage}%`}
         </text>
-        
+
         {/* Center text - label */}
         <text
           x="100"
@@ -201,7 +201,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {label}
         </text>
-        
+
       </svg>
     </div>
   );
@@ -246,6 +246,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
+  const [totalCountOfGPs, setTotalCountOfGPs] = useState(0);
 
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -333,7 +334,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const top3MonthRef = useRef(null);
-  
+
   const performanceRangeRef = useRef(null);
   const performanceYearRef = useRef(null);
 
@@ -364,21 +365,22 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const [gpsCardData, setGpsCardData] = useState(null);
   const [loadingGpsCard, setLoadingGpsCard] = useState(false);
   const [gpsCardError, setGpsCardError] = useState(null);
+  const [topPerformersByLoc, setTopPerformersByLoc] = useState(null);
+  const [topPerformersByLocError, setTopPerformersByLocError] = useState(null);
 
 
   // Log current location info whenever it changes
   useEffect(() => {
     const locationInfo = getCurrentLocationInfo();
-    console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId, getCurrentLocationInfo]);
-  
+
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null); // null means not selected
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Year');
   const [startDate, setStartDate] = useState(() => {
@@ -454,13 +456,13 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTop3MonthPicker]);
-  
+
   // Complaints year selection state
   const [selectedComplaintsYear, setSelectedComplaintsYear] = useState(() => {
     return new Date().getFullYear();
   });
   const [showComplaintsYearDropdown, setShowComplaintsYearDropdown] = useState(false);
-  
+
   // Complaints filter tabs state
   const [activeComplaintsFilter, setActiveComplaintsFilter] = useState('Time');
 
@@ -556,26 +558,19 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     const loadDistrictStats = async () => {
       setLoadingDistrictStats(true);
       try {
-        const [blockResponses, gpResponses] = await Promise.all([
+        const [blockResponses] = await Promise.all([
           Promise.all(
             districts.map((d) =>
               apiClient.get('/geography/blocks', {
-                params: { district_id: d.id, skip: 0, limit: 500 }
+                params: { district_id: d.id, skip: 0, limit: 100 }
               })
             )
           ),
-          Promise.all(
-            districts.map((d) =>
-              apiClient.get('/geography/grampanchayats', {
-                params: { district_id: d.id, skip: 0, limit: 1000 }
-              })
-            )
-          )
         ]);
+
         const allBlocks = blockResponses.flatMap((r) => r.data || []);
-        const allGPs = gpResponses.flatMap((r) => r.data || []);
+
         setAllBlocksForDistricts(allBlocks);
-        setAllGPsForDistricts(allGPs);
       } catch (err) {
         console.error('Error loading district stats:', err);
         setAllBlocksForDistricts([]);
@@ -586,6 +581,29 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     };
     loadDistrictStats();
   }, [activeScope, districts]);
+
+  // Loading GPs
+  const loadDistrictGPs = async () => {
+    setLoadingDistrictStats(true);
+    try {
+      const gpResponses = await apiClient.get('/annual-surveys/analytics/state', {
+        params: { fy_id: 1, skip: 0, limit: 1000 }
+      });
+
+      const allGPs = gpResponses?.data?.district_wise_coverage;
+
+      setAllGPsForDistricts(allGPs);
+    } catch (err) {
+      console.error('Error loading district stats:', err);
+      setAllGPsForDistricts([]);
+    } finally {
+      setLoadingDistrictStats(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDistrictGPs();
+  }, []);
 
   // Fetch district-level metrics (attendance, contractor, GPS) for List of Districts table
   useEffect(() => {
@@ -601,7 +619,8 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           const id = d.id;
           try {
             const [attRes, contrRes, gpsRes] = await Promise.allSettled([
-              attendanceAPI.analytics({ ...params, district_id: id }),
+              // attendanceAPI.analytics({ ...params, district_id: id }),
+              attendanceAPI.analytics({ ...params }),
               contractorAnalyticsAPI.getDistrict(id),
               vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ district_id: id }) : vehiclesAPI.getVehiclesByLocation({ district_id: id })
             ]);
@@ -617,7 +636,8 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
             if (attendance || contractorPct != null || gpsVehicles != null) {
               stats[id] = {};
               if (attendance) stats[id].attendance = attendance;
-              if (contractorPct != null) stats[id].contractorPct = contractorPct;
+              // Always include contractorPct (as null if not available, so it's present in the object)
+              stats[id].contractorPct = contractorPct;
               if (gpsVehicles != null) stats[id].gpsVehicles = Number(gpsVehicles);
             }
           } catch (e) {
@@ -648,7 +668,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     }
     function parseContractorResponse(data) {
       if (!data) return null;
-      const pct = data.data_filled_percent ?? data.contractor_filled_percent ?? data.percentage ?? data.percent;
+      const pct = data.coverage_percentage ?? 0;
       return typeof pct === 'number' ? pct : (typeof pct === 'string' ? parseFloat(pct) : null);
     }
     loadDistrictMetrics();
@@ -698,80 +718,107 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           schemesRes,
           eventsRes,
           gpMasterRes,
-          gpsRes
+          gpsRes,
+          performersDataRes
         ] = await Promise.allSettled([
           attendanceAPI.overview(params),
           inspectionsAPI.analytics(inspParams),
           contrPromise,
-          schemesAPI.getSchemes({ skip: 0, limit: 500 }),
-          eventsAPI.getEvents({ skip: 0, limit: 500 }),
-          annualSurveysAPI.analyticsState({ fy_id: new Date().getFullYear() }),
-          vehiclesAPI.getVehiclesByLocation(params)
+          schemesAPI.getSchemes({ skip: 0, limit: 100, active: false }),
+          eventsAPI.getEvents({ skip: 0, limit: 100, active: false }),
+          annualSurveysAPI.analyticsState({ fy_id: 1 }),
+          vehiclesAPI.getVehiclesByLocation(params),
+          inspectionsAPI.analytics(params)
         ]);
 
+        // Attendance Data
         if (attRes.status === 'fulfilled' && attRes.value?.data) {
           const d = attRes.value.data;
-          const total = d.total ?? (d.present ?? 0) + (d.absent ?? 0) ?? (d.total_present ?? 0) + (d.total_absent ?? 0);
-          const present = d.present ?? d.total_present ?? 0;
-          const absent = d.absent ?? d.total_absent ?? (total - present);
-          setAttendanceCardData({ total: total || 0, present, absent });
+          const total = d.total_contractors ?? 0;
+          const present = d.present ?? 0;
+          const absent = d.absent ?? (total - present) ?? 0;
+          setAttendanceCardData({ total, present, absent });
         } else setAttendanceCardData(null);
         if (attRes.status === 'rejected') setAttendanceCardError(attRes.reason?.message || 'Failed to load');
 
+        // Inspection Data
         if (inspRes.status === 'fulfilled' && inspRes.value?.data) {
           const d = inspRes.value.data;
-          const avg = d.average_score ?? d.avg_score ?? d.score ?? 0;
-          const total = d.total ?? d.total_inspections ?? d.count ?? 0;
-          const covered = d.village_covered ?? d.villages_covered ?? d.covered ?? '';
-          setInspectionCardData({ averageScore: Number(avg), totalInspections: Number(total), villageCovered: String(covered || '0/0') });
+
+          const scores = d.response.map(item => item.average_score || 0);
+          const sum = scores.reduce((acc, score) => acc + score, 0);
+          const average = scores.length > 0 ? sum / scores.length : 0;
+          const avg = `${average.toFixed(0)}%`;
+
+          const total = d.response.reduce((acc, item) => {
+            if (d.geo_type === 'DISTRICT') {
+              return acc + (item.inspected_blocks || 0);
+            } else if (d.geo_type === 'BLOCK' || d.geo_type === 'VILLAGE') {
+              return acc + (item.inspected_gps || 0);
+            }
+            return acc;
+          }, 0).toLocaleString();
+
+          const inspectedGPs = d.response.reduce((acc, item) => acc + (item.inspected_gps || 0), 0);
+          const totalGPs = d.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
+          const covered = `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
+
+          setTotalCountOfGPs(totalGPs);
+
+          setInspectionCardData({ averageScore: avg, totalInspections: Number(total), villageCovered: String(covered || '0/0') });
         } else setInspectionCardData(null);
         if (inspRes.status === 'rejected') setInspectionCardError(inspRes.reason?.message || 'Failed to load');
 
+        // Contractor Data
         if (contrRes.status === 'fulfilled' && contrRes.value?.data) {
           const d = contrRes.value.data;
-          const pct = d.data_filled_percent ?? d.contractor_filled_percent ?? d.percentage ?? 0;
-          const covered = d.data_filled_covered ?? d.covered ?? `${d.filled ?? 0}/${d.total ?? 0}`;
+          const pct = d.coverage_percentage.toFixed(2);
+          const covered = `${d.gps_with_contractor_data}/${d.total_gps?.toLocaleString() ?? 0}`;
           setContractorCardData({ dataFilledPercent: Number(pct), dataFilledCovered: String(covered) });
         } else setContractorCardData(null);
         if (contrRes.status === 'rejected') setContractorCardError(contrRes.reason?.message || 'Failed to load');
 
+        // Schemes Data
         if (schemesRes.status === 'fulfilled' && schemesRes.value?.data != null) {
-          const raw = schemesRes.value.data;
-          const arr = Array.isArray(raw) ? raw : raw?.items ?? raw?.data ?? raw?.results ?? [];
-          const active = arr.filter((x) => x.active !== false).length;
-          setSchemesCardData({ total: arr.length, active, inactive: arr.length - active });
+          const allSchemes = schemesRes.value.data;
+          const active = allSchemes.filter((x) => x.active === true).length;
+          setSchemesCardData({ total: allSchemes.length, active, inactive: allSchemes.length - active });
         } else setSchemesCardData(null);
         if (schemesRes.status === 'rejected') setSchemesCardError(schemesRes.reason?.message || 'Failed to load');
 
+        // Events Data
         if (eventsRes.status === 'fulfilled' && eventsRes.value?.data != null) {
-          const raw = eventsRes.value.data;
-          const arr = Array.isArray(raw) ? raw : raw?.items ?? raw?.data ?? raw?.results ?? [];
-          const active = arr.filter((x) => x.active !== false).length;
-          setEventsCardData({ total: arr.length, active, inactive: arr.length - active });
+          const allEvents = eventsRes.value.data;
+          const active = allEvents.filter((x) => x.active === true).length;
+          setEventsCardData({ total: allEvents.length, active, inactive: allEvents.length - active });
         } else setEventsCardData(null);
         if (eventsRes.status === 'rejected') setEventsCardError(eventsRes.reason?.message || 'Failed to load');
 
+        // GP Master Data
         if (gpMasterRes.status === 'fulfilled' && gpMasterRes.value?.data) {
           const d = gpMasterRes.value.data;
           setGpMasterCardData({
-            total: d.total ?? d.total_gps ?? 0,
-            villageCoveragePercent: d.village_coverage_percent ?? d.village_coverage ?? 0,
-            targetAchievementPercent: d.target_achievement_percent ?? d.target_achievement ?? 0
+            total: d.total_village_master_data ?? 0,
+            villageCoveragePercent: d.village_master_data_coverage_percentage ?? 0,
+            totalFundsSanctioned: `₹${(d.total_funds_sanctioned * 100).toLocaleString('en-IN')} L` ?? 0
           });
         } else setGpMasterCardData(null);
         if (gpMasterRes.status === 'rejected') setGpMasterCardError(gpMasterRes.reason?.message || 'Failed to load');
 
+        // GPS Tracking Data
         if (gpsRes.status === 'fulfilled' && gpsRes.value?.data) {
           const v = gpsRes.value.data;
-          const list = Array.isArray(v) ? v : v.items ?? v.data ?? [];
-          const running = list.filter((x) => (x.status || '').toLowerCase() === 'running').length;
-          const stopped = list.filter((x) => (x.status || '').toLowerCase() === 'stopped').length;
-          const total = list.length;
-          const runningPct = total > 0 ? (running / total) * 100 : 0;
-          const stoppedPct = total > 0 ? (stopped / total) * 100 : 0;
-          setGpsCardData({ active: total, runningPercent: runningPct, stoppedPercent: stoppedPct });
+          setGpsCardData({ total: v.summary.total, running: v.summary.running, stopped: v.summary.stopped });
         } else setGpsCardData(null);
         if (gpsRes.status === 'rejected') setGpsCardError(gpsRes.reason?.message || 'Failed to load');
+
+        // Date for Top 3 Performers by Location
+        if (performersDataRes.status === 'fulfilled' && performersDataRes.value?.data) {
+          const v = performersDataRes.value.data;
+          const topThree = (v.response).sort((a, b) => a.average_score - b.average_score).slice(0, 3);
+          setTopPerformersByLoc(topThree);
+        } else setTopPerformersByLoc(null);
+        if (performersDataRes.status === 'rejected') setTopPerformersByLocError(performersDataRes.reason?.message || 'Failed to load');
       } finally {
         setLoadingAttendanceCard(false);
         setLoadingInspectionCard(false);
@@ -791,7 +838,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       setLoadingDistricts(true);
       const response = await apiClient.get('/geography/districts?skip=0&limit=100');
       setDistricts(response.data);
-      console.log('Districts fetched:', response.data);
     } catch (error) {
       console.error('Error fetching districts:', error);
       setDistricts([]);
@@ -817,7 +863,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         }
       });
       setBlocks(response.data);
-      console.log('Blocks fetched for district:', districtId, response.data);
     } catch (error) {
       console.error('Error fetching blocks:', error);
       setBlocks([]);
@@ -844,7 +889,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         }
       });
       setGramPanchayats(response.data);
-      console.log('Gram Panchayats fetched for district/block:', districtId, blockId, response.data);
     } catch (error) {
       console.error('Error fetching Gram Panchayats:', error);
       setGramPanchayats([]);
@@ -859,17 +903,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       setLoadingAnalytics(true);
       setAnalyticsError(null);
 
-      console.log('🔄 ===== ANALYTICS API CALL =====');
-      console.log('📍 Current State:', {
-        activeScope,
-        selectedLocation,
-        selectedDistrictId,
-        selectedBlockId,
-        selectedGPId,
-        startDate,
-        endDate
-      });
-
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
@@ -883,57 +916,29 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         level = 'VILLAGE';
       }
       params.append('level', level);
-      console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
       if (activeScope === 'Districts' && selectedDistrictId) {
         params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
       } else if (activeScope === 'Blocks' && selectedBlockId) {
         params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
       } else if (activeScope === 'GPs' && selectedGPId) {
         params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
       }
 
       // Add date range if available
       if (startDate) {
         params.append('start_date', startDate);
-        console.log('📅 Start Date:', startDate);
       }
       if (endDate) {
         params.append('end_date', endDate);
-        console.log('📅 End Date:', endDate);
       }
-
       const url = `/complaints/analytics/geo?${params.toString()}`;
-      console.log('🌐 Full API URL:', url);
-      console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
-      // Check if token exists
-      const token = localStorage.getItem('access_token');
-      console.log('🔑 Token Status:', token ? 'Present' : 'Missing');
-      if (token) {
-        console.log('🔑 Token Preview:', token.substring(0, 20) + '...');
-      }
-      
+
       const response = await apiClient.get(url);
-      
-      console.log('✅ Analytics API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data
-      });
-      
-      console.log('📦 Response Data Structure:', {
-        geo_type: response.data?.geo_type,
-        response_count: response.data?.response?.length,
-        sample_data: response.data?.response?.slice(0, 2)
-      });
-      
+
       setAnalyticsData(response.data);
-      
+
       // Calculate and log aggregated counts
       const aggregated = {
         total: 0,
@@ -942,12 +947,12 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         resolved: 0,
         disposed: 0
       };
-      
+
       response.data?.response?.forEach(item => {
         const status = item.status?.toUpperCase();
         const count = item.count || 0;
         aggregated.total += count;
-        
+
         switch (status) {
           case 'OPEN':
             aggregated.open += count;
@@ -964,10 +969,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
             break;
         }
       });
-      
-      console.log('📈 Aggregated Counts:', aggregated);
-      console.log('🔄 ===== END ANALYTICS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -975,7 +977,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END ANALYTICS API ERROR =====\n');
-      
+
       setAnalyticsError(error.message || 'Failed to fetch analytics data');
       setAnalyticsData(null);
     } finally {
@@ -988,15 +990,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     try {
       setLoadingComplaintsChart(true);
       setComplaintsChartError(null);
-
-      console.log('🔄 ===== COMPLAINTS CHART API CALL =====');
-      console.log('📍 Current State:', {
-        activeScope,
-        selectedDistrictId,
-        selectedBlockId,
-        selectedGPId,
-        selectedComplaintsYear
-      });
 
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
@@ -1011,18 +1004,14 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         level = 'VILLAGE';
       }
       params.append('level', level);
-      console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
       if (activeScope === 'Districts' && selectedDistrictId) {
         params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
       } else if (activeScope === 'Blocks' && selectedBlockId) {
         params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
       } else if (activeScope === 'GPs' && selectedGPId) {
         params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
       }
 
       // Add year range
@@ -1030,22 +1019,12 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       const endDate = `${selectedComplaintsYear}-12-31`;
       params.append('start_date', startDate);
       params.append('end_date', endDate);
-      console.log('📅 Year Range:', startDate, 'to', endDate);
 
       const url = `/complaints/analytics/geo?${params.toString()}`;
-      console.log('🌐 Full API URL:', url);
-      
       const response = await apiClient.get(url);
-      
-      console.log('✅ Complaints Chart API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data
-      });
-      
+
       setComplaintsChartData(response.data);
-      console.log('🔄 ===== END COMPLAINTS CHART API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== COMPLAINTS CHART API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1053,7 +1032,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END COMPLAINTS CHART API ERROR =====\n');
-      
+
       setComplaintsChartError(error.message || 'Failed to fetch complaints chart data');
       setComplaintsChartData(null);
     } finally {
@@ -1088,13 +1067,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     analyticsData.response.forEach(item => {
       const status = item.status?.toUpperCase();
       const count = item.count || 0;
-
-      // console.log('🔍 Processing complaint item:', {
-      //   status: status,
-      //   count: count,
-      //   originalStatus: item.status
-      // });
-
       counts.total += count;
 
       switch (status) {
@@ -1110,7 +1082,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         case 'CLOSED':
         case 'DISPOSED':
           counts.disposed += count;
-          // console.log('✅ Added to disposed:', count);
           break;
         default:
           console.warn('Unknown status:', status);
@@ -1134,7 +1105,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           return districts.map(district => ({ id: district.id, name: district.name }));
         } else if (dropdownLevel === 'blocks') {
           return blocks.filter(block => block.district_id === selectedDistrictForHierarchy?.id)
-                      .map(block => ({ id: block.id, name: block.name }));
+            .map(block => ({ id: block.id, name: block.name }));
         }
         return [];
       case 'GPs':
@@ -1142,10 +1113,10 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           return districts.map(district => ({ id: district.id, name: district.name }));
         } else if (dropdownLevel === 'blocks') {
           return blocks.filter(block => block.district_id === selectedDistrictForHierarchy?.id)
-                      .map(block => ({ id: block.id, name: block.name }));
+            .map(block => ({ id: block.id, name: block.name }));
         } else if (dropdownLevel === 'gps') {
           return gramPanchayats.filter(gp => gp.block_id === selectedBlockForHierarchy?.id)
-                              .map(gp => ({ id: gp.id, name: gp.name }));
+            .map(gp => ({ id: gp.id, name: gp.name }));
         }
         return [];
       default:
@@ -1157,10 +1128,10 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const handleScopeChange = (scope) => {
     // Track tab change first
     trackTabChange(scope);
-    
+
     // Close dropdown immediately to prevent showing stale options
     setShowLocationDropdown(false);
-    
+
     if (scope === 'State') {
       // For State scope, set Rajasthan as default and disable dropdown
       updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'tab_change');
@@ -1277,13 +1248,13 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       const districtId = district?.id || null;
       const isAlreadySelected = selectedLocation === block.name && selectedBlockId === block.id;
-      
+
       if (district) {
         setSelectedDistrictForHierarchy(district);
       }
       setSelectedBlockForHierarchy(block);
       setDropdownLevel('blocks');
-      
+
       // If clicking on already selected block, keep dropdown open and fetch blocks to show hierarchy
       if (isAlreadySelected) {
         if (blocks.length === 0 || !blocks.some(b => b.district_id === districtId)) {
@@ -1301,7 +1272,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       const isAlreadySelected = selectedBlockForHierarchy?.id === block.id;
       setSelectedBlockForHierarchy(block);
       setDropdownLevel('gps');
-      
+
       // If clicking on already selected block, keep dropdown open to show hierarchy
       if (isAlreadySelected) {
         fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
@@ -1390,7 +1361,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       if (blocks.length === 0 || !blocks.some(b => b.district_id === selectedDistrictForHierarchy.id)) {
         fetchBlocks(selectedDistrictForHierarchy.id);
       }
-      
+
       // Once blocks are available, set up block hierarchy
       if (blocks.length > 0) {
         if (!selectedBlockForHierarchy) {
@@ -1436,10 +1407,10 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       const today = new Date();
       const currentYear = today.getFullYear();
-      
+
       // Year: Jan 1 - Dec 31 of current year
       if (range.value === 'year') {
         setStartDate(`${currentYear}-01-01`);
@@ -1462,7 +1433,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
       }
-      
+
       setShowDateDropdown(false);
     }
   };
@@ -1542,20 +1513,17 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   const handleYearSelect = (year) => {
     setSelectedYear(year);
     setSelectionStep('month');
-    console.log(`Year selected: ${year}`);
   };
 
   // Handle month selection
   const handleMonthSelect = (month) => {
     setSelectedMonth(month);
     setSelectionStep('day');
-    console.log(`Month selected: ${months[month - 1].name} ${selectedYear}`);
   };
 
   // Handle day selection
   const handleDaySelect = (day) => {
     setSelectedDay(day);
-    console.log(`Day selected: ${months[selectedMonth - 1].name} ${day}, ${selectedYear}`);
   };
 
   // Skip to next step or finish
@@ -1570,7 +1538,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   // Finish selection
   const handleFinish = () => {
     setShowDateDropdown(false);
-    console.log(`Final selection: ${getCurrentFilterType()} - ${getDateDisplayText()}`);
   };
 
   // Reset selection
@@ -1600,7 +1567,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
 
   // Log date changes for debugging
   useEffect(() => {
-    console.log(`Selected date: ${getCurrentFilterType()} - ${getDateDisplayText()}`);
   }, [selectedYear, selectedMonth, selectedDay]);
 
   // Fetch districts immediately when dashboard loads
@@ -1626,14 +1592,6 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       setLoadingPerformance(true);
       setPerformanceError(null);
 
-      console.log('🔄 ===== PERFORMANCE API CALL =====');
-      console.log('📍 Current State:', {
-        activeScope,
-        selectedDistrictId,
-        selectedBlockId,
-        selectedGPId
-      });
-
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
@@ -1647,38 +1605,28 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         level = 'VILLAGE';
       }
       params.append('level', level);
-      console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
       if (activeScope === 'Districts' && selectedDistrictId) {
         params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
       } else if (activeScope === 'Blocks' && selectedBlockId) {
         params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
       } else if (activeScope === 'GPs' && selectedGPId) {
         params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
       }
 
       // Determine performance date range
       const { start: currentStartDate, end: currentEndDate } = getPerformanceDateRange();
-      console.log('📅 Performance Range:', currentStartDate, 'to', currentEndDate);
 
       // Fetch current month data
       const currentParams = new URLSearchParams(params);
       currentParams.append('start_date', currentStartDate);
       currentParams.append('end_date', currentEndDate);
-      
+
       const currentUrl = `/complaints/analytics/geo?${currentParams.toString()}`;
-      console.log('🌐 Current Month API URL:', currentUrl);
-      
       const currentResponse = await apiClient.get(currentUrl);
-      console.log('✅ Current Month API Response:', currentResponse.data);
-      
       setPerformanceApiData(currentResponse.data);
-      console.log('🔄 ===== END PERFORMANCE API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== PERFORMANCE API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1686,7 +1634,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END PERFORMANCE API ERROR =====\n');
-      
+
       setPerformanceError(error.message || 'Failed to fetch performance data');
       setPerformanceApiData(null);
     } finally {
@@ -1713,7 +1661,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       const target = new Date(now.getFullYear(), top3Month, 1);
       const startDate = formatDate(new Date(target.getFullYear(), target.getMonth(), 1));
       const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
-      
+
       // Map scope to API level
       let level = 'DISTRICT';
       if (top3Scope === 'Block') {
@@ -1721,7 +1669,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       } else if (top3Scope === 'GP') {
         level = 'VILLAGE';
       }
-      
+
       console.log('📅 Date Range:', startDate, 'to', endDate);
       console.log('📊 Level:', level);
 
@@ -1735,19 +1683,9 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       // Top 3 API works independently - no need for district_id or block_id parameters
 
       const url = `/complaints/analytics/top-n?${params.toString()}`;
-      console.log('🌐 Top 3 API URL:', url);
-      
       const response = await apiClient.get(url);
-      
-      console.log('✅ Top 3 API Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data
-      });
-      
+
       setTop3ApiData(response.data);
-      console.log('🔄 ===== END TOP 3 API CALL =====\n');
-      
     } catch (error) {
       console.error('❌ ===== TOP 3 API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1755,7 +1693,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END TOP 3 API ERROR =====\n');
-      
+
       setTop3Error(error.message || 'Failed to fetch top 3 data');
       setTop3ApiData(null);
     } finally {
@@ -1785,7 +1723,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
-    
+
     fetchAnalyticsData();
   }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats]);
 
@@ -1804,7 +1742,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
-    
+
     fetchComplaintsChartData();
   }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear, districts, blocks, gramPanchayats]);
 
@@ -1823,7 +1761,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
-    
+
     fetchPerformanceData();
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth, selectedPerformanceYear, fetchPerformanceData]);
 
@@ -1833,7 +1771,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       top3Scope,
       top3Month
     });
-    
+
     fetchTop3Data();
   }, [top3Scope, top3Month, fetchTop3Data]);
 
@@ -1849,11 +1787,11 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       try {
         setLoadingVendor(true);
         setVendorError(null);
-        
+
         console.log('🔄 Fetching vendor data for GP ID:', selectedGPId);
         const response = await apiClient.get(`/geography/grampanchayats/${selectedGPId}/contractor`);
         console.log('✅ Vendor API Response:', response.data);
-        
+
         setVendorData(response.data);
       } catch (error) {
         console.error('❌ Error fetching vendor data:', error);
@@ -1917,7 +1855,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   // Get complaint data with real API values
   const getComplaintData = () => {
     const counts = calculateComplaintCounts();
-    
+
     // Format numbers with commas
     const formatNumber = (num) => {
       return num.toLocaleString();
@@ -2082,7 +2020,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   // Calculate percentage of complaints closed/resolved
   const calculateClosedPercentage = () => {
     const counts = calculateComplaintCounts();
-    
+
     // console.log('📊 Percentage Calculation Debug:', {
     //   total: counts.total,
     //   open: counts.open,
@@ -2090,22 +2028,22 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     //   resolved: counts.resolved,
     //   disposed: counts.disposed
     // });
-    
+
     if (counts.total === 0) {
       return null; // Return null instead of 0 when no data
     }
-    
+
     // Calculate percentage: (resolved + disposed / total) * 100
     const closedCount = counts.resolved + counts.disposed;
     const percentage = Math.round((closedCount / counts.total) * 100);
-    
+
     // console.log('📊 Percentage Calculation:', {
     //   closedCount,
     //   total: counts.total,
     //   percentage: `${percentage}%`,
     //   calculation: `(${closedCount} / ${counts.total}) * 100 = ${percentage}%`
     // });
-    
+
     return percentage;
   };
 
@@ -2130,7 +2068,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
             blocks: blocks.slice(0, 3), // Show first 3 blocks for debugging
             filteredBlocks: blocks.filter(block => block.district_id === selectedDistrictId)
           });
-          
+
           if (selectedDistrictId) {
             const filteredBlocks = blocks.filter(block => block.district_id === selectedDistrictId);
             console.log('📊 Filtered blocks for district:', selectedDistrictId, filteredBlocks);
@@ -2141,7 +2079,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           // Block -> show all GPs under that block
           if (selectedBlockId) {
             return gramPanchayats.filter(gp => gp.block_id === selectedBlockId)
-                                .map(gp => gp.name);
+              .map(gp => gp.name);
           }
           return [];
         case 'GPs':
@@ -2159,7 +2097,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   };
 
   const xAxisCategories = getXAxisCategories();
-  
+
   console.log('📊 X-axis Categories Debug:', {
     activeComplaintsFilter,
     activeScope,
@@ -2178,12 +2116,12 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   // Generate dynamic chart data based on x-axis categories and API response
   const getChartData = () => {
     const categoryCount = xAxisCategories.length;
-    
+
     // Initialize data arrays
     let openData = Array(categoryCount).fill(0);
     let closedData = Array(categoryCount).fill(0);
     let totalData = Array(categoryCount).fill(0);
-    
+
     if (!complaintsChartData || !complaintsChartData.response) {
       // Use placeholder when no API data (trim to category count if months differ)
       const n = Math.min(categoryCount, 12);
@@ -2214,7 +2152,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     } else if (activeComplaintsFilter === 'Location') {
       // For Location tab: Group data by geography_name
       const locationMap = new Map();
-      
+
       complaintsChartData.response.forEach(item => {
         const geoName = item.geography_name || item.geo_name || 'Unknown';
         const status = item.status?.toUpperCase();
@@ -2237,7 +2175,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       // Debug logging
       console.log('Location Map:', locationMap);
       console.log('X-axis Categories:', xAxisCategories);
-      
+
       // Map location data to x-axis categories
       xAxisCategories.forEach((category, index) => {
         const data = locationMap.get(category);
@@ -2251,7 +2189,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         }
       });
     }
-    
+
     return {
       open: openData,
       closed: closedData,
@@ -2318,24 +2256,24 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     // Calculate metrics for each geography
     geographyMap.forEach((geo, name) => {
       // Calculate average resolution time in days
-      const avgResolutionTimeDays = geo.totalResolutionTime > 0 
+      const avgResolutionTimeDays = geo.totalResolutionTime > 0
         ? (geo.totalResolutionTime / 86400) // Convert seconds to days
         : 0;
-      
+
       geo.avgResolutionTimeDays = Math.round(avgResolutionTimeDays * 10) / 10; // Round to 1 decimal
-      
+
       // Calculate completion percentage
       // Formula: (RESOLVED complaints) / (OPEN + RESOLVED + VERIFIED + CLOSED) * 100
       const resolvedCount = geo.statusCounts.RESOLVED || 0;
-      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) + 
-                                    (geo.statusCounts.RESOLVED || 0) + 
-                                    (geo.statusCounts.VERIFIED || 0) + 
-                                    (geo.statusCounts.CLOSED || 0);
-      
-      geo.completionPercentage = totalRelevantComplaints > 0 
+      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) +
+        (geo.statusCounts.RESOLVED || 0) +
+        (geo.statusCounts.VERIFIED || 0) +
+        (geo.statusCounts.CLOSED || 0);
+
+      geo.completionPercentage = totalRelevantComplaints > 0
         ? Math.round((resolvedCount / totalRelevantComplaints) * 100)
         : 0;
-      
+
       // Debug logging for completion calculation
       console.log(`📊 Completion Calculation for ${geo.name}:`, {
         resolved: resolvedCount,
@@ -2353,7 +2291,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
   // Filter performance data based on active tab
   const getFilteredPerformanceData = (data) => {
     let filteredData = [];
-    
+
     if (activePerformanceTab === 'starPerformers') {
       filteredData = data.filter(item => item.completion >= 50);
     } else if (activePerformanceTab === 'underperformers') {
@@ -2361,22 +2299,22 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     } else {
       filteredData = data;
     }
-    
+
     console.log(`📊 Performance Filter (${activePerformanceTab}):`, {
       totalItems: data.length,
       filteredItems: filteredData.length,
       threshold: activePerformanceTab === 'starPerformers' ? '>= 50%' : '< 50%'
     });
-    
+
     return filteredData;
   };
 
   // Get performance data based on current scope
   const getPerformanceData = () => {
     const processedData = processPerformanceData();
-    
+
     let performanceData = [];
-    
+
     switch (activeScope) {
       case 'State':
         // State -> show all districts
@@ -2395,32 +2333,32 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         // District -> show all blocks under that district
         if (selectedDistrictId) {
           performanceData = blocks.filter(block => block.district_id === selectedDistrictId)
-                      .map(block => {
-                        const apiData = processedData.get(block.name);
-                        return {
-                          name: block.name,
-                          id: block.id,
-                          type: 'Block',
-                          avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                          completion: apiData?.completionPercentage || 0
-                        };
-                      });
+            .map(block => {
+              const apiData = processedData.get(block.name);
+              return {
+                name: block.name,
+                id: block.id,
+                type: 'Block',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'Blocks':
         // Block -> show all GPs under that block
         if (selectedBlockId) {
           performanceData = gramPanchayats.filter(gp => gp.block_id === selectedBlockId)
-                              .map(gp => {
-                                const apiData = processedData.get(gp.name);
-                                return {
-                                  name: gp.name,
-                                  id: gp.id,
-                                  type: 'GP',
-                                  avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                                  completion: apiData?.completionPercentage || 0
-                                };
-                              });
+            .map(gp => {
+              const apiData = processedData.get(gp.name);
+              return {
+                name: gp.name,
+                id: gp.id,
+                type: 'GP',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'GPs':
@@ -2442,7 +2380,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
       default:
         performanceData = [];
     }
-    
+
     return getFilteredPerformanceData(performanceData);
   };
 
@@ -2453,7 +2391,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
     if (!top3ApiData || !Array.isArray(top3ApiData)) {
       return [];
     }
-    
+
     // API already returns data sorted by score (descending)
     // Take only top 3 and map to our format
     return top3ApiData.slice(0, 3).map((item, index) => ({
@@ -2512,7 +2450,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           }
         }
       `}</style>
-     
+
       {/* Overview Section */}
       <div className="dashboard-overview-section" style={{
         marginLeft: '16px',
@@ -2533,28 +2471,31 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
             districtsCount={districts.length}
-            blocksCount={blocks.length}
-            villagesCount={gramPanchayats.length}
+            blocksCount={allBlocksForDistricts.length}
+            villagesCount={totalCountOfGPs}
           />
         </div>
       </div>
 
       {/* List of Districts - always show on SMD dashboard (state-level overview) */}
       <ListOfDistrictsTable
-          districts={districts}
-          analyticsData={analyticsData}
-          blocks={allBlocksForDistricts}
-          gramPanchayats={allGPsForDistricts}
-          districtStats={districtStats}
-          dateDisplayText={getDateDisplayText()}
-          onDateClick={handleCalendarClick}
-          loading={loadingDistrictStats || loadingAnalytics}
-        />
+        districts={districts}
+        analyticsData={analyticsData}
+        blocks={allBlocksForDistricts}
+        gpStats={allGPsForDistricts}
+        districtStats={districtStats}
+        dateDisplayText={getDateDisplayText()}
+        onDateClick={handleCalendarClick}
+        loading={loadingDistrictStats || loadingAnalytics}
+      />
 
       {/* Complaints - after List of Districts, before Attendance/Inspection (Chart + Graph layout) */}
       <ComplaintsDashboard
         complaintCards={(() => {
           const data = getComplaintData();
+          // alert('Complaint data: ' + JSON.stringify(data));
+          // console.log('data >> ', data);
+
           return [data[0], data[1], data[4]]; // Total, Open, Disposed
         })()}
         chartData={chartData}
@@ -2598,6 +2539,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
         gpsData={gpsCardData}
         gpsLoading={loadingGpsCard}
         gpsError={gpsCardError}
+        topPerformers={topPerformersByLoc}
       />
 
       {/* Conditional Section: Vendor Details (when GP selected) - Performance/Top 3 now in DashboardCardsGrid */}

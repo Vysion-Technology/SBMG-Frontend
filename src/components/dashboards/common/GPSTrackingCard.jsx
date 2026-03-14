@@ -11,18 +11,18 @@ const formatNumber = (n) => {
  * GPS Tracking card: Active, Running %, Stopped %.
  */
 const GPSTrackingCard = ({
-  active = 8453,
-  runningPercent = 75.43,
-  stoppedPercent = 0,
+  total,
+  running,
+  stopped,
   dateLabel = 'Today',
   tooltipText = 'GPS tracking status: active vehicles, running and stopped percentages for the selected date.',
   loading = false,
   error = null
 }) => {
   const metrics = [
-    { value: formatNumber(active), label: 'Active', color: '#3b82f6' },
-    { value: `${runningPercent}%`, label: 'Running', color: '#22c55e' },
-    { value: `${stoppedPercent}%`, label: 'Stopped', color: '#ef4444' }
+    { value: formatNumber(total), label: 'Total', color: '#3b82f6' },
+    { value: formatNumber(running), label: 'Running', color: '#22c55e' },
+    { value: formatNumber(stopped), label: 'Stopped', color: '#ef4444' }
   ];
 
   return (
@@ -66,7 +66,6 @@ const GPSTrackingCard = ({
           </div>
         ))}
       </div>
-      )}
     </div>
   );
 };
