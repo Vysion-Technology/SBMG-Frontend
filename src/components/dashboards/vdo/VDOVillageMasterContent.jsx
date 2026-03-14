@@ -114,9 +114,9 @@ const VDOVillageMasterContent = () => {
   }, [contextUpdateLocationSelection]);
 
   // Handler for downloading PDF with master data
-  const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+  const handleDownloadPDF = useCallback(async (surveyId = 1, action = 'download') => {
     try {
-      console.log('📥 Downloading PDF for survey ID:', surveyId);
+      console.log(`📥 ${action === 'download' ? 'Downloading' : 'Viewing'} PDF for survey ID:`, surveyId);
 
       // Fetch annual survey data
       const response = await apiClient.get(`/annual-surveys/${surveyId}`);
@@ -125,17 +125,17 @@ const VDOVillageMasterContent = () => {
       console.log('✅ Survey data fetched:', surveyData);
 
       // Generate PDF
-      generatePDF(surveyData);
+      generatePDF(surveyData, action);
 
     } catch (error) {
-      console.error('❌ Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error(`❌ Error ${action === 'download' ? 'downloading' : 'viewing'} PDF:`, error);
+      alert(`Failed to ${action === 'download' ? 'download' : 'view'} PDF. Please try again.`);
     }
   }, []);
 
   // Function to generate PDF from survey data
   // Function to generate PDF from survey data
-  const generatePDF = (data) => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -378,7 +378,13 @@ const VDOVillageMasterContent = () => {
       doc.text(`Page ${i} of ${pageCount}`, 170, 285);
     }
 
-    doc.save(`Survey-${data.gp_name}.pdf`);
+    if (action === 'view') {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(`Survey-${data.gp_name}.pdf`);
+    }
   };
 
 
@@ -1150,6 +1156,26 @@ const VDOVillageMasterContent = () => {
                           }}
                         >
                           <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
+                        </button>
+
+                        {/* VIEW BUTTON */}
+                        <button
+                          onClick={() => handleDownloadPDF(survey.id, 'view')}
+                          title="View PDF"
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          View
                         </button>
                       </>
                     ) : (

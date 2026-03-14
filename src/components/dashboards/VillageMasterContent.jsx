@@ -160,9 +160,9 @@ const VillageMasterContent = () => {
   }, [contextUpdateLocationSelection]);
 
   // Handler for downloading PDF with master data
-  const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+  const handleDownloadPDF = useCallback(async (surveyId = 1, action = 'download') => {
     try {
-      console.log('📥 Downloading PDF for survey ID:', surveyId);
+      console.log(`📥 ${action === 'download' ? 'Downloading' : 'Viewing'} PDF for survey ID:`, surveyId);
 
       // Fetch annual survey data
       const response = await apiClient.get(`/annual-surveys/${surveyId}`);
@@ -171,17 +171,17 @@ const VillageMasterContent = () => {
       console.log('✅ Survey data fetched:', surveyData);
 
       // Generate PDF
-      generatePDF(surveyData);
+      generatePDF(surveyData, action);
 
     } catch (error) {
-      console.error('❌ Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error(`❌ Error ${action === 'download' ? 'downloading' : 'viewing'} PDF:`, error);
+      alert(`Failed to ${action === 'download' ? 'download' : 'view'} PDF. Please try again.`);
     }
   }, []);
 
   // Function to generate PDF from survey data
   // Function to generate PDF from survey data
-  const generatePDF = (data) => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -424,7 +424,13 @@ const VillageMasterContent = () => {
       doc.text(`Page ${i} of ${pageCount}`, 170, 285);
     }
 
-    doc.save(`Survey-${data.gp_name}.pdf`);
+    if (action === 'view') {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(`Survey-${data.gp_name}.pdf`);
+    }
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
@@ -2114,6 +2120,27 @@ const VillageMasterContent = () => {
                       }}
                     >
                       <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
+                    </button>
+
+                    <button
+                      onClick={() => hasData && handleDownloadPDF(survey.id, 'view')}
+                      disabled={!hasData}
+                      title={hasData ? 'View PDF' : 'No data to view'}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: '#374151',
+                        cursor: hasData ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: hasData ? 1 : 0.6
+                      }}
+                    >
+                      View
                     </button>
                   </div>
                 </div>

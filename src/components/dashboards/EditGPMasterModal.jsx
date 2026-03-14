@@ -515,6 +515,15 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         return;
       }
 
+      const fundAmount = Number(form.fund_sanctioned?.amount || 0);
+      const workOrderAmount = Number(form.work_order?.work_order_amount || 0);
+
+      if (workOrderAmount > fundAmount) {
+        setError("Work order amount can not be higher than funds sanctioned ❌");
+        setSaving(false);
+        return;
+      }
+
       // 🔥 1️⃣ Deep clone (state mutate nahi karna)
       const updatedForm = JSON.parse(JSON.stringify(form));
 
@@ -668,13 +677,14 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           </button>
         </div>
 
+        {error && !loading && (
+          <div style={{ padding: '12px 20px', backgroundColor: '#fef2f2', borderBottom: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px' }}>
+            {error}
+          </div>
+        )}
+
         <div style={{ flex: 1, overflow: 'auto', padding: '20px' }}>
           {loading && <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
-          {error && !loading && (
-            <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', marginBottom: '16px' }}>
-              {error}
-            </div>
-          )}
           {!loading && form && (
             <>
               {section('VDO Details', grid2(
