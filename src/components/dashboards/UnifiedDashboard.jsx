@@ -71,6 +71,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
+      overflowY: 'scroll',
       margin: 0,
       padding: 0,
       transition: 'width 0.25s ease'
@@ -280,7 +281,7 @@ const UnifiedDashboard = () => {
         )}
         {/* Sidebar: on mobile = overlay (takes no layout space), on desktop = inline */}
         <div
-          className={`sidebar-wrapper ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
+          className={`sidebar-wrapper overflow-y-auto ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
           style={{
             ...(!isMobile && {
               width: isSidebarOpen ? 272 : 80,

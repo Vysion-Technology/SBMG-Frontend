@@ -763,7 +763,7 @@ const DashboardContent = ({ onNavigateToComplaints }) => {
           const totalGPs = d.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
           const covered = `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
 
-          setTotalCountOfGPs(totalGPs);
+          !totalCountOfGPs ? setTotalCountOfGPs(totalGPs) : null;
 
           setInspectionCardData({ averageScore: avg, totalInspections: Number(total), villageCovered: String(covered || '0/0') });
         } else setInspectionCardData(null);

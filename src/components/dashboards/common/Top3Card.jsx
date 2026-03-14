@@ -62,10 +62,10 @@ const Top3Card = ({
           <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>Top 3</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <DropdownButton label={districtLabel} open={showDistrictDropdown} onToggle={() => setShowDistrictDropdown(!showDistrictDropdown)} />
           <DropdownButton label={monthLabel} open={showMonthDropdown} onToggle={() => setShowMonthDropdown(!showMonthDropdown)} />
-        </div>
+        </div> */}
       </div>
 
       <div style={{

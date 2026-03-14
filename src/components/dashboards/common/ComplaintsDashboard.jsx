@@ -97,7 +97,7 @@ const ComplaintsDashboard = ({
             {MONTH_NAMES[new Date().getMonth()]} {selectedComplaintsYear}
           </span>
         </div>
-        <motion.div
+        {/* <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onDateClick}
@@ -117,7 +117,7 @@ const ComplaintsDashboard = ({
           <Calendar style={{ width: '16px', height: '16px' }} />
           <span>{dateDisplayText}</span>
           <ChevronDown style={{ width: '16px', height: '16px' }} />
-        </motion.div>
+        </motion.div> */}
       </motion.div>
 
       {/* Chart: 3 Summary Cards (Total, Open, Disposed) */}

@@ -136,7 +136,7 @@ const AttendanceCard = ({
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         <div style={{ position: 'relative' }}>
-          <button
+          {/* <button
             onClick={() => setShowDateDropdown(!showDateDropdown)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -145,7 +145,7 @@ const AttendanceCard = ({
             }}
           >
             <Calendar size={14} /> {dateLabel} <ChevronDown size={14} />
-          </button>
+          </button> */}
           {showDateDropdown && (
             <div
               onClick={() => setShowDateDropdown(false)}
@@ -166,43 +166,43 @@ const AttendanceCard = ({
         <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Loading...</div>
       )}
       {(!loading || total > 0 || present > 0) && (
-      <>
-      {/* Metrics */}
-      <div className="attendance-metrics-row" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 0,
-        marginBottom: 12,
-        padding: '12px 0',
-        borderBottom: '1px solid #f3f4f6'
-      }}>
-        <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6' }}>{formatCount(total)}</div>
-          <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Total</div>
-        </div>
-        <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
-        <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{formatCount(present)}</div>
-          <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Present</div>
-        </div>
-        <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
-        <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#ef4444' }}>{formatCount(absentCount)}</div>
-          <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Absent</div>
-        </div>
-      </div>
+        <>
+          {/* Metrics */}
+          <div className="attendance-metrics-row" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0,
+            marginBottom: 12,
+            padding: '12px 0',
+            borderBottom: '1px solid #f3f4f6'
+          }}>
+            <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6' }}>{formatCount(total)}</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Total</div>
+            </div>
+            <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
+            <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{formatCount(present)}</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Present</div>
+            </div>
+            <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
+            <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#ef4444' }}>{formatCount(absentCount)}</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Absent</div>
+            </div>
+          </div>
 
-      {/* Gauge */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: fillHeight ? 'center' : 'flex-start',
-        ...(fillHeight && { flex: 1, minHeight: 0 })
-      }}>
-        <AttendanceGauge presentPercent={presentPercent} absentPercent={absentPercent} />
-      </div>
-      </>
+          {/* Gauge */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: fillHeight ? 'center' : 'flex-start',
+            ...(fillHeight && { flex: 1, minHeight: 0 })
+          }}>
+            <AttendanceGauge presentPercent={presentPercent} absentPercent={absentPercent} />
+          </div>
+        </>
       )}
     </div>
   );

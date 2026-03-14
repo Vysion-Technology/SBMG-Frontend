@@ -42,7 +42,7 @@ const GPSTrackingCard = ({
           <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>GPS Tracking</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
-        <button
+        {/* <button
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 8,
@@ -50,7 +50,7 @@ const GPSTrackingCard = ({
           }}
         >
           <Calendar size={14} /> {dateLabel} <ChevronDown size={14} />
-        </button>
+        </button> */}
       </div>
       <div style={{
         display: 'flex',

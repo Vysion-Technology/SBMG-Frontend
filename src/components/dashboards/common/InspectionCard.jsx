@@ -42,7 +42,7 @@ const InspectionCard = ({
           <h3 style={{ fontSize: 16, fontWeight: 600, color: accentColor, margin: 0 }}>Inspection</h3>
           <InfoTooltip text={tooltipText} size={14} color={accentColor} />
         </div>
-        <button
+        {/* <button
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 8,
@@ -50,7 +50,7 @@ const InspectionCard = ({
           }}
         >
           <Calendar size={14} /> {dateLabel} <ChevronDown size={14} />
-        </button>
+        </button> */}
       </div>
       {error && (
         <div style={{ padding: 8, marginBottom: 12, backgroundColor: '#fef2f2', color: '#991b1b', fontSize: 12, borderRadius: 8 }}>{error}</div>

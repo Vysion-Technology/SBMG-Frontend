@@ -738,7 +738,7 @@ const ListOfDistrictsTable = ({
         }}>
           List of Districts
         </h2>
-        <button
+        {/* <button
           onClick={onDateClick}
           style={{
             display: 'flex',
@@ -756,7 +756,7 @@ const ListOfDistrictsTable = ({
           <Calendar style={{ width: 16, height: 16 }} />
           {dateDisplayText}
           <ChevronDown style={{ width: 16, height: 16 }} />
-        </button>
+        </button> */}
       </div>
 
       <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
