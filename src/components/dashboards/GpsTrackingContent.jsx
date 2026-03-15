@@ -511,7 +511,7 @@ const GpsTrackingContent = () => {
                 : [];
 
         return coverageData.length > 0 ? (
-          <div style={{
+          <div data-table-scroll style={{
             backgroundColor: 'white',
             padding: '14px',
             marginLeft: '16px',

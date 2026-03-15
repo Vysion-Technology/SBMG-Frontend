@@ -197,29 +197,45 @@ const UnifiedDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
 
+  const scrollToMainTable = () => {
+    // Scroll to the main data table after a brief delay to allow component to render
+    setTimeout(() => {
+      const tableContainer = document.querySelector('[data-table-scroll]');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   const handleNavigateToComplaints = (filter) => {
     setComplaintsInitialFilter(filter);
     setActiveItem('Complaints');
+    scrollToMainTable();
   };
 
   const handleNavigateToAttendance = () => {
     setActiveItem('Attendance');
+    scrollToMainTable();
   };
 
   const handleNavigateToGPMasterData = () => {
     setActiveItem('GP Master Data');
+    scrollToMainTable();
   };
 
   const handleNavigateToGPSTracking = () => {
     setActiveItem('GPS Tracking');
+    scrollToMainTable();
   };
 
   const handleNavigateToContractorDetails = () => {
     setActiveItem('Contractor Details');
+    scrollToMainTable();
   };
 
   const handleNavigateToInspection = () => {
     setActiveItem('Inspection');
+    scrollToMainTable();
   };
 
   useEffect(() => {
@@ -301,7 +317,7 @@ const UnifiedDashboard = () => {
         )}
         {/* Sidebar: on mobile = overlay (takes no layout space), on desktop = inline */}
         <div
-          className={`sidebar-wrapper overflow-y-auto ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
+          className={`sidebar-wrapper overflow-y-auto overflow-x-hidden ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
           style={{
             ...(!isMobile && {
               width: isSidebarOpen ? 272 : 80,

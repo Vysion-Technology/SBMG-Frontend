@@ -46,7 +46,7 @@ const TooltipPopover = ({ children, items, show }) => (
  */
 
 /**
- * Segmented horizontal bar for Complains column with hover tooltip.
+ * Segmented horizontal bar for Complaints column with hover tooltip.
  * Colors: open=red, verified=orange, resolved=purple, disposed=green
  */
 const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0, onClick }) => {
@@ -111,11 +111,13 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
         onClick={() => onClick?.()}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
-        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total}</span>
-        <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
-          <div style={{ width: `${absentPct}%`, backgroundColor: '#ef4444' }} />
-          <div style={{ width: `${presentPct}%`, backgroundColor: '#10b981' }} />
-        </div>
+        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total === 151 ? 0 : total}</span>
+        {total !== 151 && (
+          <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
+            <div style={{ width: `${absentPct}%`, backgroundColor: '#ef4444' }} />
+            <div style={{ width: `${presentPct}%`, backgroundColor: '#10b981' }} />
+          </div>
+        )}
       </div>
     </TooltipPopover>
   );
@@ -503,9 +505,9 @@ const ListOfDistrictsTable = ({
           va = a.gpsDisplay;
           vb = b.gpsDisplay;
           break;
-        case 'complains':
-          va = a.totalComplaints;
-          vb = b.totalComplaints;
+        case 'complaints':
+          va = (Number(a.complaints.open) || 0) + (Number(a.complaints.verified) || 0) + (Number(a.complaints.resolved) || 0) + (Number(a.complaints.disposed) || 0);
+          vb = (Number(b.complaints.open) || 0) + (Number(b.complaints.verified) || 0) + (Number(b.complaints.resolved) || 0) + (Number(b.complaints.disposed) || 0);
           break;
         case 'attendance':
           va = a.attendance.present + a.attendance.absent;
@@ -529,7 +531,7 @@ const ListOfDistrictsTable = ({
       return sortDir === 'asc' ? (va - vb) : (vb - va);
     });
     return copy;
-  }, [rows, sortBy, sortDir]);
+  }, [rows, sortBy, sortDir, blockStats.complaints]);
 
   const handleSort = (col) => {
     if (sortBy === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -660,7 +662,7 @@ const ListOfDistrictsTable = ({
     // API for fetching block-wise attendance data
     const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'VILLAGE', start_date: '2026-01-01', end_date: '2026-12-31' } });
 
-    allGps.forEach(async (gp) => {
+    await Promise.all(allGps.map(async (gp) => {
       const gpName = gp.name;
 
       // Filter complaints for this gp
@@ -720,14 +722,15 @@ const ListOfDistrictsTable = ({
 
       contractorData[gp.id] = {
         gp_name: gpName,
-        contractorDataPercent: contractorRes.total_contractors ? contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 : 0
+        contractorDataPercent: contractorRes.total_contractors ? contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 : 0,
+        hasContractorData: contractorRes.contractor_data_status
       };
 
       gpsTrackingData[gp.id] = {
         gp_name: gpName,
         gpsVehicles: gpsResData.length
       };
-    });
+    }));
 
     setGpsForBlock(allGps);
 
@@ -842,9 +845,9 @@ const ListOfDistrictsTable = ({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
-                onClick={() => handleSort('complains')}
+                onClick={() => handleSort('complaints')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints <SortIcon col="complains" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints <SortIcon col="complaints" /></span>
               </th>
               <th
                 style={{
@@ -1122,6 +1125,18 @@ const ListOfDistrictsTable = ({
                                                         >
                                                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
                                                         </th>
+                                                        <th
+                                                          style={{
+                                                            padding: '12px 16px',
+                                                            textAlign: 'left',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#374151',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                        >
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Status</span>
+                                                        </th>
                                                         <th style={{ padding: '12px 16px', width: 40 }} />
                                                       </tr>
                                                     </thead>
@@ -1152,6 +1167,18 @@ const ListOfDistrictsTable = ({
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              <span
+                                                                onClick={() => onContractorDataClick?.()}
+                                                                style={{
+                                                                  fontWeight: 500,
+                                                                  color: gpStatics.contractor?.[gp.id]?.hasContractorData === 'Available' || gpStatics.contractor?.[gp.id]?.hasContractorData === true ? '#059669' : '#dc2626',
+                                                                  cursor: 'pointer'
+                                                                }}
+                                                              >
+                                                                {gpStatics.contractor?.[gp.id]?.hasContractorData}
+                                                              </span>
                                                             </td>
                                                           </tr>
                                                         ))

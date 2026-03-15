@@ -2300,7 +2300,7 @@ const VillageMasterContent = () => {
                 ? '3fr  1fr 60px'
                 : '2fr 2fr 2fr 2fr 1.5fr 60px';
             return (
-              <div style={{
+              <div data-table-scroll style={{
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
                 maxHeight: '400px',
@@ -2326,8 +2326,7 @@ const VillageMasterContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                      ({totalGeographyCount})
+                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name ({totalGeographyCount})
                     </div>
 
                     {activeScope !== 'Blocks' && (
