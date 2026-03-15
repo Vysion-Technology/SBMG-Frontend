@@ -63,6 +63,16 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     selectedLocation,
     selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
+    openBreadcrumbDropdown,
+    setOpenBreadcrumbDropdown,
+    breadcrumbDistricts,
+    setBreadcrumbDistricts,
+    breadcrumbBlocks,
+    setBreadcrumbBlocks,
+    breadcrumbGps,
+    setBreadcrumbGps,
+    loadingBreadcrumb,
+    setLoadingBreadcrumb,
     ceoDistrictName,
     bdoDistrictName,
     bdoBlockName,
@@ -75,13 +85,6 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   const [searchError, setSearchError] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-
-  // Breadcrumb dropdown states
-  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
-  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
-  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
-  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
-  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
 
   const searchTimeoutRef = useRef(null);
   const activeRequestRef = useRef(0);
