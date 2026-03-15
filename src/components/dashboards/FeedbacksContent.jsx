@@ -453,58 +453,9 @@ const FeedbacksContent = () => {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6', }}>
 
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '24px'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Feedback
-          </h1>
-        </div>
-      </div>
 
-      {/* Title Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginLeft: '16px', marginRight: '16px' }}>
-        <div>
-          <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Rajasthan / All</p>
-        </div>
-        <button
-          onClick={handleOpenModal}
-          disabled={loadingMyFeedback}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#059669',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: loadingMyFeedback ? 'wait' : 'pointer',
-            opacity: loadingMyFeedback ? 0.6 : 1
-          }}
-        >
-          {loadingMyFeedback
-            ? 'Loading...'
-            : myFeedback
-              ? 'Change Review'
-              : 'Give Review'}
-        </button>
-      </div>
 
       {/* Overview Section */}
       <div style={{
@@ -512,14 +463,47 @@ const FeedbacksContent = () => {
         borderRadius: '12px',
         padding: '24px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        marginTop: '10px',
         marginBottom: '32px',
         marginLeft: '16px',
         marginRight: '16px'
       }}>
-        {/* Overview Heading */}
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, marginBottom: '24px' }}>
-          Overview
-        </h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
+
+          }}
+        >
+          {/* Overview Heading */}
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, }}>
+            Overview
+          </h2>
+          <button
+            onClick={handleOpenModal}
+            disabled={loadingMyFeedback}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#059669',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: loadingMyFeedback ? 'wait' : 'pointer',
+              opacity: loadingMyFeedback ? 0.6 : 1,
+            }}
+          >
+            {loadingMyFeedback
+              ? 'Loading...'
+              : myFeedback
+                ? 'Change Review'
+                : 'Give Review'}
+          </button>
+        </div>
+
 
         {loadingStats ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -739,160 +723,162 @@ const FeedbacksContent = () => {
       </div>
 
       {/* Review Modal */}
-      {showReviewModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }} onClick={handleCloseModal}>
+      {
+        showReviewModal && (
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }} onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                {myFeedback ? 'Change Review' : 'My Review'}
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                disabled={savingFeedback}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                  padding: '4px',
-                  opacity: savingFeedback ? 0.5 : 1
-                }}
-              >
-                <X size={20} color="#6B7280" />
-              </button>
-            </div>
-
-            {loadingMyFeedback ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: '#6B7280' }}>Loading...</p>
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }} onClick={handleCloseModal}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+            }} onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                  {myFeedback ? 'Change Review' : 'My Review'}
+                </h2>
+                <button
+                  onClick={handleCloseModal}
+                  disabled={savingFeedback}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: savingFeedback ? 'not-allowed' : 'pointer',
+                    padding: '4px',
+                    opacity: savingFeedback ? 0.5 : 1
+                  }}
+                >
+                  <X size={20} color="#6B7280" />
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Question */}
-                <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
-                  How was your experience with the app?
-                </p>
 
-                {/* Emoji Rating */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', justifyContent: 'center' }}>
-                  {emojiRatings.map((emoji) => (
-                    <button
-                      key={emoji.value}
-                      onClick={() => setSelectedRating(emoji.value)}
+              {loadingMyFeedback ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <p style={{ color: '#6B7280' }}>Loading...</p>
+                </div>
+              ) : (
+                <>
+                  {/* Question */}
+                  <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
+                    How was your experience with the app?
+                  </p>
+
+                  {/* Emoji Rating */}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', justifyContent: 'center' }}>
+                    {emojiRatings.map((emoji) => (
+                      <button
+                        key={emoji.value}
+                        onClick={() => setSelectedRating(emoji.value)}
+                        disabled={savingFeedback}
+                        style={{
+                          fontSize: '48px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: savingFeedback ? 'not-allowed' : 'pointer',
+                          padding: '8px',
+                          borderRadius: '8px',
+                          transform: selectedRating === emoji.value ? 'scale(1.2)' : 'scale(1)',
+                          transition: 'transform 0.2s',
+                          filter: selectedRating === emoji.value ? 'brightness(1.2)' : 'brightness(1)',
+                          boxShadow: selectedRating === emoji.value ? '0 4px 8px rgba(0, 0, 0, 0.2)' : 'none',
+                          opacity: savingFeedback ? 0.5 : 1
+                        }}
+                      >
+                        {emoji.emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
+                    {selectedRating} Star
+                  </p>
+
+                  {/* Feedback Input */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
+                      Feedback
+                    </label>
+                    <textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Your feedback"
+                      maxLength={100}
                       disabled={savingFeedback}
                       style={{
-                        fontSize: '48px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                        padding: '8px',
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '12px',
+                        border: '1px solid #D1D5DB',
                         borderRadius: '8px',
-                        transform: selectedRating === emoji.value ? 'scale(1.2)' : 'scale(1)',
-                        transition: 'transform 0.2s',
-                        filter: selectedRating === emoji.value ? 'brightness(1.2)' : 'brightness(1)',
-                        boxShadow: selectedRating === emoji.value ? '0 4px 8px rgba(0, 0, 0, 0.2)' : 'none',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        resize: 'vertical',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        opacity: savingFeedback ? 0.5 : 1,
+                        cursor: savingFeedback ? 'not-allowed' : 'text'
+                      }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px', textAlign: 'right' }}>
+                      {feedback.length}/100
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <button
+                      onClick={handleCloseModal}
+                      disabled={savingFeedback}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#F3F4F6',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: savingFeedback ? 'not-allowed' : 'pointer',
                         opacity: savingFeedback ? 0.5 : 1
                       }}
                     >
-                      {emoji.emoji}
+                      Cancel
                     </button>
-                  ))}
-                </div>
-                <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
-                  {selectedRating} Star
-                </p>
-
-                {/* Feedback Input */}
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                    Feedback
-                  </label>
-                  <textarea
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="Your feedback"
-                    maxLength={100}
-                    disabled={savingFeedback}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '12px',
-                      border: '1px solid #D1D5DB',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      opacity: savingFeedback ? 0.5 : 1,
-                      cursor: savingFeedback ? 'not-allowed' : 'text'
-                    }}
-                  />
-                  <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px', textAlign: 'right' }}>
-                    {feedback.length}/100
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                  <button
-                    onClick={handleCloseModal}
-                    disabled={savingFeedback}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#F3F4F6',
-                      color: '#374151',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                      opacity: savingFeedback ? 0.5 : 1
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveReview}
-                    disabled={savingFeedback}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: savingFeedback ? '#9CA3AF' : '#059669',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: savingFeedback ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {savingFeedback ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </>
-            )}
+                    <button
+                      onClick={handleSaveReview}
+                      disabled={savingFeedback}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: savingFeedback ? '#9CA3AF' : '#059669',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: savingFeedback ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {savingFeedback ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

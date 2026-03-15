@@ -327,56 +327,6 @@ const NotoficationContent = () => {
 
   return (
         <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-            {/* Header Section */}
-            <div style={{
-                backgroundColor: 'white',
-                borderBottom: '1px solid #e5e7eb',
-                padding: '5px 15px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-            }}>
-                {/* Left side - Dashboard title */}
-                <div>
-                    <h1 style={{
-                        fontSize: '20px',
-                        fontWeight: '600',
-                        color: '#374151',
-                        margin: 0
-                    }}>
-                        Notices
-                    </h1>
-                </div>
-                {/* <div style={{ position: 'relative' }}>
-                <Calendar style={{
-                        position: 'absolute',
-                        right: '12px',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '16px',
-                        height: '16px',
-                        color: '#6b7280',
-                        pointerEvents: 'none'
-                    }} />
-                    <select 
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        style={{
-                            padding: '8px 40px 8px 12px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '14px',
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            appearance: 'none'
-                        }}>
-                        <option value="2024">2024</option>
-                        <option value="2025">2025</option>
-                    </select>
-                  
-                </div> */}
-            </div>
 
             {/* Summary Cards Section */}
             <div style={{
