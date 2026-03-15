@@ -11,16 +11,17 @@ const TooltipPopover = ({ children, items, show }) => (
       <div
         style={{
           position: 'absolute',
-          bottom: '100%',
+          top: '100%',
           left: 0,
-          marginBottom: 6,
+          marginTop: 6,
           padding: '10px 12px',
           backgroundColor: '#374151',
           borderRadius: 8,
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 50,
+          zIndex: 99999,
           minWidth: 200,
-          pointerEvents: 'none'
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap'
         }}
       >
         {items.map(({ color, label, value }) => (
@@ -103,6 +104,8 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
     { color: '#ef4444', label: 'Absent', value: absent }
   ];
 
+
+
   return (
     <TooltipPopover items={tooltipItems} show={hover}>
       <div
@@ -126,32 +129,128 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
 /**
  * Contractor Data Filled: color-coded progress bar (red <50%, orange 50-80%, green >80%)
  */
+/**
+ * Contractor Data Filled: color-coded progress bar (red <50%, orange 50-80%, green >80%)
+ */
 const ContractorDataBar = ({ percentage = 0, onClick }) => {
+  const [hover, setHover] = useState(false);
   const pct = Math.min(100, Math.max(0, percentage));
+
   if (pct === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
+
+  // Percentage ke base par color decide karna
   const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f97316' : '#ef4444';
+
+  const tooltipItems = [
+    { color: barColor, label: 'Data Filled', value: `${pct.toFixed(2)}%` }
+  ];
+
   return (
-    <div onClick={() => onClick?.()} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}>
-      <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 48 }}>{pct.toFixed(2)}%</span>
-      {/* <div style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: '#f3f4f6', overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
-        <div style={{ width: `${pct}%`, height: '100%', backgroundColor: barColor, borderRadius: 4 }} />
-      </div> */}
-    </div>
+    <TooltipPopover items={tooltipItems} show={hover}>
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onClick={() => onClick?.()}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: onClick ? 'pointer' : 'default'
+        }}
+      >
+        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 48 }}>
+          {pct.toFixed(0)}%
+        </span>
+        <div style={{
+          flex: 1,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: '#f3f4f6',
+          overflow: 'hidden',
+          minWidth: 80,
+          maxWidth: 120
+        }}>
+          <div style={{
+            width: `${pct}%`,
+            height: '100%',
+            backgroundColor: barColor,
+            borderRadius: 4,
+            transition: 'width 0.3s ease'
+          }} />
+        </div>
+      </div>
+    </TooltipPopover>
   );
 };
 
 /**
  * GP Data Coverage: percentage with clickable interactive behavior
  */
+/**
+ * GP Data Coverage: percentage with hover tooltip and clickable behavior
+ */
 const GPDataCoverageBar = ({ percentage = 0, onClick }) => {
-  if (percentage === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
+  const [hover, setHover] = useState(false); // Hover state add ki
+  const pct = Math.min(100, Math.max(0, percentage));
+
+  if (pct === 0) {
+    return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
+  }
+
+  const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f97316' : '#ef4444';
+
+  // Tooltip ke liye items array
+  const tooltipItems = [
+    { color: barColor, label: 'GP Data Coverage', value: `${pct.toFixed(2)}%` }
+  ];
+
   return (
-    <span
-      onClick={() => onClick?.()}
-      style={{ fontSize: '14px', fontWeight: 500, color: '#374151', cursor: onClick ? 'pointer' : 'default' }}
-    >
-      {percentage}%
-    </span>
+    <TooltipPopover items={tooltipItems} show={hover}>
+      <div
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        onClick={() => onClick?.()}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: onClick ? 'pointer' : 'default'
+        }}
+      >
+        <span
+          style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: '#374151',
+            minWidth: 48
+          }}
+        >
+          {pct.toFixed(0)}%
+        </span>
+
+        <div
+          style={{
+            flex: 1,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#f3f4f6',
+            overflow: 'hidden',
+            minWidth: 80,
+            maxWidth: 120
+          }}
+        >
+          <div
+            style={{
+              width: `${pct}%`,
+              height: '100%',
+              backgroundColor: barColor,
+              borderRadius: 4,
+              transition: 'width 0.3s ease'
+            }}
+          />
+        </div>
+      </div>
+    </TooltipPopover>
   );
 };
 
@@ -917,7 +1016,7 @@ const ListOfDistrictsTable = ({
             ) : sortedRows.length === 0 ? (
               <tr>
                 <td colSpan={10} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
-                  No districts found
+                  Loading...
                 </td>
               </tr>
             ) : (
@@ -1048,7 +1147,7 @@ const ListOfDistrictsTable = ({
                                 ) : blocksForDistrict.length === 0 ? (
                                   <tr>
                                     <td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
-                                      No blocks found
+                                      Loading...
                                     </td>
                                   </tr>
                                 ) : (
@@ -1150,7 +1249,7 @@ const ListOfDistrictsTable = ({
                                                       ) : gpsForBlock.length === 0 ? (
                                                         <tr>
                                                           <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
-                                                            No GPs found
+                                                            Loading...
                                                           </td>
                                                         </tr>
                                                       ) : (

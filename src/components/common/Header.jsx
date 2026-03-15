@@ -65,7 +65,8 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     selectedBlockForHierarchy,
     ceoDistrictName,
     bdoDistrictName,
-    bdoBlockName
+    bdoBlockName,
+    vdoGPName
   } = locationContext || {};
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,7 +131,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     const commonParams = {
       params: {
         skip: 0,
-        limit: 200, // Increased limit to include all districts, blocks, and GPs (Jaipur and other major cities)
+        limit: 100, // Backend limit is 100
         search: trimmedTerm
       }
     };
@@ -1150,37 +1151,72 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
             onClick={toggleUserDropdown}
             style={{
               backgroundColor: '#f3f4f6',
-              padding: '2px 5px',
-              borderRadius: '20px',
+              padding: '4px 12px',
+              borderRadius: '30px',
               border: '1px solid #e5e7eb',
               display: 'flex',
               alignItems: 'center',
-              gap: '1px',
+              gap: '8px',
               cursor: 'pointer',
-              outline: 'none'
+              outline: 'none',
+              transition: 'all 0.2s ease'
             }}
           >
+            {/* Profile Image / Initials */}
             <div style={{
-              width: '28px',
-              height: '28px',
+              width: '32px',
+              height: '32px',
               backgroundColor: '#d1d5db',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyChild: 'center',
+              overflow: 'hidden', justifyContent: 'center'
             }}>
-              <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>U</span>
+              {/* Agar user photo available ho toh <img> lagayein, nahi toh initials */}
+              <span style={{ fontSize: '14px', fontWeight: '600', color: '#4b5563', textAlign: 'center' }}>
+                U
+              </span>
             </div>
+
+            {/* User Info Text */}
+            <div style={{ textAlign: 'left', marginRight: '4px' }}>
+              <div style={{
+                fontSize: '13px',
+                fontWeight: '700',
+                color: '#111827',
+                lineHeight: '1.2'
+              }}>
+                {/* Role and Area Mapping */}
+                {role === ROLES.VDO && ('VDO')}
+                {role === ROLES.BDO && ('BDO')}
+                {role === ROLES.CEO && ('CEO')}
+                {role === ROLES.SMD && ('SMD')}
+
+              </div>
+              <div style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                fontWeight: '500'
+              }}>
+                {/* Role and Area Mapping */}
+                {role === ROLES.VDO && (vdoGPName || 'VDO')}
+                {role === ROLES.BDO && (bdoBlockName || 'BDO')}
+                {role === ROLES.CEO && (ceoDistrictName || 'CEO')}
+                {role === ROLES.SMD && (ceoDistrictName || 'Rajasthan')}
+              </div>
+            </div>
+
             <ChevronDown style={{
-              width: '14px',
-              height: '14px',
+              width: '16px',
+              height: '16px',
               color: '#6b7280',
               transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
               transition: 'transform 0.2s'
             }} />
           </button>
 
-          {/* Dropdown Menu */}
+          {/* Dropdown Menu remains the same with handleLogout */}
           {showUserDropdown && (
             <div style={{
               position: 'absolute',
@@ -1188,9 +1224,9 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               right: 0,
               backgroundColor: 'white',
               borderRadius: '12px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
               border: '1px solid #e5e7eb',
-              minWidth: '220px',
+              minWidth: '200px',
               zIndex: 1000,
               overflow: 'hidden'
             }}>

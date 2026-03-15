@@ -248,6 +248,9 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [loadingGPs, setLoadingGPs] = useState(false);
   const [totalCountOfGPs, setTotalCountOfGPs] = useState(0);
 
+  const [location, setLocation] = useState(null)
+
+
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
@@ -2470,6 +2473,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
+            
             districtsCount={districts.length}
             blocksCount={allBlocksForDistricts.length}
             villagesCount={totalCountOfGPs}

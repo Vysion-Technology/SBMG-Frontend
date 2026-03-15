@@ -1988,320 +1988,6 @@ const InspectionContent = () => {
 
   return (
     <div>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Inspection
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => setActiveScope(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div style={{
-            position: 'relative',
-            minWidth: '200px'
-          }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu */}
-            {showLocationDropdown && activeScope !== 'State' && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
-                  }}
-                >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
-                    {loadingBlocks ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
-                      </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No blocks found
-                      </div>
-                    ) : (
-                      blocksForActiveDistrict.map((block) => {
-                        const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                        const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                        const showArrow = activeScope === 'GPs';
-                        return (
-                          <div
-                            key={`block-${block.id}`}
-                            onClick={() => handleBlockClick(block)}
-                            onMouseEnter={() => handleBlockHover(block)}
-                            style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                          >
-                            <span>{block.name}</span>
-                            {showArrow && (
-                              <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                {activeScope === 'GPs' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {loadingGPs ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading GPs...
-                      </div>
-                    ) : !activeHierarchyBlock ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a block to view GPs
-                      </div>
-                    ) : gpsForActiveBlock.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No GPs found
-                      </div>
-                    ) : (
-                      gpsForActiveBlock.map((gp) => {
-                        const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-                        return (
-                          <div
-                            key={`gp-${gp.id}`}
-                            onClick={() => handleGPClick(gp)}
-                            style={getMenuItemStyles(isSelectedGP)}
-                          >
-                            <span>{gp.name}</span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
-      {activeScope !== 'GPs' && (
-        !showMyInspections ? (
-          <div style={{
-            padding: '10px 16px 0px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <span style={{
-              fontSize: '14px',
-              color: '#6B7280',
-              fontWeight: '600'
-            }}>
-              {(() => {
-                if (activeScope === 'State') {
-                  return selectedLocation;
-                } else if (activeScope === 'Districts') {
-                  return `Rajasthan / ${selectedLocation}`;
-                } else if (activeScope === 'Blocks') {
-                  const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-                  const blockName = selectedBlockForHierarchy?.name || selectedLocation;
-                  return `Rajasthan / ${districtName} / ${blockName}`;
-                } else if (activeScope === 'GPs') {
-                  const districtName = selectedDistrictForHierarchy?.name || '';
-                  const blockName = selectedBlockForHierarchy?.name || '';
-                  return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
-                }
-                return `Rajasthan / ${selectedLocation}`;
-              })()}
-            </span>
-
-            {/* My Inspections Button */}
-            <button
-              onClick={() => setShowMyInspections(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '20px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
-              }}
-            >
-              My inspections ({yourInspectionsData?.total || '0'})
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            padding: '10px 16px 0px 16px',
-          }}>
-            <button
-              onClick={() => setShowMyInspections(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '16px',
-                color: '#374151',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              <ChevronRight style={{ width: '18px', height: '18px', transform: 'rotate(180deg)' }} />
-              Back
-            </button>
-          </div>
-        )
-      )}
 
       {/* Overview Section - Hide when My Inspections is active (except in GP view) */}
       {(!showMyInspections || activeScope === 'GPs') && (
@@ -2341,246 +2027,284 @@ const InspectionContent = () => {
               }}>
                 • {getDateDisplayText()}
               </span>
+
+
             </div>
+
             <div
-              onClick={handleCalendarClick}
-              data-date-dropdown
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                color: '#6b7280',
-                fontSize: '14px',
-                padding: '8px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                position: 'relative',
-                transition: 'all 0.2s'
-              }}
+            style={
+              {
+                display:'flex',
+                gap:'5px'
+              }
+            }
             >
-              <Calendar style={{ width: '16px', height: '16px' }} />
-              <span>{getDateDisplayText()}</span>
-              <ChevronDown style={{ width: '16px', height: '16px' }} />
 
-              {/* Modern Date Range Picker */}
-              {showDateDropdown && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '8px',
-                    width: '600px',
-                    maxWidth: '90vw',
-                    display: 'flex',
-                    overflow: 'hidden'
-                  }}
-                >
-                  {/* Left Sidebar - Predefined Ranges */}
-                  <div style={{
-                    width: '200px',
-                    backgroundColor: '#f8fafc',
-                    borderRight: '1px solid #e2e8f0',
-                    padding: '16px 0'
-                  }}>
-                    <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                      <h3 style={{
-                        margin: 0,
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#1e293b'
-                      }}>
-                        Quick Select
-                      </h3>
-                    </div>
+              <div
+                onClick={handleCalendarClick}
+                data-date-dropdown
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Calendar style={{ width: '16px', height: '16px' }} />
+                <span>{getDateDisplayText()}</span>
+                <ChevronDown style={{ width: '16px', height: '16px' }} />
 
-                    {dateRanges.map((range, index) => (
-                      <div
-                        key={range.value}
-                        onClick={() => handleDateRangeSelection(range)}
-                        style={{
-                          padding: '12px 16px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: range.value === 'custom' ? '#10b981' : '#475569',
-                          backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
-                          borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        {range.label}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Right Side - Calendar View */}
-                  <div style={{
-                    flex: 1,
-                    padding: '16px',
-                    minHeight: '300px'
-                  }}>
-                    {isCustomRange ? (
-                      <div>
+                {/* Modern Date Range Picker */}
+                {showDateDropdown && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '8px',
+                      width: '600px',
+                      maxWidth: '90vw',
+                      display: 'flex',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    {/* Left Sidebar - Predefined Ranges */}
+                    <div style={{
+                      width: '200px',
+                      backgroundColor: '#f8fafc',
+                      borderRight: '1px solid #e2e8f0',
+                      padding: '16px 0'
+                    }}>
+                      <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
                         <h3 style={{
-                          margin: '0 0 16px 0',
+                          margin: 0,
                           fontSize: '14px',
                           fontWeight: '600',
                           color: '#1e293b'
                         }}>
-                          Select Date Range
+                          Quick Select
                         </h3>
+                      </div>
 
-                        {/* Custom Date Inputs */}
-                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                          <div>
-                            <label style={{
-                              display: 'block',
-                              fontSize: '12px',
-                              color: '#64748b',
-                              marginBottom: '4px'
-                            }}>
-                              Start Date
-                            </label>
-                            <input
-                              type="date"
-                              value={startDate || ''}
-                              onKeyDown={handleDateKeyDown}
-                              onChange={(e) => setStartDate(e.target.value)}
-                              style={{
-                                padding: '8px 12px',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '6px',
-                                fontSize: '14px',
-                                width: '140px'
-                              }}
-                            />
+                      {dateRanges.map((range, index) => (
+                        <div
+                          key={range.value}
+                          onClick={() => handleDateRangeSelection(range)}
+                          style={{
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: range.value === 'custom' ? '#10b981' : '#475569',
+                            backgroundColor: selectedDateRange === range.label ? '#f0fdf4' : 'transparent',
+                            borderLeft: selectedDateRange === range.label ? '3px solid #10b981' : '3px solid transparent',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {range.label}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Right Side - Calendar View */}
+                    <div style={{
+                      flex: 1,
+                      padding: '16px',
+                      minHeight: '300px'
+                    }}>
+                      {isCustomRange ? (
+                        <div>
+                          <h3 style={{
+                            margin: '0 0 16px 0',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#1e293b'
+                          }}>
+                            Select Date Range
+                          </h3>
+
+                          {/* Custom Date Inputs */}
+                          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                            <div>
+                              <label style={{
+                                display: 'block',
+                                fontSize: '12px',
+                                color: '#64748b',
+                                marginBottom: '4px'
+                              }}>
+                                Start Date
+                              </label>
+                              <input
+                                type="date"
+                                value={startDate || ''}
+                                onKeyDown={handleDateKeyDown}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  fontSize: '14px',
+                                  width: '140px'
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{
+                                display: 'block',
+                                fontSize: '12px',
+                                color: '#64748b',
+                                marginBottom: '4px'
+                              }}>
+                                End Date
+                              </label>
+                              <input
+                                type="date"
+                                value={endDate || ''}
+                                onKeyDown={handleDateKeyDown}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                style={{
+                                  padding: '8px 12px',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  fontSize: '14px',
+                                  width: '140px'
+                                }}
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label style={{
-                              display: 'block',
-                              fontSize: '12px',
-                              color: '#64748b',
-                              marginBottom: '4px'
-                            }}>
-                              End Date
-                            </label>
-                            <input
-                              type="date"
-                              value={endDate || ''}
-                              onKeyDown={handleDateKeyDown}
-                              onChange={(e) => setEndDate(e.target.value)}
+
+                          {/* Action Buttons */}
+                          <div style={{
+                            display: 'flex',
+                            gap: '8px',
+                            justifyContent: 'flex-end'
+                          }}>
+                            <button
+                              onClick={() => {
+                                const today = new Date();
+                                const todayStr = today.toISOString().split('T')[0];
+                                setStartDate(todayStr);
+                                setEndDate(todayStr);
+                                setIsCustomRange(false);
+                                setSelectedDateRange('Today');
+                              }}
                               style={{
-                                padding: '8px 12px',
+                                padding: '8px 16px',
                                 border: '1px solid #d1d5db',
                                 borderRadius: '6px',
+                                backgroundColor: '#f9fafb',
+                                color: '#6b7280',
                                 fontSize: '14px',
-                                width: '140px'
+                                cursor: 'pointer'
                               }}
-                            />
+                            >
+                              Cancel
+                            </button>
+
+                            <button
+                              onClick={() => setShowDateDropdown(false)}
+                              disabled={!startDate || !endDate}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                cursor: startDate && endDate ? 'pointer' : 'not-allowed'
+                              }}
+                            >
+                              Apply
+                            </button>
                           </div>
                         </div>
+                      ) : (
+                        <div>
+                          <h3 style={{
+                            margin: '0 0 16px 0',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            color: '#1e293b'
+                          }}>
+                            Selected Range
+                          </h3>
 
-                        {/* Action Buttons */}
-                        <div style={{
-                          display: 'flex',
-                          gap: '8px',
-                          justifyContent: 'flex-end'
-                        }}>
-                          <button
-                            onClick={() => {
-                              const today = new Date();
-                              const todayStr = today.toISOString().split('T')[0];
-                              setStartDate(todayStr);
-                              setEndDate(todayStr);
-                              setIsCustomRange(false);
-                              setSelectedDateRange('Today');
-                            }}
-                            style={{
-                              padding: '8px 16px',
-                              border: '1px solid #d1d5db',
-                              borderRadius: '6px',
-                              backgroundColor: '#f9fafb',
-                              color: '#6b7280',
-                              fontSize: '14px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Cancel
-                          </button>
+                          <div style={{
+                            padding: '12px',
+                            backgroundColor: '#f0fdf4',
+                            border: '1px solid #bbf7d0',
+                            borderRadius: '6px',
+                            marginBottom: '16px'
+                          }}>
+                            <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
+                              {selectedDateRange}
+                            </div>
+                            {startDate && endDate && (
+                              <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                                {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
 
                           <button
                             onClick={() => setShowDateDropdown(false)}
-                            disabled={!startDate || !endDate}
                             style={{
                               padding: '8px 16px',
-                              backgroundColor: startDate && endDate ? '#10b981' : '#d1d5db',
+                              backgroundColor: '#10b981',
                               color: 'white',
                               border: 'none',
                               borderRadius: '6px',
                               fontSize: '14px',
-                              cursor: startDate && endDate ? 'pointer' : 'not-allowed'
+                              cursor: 'pointer'
                             }}
                           >
                             Apply
                           </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <h3 style={{
-                          margin: '0 0 16px 0',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: '#1e293b'
-                        }}>
-                          Selected Range
-                        </h3>
+                      )}
+                    </div>
 
-                        <div style={{
-                          padding: '12px',
-                          backgroundColor: '#f0fdf4',
-                          border: '1px solid #bbf7d0',
-                          borderRadius: '6px',
-                          marginBottom: '16px'
-                        }}>
-                          <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
-                            {selectedDateRange}
-                          </div>
-                          {startDate && endDate && (
-                            <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
-                              {new Date(startDate).toLocaleDateString()} - {new Date(endDate).toLocaleDateString()}
-                            </div>
-                          )}
-                        </div>
-
-                        <button
-                          onClick={() => setShowDateDropdown(false)}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    )}
                   </div>
-                </div>
-              )}
+                )}
+
+
+              </div>
+
+
+              {/* My Inspections Button */}
+              <button
+                onClick={() => setShowMyInspections(true)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                }}
+              >
+                My inspections ({yourInspectionsData?.total || '0'})
+              </button>
             </div>
+
+
           </div>
 
           {/* KPI Cards */}

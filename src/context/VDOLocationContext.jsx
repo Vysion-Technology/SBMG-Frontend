@@ -25,39 +25,42 @@ export const VDOLocationProvider = ({ children }) => {
   const [loadingVDOData, setLoadingVDOData] = useState(true);
 
   // Get VDO district, block, and village data directly from user object (from /me API)
-  useEffect(() => {
-    if (user && user.district_id && user.block_id && user.village_id) {
-      // Get district, block, and village info directly from /me API response
-      const districtId = user.district_id;
-      const districtName = user.district_name || user.district?.name || 'District';
-      const blockId = user.block_id;
-      const blockName = user.block_name || user.block?.name || 'Block';
-      const gpId = user.village_id; // API returns village_id for VDO
-      const gpName = user.village_name || user.village?.name || 'Village';
-      
-      // Only set if not already set (prevent multiple updates)
-      if (!vdoDistrictId || !vdoBlockId || !vdoGPId) {
-        setVdoDistrictId(districtId);
-        setVdoDistrictName(districtName);
-        setVdoBlockId(blockId);
-        setVdoBlockName(blockName);
-        setVdoGPId(gpId);
-        setVdoGPName(gpName);
-        console.log('✅ VDO District, Block, and Village loaded from /me API:', { 
-          districtId, 
-          districtName, 
-          blockId, 
-          blockName, 
-          villageId: gpId, 
-          villageName: gpName 
-        });
-      }
-      setLoadingVDOData(false);
-    } else if (user) {
-      console.warn('⚠️ VDO user data does not contain district_id, block_id, or village_id');
-      setLoadingVDOData(false);
+ useEffect(() => {
+  if (user && user.district_id && user.block_id && user.village_id) {
+
+    const districtId = user.district_id;
+    const blockId = user.block_id;
+    const gpId = user.village_id;
+
+    let districtName = '';
+    let blockName = '';
+    let gpName = '';
+
+    if (user.username) {
+      const parts = user.username.split(".");
+      districtName = parts[0] || '';
+      blockName = parts[1] || '';
+      gpName = parts[2] || '';
     }
-  }, [user, vdoDistrictId, vdoBlockId, vdoGPId]);
+
+    setVdoDistrictId(districtId);
+    setVdoDistrictName(districtName);
+
+    setVdoBlockId(blockId);
+    setVdoBlockName(blockName);
+
+    setVdoGPId(gpId);
+    setVdoGPName(gpName);
+
+    console.log("✅ VDO Location parsed from username:", {
+      districtName,
+      blockName,
+      gpName
+    });
+
+    setLoadingVDOData(false);
+  }
+}, [user]);
 
   // Get current location info - VDO always works at village level
   const getCurrentLocationInfo = useCallback(() => {
