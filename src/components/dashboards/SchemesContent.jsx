@@ -284,29 +284,7 @@ const SchemesContent = () => {
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-          {/* Header Section */}
-     <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-     }}>
-         {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Schemes
-          </h1>
-        </div>
-
-       
-      </div>
+          
       
   {/* Overview Section */}
   <div style={{

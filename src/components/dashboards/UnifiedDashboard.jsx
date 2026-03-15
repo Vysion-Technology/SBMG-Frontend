@@ -66,12 +66,12 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
   return (
     <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
-      height: '100vh',
+      height: '100%',
       backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
-      overflowY: 'scroll',
+      overflowY: 'hidden',
       margin: 0,
       padding: 0,
       transition: 'width 0.25s ease'
@@ -289,6 +289,7 @@ const UnifiedDashboard = () => {
         minWidth: 0,
         width: '100%',
         overflow: 'hidden',
+
         position: 'relative'
       }}>
         {/* Mobile overlay backdrop */}
@@ -301,7 +302,7 @@ const UnifiedDashboard = () => {
         )}
         {/* Sidebar: on mobile = overlay (takes no layout space), on desktop = inline */}
         <div
-          className={`sidebar-wrapper overflow-y-auto ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
+          className={`sidebar-wrapper overflow-x-hidden overflow-y-auto ${isMobile ? 'sidebar-mobile' : ''} ${isMobile && isSidebarOpen ? 'open' : ''}`}
           style={{
             ...(!isMobile && {
               width: isSidebarOpen ? 272 : 80,
@@ -335,7 +336,7 @@ const UnifiedDashboard = () => {
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'visible'
+          overflow: 'hidden'
         }}>
           <Header
             pageTitle={activeItem}
