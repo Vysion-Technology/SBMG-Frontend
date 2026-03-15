@@ -144,7 +144,7 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
 
                                     <div
                                         key={d.id}
-                                        className="!hover:bg-green-200"
+                                        className="hover:!bg-[#e7f5ef] transition-colors duration-200"
                                         style={rowStyle(selectedDistrict?.id === d.id)}
                                         onClick={() => {
                                             setSelectedDistrict(d);
@@ -154,7 +154,7 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
 
                                         <div>
 
-                                            <div className="!hover:bg-green-200" >{d.name}</div>
+                                            <div>{d.name}</div>
 
                                         </div>
 
@@ -194,6 +194,7 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
                                     <div
                                         key={b.id}
                                         style={rowStyle(selectedBlock?.id === b.id)}
+                                        className="hover:!bg-[#e7f5ef] transition-colors duration-200"
                                         onClick={() => {
                                             setSelectedBlock(b);
                                             fetchGps(selectedDistrict.id, b.id);
@@ -243,19 +244,9 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
                                     <div
                                         key={g.id}
                                         style={rowStyle(selectedGP?.id === g.id)}
+                                        className="hover:!bg-[#e7f5ef] transition-colors duration-200"
                                         onClick={() => {
-
                                             setSelectedGP(g);
-
-                                            onSelect({
-                                                districtId: selectedDistrict.id,
-                                                blockId: selectedBlock.id,
-                                                gpId: g.id,
-                                                name: g.name
-                                            });
-
-                                            onClose();
-
                                         }}
                                     >
 

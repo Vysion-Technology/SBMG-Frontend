@@ -58,8 +58,10 @@ const OverviewBanner = ({
           {metrics.map((m) => (
             <div
               key={m.label}
+              className="overview-metric overview-metric-hover"
               onClick={() => setOpenPopup(true)}
               style={{
+                '--metric-color': m.color,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -67,11 +69,14 @@ const OverviewBanner = ({
                 padding: '24px 40px',
                 minWidth: 220,
                 borderRadius: 12,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                border: '2px solid transparent',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
               }}
             >
 
               <span
+                className="overview-metric-value"
                 style={{
                   fontSize: 34,
                   fontWeight: 700,
@@ -101,7 +106,6 @@ const OverviewBanner = ({
       {/* Popup render condition */}
       {openPopup && (
         <LocationHierarchyPopup
-          selectedLocation={selectedLocation}
           onClose={() => setOpenPopup(false)}
           onSelect={(location) => {
 
