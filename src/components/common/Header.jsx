@@ -130,7 +130,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     const commonParams = {
       params: {
         skip: 0,
-        limit: 200, // Increased limit to include all districts, blocks, and GPs (Jaipur and other major cities)
+        limit: 100, // Backend limit is 100
         search: trimmedTerm
       }
     };
