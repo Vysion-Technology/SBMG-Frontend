@@ -286,6 +286,7 @@ const ListOfDistrictsTable = ({
   onGPDataCoverageClick,
   onGPSTrackingClick,
   onContractorDataClick,
+  onGPDataStatusClick,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState(null);
@@ -757,9 +758,13 @@ const ListOfDistrictsTable = ({
     const gpAttendance = {};
     const contractorData = {};
     const gpsTrackingData = {};
+    const gpDataStatus = {};
 
     // API for fetching block-wise attendance data
     const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'VILLAGE', start_date: '2026-01-01', end_date: '2026-12-31' } });
+
+    console.log('all >> ', allGps);
+
 
     await Promise.all(allGps.map(async (gp) => {
       const gpName = gp.name;
@@ -809,15 +814,19 @@ const ListOfDistrictsTable = ({
       };
 
       // Count contractor data filled percentage and GPS tracking vehicles for this block from respective APIs
-      const [contrRes, gpsRes] = await Promise.allSettled([
+      const [contrRes, gpsRes, gpAnalyticsRes] = await Promise.allSettled([
         contractorAnalyticsAPI.getGP(gp.id),
-        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ gp_id: gp.id }) : vehiclesAPI.getVehiclesByLocation({ gp_id: gp.id })
+        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ gp_id: gp.id }) : vehiclesAPI.getVehiclesByLocation({ gp_id: gp.id }),
+        apiClient.get(`/annual-surveys/analytics/gp/${gp.id}`, { params: { fy_id: 1 } })
       ]);
 
       const contractorRes = contrRes.status === 'fulfilled' && contrRes.value?.data
         ? contrRes.value.data : null;
 
       const gpsResData = gpsRes.status === 'fulfilled' && gpsRes.value?.data ? gpsRes.value.data : null;
+
+      const gpAnalyticsData = gpAnalyticsRes.status === 'fulfilled' && gpAnalyticsRes.value?.data
+        ? gpAnalyticsRes.value.data : null;
 
       contractorData[gp.id] = {
         gp_name: gpName,
@@ -829,11 +838,16 @@ const ListOfDistrictsTable = ({
         gp_name: gpName,
         gpsVehicles: gpsResData.length
       };
+
+      gpDataStatus[gp.id] = {
+        gp_name: gpName,
+        master_data_available: gpAnalyticsData?.master_data_available
+      };
     }));
 
     setGpsForBlock(allGps);
 
-    setGpStatics({ complaints: gpComplaints, attendance: gpAttendance, contractor: contractorData, gpsTracker: gpsTrackingData });
+    setGpStatics({ complaints: gpComplaints, attendance: gpAttendance, contractor: contractorData, gpsTracker: gpsTrackingData, gpDataStatus: gpDataStatus });
   };
 
   return (
@@ -1234,7 +1248,19 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Status</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Status</span>
+                                                        </th>
+                                                        <th
+                                                          style={{
+                                                            padding: '12px 16px',
+                                                            textAlign: 'left',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#374151',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                        >
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Status</span>
                                                         </th>
                                                         <th style={{ padding: '12px 16px', width: 40 }} />
                                                       </tr>
@@ -1242,13 +1268,13 @@ const ListOfDistrictsTable = ({
                                                     <tbody>
                                                       {loadingGps ? (
                                                         <tr>
-                                                          <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                                          <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                                             Loading...
                                                           </td>
                                                         </tr>
                                                       ) : gpsForBlock.length === 0 ? (
                                                         <tr>
-                                                          <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                                          <td colSpan={7} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                                             Loading...
                                                           </td>
                                                         </tr>
@@ -1266,6 +1292,18 @@ const ListOfDistrictsTable = ({
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              <span
+                                                                onClick={() => onGPDataStatusClick?.()}
+                                                                style={{
+                                                                  fontWeight: 500,
+                                                                  color: gpStatics.gpDataStatus?.[gp.id]?.master_data_available === 'Available' || gpStatics.gpDataStatus?.[gp.id]?.master_data_available === true ? '#059669' : '#dc2626',
+                                                                  cursor: 'pointer'
+                                                                }}
+                                                              >
+                                                                {gpStatics.gpDataStatus?.[gp.id]?.master_data_available ? 'Available' : 'Not Available'}
+                                                              </span>
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <span

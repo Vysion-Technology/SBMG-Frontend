@@ -72,6 +72,8 @@ const DashboardCardsGrid = ({
   onAttendanceClick,
   onInspectionClick,
   onContractorClick,
+  onSchemesClick,
+  onEventsClick,
   onGPMasterDataClick,
   onGPSTrackingClick
 }) => (
@@ -110,24 +112,28 @@ const DashboardCardsGrid = ({
             loading={contractorLoading}
             error={contractorError}
           />        </div>        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, minWidth: 0 }}>
-          <SchemesEventsCard
-            title="Schemes"
-            total={schemesData?.total ?? 0}
-            active={schemesData?.active ?? 0}
-            inactive={schemesData?.inactive ?? 0}
-            tooltipText="Total, active, and inactive schemes."
-            loading={schemesLoading}
-            error={schemesError}
-          />
-          <SchemesEventsCard
-            title="Events"
-            total={eventsData?.total ?? 0}
-            active={eventsData?.active ?? 0}
-            inactive={eventsData?.inactive ?? 0}
-            tooltipText="Total, active, and inactive events."
-            loading={eventsLoading}
-            error={eventsError}
-          />
+          <div onClick={() => onSchemesClick?.()} style={{ cursor: 'pointer' }}>
+            <SchemesEventsCard
+              title="Schemes"
+              total={schemesData?.total ?? 0}
+              active={schemesData?.active ?? 0}
+              inactive={schemesData?.inactive ?? 0}
+              tooltipText="Total, active, and inactive schemes."
+              loading={schemesLoading}
+              error={schemesError}
+            />
+          </div>
+          <div onClick={() => onEventsClick?.()} style={{ cursor: 'pointer' }}>
+            <SchemesEventsCard
+              title="Events"
+              total={eventsData?.total ?? 0}
+              active={eventsData?.active ?? 0}
+              inactive={eventsData?.inactive ?? 0}
+              tooltipText="Total, active, and inactive events."
+              loading={eventsLoading}
+              error={eventsError}
+            />
+          </div>
         </div>
       </div>
     </div>

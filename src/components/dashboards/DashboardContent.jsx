@@ -207,7 +207,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
-const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNavigateToGPMasterData, onNavigateToGPSTracking, onNavigateToContractorDetails, onNavigateToInspection }) => {
+const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNavigateToGPMasterData, onNavigateToGPSTracking, onNavigateToContractorDetails, onNavigateToInspection, onNavigateToSchemes, onNavigateToEvents }) => {
   // Use LocationContext for global state management
   const {
     activeScope,
@@ -2473,7 +2473,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
-            
+
             districtsCount={districts.length}
             blocksCount={allBlocksForDistricts.length}
             villagesCount={totalCountOfGPs}
@@ -2495,6 +2495,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         onGPDataCoverageClick={() => onNavigateToGPMasterData?.()}
         onGPSTrackingClick={() => onNavigateToGPSTracking?.()}
         onContractorDataClick={() => onNavigateToContractorDetails?.()}
+        onGPDataStatusClick={() => onNavigateToGPMasterData?.()}
         loading={loadingDistrictStats || loadingAnalytics}
       />
 
@@ -2552,6 +2553,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         onAttendanceClick={() => onNavigateToAttendance?.()}
         onInspectionClick={() => onNavigateToInspection?.()}
         onContractorClick={() => onNavigateToContractorDetails?.()}
+        onSchemesClick={() => onNavigateToSchemes?.()}
+        onEventsClick={() => onNavigateToEvents?.()}
         onGPMasterDataClick={() => onNavigateToGPMasterData?.()}
         onGPSTrackingClick={() => onNavigateToGPSTracking?.()}
       />

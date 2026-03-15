@@ -238,6 +238,18 @@ const UnifiedDashboard = () => {
     scrollToMainTable();
   };
 
+  const handleNavigateToSchemes = () => {
+    setActiveItem('Schemes');
+    // Scroll to top to prevent auto-scrolling to bottom
+    window.scrollTo(0, 0);
+  };
+
+  const handleNavigateToEvents = () => {
+    setActiveItem('Events');
+    // Scroll to top to prevent auto-scrolling to bottom
+    window.scrollTo(0, 0);
+  };
+
   useEffect(() => {
     if (isMobile) setIsSidebarOpen(false);
     else setIsSidebarOpen(true);
@@ -251,7 +263,7 @@ const UnifiedDashboard = () => {
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} />;
+        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} onNavigateToSchemes={handleNavigateToSchemes} onNavigateToEvents={handleNavigateToEvents} />;
       case 'Complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
       case 'Attendance':

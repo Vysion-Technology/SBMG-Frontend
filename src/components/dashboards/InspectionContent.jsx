@@ -1069,7 +1069,7 @@ const InspectionContent = () => {
       const enrichedBlocks = inspectionData.map(item => ({
         id: item.geography_id,
         name: item.geography_name,
-        total_inspections: item.inspected_blocks || 0,
+        total_inspections: item.inspected_gps || 0,
         average_score: item.average_score || 0,
         coverage_percentage: item.coverage_percentage || 0
       }));
@@ -1117,7 +1117,7 @@ const InspectionContent = () => {
       const enrichedGps = inspectionData.map(item => ({
         id: item.geography_id,
         name: item.geography_name,
-        total_inspections: item.inspected_blocks || 0,
+        total_inspections: item.inspected_gps || 0,
         average_score: item.average_score || 0,
         coverage_percentage: item.coverage_percentage || 0
       }));
@@ -2032,12 +2032,12 @@ const InspectionContent = () => {
             </div>
 
             <div
-            style={
-              {
-                display:'flex',
-                gap:'5px'
+              style={
+                {
+                  display: 'flex',
+                  gap: '5px'
+                }
               }
-            }
             >
 
               <div
@@ -2679,7 +2679,7 @@ const InspectionContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 150px 150px 150px',
+              gridTemplateColumns: viewingInspectionsForGp ? '1fr 150px 150px 150px' : viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
@@ -2689,11 +2689,43 @@ const InspectionContent = () => {
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                {viewingGpsInspectionForBlock
-                  ? `GP Name (${gpInspectionSummaryData.length})`
-                  : viewingBlocksInspectionForDistrict
-                    ? `Block Name (${blockInspectionSummaryData.length})`
-                    : `District Name (${districtInspectionSummaryData.length})`}
+                {viewingInspectionsForGp
+                  ? `Issue`
+                  : viewingGpsInspectionForBlock
+                    ? `GP Name (${gpInspectionSummaryData.length})`
+                    : viewingBlocksInspectionForDistrict
+                      ? `Block Name (${blockInspectionSummaryData.length})`
+                      : `District Name (${districtInspectionSummaryData.length})`}
+              </div>
+              {viewingInspectionsForGp && (
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  textAlign: 'center'
+                }}>
+                  Inspection Severity
+                </div>
+              )}
+              {!viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  textAlign: 'center'
+                }}>
+                  {viewingBlocksInspectionForDistrict
+                    ? `Inspected GPs`
+                    : `Inspected Blocks`}
+                </div>
+              )}
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                textAlign: 'center'
+              }}>
+                {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
               </div>
               <div style={{
                 fontSize: '14px',
@@ -2701,23 +2733,7 @@ const InspectionContent = () => {
                 color: '#374151',
                 textAlign: 'center'
               }}>
-                Total Inspections
-              </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                textAlign: 'center'
-              }}>
-                Avg. Score
-              </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                textAlign: 'center'
-              }}>
-                Coverage %
+                {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
               </div>
             </div>
 
@@ -2860,7 +2876,7 @@ const InspectionContent = () => {
                   dataToDisplay.map((item) => (
                     <div key={item.id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 150px 150px 150px',
+                      gridTemplateColumns: viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
                       padding: '12px 16px',
                       alignItems: 'center',
                       borderBottom: '1px solid #f3f4f6'
@@ -2907,14 +2923,16 @@ const InspectionContent = () => {
                         </div>
                       </div>
 
-                      {/* Total Inspections Column */}
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        textAlign: 'center'
-                      }}>
-                        {item.total_inspections}
-                      </div>
+                      {!viewingGpsInspectionForBlock && (
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          textAlign: 'center'
+                        }}>
+                          {/* {console.log('item >> ', item)} */}
+                          {item.total_inspections}
+                        </div>
+                      )}
 
                       {/* Avg. Score Column */}
                       <div style={{
