@@ -309,6 +309,10 @@ const AttendanceContent = () => {
   const [selectedBlockForGpsAttendance, setSelectedBlockForGpsAttendance] = useState(null);
   const [viewingGpsAttendanceForBlock, setViewingGpsAttendanceForBlock] = useState(false);
 
+  // Individual GP contractor attendance view state
+  const [selectedGpForContractorAttendance, setSelectedGpForContractorAttendance] = useState(null);
+  const [viewingContractorsForGp, setViewingContractorsForGp] = useState(false);
+
   // Refs to prevent duplicate API calls
   const analyticsCallInProgress = useRef(false);
   const top3CallInProgress = useRef(false);
@@ -1120,6 +1124,49 @@ const AttendanceContent = () => {
       setGpAttendanceSummaryData([]);
     } finally {
       setLoadingGpAttendanceSummary(false);
+    }
+  }, []);
+
+  // Fetch contractor-level attendance for a specific GP
+  const fetchContractorAttendanceForGp = useCallback(async (gp) => {
+    try {
+      console.log('🔄 Fetching contractor attendance for GP:', gp.name, 'ID:', gp.id);
+
+      const { startDate, endDate } = getAttendanceSummaryDateRange();
+
+      // Fetch attendance overview data for this specific GP
+      const response = await apiClient.get(`/attendance/overview`, {
+        params: {
+          gp_id: gp.id,
+          start_date: startDate,
+          end_date: endDate
+        }
+      });
+      const attendanceData = response.data;
+
+      console.log('✅ Attendance overview data fetched for GP:', attendanceData);
+
+      // Enrich GP with attendance details from overview
+      const enrichedGp = {
+        ...gp,
+        contractors: [{
+          id: gp.id,
+          name: gp.name,
+          attendance_rate: attendanceData.attendance_rate || 0,
+          present: attendanceData.present || 0,
+          absent: attendanceData.absent || 0,
+          attendancePercentage: attendanceData.attendance_rate ? attendanceData.attendance_rate.toFixed(2) : 0,
+          total_contractors: attendanceData.total_contractors || 0
+        }]
+      };
+
+      return enrichedGp;
+    } catch (error) {
+      console.error('Error fetching contractor attendance:', error);
+      return {
+        ...gp,
+        contractors: []
+      };
     }
   }, []);
 
@@ -3769,7 +3816,7 @@ const AttendanceContent = () => {
       )}
 
       {/* Attendance Summary Table */}
-      <div style={{
+      <div data-table-scroll style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -3798,7 +3845,15 @@ const AttendanceContent = () => {
             }}>
               Attendance
             </h2>
-            {viewingGpsAttendanceForBlock && (
+            {viewingContractorsForGp && (
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280'
+              }}>
+                {selectedBlockForGpsAttendance?.name} / {selectedGpForContractorAttendance?.name}
+              </span>
+            )}
+            {viewingGpsAttendanceForBlock && !viewingContractorsForGp && (
               <span style={{
                 fontSize: '14px',
                 color: '#6b7280'
@@ -3815,7 +3870,30 @@ const AttendanceContent = () => {
               </span>
             )}
           </div>
-          {viewingGpsAttendanceForBlock && (
+          {viewingContractorsForGp && (
+            <button
+              onClick={() => {
+                setSelectedGpForContractorAttendance(null);
+                setViewingContractorsForGp(false);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            >
+              ← Back to GPs
+            </button>
+          )}
+          {viewingGpsAttendanceForBlock && !viewingContractorsForGp && (
             <button
               onClick={() => {
                 setViewingGpsAttendanceForBlock(false);
@@ -3893,21 +3971,126 @@ const AttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  {viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                  {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
                 </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  Attendance %
-                </th>
+                {viewingContractorsForGp && (
+                  <>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Present
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Absent
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Attendance %
+                    </th>
+                  </>
+                )}
+                {!viewingContractorsForGp && (
+                  <th style={{
+                    padding: '12px',
+                    textAlign: 'center',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    Attendance %
+                  </th>
+                )}
               </tr>
             </thead>
-            <tbody>
-              {(viewingGpsAttendanceForBlock ? loadingGpAttendanceSummary : viewingBlocksAttendanceForDistrict ? loadingBlockAttendanceSummary : loadingDistrictAttendanceSummary) ? (
+            <tbody key={viewingContractorsForGp ? 'contractors-view' : 'summary-view'}>
+              {viewingContractorsForGp ? (
+                // Contractor-level view
+                selectedGpForContractorAttendance?.contractors && selectedGpForContractorAttendance.contractors.length > 0 ? (
+                  selectedGpForContractorAttendance.contractors.map((contractor) => (
+                    <tr key={contractor.id} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        {contractor.total_contractors}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        {contractor.present}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        {contractor.absent}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: contractor.attendancePercentage >= 75
+                            ? '#f0fdf4'
+                            : contractor.attendancePercentage >= 60
+                              ? '#fef3c7'
+                              : '#fef2f2',
+                          color: contractor.attendancePercentage >= 75
+                            ? '#10b981'
+                            : contractor.attendancePercentage >= 60
+                              ? '#f59e0b'
+                              : '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '12px'
+                        }}>
+                          {contractor.attendancePercentage}%
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" style={{
+                      padding: '40px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      No contractor attendance data available
+                    </td>
+                  </tr>
+                )
+              ) : (viewingGpsAttendanceForBlock ? loadingGpAttendanceSummary : viewingBlocksAttendanceForDistrict ? loadingBlockAttendanceSummary : loadingDistrictAttendanceSummary) ? (
                 <tr>
                   <td colSpan="2" style={{
                     padding: '40px',
@@ -3948,7 +4131,12 @@ const AttendanceContent = () => {
                           <div
                             onClick={() => {
                               if (viewingGpsAttendanceForBlock) {
-                                // GPs are not clickable
+                                // GPs are now clickable - fetch contractor attendance
+                                const enrichedGp = fetchContractorAttendanceForGp(item);
+                                enrichedGp.then((gp) => {
+                                  setSelectedGpForContractorAttendance(gp);
+                                  setViewingContractorsForGp(true);
+                                });
                               } else if (viewingBlocksAttendanceForDistrict) {
                                 // Clicking on block to view GPs
                                 fetchGpAttendanceSummary(item);
@@ -3958,22 +4146,18 @@ const AttendanceContent = () => {
                               }
                             }}
                             style={{
-                              cursor: !viewingGpsAttendanceForBlock ? 'pointer' : 'default',
-                              color: !viewingGpsAttendanceForBlock ? '#0866c6' : '#374151',
+                              cursor: 'pointer',
+                              color: '#0866c6',
                               textDecoration: 'none',
                               transition: 'color 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                              if (!viewingGpsAttendanceForBlock) {
-                                e.target.style.color = '#0550a3';
-                                e.target.style.textDecoration = 'underline';
-                              }
+                              e.target.style.color = '#0550a3';
+                              e.target.style.textDecoration = 'underline';
                             }}
                             onMouseLeave={(e) => {
-                              if (!viewingGpsAttendanceForBlock) {
-                                e.target.style.color = '#0866c6';
-                                e.target.style.textDecoration = 'none';
-                              }
+                              e.target.style.color = '#0866c6';
+                              e.target.style.textDecoration = 'none';
                             }}
                           >
                             {item.name}

@@ -14,7 +14,7 @@ export const useVDOLocation = () => {
 
 export const VDOLocationProvider = ({ children }) => {
   const { user } = useAuth();
-  
+
   // VDO's district ID, block ID, and GP ID from /me API (constant for VDO)
   const [vdoDistrictId, setVdoDistrictId] = useState(null);
   const [vdoDistrictName, setVdoDistrictName] = useState(null);
@@ -24,43 +24,50 @@ export const VDOLocationProvider = ({ children }) => {
   const [vdoGPName, setVdoGPName] = useState(null);
   const [loadingVDOData, setLoadingVDOData] = useState(true);
 
+  // Breadcrumb dropdown UI state - persists across module switches
+  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
+  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
+  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
+  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
+  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
+
   // Get VDO district, block, and village data directly from user object (from /me API)
- useEffect(() => {
-  if (user && user.district_id && user.block_id && user.village_id) {
+  useEffect(() => {
+    if (user && user.district_id && user.block_id && user.village_id) {
 
-    const districtId = user.district_id;
-    const blockId = user.block_id;
-    const gpId = user.village_id;
+      const districtId = user.district_id;
+      const blockId = user.block_id;
+      const gpId = user.village_id;
 
-    let districtName = '';
-    let blockName = '';
-    let gpName = '';
+      let districtName = '';
+      let blockName = '';
+      let gpName = '';
 
-    if (user.username) {
-      const parts = user.username.split(".");
-      districtName = parts[0] || '';
-      blockName = parts[1] || '';
-      gpName = parts[2] || '';
+      if (user.username) {
+        const parts = user.username.split(".");
+        districtName = parts[0] || '';
+        blockName = parts[1] || '';
+        gpName = parts[2] || '';
+      }
+
+      setVdoDistrictId(districtId);
+      setVdoDistrictName(districtName);
+
+      setVdoBlockId(blockId);
+      setVdoBlockName(blockName);
+
+      setVdoGPId(gpId);
+      setVdoGPName(gpName);
+
+      console.log("✅ VDO Location parsed from username:", {
+        districtName,
+        blockName,
+        gpName
+      });
+
+      setLoadingVDOData(false);
     }
-
-    setVdoDistrictId(districtId);
-    setVdoDistrictName(districtName);
-
-    setVdoBlockId(blockId);
-    setVdoBlockName(blockName);
-
-    setVdoGPId(gpId);
-    setVdoGPName(gpName);
-
-    console.log("✅ VDO Location parsed from username:", {
-      districtName,
-      blockName,
-      gpName
-    });
-
-    setLoadingVDOData(false);
-  }
-}, [user]);
+  }, [user]);
 
   // Get current location info - VDO always works at village level
   const getCurrentLocationInfo = useCallback(() => {
@@ -102,7 +109,20 @@ export const VDOLocationProvider = ({ children }) => {
     vdoGPId,
     vdoGPName,
     loadingVDOData,
-    
+    // Breadcrumb dropdown state
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
+
+    // Setters for breadcrumb dropdowns
+    setOpenBreadcrumbDropdown,
+    setBreadcrumbDistricts,
+    setBreadcrumbBlocks,
+    setBreadcrumbGps,
+    setLoadingBreadcrumb,
+
     // Actions
     getCurrentLocationInfo,
     getLocationPath
@@ -114,6 +134,11 @@ export const VDOLocationProvider = ({ children }) => {
     vdoGPId,
     vdoGPName,
     loadingVDOData,
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     getCurrentLocationInfo,
     getLocationPath
   ]);

@@ -37,6 +37,13 @@ export const BDOLocationProvider = ({ children }) => {
   const [dropdownLevel, setDropdownLevel] = useState('gps'); // Start with gps for BDO
   const [selectedGPForHierarchy, setSelectedGPForHierarchy] = useState(null);
 
+  // Breadcrumb dropdown UI state - persists across module switches
+  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
+  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
+  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
+  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
+  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
+
   // Change tracking state
   const [changeHistory, setChangeHistory] = useState([]);
   const [lastChange, setLastChange] = useState(null);
@@ -162,7 +169,7 @@ export const BDOLocationProvider = ({ children }) => {
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId, bdoDistrictId, bdoBlockId]);
 
 
-  
+
 
   // Track dropdown changes specifically
   const trackDropdownChange = useCallback((location, locationId, districtId = null, blockId = null, gpId = null) => {
@@ -277,6 +284,12 @@ export const BDOLocationProvider = ({ children }) => {
     selectedGPId,
     dropdownLevel,
     selectedGPForHierarchy,
+    // Breadcrumb dropdown state
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     changeHistory,
     lastChange,
     bdoDistrictId, // BDO-specific
@@ -292,6 +305,12 @@ export const BDOLocationProvider = ({ children }) => {
     setSelectedGPId,
     setDropdownLevel,
     setSelectedGPForHierarchy,
+    // Breadcrumb dropdown setters
+    setOpenBreadcrumbDropdown,
+    setBreadcrumbDistricts,
+    setBreadcrumbBlocks,
+    setBreadcrumbGps,
+    setLoadingBreadcrumb,
 
     // Actions
     updateLocationSelection,
@@ -311,6 +330,11 @@ export const BDOLocationProvider = ({ children }) => {
     selectedGPId,
     dropdownLevel,
     selectedGPForHierarchy,
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     changeHistory,
     lastChange,
     bdoDistrictId,

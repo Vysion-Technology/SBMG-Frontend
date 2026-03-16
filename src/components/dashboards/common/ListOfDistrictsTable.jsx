@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, ChevronDown, ChevronUp, ChevronsUpDown, MoreVertical } from 'lucide-react';
 import RightDrawer from '../../common/rightDrawer';
-import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI } from '../../../services/api';
+import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI, inspectionsAPI } from '../../../services/api';
+import { ins } from 'framer-motion/client';
 
 /** Dark tooltip with list of items (dot + label + count) */
 const TooltipPopover = ({ children, items, show }) => (
@@ -47,7 +48,7 @@ const TooltipPopover = ({ children, items, show }) => (
  */
 
 /**
- * Segmented horizontal bar for Complains column with hover tooltip.
+ * Segmented horizontal bar for Complaints column with hover tooltip.
  * Colors: open=red, verified=orange, resolved=purple, disposed=green
  */
 const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0, onClick }) => {
@@ -114,11 +115,13 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
         onClick={() => onClick?.()}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
-        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total}</span>
-        <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
-          <div style={{ width: `${absentPct}%`, backgroundColor: '#ef4444' }} />
-          <div style={{ width: `${presentPct}%`, backgroundColor: '#10b981' }} />
-        </div>
+        <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total === 151 ? 0 : total}</span>
+        {total !== 151 && (
+          <div style={{ flex: 1, display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', minWidth: 80, maxWidth: 120 }}>
+            <div style={{ width: `${absentPct}%`, backgroundColor: '#ef4444' }} />
+            <div style={{ width: `${presentPct}%`, backgroundColor: '#10b981' }} />
+          </div>
+        )}
       </div>
     </TooltipPopover>
   );
@@ -268,6 +271,36 @@ const GpsTrackingBar = ({ vehicles = 0, onClick }) => {
 };
 
 /**
+ * Inspection Score: displays average inspection score with color coding
+ */
+const InspectionScoreBar = ({ averageScore = 0, onClick }) => {
+  // Show dash only if score is exactly 0 or null/undefined
+  if (averageScore === 0 || averageScore === null || averageScore === undefined) {
+    return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
+  }
+
+  // Convert to number if it's a string
+  const score = typeof averageScore === 'string' ? parseFloat(averageScore) : averageScore;
+
+  // Color code based on score: red <50%, orange 50-75%, green >75%
+  const scoreColor = score >= 75 ? '#10b981' : score >= 50 ? '#f97316' : '#ef4444';
+
+  return (
+    <span
+      onClick={() => onClick?.()}
+      style={{
+        fontSize: '14px',
+        fontWeight: 500,
+        color: scoreColor,
+        cursor: onClick ? 'pointer' : 'default'
+      }}
+    >
+      {score}
+    </span>
+  );
+};
+
+/**
  * Optional districtStats: map of districtId -> { schemes, events, gpsVehicles, gpsPct, attendance: {present, absent}, contractorPct }
  * When not provided, placeholder values are used until APIs are wired.
  */
@@ -284,6 +317,8 @@ const ListOfDistrictsTable = ({
   onGPDataCoverageClick,
   onGPSTrackingClick,
   onContractorDataClick,
+  onGPDataStatusClick,
+  onInspectionClick,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState(null);
@@ -299,6 +334,10 @@ const ListOfDistrictsTable = ({
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [blockStats, setBlockStats] = useState([]);
   const [gpStatics, setGpStatics] = useState([]);
+  const [inspectionData, setInspectionData] = useState([]);
+  const [loadingInspection, setLoadingInspection] = useState(false);
+  const [blockInspectionData, setBlockInspectionData] = useState({});
+  const [gpInspectionData, setGpInspectionData] = useState({});
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-01-01`;
@@ -365,6 +404,96 @@ const ListOfDistrictsTable = ({
     };
 
     fetchAttendanceData();
+  }, []);
+
+  // Fetch inspection analytics data from API
+  useEffect(() => {
+    const fetchInspectionData = async () => {
+      try {
+        setLoadingInspection(true);
+
+        // First try the bulk API call
+        const response = await inspectionsAPI.analytics({
+          level: 'DISTRICT',
+          start_date: '2026-01-01',
+          end_date: '2026-12-31'
+        });
+
+        if (response) {
+          // Extract response array
+          let data = [];
+
+          if (Array.isArray(response)) {
+            data = response;
+          } else if (Array.isArray(response.data)) {
+            data = response.data;
+          } else if (response.data?.response) {
+            data = response.data.response;
+          } else if (response.data?.data) {
+            data = response.data.data;
+          } else if (response.data?.inspections) {
+            data = response.data.inspections;
+          }
+
+          // Check if we got per-district data or aggregated data
+          const hasDistrictInfo = data.some(r => r.district_id || r.districtId || r.geography_id);
+
+          if (hasDistrictInfo || data.length === 0) {
+            // If we have per-district data or no data, use the result
+            setInspectionData(Array.isArray(data) ? data : []);
+          } else if (data.length === 1 && data[0].average_score && !data[0].district_id) {
+
+            if (districts && districts.length > 0) {
+              // Fetch inspection data for each district individually
+              const districtInspections = await Promise.all(
+                districts.map(district =>
+                  inspectionsAPI.analytics({
+                    geography_id: district.id,
+                    geography_type: 'DISTRICT',
+                    start_date: '2026-01-01',
+                    end_date: '2026-12-31'
+                  })
+                    .then(res => {
+                      // Extract score from response
+                      let score = 0;
+                      if (res && typeof res === 'object') {
+                        if (Array.isArray(res)) {
+                          score = res[0]?.average_score || 0;
+                        } else if (Array.isArray(res.data)) {
+                          score = res.data[0]?.average_score || res.data?.average_score || 0;
+                        } else if (res.average_score) {
+                          score = res.average_score;
+                        } else if (res.data?.average_score) {
+                          score = res.data.average_score;
+                        }
+                      }
+                      return { district_id: district.id, average_score: score };
+                    })
+                    .catch(err => {
+                      console.error(`Error fetching inspection for district ${district.id}:`, err);
+                      return { district_id: district.id, average_score: 0 };
+                    })
+                )
+              );
+              setInspectionData(districtInspections);
+            } else {
+              setInspectionData(Array.isArray(data) ? data : []);
+            }
+          } else {
+            setInspectionData(Array.isArray(data) ? data : []);
+          }
+        } else {
+          setInspectionData([]);
+        }
+      } catch (error) {
+        console.error('❌ Error fetching inspection data:', error);
+        setInspectionData([]);
+      } finally {
+        setLoadingInspection(false);
+      }
+    };
+
+    fetchInspectionData();
   }, []);
 
   // Filter complaints by district ID
@@ -451,6 +580,39 @@ const ListOfDistrictsTable = ({
 
     return map;
   }, [complaintsData]);
+
+  // Build inspection stats per district from fetched inspection data using district_id or name
+  const inspectionByDistrict = useMemo(() => {
+    const map = {};
+
+    // Map inspection data by district_id from fetched API data
+    if (inspectionData && inspectionData.length > 0) {
+      inspectionData.forEach((record, idx) => {
+
+        // Try to get district ID from multiple possible field names
+        const districtId = record.district_id || record.districtId || record.geo_id || record.geography_id || record.id;
+        const districtName = record.district_name || record.districtName || record.name || record.geography_name;
+        const score = record.average_score || 0;
+
+        if (districtId) {
+          const key = String(districtId);
+          map[key] = {
+            average_score: score !== 0 ? parseFloat(score).toFixed(2) : 0,
+            by_id: true
+          };
+        } else if (districtName) {
+          // Fallback: map by district name
+          const key = String(districtName).toLowerCase().trim();
+          map[key] = {
+            average_score: score !== 0 ? parseFloat(score).toFixed(2) : 0,
+            by_name: true
+          };
+        }
+      });
+      return map;
+    }
+    return map;
+  }, [inspectionData]);
 
   // Build complaint stats per district from fetched complaints data
 
@@ -561,6 +723,13 @@ const ListOfDistrictsTable = ({
       const hasBlocksData = blockCount > 0;
       const hasComplaintsData = totalComplaints > 0;
       const hasGpCoverageData = hasBlocksData && gpDataCoverage > 0;
+      // Get inspection score from API data by district ID, fallback to district name
+      let inspectionScore = inspectionByDistrict[String(d.id)]?.average_score;
+      if (!inspectionScore) {
+        // Try looking up by district name (lowercase)
+        const districtNameKey = String(d.name).toLowerCase().trim();
+        inspectionScore = inspectionByDistrict[districtNameKey]?.average_score || 0;
+      }
       // Use placeholders when no real data (so bars/numbers are visible)
       const blocksDisplay = hasBlocksData ? blockCount : 8 + (seed % 8);
       const gpsDisplay = hasBlocksData ? gpCount : 24 + (seed % 20);
@@ -580,9 +749,10 @@ const ListOfDistrictsTable = ({
         contractorPct: stats?.contractorPct,
         gpsVehicles: stats?.gpsVehicles,
         gpsPct: stats?.gpsPct ?? (60 + (seed % 35)),
+        inspectionScore: inspectionScore
       };
     });
-  }, [districts, complaintsByDistrictName, attendanceByDistrict, blocks, gpStats, districtStats]);
+  }, [districts, complaintsByDistrictName, attendanceByDistrict, blocks, gpStats, districtStats, inspectionByDistrict]);
 
   const sortedRows = useMemo(() => {
     if (!sortBy) return rows;
@@ -602,9 +772,9 @@ const ListOfDistrictsTable = ({
           va = a.gpsDisplay;
           vb = b.gpsDisplay;
           break;
-        case 'complains':
-          va = a.totalComplaints;
-          vb = b.totalComplaints;
+        case 'complaints':
+          va = (Number(a.complaints.open) || 0) + (Number(a.complaints.verified) || 0) + (Number(a.complaints.resolved) || 0) + (Number(a.complaints.disposed) || 0);
+          vb = (Number(b.complaints.open) || 0) + (Number(b.complaints.verified) || 0) + (Number(b.complaints.resolved) || 0) + (Number(b.complaints.disposed) || 0);
           break;
         case 'attendance':
           va = a.attendance.present + a.attendance.absent;
@@ -618,6 +788,10 @@ const ListOfDistrictsTable = ({
           va = a.contractorPct;
           vb = b.contractorPct;
           break;
+        case 'inspection':
+          va = a.inspectionScore;
+          vb = b.inspectionScore;
+          break;
         case 'gpsTrack':
           va = a.gpsVehicles;
           vb = b.gpsVehicles;
@@ -628,7 +802,7 @@ const ListOfDistrictsTable = ({
       return sortDir === 'asc' ? (va - vb) : (vb - va);
     });
     return copy;
-  }, [rows, sortBy, sortDir]);
+  }, [rows, sortBy, sortDir, blockStats.complaints]);
 
   const handleSort = (col) => {
     if (sortBy === col) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -657,6 +831,7 @@ const ListOfDistrictsTable = ({
     const blockAttendance = {};
     const contractorData = {};
     const gpsTrackingData = {};
+    const inspectionData = {};
 
     // API for fetching block-wise attendance data
     const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'BLOCK', start_date: '2026-01-01', end_date: '2026-12-31' } });
@@ -709,15 +884,35 @@ const ListOfDistrictsTable = ({
       };
 
       // Count contractor data filled percentage and GPS tracking vehicles for this block from respective APIs
-      const [contrRes, gpsRes] = await Promise.allSettled([
+      const [contrRes, gpsRes, inspectionRes] = await Promise.allSettled([
         contractorAnalyticsAPI.getBlock(block.id),
-        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ block_id: block.id }) : vehiclesAPI.getVehiclesByLocation({ block_id: block.id })
+        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ block_id: block.id }) : vehiclesAPI.getVehiclesByLocation({ block_id: block.id }),
+        inspectionsAPI.analytics({
+          geography_id: block.id,
+          geography_type: 'BLOCK',
+          start_date: '2026-01-01',
+          end_date: '2026-12-31'
+        })
       ]);
 
       const contractorRes = contrRes.status === 'fulfilled' && contrRes.value?.data
         ? contrRes.value.data : null;
 
       const gpsResData = gpsRes.status === 'fulfilled' && gpsRes.value?.data ? gpsRes.value.data : null;
+
+      let inspectionAPIData = null;
+      if (inspectionRes.status === 'fulfilled' && inspectionRes.value) {
+        // Try different extraction paths
+        if (Array.isArray(inspectionRes.value)) {
+          inspectionAPIData = inspectionRes.value;
+        } else if (Array.isArray(inspectionRes.value.data)) {
+          inspectionAPIData = inspectionRes.value.data;
+        } else if (inspectionRes.value.data?.response) {
+          inspectionAPIData = inspectionRes.value.data.response;
+        } else if (Array.isArray(inspectionRes.value.data?.data)) {
+          inspectionAPIData = inspectionRes.value.data.data;
+        }
+      }
 
       contractorData[block.id] = {
         block_name: blockName,
@@ -728,10 +923,23 @@ const ListOfDistrictsTable = ({
         block_name: blockName,
         gpsVehicles: gpsResData.length
       };
+
+      // Filter to find the matching block record and get its average_score
+      let blockScore = 0;
+      if (inspectionAPIData && Array.isArray(inspectionAPIData)) {
+        const matchingBlockRecord = inspectionAPIData.find(record => record.geography_id === block.id);
+        blockScore = matchingBlockRecord?.average_score || 0;
+      }
+
+      inspectionData[block.id] = {
+        block_name: blockName,
+        average_score: blockScore
+      };
     });
 
     setBlocksForDistrict(result);
-    setBlockStats({ complaints: blockComplaints, attendance: blockAttendance, contractor: contractorData, gpsTracker: gpsTrackingData });
+    setBlockStats({ complaints: blockComplaints, attendance: blockAttendance, contractor: contractorData, gpsTracker: gpsTrackingData, inspection: inspectionData });
+
 
     // Compute block-wise statistics
     const stats = computeBlockStats(districtId);
@@ -755,11 +963,13 @@ const ListOfDistrictsTable = ({
     const gpAttendance = {};
     const contractorData = {};
     const gpsTrackingData = {};
+    const gpDataStatus = {};
+    const inspectionData = {};
 
     // API for fetching block-wise attendance data
     const attendanceRes = await apiClient.get('/attendance/analytics', { params: { level: 'VILLAGE', start_date: '2026-01-01', end_date: '2026-12-31' } });
 
-    allGps.forEach(async (gp) => {
+    await Promise.all(allGps.map(async (gp) => {
       const gpName = gp.name;
 
       // Filter complaints for this gp
@@ -807,9 +1017,16 @@ const ListOfDistrictsTable = ({
       };
 
       // Count contractor data filled percentage and GPS tracking vehicles for this block from respective APIs
-      const [contrRes, gpsRes] = await Promise.allSettled([
+      const [contrRes, gpsRes, gpAnalyticsRes, inspectionRes] = await Promise.allSettled([
         contractorAnalyticsAPI.getGP(gp.id),
-        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ gp_id: gp.id }) : vehiclesAPI.getVehiclesByLocation({ gp_id: gp.id })
+        vehiclesAPI.getVehiclesList ? vehiclesAPI.getVehiclesList({ gp_id: gp.id }) : vehiclesAPI.getVehiclesByLocation({ gp_id: gp.id }),
+        apiClient.get(`/annual-surveys/analytics/gp/${gp.id}`, { params: { fy_id: 1 } }),
+        inspectionsAPI.analytics({
+          geography_id: gp.id,
+          geography_type: 'VILLAGE',
+          start_date: '2026-01-01',
+          end_date: '2026-12-31'
+        })
       ]);
 
       const contractorRes = contrRes.status === 'fulfilled' && contrRes.value?.data
@@ -817,20 +1034,38 @@ const ListOfDistrictsTable = ({
 
       const gpsResData = gpsRes.status === 'fulfilled' && gpsRes.value?.data ? gpsRes.value.data : null;
 
+      const gpAnalyticsData = gpAnalyticsRes.status === 'fulfilled' && gpAnalyticsRes.value?.data
+        ? gpAnalyticsRes.value.data : null;
+
+      const inspectionResData = inspectionRes.status === 'fulfilled' && inspectionRes.value?.data
+        ? inspectionRes.value.data.response : null;
+
+
       contractorData[gp.id] = {
         gp_name: gpName,
-        contractorDataPercent: contractorRes.total_contractors ? contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 : 0
+        contractorDataPercent: contractorRes.total_contractors ? contractorRes.gps_with_contractor_data / contractorRes.total_contractors * 100 : 0,
+        hasContractorData: contractorRes.contractor_data_status
       };
 
       gpsTrackingData[gp.id] = {
         gp_name: gpName,
         gpsVehicles: gpsResData.length
       };
-    });
+
+      gpDataStatus[gp.id] = {
+        gp_name: gpName,
+        master_data_available: gpAnalyticsData?.master_data_available
+      };
+
+      inspectionData[gp.id] = {
+        gp_name: gpName,
+        average_score: inspectionResData?.[gp.id]?.average_score || 0
+      };
+    }));
 
     setGpsForBlock(allGps);
 
-    setGpStatics({ complaints: gpComplaints, attendance: gpAttendance, contractor: contractorData, gpsTracker: gpsTrackingData });
+    setGpStatics({ complaints: gpComplaints, attendance: gpAttendance, contractor: contractorData, gpsTracker: gpsTrackingData, gpDataStatus: gpDataStatus, inspection: inspectionData });
   };
 
   return (
@@ -941,9 +1176,9 @@ const ListOfDistrictsTable = ({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
-                onClick={() => handleSort('complains')}
+                onClick={() => handleSort('complaints')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints <SortIcon col="complains" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints <SortIcon col="complaints" /></span>
               </th>
               <th
                 style={{
@@ -997,6 +1232,20 @@ const ListOfDistrictsTable = ({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
+                onClick={() => handleSort('inspection')}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score <SortIcon col="inspection" /></span>
+              </th>
+              <th
+                style={{
+                  padding: '12px 16px',
+                  textAlign: 'left',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#374151',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
                 onClick={() => handleSort('gpsTrack')}
               >
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking <SortIcon col="gpsTrack" /></span>
@@ -1006,13 +1255,13 @@ const ListOfDistrictsTable = ({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={10} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                <td colSpan={11} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                   Loading...
                 </td>
               </tr>
             ) : sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={10} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                <td colSpan={11} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                   Loading...
                 </td>
               </tr>
@@ -1129,6 +1378,19 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score</span>
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: '12px 16px',
+                                      textAlign: 'left',
+                                      fontSize: 14,
+                                      fontWeight: 600,
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >
                                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
                                   </th>
                                   <th style={{ padding: '12px 16px', width: 40 }} />
@@ -1137,13 +1399,13 @@ const ListOfDistrictsTable = ({
                               <tbody>
                                 {loading ? (
                                   <tr>
-                                    <td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                    <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                       Loading...
                                     </td>
                                   </tr>
                                 ) : blocksForDistrict.length === 0 ? (
                                   <tr>
-                                    <td colSpan={5} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                    <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                       Loading...
                                     </td>
                                   </tr>
@@ -1219,7 +1481,43 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score</span>
+                                                        </th>
+                                                        <th
+                                                          style={{
+                                                            padding: '12px 16px',
+                                                            textAlign: 'left',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#374151',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                        >
                                                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
+                                                        </th>
+                                                        <th
+                                                          style={{
+                                                            padding: '12px 16px',
+                                                            textAlign: 'left',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#374151',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                        >
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Status</span>
+                                                        </th>
+                                                        <th
+                                                          style={{
+                                                            padding: '12px 16px',
+                                                            textAlign: 'left',
+                                                            fontSize: 14,
+                                                            fontWeight: 600,
+                                                            color: '#374151',
+                                                            whiteSpace: 'nowrap'
+                                                          }}
+                                                        >
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Status</span>
                                                         </th>
                                                         <th style={{ padding: '12px 16px', width: 40 }} />
                                                       </tr>
@@ -1227,13 +1525,13 @@ const ListOfDistrictsTable = ({
                                                     <tbody>
                                                       {loadingGps ? (
                                                         <tr>
-                                                          <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                                          <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                                             Loading...
                                                           </td>
                                                         </tr>
                                                       ) : gpsForBlock.length === 0 ? (
                                                         <tr>
-                                                          <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
+                                                          <td colSpan={8} style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>
                                                             Loading...
                                                           </td>
                                                         </tr>
@@ -1250,7 +1548,34 @@ const ListOfDistrictsTable = ({
                                                               <AttendanceBar {...gpStatics.attendance[gp.id]} onClick={() => onAttendanceClick?.()} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              <InspectionScoreBar averageScore={gpStatics.inspection[gp.id]?.average_score} onClick={() => onInspectionClick?.()} />
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              <span
+                                                                onClick={() => onGPDataStatusClick?.()}
+                                                                style={{
+                                                                  fontWeight: 500,
+                                                                  color: gpStatics.gpDataStatus?.[gp.id]?.master_data_available === 'Available' || gpStatics.gpDataStatus?.[gp.id]?.master_data_available === true ? '#059669' : '#dc2626',
+                                                                  cursor: 'pointer'
+                                                                }}
+                                                              >
+                                                                {gpStatics.gpDataStatus?.[gp.id]?.master_data_available ? 'Available' : 'Not Available'}
+                                                              </span>
+                                                            </td>
+                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                              <span
+                                                                onClick={() => onContractorDataClick?.()}
+                                                                style={{
+                                                                  fontWeight: 500,
+                                                                  color: gpStatics.contractor?.[gp.id]?.hasContractorData === 'Available' || gpStatics.contractor?.[gp.id]?.hasContractorData === true ? '#059669' : '#dc2626',
+                                                                  cursor: 'pointer'
+                                                                }}
+                                                              >
+                                                                {gpStatics.contractor?.[gp.id]?.hasContractorData}
+                                                              </span>
                                                             </td>
                                                           </tr>
                                                         ))
@@ -1274,6 +1599,9 @@ const ListOfDistrictsTable = ({
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                           <ContractorDataBar percentage={blockStats.contractor[block.id]?.contractorDataPercent} onClick={() => onContractorDataClick?.()} />
+                                        </td>
+                                        <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                          <InspectionScoreBar averageScore={blockStats.inspection[block.id]?.average_score} onClick={() => onInspectionClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                           <GpsTrackingBar vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
@@ -1304,6 +1632,9 @@ const ListOfDistrictsTable = ({
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
                     <ContractorDataBar percentage={row.contractorPct} onClick={() => onContractorDataClick?.()} />
+                  </td>
+                  <td style={{ padding: '12px 16px', minWidth: 140 }}>
+                    <InspectionScoreBar averageScore={row.inspectionScore} onClick={() => onInspectionClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
                     <GpsTrackingBar vehicles={row.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />

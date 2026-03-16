@@ -197,29 +197,57 @@ const UnifiedDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
 
+  const scrollToMainTable = () => {
+    // Scroll to the main data table after a brief delay to allow component to render
+    setTimeout(() => {
+      const tableContainer = document.querySelector('[data-table-scroll]');
+      if (tableContainer) {
+        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+  };
+
   const handleNavigateToComplaints = (filter) => {
     setComplaintsInitialFilter(filter);
     setActiveItem('Complaints');
+    scrollToMainTable();
   };
 
   const handleNavigateToAttendance = () => {
     setActiveItem('Attendance');
+    scrollToMainTable();
   };
 
   const handleNavigateToGPMasterData = () => {
     setActiveItem('GP Master Data');
+    scrollToMainTable();
   };
 
   const handleNavigateToGPSTracking = () => {
     setActiveItem('GPS Tracking');
+    scrollToMainTable();
   };
 
   const handleNavigateToContractorDetails = () => {
     setActiveItem('Contractor Details');
+    scrollToMainTable();
   };
 
   const handleNavigateToInspection = () => {
     setActiveItem('Inspection');
+    scrollToMainTable();
+  };
+
+  const handleNavigateToSchemes = () => {
+    setActiveItem('Schemes');
+    // Scroll to top to prevent auto-scrolling to bottom
+    window.scrollTo(0, 0);
+  };
+
+  const handleNavigateToEvents = () => {
+    setActiveItem('Events');
+    // Scroll to top to prevent auto-scrolling to bottom
+    window.scrollTo(0, 0);
   };
 
   useEffect(() => {
@@ -235,7 +263,7 @@ const UnifiedDashboard = () => {
   const renderContent = () => {
     switch (activeItem) {
       case 'Dashboard':
-        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} />;
+        return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} onNavigateToSchemes={handleNavigateToSchemes} onNavigateToEvents={handleNavigateToEvents} />;
       case 'Complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
       case 'Attendance':

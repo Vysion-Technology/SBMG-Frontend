@@ -1228,7 +1228,7 @@ const ContractorDetails = () => {
 
                 {/* Contractor Coverage Table Section - Only for State, Districts, and Blocks */}
                 {activeScope !== 'GPs' && (
-                    <div style={{
+                    <div data-table-scroll style={{
                         backgroundColor: 'white',
                         padding: '24px',
                         marginLeft: '16px',

@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Filter, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -434,7 +434,7 @@ const VillageMasterContent = () => {
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
-  const handleDownloadAnnualSurveys = async (item) => {
+  const handleDownloadAnnualSurveys = async (item, action = 'download') => {
     try {
       if (!selectedFyId) {
         alert("Please select a Financial Year.");
@@ -522,10 +522,11 @@ const VillageMasterContent = () => {
       // CASE 3: BLOCKS SCOPE -> Generate PDF
       // ==========================================
       else if (activeScope === "Blocks") {
+        console.log(`🔍 ${action === 'download' ? 'Fetching' : 'Viewing'} survey for GP ID: ${geoId}, FY ID: ${selectedFyId}`);
         const surveyListRes = await apiClient.get(
-          `/annual-surveys?gp_id=${geoId}&fy_id=${selectedFyId}`
+          `/annual-surveys/?gp_id=${geoId}&fy_id=${selectedFyId}`
         );
-        const surveyList = surveyListRes.data;
+        const surveyList = Array.isArray(surveyListRes.data) ? surveyListRes.data : (surveyListRes.data?.data || []);
 
         if (!surveyList || !surveyList.length) {
           alert("No survey found for this GP.");
@@ -533,8 +534,9 @@ const VillageMasterContent = () => {
         }
 
         const surveyId = surveyList[0].id;
+        console.log(`✅ Found survey ID: ${surveyId}, fetching full details...`);
         const surveyRes = await apiClient.get(`/annual-surveys/${surveyId}`);
-        generatePDF(surveyRes.data);
+        generatePDF(surveyRes.data, action);
       }
 
     } catch (error) {
@@ -2023,7 +2025,7 @@ const VillageMasterContent = () => {
                 ? '3fr  1fr 60px'
                 : '2fr 2fr 2fr 2fr 1.5fr 60px';
             return (
-              <div style={{
+              <div data-table-scroll style={{
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
                 maxHeight: '400px',
@@ -2049,8 +2051,7 @@ const VillageMasterContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                      ({totalGeographyCount})
+                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name ({totalGeographyCount})
                     </div>
 
                     {activeScope !== 'Blocks' && (
@@ -2165,7 +2166,7 @@ const VillageMasterContent = () => {
                           {item.master_data_status || 'Not Available'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button
                           type="button"
                           onClick={() => handleDownloadAnnualSurveys(item)}
@@ -2185,6 +2186,28 @@ const VillageMasterContent = () => {
                         >
                           <Download style={{ width: '18px', height: '18px' }} />
                         </button>
+
+                        {activeScope === 'Blocks' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadAnnualSurveys(item, 'view')}
+                            disabled={downloadingId === item.geography_id}
+                            title="View Data"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                              color: '#374151'
+                            }}
+                          >
+                            <Eye style={{ width: '18px', height: '18px' }} />
+                          </button>
+                        )}
                       </div>
                     </div>
 

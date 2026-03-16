@@ -113,6 +113,10 @@ const InspectionContent = () => {
   const [selectedBlockForGpsInspection, setSelectedBlockForGpsInspection] = useState(null);
   const [viewingGpsInspectionForBlock, setViewingGpsInspectionForBlock] = useState(false);
 
+  // Individual GP inspection issues view state
+  const [selectedGpForInspections, setSelectedGpForInspections] = useState(null);
+  const [viewingInspectionsForGp, setViewingInspectionsForGp] = useState(false);
+
   // Refs to prevent duplicate API calls
   const analyticsCallInProgress = useRef(false);
   const criticalIssuesCallInProgress = useRef(false);
@@ -1065,7 +1069,7 @@ const InspectionContent = () => {
       const enrichedBlocks = inspectionData.map(item => ({
         id: item.geography_id,
         name: item.geography_name,
-        total_inspections: item.inspected_blocks || 0,
+        total_inspections: item.inspected_gps || 0,
         average_score: item.average_score || 0,
         coverage_percentage: item.coverage_percentage || 0
       }));
@@ -1113,7 +1117,7 @@ const InspectionContent = () => {
       const enrichedGps = inspectionData.map(item => ({
         id: item.geography_id,
         name: item.geography_name,
-        total_inspections: item.inspected_blocks || 0,
+        total_inspections: item.inspected_gps || 0,
         average_score: item.average_score || 0,
         coverage_percentage: item.coverage_percentage || 0
       }));
@@ -1133,6 +1137,58 @@ const InspectionContent = () => {
       setGpInspectionSummaryData([]);
     } finally {
       setLoadingGpInspectionSummary(false);
+    }
+  }, []);
+
+  // Fetch individual inspection issues for a specific GP
+  const fetchInspectionsForGp = useCallback(async (gp) => {
+    try {
+      const { startDate, endDate } = getInspectionSummaryDateRange();
+
+      console.log('🔄 Fetching inspection issues for GP:', gp.name);
+
+      // Fetch inspection details/issues for this specific GP
+      const params = new URLSearchParams({
+        start_date: startDate,
+        end_date: endDate,
+        level: 'VILLAGE',
+        geography_id: gp.id
+      });
+
+      const response = await apiClient.get(`/inspections/analytics?${params.toString()}`);
+      const inspectionData = Array.isArray(response.data?.response) ? response.data.response : [];
+
+      console.log('✅ Inspection issues data fetched:', inspectionData.length, 'issues');
+
+      // Map inspection issues to a format suitable for display
+      const inspectionIssues = inspectionData.map((issue, index) => ({
+        id: issue.id || index,
+        title: issue.issue_type || issue.title || `Issue ${index + 1}`,
+        description: issue.description || 'No description',
+        severity: issue.severity || 'Medium',
+        status: issue.status || 'Pending',
+        score: issue.average_score || 0,
+        date: issue.inspection_date || new Date().toISOString().split('T')[0]
+      }));
+
+      const enrichedGp = {
+        ...gp,
+        inspections: inspectionIssues
+      };
+
+      setSelectedGpForInspections(enrichedGp);
+      setViewingInspectionsForGp(true);
+
+      return enrichedGp;
+    } catch (error) {
+      console.error('Error fetching inspection issues:', error);
+      const enrichedGp = {
+        ...gp,
+        inspections: []
+      };
+      setSelectedGpForInspections(enrichedGp);
+      setViewingInspectionsForGp(true);
+      return enrichedGp;
     }
   }, []);
 
@@ -1976,12 +2032,12 @@ const InspectionContent = () => {
             </div>
 
             <div
-            style={
-              {
-                display:'flex',
-                gap:'5px'
+              style={
+                {
+                  display: 'flex',
+                  gap: '5px'
+                }
               }
-            }
             >
 
               <div
@@ -2496,7 +2552,7 @@ const InspectionContent = () => {
 
       {/* Inspection Summary Table */}
       {!showMyInspections && (
-        <div style={{
+        <div data-table-scroll style={{
           backgroundColor: 'white',
           padding: '24px',
           marginLeft: '16px',
@@ -2532,14 +2588,39 @@ const InspectionContent = () => {
                 color: '#6b7280',
                 marginTop: '4px'
               }}>
-                {viewingGpsInspectionForBlock
-                  ? `${selectedBlockForGpsInspection?.name}`
-                  : viewingBlocksInspectionForDistrict
-                    ? `${selectedDistrictForBlocksInspection?.name}`
-                    : ''}
+                {viewingInspectionsForGp
+                  ? `${selectedBlockForGpsInspection?.name} / ${selectedGpForInspections?.name}`
+                  : viewingGpsInspectionForBlock
+                    ? `${selectedBlockForGpsInspection?.name}`
+                    : viewingBlocksInspectionForDistrict
+                      ? `${selectedDistrictForBlocksInspection?.name}`
+                      : ''}
               </span>
             </div>
-            {viewingGpsInspectionForBlock && (
+            {viewingInspectionsForGp && (
+              <button
+                onClick={() => {
+                  setSelectedGpForInspections(null);
+                  setViewingInspectionsForGp(false);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              >
+                ← Back to GPs
+              </button>
+            )}
+            {viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
               <button
                 onClick={() => {
                   setViewingGpsInspectionForBlock(false);
@@ -2598,7 +2679,7 @@ const InspectionContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 150px 150px 150px',
+              gridTemplateColumns: viewingInspectionsForGp ? '1fr 150px 150px 150px' : viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
@@ -2608,11 +2689,43 @@ const InspectionContent = () => {
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                {viewingGpsInspectionForBlock
-                  ? `GP Name (${gpInspectionSummaryData.length})`
-                  : viewingBlocksInspectionForDistrict
-                    ? `Block Name (${blockInspectionSummaryData.length})`
-                    : `District Name (${districtInspectionSummaryData.length})`}
+                {viewingInspectionsForGp
+                  ? `Issue`
+                  : viewingGpsInspectionForBlock
+                    ? `GP Name (${gpInspectionSummaryData.length})`
+                    : viewingBlocksInspectionForDistrict
+                      ? `Block Name (${blockInspectionSummaryData.length})`
+                      : `District Name (${districtInspectionSummaryData.length})`}
+              </div>
+              {viewingInspectionsForGp && (
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  textAlign: 'center'
+                }}>
+                  Inspection Severity
+                </div>
+              )}
+              {!viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
+                <div style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  textAlign: 'center'
+                }}>
+                  {viewingBlocksInspectionForDistrict
+                    ? `Inspected GPs`
+                    : `Inspected Blocks`}
+                </div>
+              )}
+              <div style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                textAlign: 'center'
+              }}>
+                {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
               </div>
               <div style={{
                 fontSize: '14px',
@@ -2620,23 +2733,7 @@ const InspectionContent = () => {
                 color: '#374151',
                 textAlign: 'center'
               }}>
-                Total Inspections
-              </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                textAlign: 'center'
-              }}>
-                Avg. Score
-              </div>
-              <div style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                textAlign: 'center'
-              }}>
-                Coverage %
+                {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
               </div>
             </div>
 
@@ -2645,7 +2742,103 @@ const InspectionContent = () => {
               maxHeight: '400px',
               overflowY: 'auto'
             }}>
-              {(viewingGpsInspectionForBlock
+              {viewingInspectionsForGp ? (
+                // Individual inspections view for a GP
+                selectedGpForInspections?.inspections && selectedGpForInspections.inspections.length > 0 ? (
+                  selectedGpForInspections.inspections.map((inspection) => (
+                    <div key={inspection.id} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 150px 150px 150px',
+                      padding: '12px 16px',
+                      alignItems: 'center',
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      {/* Issue Title Column */}
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        <div>{inspection.title}</div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          marginTop: '4px'
+                        }}>
+                          {inspection.description}
+                        </div>
+                      </div>
+
+                      {/* Severity Column */}
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: inspection.severity === 'High' ? '#fef2f2' : inspection.severity === 'Medium' ? '#fef3c7' : '#f0fdf4',
+                          color: inspection.severity === 'High' ? '#ef4444' : inspection.severity === 'Medium' ? '#f59e0b' : '#10b981',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {inspection.severity}
+                        </div>
+                      </div>
+
+                      {/* Status Column */}
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: inspection.status === 'Resolved' ? '#f0fdf4' : '#fef2f2',
+                          color: inspection.status === 'Resolved' ? '#10b981' : '#ef4444',
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          {inspection.status}
+                        </div>
+                      </div>
+
+                      {/* Score Column */}
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        textAlign: 'center',
+                        fontWeight: '500'
+                      }}>
+                        <div style={{
+                          display: 'inline-block',
+                          backgroundColor: inspection.score >= 75 ? '#f0fdf4' : inspection.score >= 60 ? '#fef3c7' : '#fef2f2',
+                          color: inspection.score >= 75 ? '#10b981' : inspection.score >= 60 ? '#f59e0b' : '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '12px'
+                        }}>
+                          {inspection.score.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '40px 20px',
+                    fontSize: '14px',
+                    color: '#6b7280'
+                  }}>
+                    No inspection issues found for this GP
+                  </div>
+                )
+              ) : (viewingGpsInspectionForBlock
                 ? loadingGpInspectionSummary
                 : viewingBlocksInspectionForDistrict
                   ? loadingBlockInspectionSummary
@@ -2683,7 +2876,7 @@ const InspectionContent = () => {
                   dataToDisplay.map((item) => (
                     <div key={item.id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 150px 150px 150px',
+                      gridTemplateColumns: viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
                       padding: '12px 16px',
                       alignItems: 'center',
                       borderBottom: '1px solid #f3f4f6'
@@ -2700,7 +2893,8 @@ const InspectionContent = () => {
                         <div
                           onClick={() => {
                             if (viewingGpsInspectionForBlock) {
-                              // GPs are not clickable
+                              // GPs are now clickable - fetch inspection issues
+                              fetchInspectionsForGp(item);
                             } else if (viewingBlocksInspectionForDistrict) {
                               // Clicking on block to view GPs
                               fetchGpInspectionSummary(item);
@@ -2710,37 +2904,35 @@ const InspectionContent = () => {
                             }
                           }}
                           style={{
-                            cursor: !viewingGpsInspectionForBlock ? 'pointer' : 'default',
-                            color: !viewingGpsInspectionForBlock ? '#0866c6' : '#374151',
+                            cursor: 'pointer',
+                            color: '#0866c6',
                             textDecoration: 'none',
                             transition: 'color 0.2s ease',
                             wordBreak: 'break-word'
                           }}
                           onMouseEnter={(e) => {
-                            if (!viewingGpsInspectionForBlock) {
-                              e.target.style.color = '#0550a3';
-                              e.target.style.textDecoration = 'underline';
-                            }
+                            e.target.style.color = '#0550a3';
+                            e.target.style.textDecoration = 'underline';
                           }}
                           onMouseLeave={(e) => {
-                            if (!viewingGpsInspectionForBlock) {
-                              e.target.style.color = '#0866c6';
-                              e.target.style.textDecoration = 'none';
-                            }
+                            e.target.style.color = '#0866c6';
+                            e.target.style.textDecoration = 'none';
                           }}
                         >
                           {item.name || item.geo_name || 'N/A'}
                         </div>
                       </div>
 
-                      {/* Total Inspections Column */}
-                      <div style={{
-                        fontSize: '14px',
-                        color: '#6b7280',
-                        textAlign: 'center'
-                      }}>
-                        {item.total_inspections}
-                      </div>
+                      {!viewingGpsInspectionForBlock && (
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#6b7280',
+                          textAlign: 'center'
+                        }}>
+                          {/* {console.log('item >> ', item)} */}
+                          {item.total_inspections}
+                        </div>
+                      )}
 
                       {/* Avg. Score Column */}
                       <div style={{

@@ -21,7 +21,7 @@ server {
 
     if ($request_method = TRACE) { return 405; }
 
-    location /api/ {
+    location ^~ /api/ {
         limit_except GET HEAD POST PUT PATCH OPTIONS DELETE { deny all; }
         if ($request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin $cors_allow_origin always;

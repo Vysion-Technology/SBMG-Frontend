@@ -2503,7 +2503,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       </div>
 
       {/* District Summary Table Section */}
-      <div style={{
+      <div data-table-scroll style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
