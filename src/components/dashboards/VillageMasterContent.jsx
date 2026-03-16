@@ -1,4 +1,4 @@
-import { Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -91,8 +91,8 @@ const VillageMasterContent = () => {
   // Sorting 
   const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
   const [sortConfig, setSortConfig] = useState({
-    key: 'geography_name',
-    direction: 'asc' // 'asc' | 'desc'
+    key: null,
+    direction: 'asc'
   });
 
   const handleSort = (key) => {
@@ -109,6 +109,22 @@ const VillageMasterContent = () => {
         };
       }
     });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
   };
 
 
@@ -480,7 +496,32 @@ const VillageMasterContent = () => {
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Blocks List");
-        XLSX.writeFile(workbook, `Blocks_of_${geoName}.xlsx`);
+        if (action === "view") {
+          const html = XLSX.utils.sheet_to_html(worksheet);
+
+          const win = window.open("", "_blank");
+          win.document.write(`
+    <html>
+      <head>
+        <title>Blocks of ${geoName}</title>
+        <style>
+          body{font-family:Arial;padding:20px}
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ddd;padding:8px;text-align:center}
+          th{background:#f3f4f6}
+        </style>
+      </head>
+      <body>
+        <h2>Blocks of ${geoName}</h2>
+        ${html}
+      </body>
+    </html>
+  `);
+          win.document.close();
+
+        } else {
+          XLSX.writeFile(workbook, `Blocks_of_${geoName}.xlsx`);
+        }
       }
 
       // ==========================================
@@ -515,7 +556,32 @@ const VillageMasterContent = () => {
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "GPs List");
-        XLSX.writeFile(workbook, `GPs_of_${geoName}.xlsx`);
+        if (action === "view") {
+          const html = XLSX.utils.sheet_to_html(worksheet);
+
+          const win = window.open("", "_blank");
+          win.document.write(`
+    <html>
+      <head>
+        <title>GPs of ${geoName}</title>
+        <style>
+          body{font-family:Arial;padding:20px}
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ddd;padding:8px;text-align:center}
+          th{background:#f3f4f6}
+        </style>
+      </head>
+      <body>
+        <h2>GPs of ${geoName}</h2>
+        ${html}
+      </body>
+    </html>
+  `);
+          win.document.close();
+
+        } else {
+          XLSX.writeFile(workbook, `GPs_of_${geoName}.xlsx`);
+        }
       }
 
       // ==========================================
@@ -1311,7 +1377,7 @@ const VillageMasterContent = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-      
+
       {/* Overview Section */}
       <div className="bg-white p-4 md:p-6 mx-2 md:mx-4 mt-1.5 rounded-lg border border-gray-300" style={{
         backgroundColor: 'white',
@@ -2046,12 +2112,29 @@ const VillageMasterContent = () => {
                     top: 0,
                     zIndex: 10
                   }}>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name ({totalGeographyCount})
+                    <div
+
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}
+                    >
+                      {activeScope === 'State'
+                        ? 'District'
+                        : activeScope === 'Districts'
+                          ? 'Block'
+                          : 'GP'} Name
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('geography_name')}>
+                        <SortIcon col="geography_name" />
+                      </span>
+
                     </div>
 
                     {activeScope !== 'Blocks' && (
@@ -2062,10 +2145,16 @@ const VillageMasterContent = () => {
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151'
+                          color: '#374151',
                         }}>
                         Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Gps'}
                         ({totalGpsSum})
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('total_gps')}>
+                          <SortIcon col="total_gps" />
+                        </span>
                       </div>)}
                     {activeScope !== 'Blocks' && (
                       <div
@@ -2079,6 +2168,13 @@ const VillageMasterContent = () => {
                         }}>
                         {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
                         ({loadingAnalytics ? '...' : formatNumber(getAnalyticsValue('total_village_master_data', 0))})
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('gps_with_data')}>
+                          <SortIcon col="gps_with_data" />
+                        </span>
+
                       </div>)}
 
                     {activeScope !== 'Blocks' && (
@@ -2092,7 +2188,14 @@ const VillageMasterContent = () => {
                           color: '#374151'
                         }}>
                         Coverage   ({loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`})
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('coverage_percentage')}>
+                          <SortIcon col="coverage_percentage" />
+                        </span>
                       </div>
+
                     )}
 
                     <div
@@ -2187,27 +2290,27 @@ const VillageMasterContent = () => {
                           <Download style={{ width: '18px', height: '18px' }} />
                         </button>
 
-                        {activeScope === 'Blocks' && (
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadAnnualSurveys(item, 'view')}
-                            disabled={downloadingId === item.geography_id}
-                            title="View Data"
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: '6px',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '6px',
-                              backgroundColor: 'white',
-                              cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
-                              color: '#374151'
-                            }}
-                          >
-                            <Eye style={{ width: '18px', height: '18px' }} />
-                          </button>
-                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadAnnualSurveys(item, 'view')}
+                          disabled={downloadingId === item.geography_id}
+                          title="View Data"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                            color: '#374151'
+                          }}
+                        >
+                          <Eye style={{ width: '18px', height: '18px' }} />
+                        </button>
+
                       </div>
                     </div>
 
@@ -2217,7 +2320,8 @@ const VillageMasterContent = () => {
             );
           })()}
         </div>
-      )}
+      )
+      }
 
 
       {/* Send Notice Modal */}
@@ -2229,7 +2333,7 @@ const VillageMasterContent = () => {
         kpiName={noticeModuleData.kpiName}
         kpiFigure={noticeModuleData.kpiFigure}
       />
-    </div>
+    </div >
   );
 };
 
