@@ -1259,13 +1259,21 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                       color: '#111827',
                       marginBottom: '4px',
                     }}>
-                      User
+                      {/* Role and Area Mapping */}
+                      {role === ROLES.VDO && ('VDO')}
+                      {role === ROLES.BDO && ('BDO')}
+                      {role === ROLES.CEO && ('CEO')}
+                      {role === ROLES.SMD && ('SMD')}
                     </div>
                     <div style={{
                       fontSize: '13px',
                       color: '#6b7280',
                     }}>
-                      {role === ROLES.CEO ? 'CEO' : role === ROLES.BDO ? 'BDO' : role === ROLES.VDO ? 'VDO' : 'Admin'}
+                      {/* Role and Area Mapping */}
+                      {role === ROLES.VDO && (vdoGPName || 'VDO')}
+                      {role === ROLES.BDO && (bdoBlockName || 'BDO')}
+                      {role === ROLES.CEO && (ceoDistrictName || 'CEO')}
+                      {role === ROLES.SMD && (ceoDistrictName || 'Rajasthan')}
                     </div>
                   </div>
                 </div>
