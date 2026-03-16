@@ -3004,7 +3004,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div data-complaints-list-table style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',

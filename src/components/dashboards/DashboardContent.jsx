@@ -678,7 +678,55 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   }, [districts, startDate, endDate]);
 
   // Fetch dashboard cards data (attendance, inspection, contractor, schemes, events, GP master, GPS)
+  // Synchronized with analytics fetch to update together when location/date changes
   useEffect(() => {
+    // When Custom is selected, do NOT call API until user picks dates and clicks Apply
+    if (isCustomRange && (!startDate || !endDate)) {
+      setAttendanceCardData(null);
+      setInspectionCardData(null);
+      setContractorCardData(null);
+      setSchemesCardData(null);
+      setEventsCardData(null);
+      setGpMasterCardData(null);
+      setGpsCardData(null);
+      return;
+    }
+
+    // Only fetch if we have the necessary location ID selected
+    if (activeScope === 'Districts' && !selectedDistrictId) {
+      // Clear all card data when waiting for district selection (e.g., Rajasthan clicked)
+      setAttendanceCardData(null);
+      setInspectionCardData(null);
+      setContractorCardData(null);
+      setSchemesCardData(null);
+      setEventsCardData(null);
+      setGpMasterCardData(null);
+      setGpsCardData(null);
+      return;
+    }
+    if (activeScope === 'Blocks' && !selectedBlockId) {
+      // Clear all card data when waiting for block selection
+      setAttendanceCardData(null);
+      setInspectionCardData(null);
+      setContractorCardData(null);
+      setSchemesCardData(null);
+      setEventsCardData(null);
+      setGpMasterCardData(null);
+      setGpsCardData(null);
+      return;
+    }
+    if (activeScope === 'GPs' && !selectedGPId) {
+      // Clear all card data when waiting for GP selection
+      setAttendanceCardData(null);
+      setInspectionCardData(null);
+      setContractorCardData(null);
+      setSchemesCardData(null);
+      setEventsCardData(null);
+      setGpMasterCardData(null);
+      setGpsCardData(null);
+      return;
+    }
+
     const params = { start_date: startDate, end_date: endDate };
     if (activeScope === 'Districts' && selectedDistrictId) params.district_id = selectedDistrictId;
     if (activeScope === 'Blocks' && selectedBlockId) params.block_id = selectedBlockId;
@@ -701,6 +749,14 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       setGpsCardError(null);
 
       try {
+        console.log('🔄 Fetching Dashboard Cards:', {
+          activeScope,
+          selectedDistrictId,
+          selectedBlockId,
+          selectedGPId,
+          params
+        });
+
         const contrPromise = activeScope === 'State'
           ? contractorAnalyticsAPI.getState()
           : params.district_id && activeScope === 'Districts'
@@ -710,6 +766,18 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
               : params.gp_id && activeScope === 'GPs'
                 ? contractorAnalyticsAPI.getGP(params.gp_id)
                 : contractorAnalyticsAPI.getState();
+
+        // Build dynamic GP Master Data API call based on active scope
+        const gpMasterPromise = activeScope === 'State'
+          ? annualSurveysAPI.analyticsState({ fy_id: 1 })
+          : params.district_id && activeScope === 'Districts'
+            ? annualSurveysAPI.analyticsDistrict(params.district_id, { fy_id: 1 })
+            : params.block_id && activeScope === 'Blocks'
+              ? annualSurveysAPI.analyticsBlock(params.block_id, { fy_id: 1 })
+              : params.gp_id && activeScope === 'GPs'
+                ? annualSurveysAPI.analyticsGP(params.gp_id, { fy_id: 1 })
+                : annualSurveysAPI.analyticsState({ fy_id: 1 });
+
         const inspParams = { ...params, level: activeScope === 'State' ? 'DISTRICT' : activeScope === 'Districts' ? 'BLOCK' : 'VILLAGE' };
         if (params.district_id) inspParams.district_id = params.district_id;
         if (params.block_id) inspParams.block_id = params.block_id;
@@ -729,7 +797,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           contrPromise,
           schemesAPI.getSchemes({ skip: 0, limit: 100, active: false }),
           eventsAPI.getEvents({ skip: 0, limit: 100, active: false }),
-          annualSurveysAPI.analyticsState({ fy_id: 1 }),
+          gpMasterPromise,
           vehiclesAPI.getVehiclesByLocation(params),
           inspectionsAPI.analytics(params)
         ]);
@@ -798,14 +866,31 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         if (eventsRes.status === 'rejected') setEventsCardError(eventsRes.reason?.message || 'Failed to load');
 
         // GP Master Data
+        console.log('📊 GP Master Res Status:', gpMasterRes.status);
+        console.log('📊 GP Master Response:', gpMasterRes.value?.data);
+
         if (gpMasterRes.status === 'fulfilled' && gpMasterRes.value?.data) {
           const d = gpMasterRes.value.data;
+          console.log('🔄 GP Master Card Data Updated:', {
+            activeScope,
+            selectedDistrictId,
+            selectedBlockId,
+            selectedGPId,
+            data: d
+          });
           setGpMasterCardData({
             total: d.total_village_master_data ?? 0,
             villageCoveragePercent: d.village_master_data_coverage_percentage ?? 0,
             totalFundsSanctioned: `₹${(d.total_funds_sanctioned * 100).toLocaleString('en-IN')} L` ?? 0
           });
-        } else setGpMasterCardData(null);
+        } else {
+          console.log('⚠️ GP Master Card Data - No data received:', {
+            activeScope,
+            status: gpMasterRes.status,
+            error: gpMasterRes.reason
+          });
+          setGpMasterCardData(null);
+        }
         if (gpMasterRes.status === 'rejected') setGpMasterCardError(gpMasterRes.reason?.message || 'Failed to load');
 
         // GPS Tracking Data
@@ -833,7 +918,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       }
     };
     fetchCards();
-  }, [startDate, endDate, activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange]);
 
   // Fetch districts from API
   const fetchDistricts = async () => {
@@ -1713,60 +1798,66 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       return;
     }
 
-    // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
+    // Only fetch if we have the necessary location ID selected
+    // Don't wait for sub-region data to load - just need the location ID for the current scope
+    if (activeScope === 'Districts' && !selectedDistrictId) {
+      // Clear data when waiting for district selection (e.g., Rajasthan clicked)
+      setAnalyticsData(null);
+      return;
     }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
+    if (activeScope === 'Blocks' && !selectedBlockId) {
+      // Clear data when waiting for block selection
+      setAnalyticsData(null);
+      return;
     }
     if (activeScope === 'GPs' && !selectedGPId) {
-      return; // Wait for GP selection
+      // Clear data when waiting for GP selection
+      setAnalyticsData(null);
+      return;
     }
 
     fetchAnalyticsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats]);
+  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange]);
 
   // Fetch complaints chart data when filters change (independent of overview date range)
   useEffect(() => {
-    // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
+    // Only fetch if we have the necessary location ID selected
+    // Don't wait for sub-region data to load - just need the location ID for the current scope
+    if (activeScope === 'Districts' && !selectedDistrictId) {
+      // Clear data when waiting for district selection
+      setComplaintsChartData(null);
+      return;
     }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
+    if (activeScope === 'Blocks' && !selectedBlockId) {
+      // Clear data when waiting for block selection
+      setComplaintsChartData(null);
+      return;
     }
     if (activeScope === 'GPs' && !selectedGPId) {
-      return; // Wait for GP selection
+      // Clear data when waiting for GP selection
+      setComplaintsChartData(null);
+      return;
     }
 
     fetchComplaintsChartData();
-  }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear, districts, blocks, gramPanchayats]);
+  }, [activeComplaintsFilter, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedComplaintsYear]);
 
   // Fetch performance data when scope or location changes
   useEffect(() => {
-    // Only fetch if we have the necessary location data loaded
-    if (activeScope === 'State' && districts.length === 0) {
-      return; // Wait for districts to load
+    // Only fetch if we have the necessary location ID selected
+    // Don't wait for sub-region data to load - just need the location ID for the current scope
+    if (activeScope === 'Districts' && !selectedDistrictId) {
+      return; // Wait for district selection
     }
-    if (activeScope === 'Districts' && (!selectedDistrictId || blocks.length === 0)) {
-      return; // Wait for blocks to load
-    }
-    if (activeScope === 'Blocks' && (!selectedBlockId || gramPanchayats.length === 0)) {
-      return; // Wait for GPs to load
+    if (activeScope === 'Blocks' && !selectedBlockId) {
+      return; // Wait for block selection
     }
     if (activeScope === 'GPs' && !selectedGPId) {
       return; // Wait for GP selection
     }
 
     fetchPerformanceData();
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, performanceMonth, selectedPerformanceYear, fetchPerformanceData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, performanceMonth, selectedPerformanceYear, fetchPerformanceData]);
 
   // Fetch Top 3 data when scope or month changes
   useEffect(() => {

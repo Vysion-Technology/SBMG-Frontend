@@ -197,10 +197,17 @@ const UnifiedDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
 
-  const scrollToMainTable = () => {
+  const scrollToMainTable = (scrollTarget = 'default') => {
     // Scroll to the main data table after a brief delay to allow component to render
     setTimeout(() => {
-      const tableContainer = document.querySelector('[data-table-scroll]');
+      let selector = '[data-table-scroll]';
+      
+      // For complaints, scroll to the complaints list table instead of district summary
+      if (scrollTarget === 'complaints-list') {
+        selector = '[data-complaints-list-table]';
+      }
+      
+      const tableContainer = document.querySelector(selector);
       if (tableContainer) {
         tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
@@ -210,7 +217,7 @@ const UnifiedDashboard = () => {
   const handleNavigateToComplaints = (filter) => {
     setComplaintsInitialFilter(filter);
     setActiveItem('Complaints');
-    scrollToMainTable();
+    scrollToMainTable('complaints-list');
   };
 
   const handleNavigateToAttendance = () => {

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Calendar, ChevronDown, ChevronUp, ChevronsUpDown, MoreVertical } from 'lucide-react';
 import RightDrawer from '../../common/rightDrawer';
 import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI, inspectionsAPI } from '../../../services/api';
+import { useLocation } from '../../../context/LocationContext';
 import { ins } from 'framer-motion/client';
 
 /** Dark tooltip with list of items (dot + label + count) */
@@ -321,6 +322,14 @@ const ListOfDistrictsTable = ({
   onInspectionClick,
   loading = false
 }) => {
+  // Location context for updating selected block/district/gp when clicking rows
+  const locationContext = useLocation();
+  const { 
+    selectedDistrictId, 
+    selectedBlockId, 
+    updateLocationSelection 
+  } = locationContext || {};
+
   const [sortBy, setSortBy] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
   const [blocksForDistrict, setBlocksForDistrict] = useState([]);
@@ -1267,7 +1276,17 @@ const ListOfDistrictsTable = ({
               </tr>
             ) : (
               sortedRows.map((row) => (
-                <tr key={row.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                <tr 
+                  key={row.id} 
+                  style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
+                  onClick={() => {
+                    // Update location context when district is clicked
+                    if (updateLocationSelection) {
+                      updateLocationSelection('Districts', row.name, row.id, row.id, null, null, 'table_click');
+                      console.log('🔍 District selected from table:', row.name, 'ID:', row.id);
+                    }
+                  }}
+                >
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ color: '#059669', fontWeight: 500, fontSize: 14 }}>{row.name}</span>
                   </td>
@@ -1414,7 +1433,18 @@ const ListOfDistrictsTable = ({
                                     const selectedBlockDetails = getGPbyBlock(block.id);
 
                                     return (
-                                      <tr key={block.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                      <tr 
+                                        key={block.id} 
+                                        style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
+                                        onClick={() => {
+                                          // Update location context when block is clicked
+                                          if (updateLocationSelection) {
+                                            const districtId = districts.find(d => d.id === selectedDistrictId)?.id || selectedDistrictId;
+                                            updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'table_click');
+                                            console.log('🔍 Block selected from table:', block.name, 'ID:', block.id);
+                                          }
+                                        }}
+                                      >
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                           <span style={{ fontWeight: 500, color: '#059669' }}>{block.name}</span>
                                         </td>
@@ -1537,7 +1567,17 @@ const ListOfDistrictsTable = ({
                                                         </tr>
                                                       ) : (
                                                         gpsForBlock.map((gp) => (
-                                                          <tr key={gp.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                                                          <tr 
+                                                            key={gp.id} 
+                                                            style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
+                                                            onClick={() => {
+                                                              // Update location context when GP is clicked
+                                                              if (updateLocationSelection) {
+                                                                updateLocationSelection('GPs', gp.name, gp.id, block.district_id, block.id, gp.id, 'table_click');
+                                                                console.log('🔍 GP selected from table:', gp.name, 'ID:', gp.id);
+                                                              }
+                                                            }}
+                                                          >
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <span style={{ fontWeight: 500, color: '#059669' }}>{gp.name}</span>
                                                             </td>

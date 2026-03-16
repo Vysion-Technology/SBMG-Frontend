@@ -607,11 +607,17 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   };
 
   const handleRajasthanClick = () => {
+    // Reset all hierarchical selections
     setSelectedDistrictForHierarchy(null);
     setSelectedBlockForHierarchy(null);
-    setActiveScope('Districts');
+
+    // Reset scope back to State (initial state) to match fresh dashboard load
+    setActiveScope('State');
     setDropdownLevel('districts');
-    updateLocationSelection('Districts', '', null, null, null, null, 'breadcrumb');
+
+    // Clear all location selections to force a fresh start
+    // This will reset district, block, and GP IDs to null, showing state-level data
+    updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'breadcrumb');
     setOpenBreadcrumbDropdown(null);
   };
 
