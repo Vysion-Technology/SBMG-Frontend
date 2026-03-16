@@ -318,6 +318,7 @@ const ListOfDistrictsTable = ({
   onGPSTrackingClick,
   onContractorDataClick,
   onGPDataStatusClick,
+  onInspectionClick,
   loading = false
 }) => {
   const [sortBy, setSortBy] = useState(null);
@@ -1547,7 +1548,7 @@ const ListOfDistrictsTable = ({
                                                               <AttendanceBar {...gpStatics.attendance[gp.id]} onClick={() => onAttendanceClick?.()} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <InspectionScoreBar averageScore={gpStatics.inspection[gp.id]?.average_score} onClick={() => onGPSTrackingClick?.()} />
+                                                              <InspectionScoreBar averageScore={gpStatics.inspection[gp.id]?.average_score} onClick={() => onInspectionClick?.()} />
                                                             </td>
                                                             <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                                               <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
@@ -1600,7 +1601,7 @@ const ListOfDistrictsTable = ({
                                           <ContractorDataBar percentage={blockStats.contractor[block.id]?.contractorDataPercent} onClick={() => onContractorDataClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <InspectionScoreBar averageScore={blockStats.inspection[block.id]?.average_score} onClick={() => onGPSTrackingClick?.()} />
+                                          <InspectionScoreBar averageScore={blockStats.inspection[block.id]?.average_score} onClick={() => onInspectionClick?.()} />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                           <GpsTrackingBar vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
@@ -1633,7 +1634,7 @@ const ListOfDistrictsTable = ({
                     <ContractorDataBar percentage={row.contractorPct} onClick={() => onContractorDataClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <InspectionScoreBar averageScore={row.inspectionScore} onClick={() => onGPSTrackingClick?.()} />
+                    <InspectionScoreBar averageScore={row.inspectionScore} onClick={() => onInspectionClick?.()} />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
                     <GpsTrackingBar vehicles={row.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />

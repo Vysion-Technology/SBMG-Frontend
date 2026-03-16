@@ -2496,6 +2496,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         onGPSTrackingClick={() => onNavigateToGPSTracking?.()}
         onContractorDataClick={() => onNavigateToContractorDetails?.()}
         onGPDataStatusClick={() => onNavigateToGPMasterData?.()}
+        onInspectionClick={() => onNavigateToInspection?.()}
         loading={loadingDistrictStats || loadingAnalytics}
       />
 
