@@ -5,38 +5,83 @@ import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI, inspecti
 import { useLocation } from '../../../context/LocationContext';
 import { ins } from 'framer-motion/client';
 
-/** Dark tooltip with list of items (dot + label + count) */
-const TooltipPopover = ({ children, items, show }) => (
-  <div style={{ position: 'relative', display: 'inline-block' }}>
-    {children}
-    {show && items.length > 0 && (
-      <div
-        style={{
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          marginTop: 6,
-          padding: '10px 12px',
-          backgroundColor: '#374151',
-          borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 99999,
-          minWidth: 200,
-          pointerEvents: 'none',
-          whiteSpace: 'nowrap'
-        }}
-      >
-        {items.map(({ color, label, value }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: 13, color: '#fff' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>{label}</span>
-            <span style={{ fontWeight: 600 }}>{value}</span>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
+/** Dark tooltip with list of items (dot + label + count) - uses fixed positioning to escape scroll containers */
+const TooltipPopover = ({ children, items, show }) => {
+  const [position, setPosition] = useState({ top: 0, left: 0, placement: 'bottom' });
+  const triggerRef = React.useRef(null);
+  const tooltipRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!show || !triggerRef.current) return;
+
+    const updatePosition = () => {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const tooltipHeight = tooltipRef.current?.offsetHeight || 120;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const gap = 6;
+
+      let placement = 'bottom';
+      let top = rect.bottom + gap;
+
+      // If not enough space below (less than 150px), show above
+      if (spaceBelow < 150 && spaceAbove > tooltipHeight + gap) {
+        placement = 'top';
+        top = rect.top - tooltipHeight - gap;
+      }
+
+      setPosition({
+        top,
+        left: rect.left,
+        placement
+      });
+    };
+
+    // Update on show and on window events
+    updatePosition();
+    const timer = setTimeout(updatePosition, 0);
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [show]);
+
+  return (
+    <div ref={triggerRef} style={{ position: 'relative', display: 'inline-block' }}>
+      {children}
+      {show && items.length > 0 && (
+        <div
+          ref={tooltipRef}
+          style={{
+            position: 'fixed',
+            top: position.top,
+            left: position.left,
+            padding: '10px 12px',
+            backgroundColor: '#374151',
+            borderRadius: 8,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 99999,
+            minWidth: 200,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {items.map(({ color, label, value }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontSize: 13, color: '#fff' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{label}</span>
+              <span style={{ fontWeight: 600 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 /**
  * List of Districts table.
@@ -324,10 +369,10 @@ const ListOfDistrictsTable = ({
 }) => {
   // Location context for updating selected block/district/gp when clicking rows
   const locationContext = useLocation();
-  const { 
-    selectedDistrictId, 
-    selectedBlockId, 
-    updateLocationSelection 
+  const {
+    selectedDistrictId,
+    selectedBlockId,
+    updateLocationSelection
   } = locationContext || {};
 
   const [sortBy, setSortBy] = useState(null);
@@ -1276,8 +1321,8 @@ const ListOfDistrictsTable = ({
               </tr>
             ) : (
               sortedRows.map((row) => (
-                <tr 
-                  key={row.id} 
+                <tr
+                  key={row.id}
                   style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
                   onClick={() => {
                     // Update location context when district is clicked
@@ -1433,8 +1478,8 @@ const ListOfDistrictsTable = ({
                                     const selectedBlockDetails = getGPbyBlock(block.id);
 
                                     return (
-                                      <tr 
-                                        key={block.id} 
+                                      <tr
+                                        key={block.id}
                                         style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
                                         onClick={() => {
                                           // Update location context when block is clicked
@@ -1567,8 +1612,8 @@ const ListOfDistrictsTable = ({
                                                         </tr>
                                                       ) : (
                                                         gpsForBlock.map((gp) => (
-                                                          <tr 
-                                                            key={gp.id} 
+                                                          <tr
+                                                            key={gp.id}
                                                             style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
                                                             onClick={() => {
                                                               // Update location context when GP is clicked
