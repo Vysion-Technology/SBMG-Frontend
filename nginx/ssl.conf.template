@@ -11,6 +11,7 @@ server {
 
     # Disable server version disclosure (Security Misconfiguration fix)
     server_tokens off;
+    client_max_body_size 20M;
     root /usr/share/nginx/html;
     index index.html;
 
