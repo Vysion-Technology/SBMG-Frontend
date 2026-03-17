@@ -6,6 +6,7 @@ import LocationDisplay from '../common/LocationDisplay';
 import { useLocation } from '../../context/LocationContext';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
+import ComplaintDetailsPopup from './common/ComplaintDetailsPopup';
 
 const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Shared location state via context
@@ -163,6 +164,17 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
+
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
+
+
+  const handleOpenComplaintDetails = (id) => {
+    console.log('detailssssssssssssssssssssssssssssssssss-------------', id)
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
+  };
 
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Year');
@@ -1755,6 +1767,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status,
@@ -2106,7 +2119,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
   return (
     <div>
-      
+
 
       {/* Overview Section */}
       <div style={{
@@ -2755,15 +2768,19 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 // Individual complaints view for a GP
                 selectedGPForComplaints?.complaints && selectedGPForComplaints.complaints.length > 0 ? (
                   selectedGPForComplaints.complaints.map((complaint) => (
-                    <tr key={complaint.id} style={{
-                      borderBottom: '1px solid #f3f4f6'
-                    }}>
-                      <td style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500'
+                    <tr
+                      onClick={() => handleOpenComplaintDetails(complaint.id)}
+                      style={{
+                        borderBottom: '1px solid #f3f4f6',cursor:'pointer'
                       }}>
+
+                      <td
+                        style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151',
+                          fontWeight: '500'
+                        }}>
                         {complaint.id}
                       </td>
                       <td style={{
@@ -3356,9 +3373,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
                 return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6', cursor: 'pointer'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -3431,7 +3450,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
                         <button
-                          onClick={() => handleOpenNoticeModal(complaint)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenNoticeModal(complaint);
+                          }}
                           style={{
                             padding: '6px 12px',
                             backgroundColor: 'transparent',
@@ -3490,6 +3512,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (
