@@ -33,7 +33,7 @@ const getMarkerIcon = (status) => {
   };
 
   const color = colors[status?.toLowerCase()] || colors.inactive;
-  
+
   // Use a custom SVG marker with truck icon
   const svgMarker = `
     <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -52,16 +52,16 @@ const getMarkerIcon = (status) => {
 /**
  * GoogleMapView component to display vehicles on a map
  */
-const GoogleMapView = ({ 
-  vehicles = [], 
+const GoogleMapView = ({
+  vehicles = [],
   selectedVehicle = null,
-  onVehicleSelect = () => {},
+  onVehicleSelect = () => { },
   center = null,
   zoom = 13,
 }) => {
   // Get API key once and memoize it
   const apiKey = React.useMemo(() => import.meta.env.VITE_GOOGLE_MAPS_API_KEY, []);
-  
+
   // Debug: Check if API key is available
   React.useEffect(() => {
     console.log('🗺️ Google Maps API Key:', apiKey ? `${apiKey.substring(0, 10)}...` : 'NOT FOUND');
@@ -78,14 +78,14 @@ const GoogleMapView = ({
   // Calculate center based on vehicles if not provided
   const mapCenter = React.useMemo(() => {
     if (center) return center;
-    
+
     if (vehicles.length === 0) return defaultCenter;
-    
+
     // If there's a selected vehicle, center on it
     if (selectedVehicle?.coordinates) {
       return selectedVehicle.coordinates;
     }
-    
+
     // Otherwise, center on first vehicle with coordinates
     const vehicleWithCoords = vehicles.find(v => v.coordinates?.lat && v.coordinates?.lng);
     return vehicleWithCoords?.coordinates || defaultCenter;
@@ -149,13 +149,13 @@ const GoogleMapView = ({
           alignItems: 'center',
           gap: '12px',
         }}>
-          <Loader 
-            style={{ 
-              width: '48px', 
-              height: '48px', 
+          <Loader
+            style={{
+              width: '48px',
+              height: '48px',
               color: '#10b981',
               animation: 'spin 1s linear infinite',
-            }} 
+            }}
           />
           <div style={{
             fontSize: '14px',

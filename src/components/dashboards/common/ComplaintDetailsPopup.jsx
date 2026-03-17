@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import ResolutionPopup from "./ResolutionPopup";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
+import { useJsApiLoader } from "@react-google-maps/api";
 
 const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
@@ -8,6 +9,42 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
     const [complaint, setComplaint] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [fullAddress, setFullAddress] = useState("");
+
+
+
+    const getAddressFromLatLng = (lat, lng) => {
+
+        if (!window.google) return;
+
+        const geocoder = new window.google.maps.Geocoder();
+
+        geocoder.geocode(
+            { location: { lat: parseFloat(lat), lng: parseFloat(lng) } },
+            (results, status) => {
+
+                console.log("Geocode results:", results);
+
+                if (status === "OK" && results.length > 0) {
+
+                    const detailedResult =
+                        results.find(r => r.types.includes("point_of_interest")) ||
+                        results.find(r => r.types.includes("premise")) ||
+                        results[1] ||
+                        results[0];
+
+                    setFullAddress(detailedResult.formatted_address);
+
+                }
+
+            }
+        );
+
+    };
+
+    const { isLoaded } = useJsApiLoader({
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    });
 
     useEffect(() => {
 
@@ -33,6 +70,19 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
         fetchComplaintDetails();
 
     }, [complaintId, open]);
+
+    useEffect(() => {
+
+        if (!complaint || !isLoaded) return;
+
+        console.log("Lat:", complaint.lat);
+        console.log("Long:", complaint.long);
+
+        if (complaint.lat && complaint.long) {
+            getAddressFromLatLng(complaint.lat, complaint.long);
+        }
+
+    }, [complaint, isLoaded]);
 
 
     if (!open) return null;
@@ -96,7 +146,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
         }
 
     ].filter(Boolean);
-    
+
     const formatDate = (date) =>
         new Date(date).toLocaleString("en-IN", {
             day: "2-digit",
@@ -142,15 +192,17 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                         ))}
                     </div>
 
-                    <h3 style={{ fontSize: '16px' }}>{complaint?.complaint_type?.name || "Complaint"}</h3>
-                    <h4
-                        style={{ fontSize: '14px' }}
-                    >
-                        Created: {formatDate(complaint?.created_at)}
-                    </h4>
+                    <div style={{display:"flex" , justifyContent:'space-between',padding:'0 5px'}}>
+                        <h3 style={{ fontSize: '16px' }}>{complaint?.complaint_type?.name || "Complaint"}</h3>
+                        <h4
+                            style={{ fontSize: '12px' }}
+                        >
+                            Created: {formatDate(complaint?.created_at)}
+                        </h4>
+                    </div>
 
                     <p style={{ fontSize: "13px", color: "#666" }}>
-                        📍 {complaint.location}
+                        📍 {fullAddress || complaint.location}
                     </p>
 
                     <p style={{ fontSize: "14px", marginTop: "5px" }}>
