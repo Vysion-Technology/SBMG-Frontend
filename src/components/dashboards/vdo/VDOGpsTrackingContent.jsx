@@ -1,14 +1,14 @@
-import React, { useState, useMemo } from "react";
-import { Plus, MapPin } from 'lucide-react';
-import GoogleMapView from '../gps/GoogleMapView';
-import FleetSidebar from '../gps/FleetSidebar';
-import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
+import { MapPin, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { useVDOLocation } from '../../../context/VDOLocationContext';
+import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../../hooks/useAddVehicle';
+import { useVehicleDetails } from '../../../hooks/useVehicleDetails';
+import { filterVehiclesByStatus, searchVehicles, useVehicles } from '../../../hooks/useVehicles';
 import AddVehicleModal from '../gps/AddVehicleModal';
 import DeleteConfirmModal from '../gps/DeleteConfirmModal';
-import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../../hooks/useVehicles';
-import { useVehicleDetails } from '../../../hooks/useVehicleDetails';
-import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../../hooks/useAddVehicle';
-import { useVDOLocation } from '../../../context/VDOLocationContext';
+import FleetSidebar from '../gps/FleetSidebar';
+import GoogleMapView from '../gps/GoogleMapView';
+import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
 
 const VDOGpsTrackingContent = () => {
     const vdoLocation = useVDOLocation();
@@ -118,6 +118,16 @@ const VDOGpsTrackingContent = () => {
         `Running(${String(fleetStats.running).padStart(2, '0')})`,
         `Stopped(${String(fleetStats.stopped).padStart(2, '0')})`,
     ], [fleetStats]);
+
+    // Sync active tab with updated counts
+    useEffect(() => {
+        setActiveFleetTab(prev => {
+            const prevStr = typeof prev === 'string' ? prev : 'All(00)';
+            const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
+            const newTab = fleetTabs.find(t => t.startsWith(statusKey));
+            return newTab || fleetTabs[0];
+        });
+    }, [fleetTabs]);
 
     const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 

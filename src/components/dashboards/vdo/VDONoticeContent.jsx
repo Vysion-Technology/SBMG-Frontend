@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Search, Download, List, ArrowUpRight, ArrowDownLeft, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Download, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from 'xlsx';
 import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 
@@ -233,6 +234,111 @@ const VDONoticeContent = () => {
     setReplyText('');
   };
   const closeRepliesModal = () => setRepliesModal({ isOpen: false, notice: null });
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortConfig.key !== col) {
+      return <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />;
+    }
+    return sortConfig.direction === 'asc'
+      ? <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+      : <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />;
+  };
+
+  const getSortValue = (notice, key) => {
+    if (key === 'noticeId') return String(notice.noticeId ?? '');
+    if (key === 'date') return new Date(notice.date || notice.createdAt || notice.created_at || null).getTime() || 0;
+    if (key === 'assigned') {
+      const person = viewMode === 'received' ? notice.sender : notice.receiver;
+      return getSenderName(person);
+    }
+    if (key === 'category') return notice.category || '';
+    if (key === 'subject') return notice.subject || '';
+    if (key === 'status') return notice.status || '';
+    return '';
+  };
+
+  const sortedNotices = useMemo(() => {
+    if (!sortConfig.key) {
+      return filteredNotices;
+    }
+
+    return [...filteredNotices].sort((a, b) => {
+      const valueA = getSortValue(a, sortConfig.key);
+      const valueB = getSortValue(b, sortConfig.key);
+
+      if (sortConfig.key === 'date') {
+        return sortConfig.direction === 'asc' ? valueA - valueB : valueB - valueA;
+      }
+
+      const aStr = String(valueA).toLowerCase();
+      const bStr = String(valueB).toLowerCase();
+
+      if (aStr < bStr) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [filteredNotices, sortConfig, viewMode]);
+
+  const exportNoticesToExcel = () => {
+    try {
+      const dataToExport = sortedNotices;
+      if (!dataToExport.length) {
+        alert('No notices to export');
+        return;
+      }
+
+      const formattedData = dataToExport.map((notice) => ({
+        'Notice ID': notice.noticeId || 'N/A',
+        'Date': notice.date ? formatDate(notice.date) : 'N/A',
+        [getAssignedLabel()]: viewMode === 'received'
+          ? getSenderName(notice.sender)
+          : getSenderName(notice.receiver),
+        'Category': notice.category || 'N/A',
+        'Subject': notice.subject || 'N/A',
+        'Status': notice.status || 'N/A'
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(formattedData);
+      worksheet['!cols'] = [
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 35 },
+        { wch: 25 },
+        { wch: 45 },
+        { wch: 20 }
+      ];
+
+      const headerCells = ['A1','B1','C1','D1','E1','F1'];
+      headerCells.forEach(cell => {
+        if (worksheet[cell]) {
+          worksheet[cell].s = {
+            fill: { fgColor: { rgb: 'FFdbf0ff' } },
+            font: { bold: true, color: { rgb: 'FF000000' } }
+          };
+        }
+      });
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Notices');
+
+      const dateSuffix = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `notices_${viewMode}_${dateSuffix}.xlsx`);
+    } catch (error) {
+      console.error('Error exporting notices to Excel:', error);
+      alert('Failed to export notices. Please try again.');
+    }
+  };
 
   // Handle reply submission
   const handleReplySubmit = async (notice) => {
@@ -512,21 +618,24 @@ const VDONoticeContent = () => {
                         </div>
 
                         {/* Export Button */}
-                        <button style={{
+                        <button
+                          onClick={exportNoticesToExcel}
+                          style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
                             backgroundColor: '#10b981',
                             color: 'white',
                             border: 'none',
-                                            borderRadius: '8px',
+                            borderRadius: '8px',
                             padding: '10px 16px',
                             cursor: 'pointer',
-                                            fontSize: '14px',
+                            fontSize: '14px',
                             fontWeight: '500'
-                        }}>
-                            <Download style={{ width: '16px', height: '16px' }} />
-                       
+                          }}
+                        >
+                          <Download style={{ width: '16px', height: '16px' }} />
+                          Export
                         </button>
 
                                     </div>
@@ -543,77 +652,107 @@ const VDONoticeContent = () => {
                                 backgroundColor: '#f9fafb',
                                 borderBottom: '1px solid #e5e7eb'
                             }}>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
+                                <th
+                                  onClick={() => handleSort('noticeId')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         Notice ID
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                                        <SortIcon col="noticeId" />
                                     </div>
                                 </th>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
+                                <th
+                                  onClick={() => handleSort('date')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         Date
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            </div>
-                                </th>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        {getAssignedLabel()}
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                        </div>
-                                </th>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        Category
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                                        <SortIcon col="date" />
                                     </div>
                                 </th>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
+                                <th
+                                  onClick={() => handleSort('assigned')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        {getAssignedLabel()}
+                                        <SortIcon col="assigned" />
+                                    </div>
+                                </th>
+                                <th
+                                  onClick={() => handleSort('category')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        Category
+                                        <SortIcon col="category" />
+                                    </div>
+                                </th>
+                                <th
+                                  onClick={() => handleSort('subject')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         Subject
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                        </div>
+                                        <SortIcon col="subject" />
+                                    </div>
                                 </th>
-                                <th style={{
-                                    padding: '12px 24px',
-                                    textAlign: 'left',
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
+                                <th
+                                  onClick={() => handleSort('status')}
+                                  style={{
+                                      padding: '12px 24px',
+                                      textAlign: 'left',
+                                      fontSize: '14px',
+                                      fontWeight: '600',
+                                      color: '#374151',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                  }}
+                                >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         Status
-                                        <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                        </div>
+                                        <SortIcon col="status" />
+                                    </div>
                                 </th>
                                 <th style={{
                                     padding: '12px 24px',
@@ -636,14 +775,14 @@ const VDONoticeContent = () => {
                                         Loading notices...
                                     </td>
                                 </tr>
-                            ) : ((viewMode === 'received' ? errorReceived : errorSent) || filteredNotices.length === 0) ? (
+                            ) : ((viewMode === 'received' ? errorReceived : errorSent) || sortedNotices.length === 0) ? (
                                 <tr>
                                     <td colSpan={7} style={{ padding: 0 }}>
                                         <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>No data available</div>
                                     </td>
                                 </tr>
                             ) : (
-                                filteredNotices.map((notice) => (
+                                sortedNotices.map((notice) => (
                                     <tr key={notice.id} style={{
                                         borderBottom: '1px solid #e5e7eb',
                                         backgroundColor: 'white'

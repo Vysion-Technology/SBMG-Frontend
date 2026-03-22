@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import apiClient from "../../../services/api";
 
 const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
@@ -149,6 +149,19 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
                                         onClick={() => {
                                             setSelectedDistrict(d);
                                             fetchBlocks(d.id);
+                                            if (onSelect) {
+                                                onSelect({
+                                                    scope: 'Districts',
+                                                    location: d.name,
+                                                    locationId: d.id,
+                                                    districtId: d.id,
+                                                    blockId: null,
+                                                    gpId: null,
+                                                    districtName: d.name,
+                                                    blockName: null,
+                                                    gpName: null
+                                                });
+                                            }
                                         }}
                                     >
 
@@ -198,6 +211,19 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
                                         onClick={() => {
                                             setSelectedBlock(b);
                                             fetchGps(selectedDistrict.id, b.id);
+                                            if (onSelect) {
+                                                onSelect({
+                                                    scope: 'Blocks',
+                                                    location: b.name,
+                                                    locationId: b.id,
+                                                    districtId: selectedDistrict?.id,
+                                                    blockId: b.id,
+                                                    gpId: null,
+                                                    districtName: selectedDistrict?.name,
+                                                    blockName: b.name,
+                                                    gpName: null
+                                                });
+                                            }
                                         }}
                                     >
 
@@ -247,6 +273,22 @@ const LocationHierarchyPopup = ({ onSelect, onClose, selectedLocation }) => {
                                         className="hover:!bg-[#e7f5ef] transition-colors duration-200"
                                         onClick={() => {
                                             setSelectedGP(g);
+                                            if (onSelect) {
+                                                onSelect({
+                                                    scope: 'GPs',
+                                                    location: g.name,
+                                                    locationId: g.id,
+                                                    districtId: selectedDistrict?.id,
+                                                    blockId: selectedBlock?.id,
+                                                    gpId: g.id,
+                                                    districtName: selectedDistrict?.name,
+                                                    blockName: selectedBlock?.name,
+                                                    gpName: g.name
+                                                });
+                                            }
+                                            if (onClose) {
+                                                onClose();
+                                            }
                                         }}
                                     >
 

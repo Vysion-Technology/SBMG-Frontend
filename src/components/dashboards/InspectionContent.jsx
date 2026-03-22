@@ -1379,6 +1379,43 @@ const InspectionContent = () => {
     return total.toLocaleString();
   };
 
+  const getHeaderTotal = () => {
+    const data = viewingGpsInspectionForBlock
+      ? gpInspectionSummaryData
+      : viewingBlocksInspectionForDistrict
+        ? blockInspectionSummaryData
+        : districtInspectionSummaryData;
+
+    if (!data || data.length === 0) return 0;
+
+    return data.reduce((acc, item) => {
+      return acc + (item.total_inspections || 0);
+    }, 0);
+  };
+
+
+  // const headerGetAverageScore = () => {
+  //   if (loadingAnalytics) return '...';
+  //   if (!analyticsData || !analyticsData.response) return '0%';
+
+  //   let totalScore = 0;
+  //   let totalInspections = 0;
+
+  //   analyticsData.response.forEach(item => {
+  //     const inspections = item.inspected_gps || item.inspected_blocks || 0;
+
+  //     totalScore += (item.average_score || 0) * inspections;
+  //     totalInspections += inspections;
+  //   });
+
+  //   console.log("totalScore:", totalScore);
+  //   console.log("totalInspections:", totalInspections);
+
+  //   if (totalInspections === 0) return '0%';
+
+  //   return `${(totalScore / totalInspections).toFixed(0)}%`;
+  // };
+
   const getVillageCoverage = () => {
     if (loadingAnalytics) return '0/0';
     if (analyticsError || !analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
@@ -2712,20 +2749,22 @@ const InspectionContent = () => {
                   fontSize: '14px',
                   fontWeight: '600',
                   color: '#374151',
-                  textAlign: 'center'
+                  textAlign: 'center', display: 'flex', gap: '3px'
                 }}>
                   {viewingBlocksInspectionForDistrict
                     ? `Inspected GPs`
                     : `Inspected Blocks`}
+                  <span>({getHeaderTotal()})</span>
                 </div>
               )}
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151',
-                textAlign: 'center'
+                textAlign: 'center', display: 'flex', gap: '3px', justifyContent: 'center'
               }}>
                 {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
+                {/* <span>({headerGetAverageScore()})</span> */}
               </div>
               <div style={{
                 fontSize: '14px',
@@ -2756,7 +2795,7 @@ const InspectionContent = () => {
                       {/* Issue Title Column */}
                       <div style={{
                         fontSize: '14px',
-                        color: '#374151',
+                        color: '#10b981',
                         fontWeight: '500'
                       }}>
                         <div>{inspection.title}</div>
@@ -2905,17 +2944,17 @@ const InspectionContent = () => {
                           }}
                           style={{
                             cursor: 'pointer',
-                            color: '#0866c6',
+                            color: '#10b981',
                             textDecoration: 'none',
                             transition: 'color 0.2s ease',
                             wordBreak: 'break-word'
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.color = '#0550a3';
+                            e.target.style.color = '#10b981';
                             e.target.style.textDecoration = 'underline';
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.color = '#0866c6';
+                            e.target.style.color = '#10b981';
                             e.target.style.textDecoration = 'none';
                           }}
                         >

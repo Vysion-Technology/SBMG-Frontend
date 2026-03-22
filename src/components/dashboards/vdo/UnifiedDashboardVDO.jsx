@@ -50,7 +50,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
  return (
     <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
-      height: '100vh',
+      height: '100%',
       backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',

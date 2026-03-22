@@ -1,19 +1,18 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, MapPin, ChevronDown, ArrowUpDown } from 'lucide-react';
-import GoogleMapView from './gps/GoogleMapView';
-import FleetSidebar from './gps/FleetSidebar';
-import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
+import { ArrowUpDown, Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../hooks/useAddVehicle';
+import { useVehicleDetails } from '../../hooks/useVehicleDetails';
+import { filterVehiclesByStatus, searchVehicles, useVehicles } from '../../hooks/useVehicles';
+import apiClient from '../../services/api';
 import AddVehicleModal from './gps/AddVehicleModal';
 import DeleteConfirmModal from './gps/DeleteConfirmModal';
-import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../hooks/useVehicles';
-import { useVehicleDetails } from '../../hooks/useVehicleDetails';
-import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useAddVehicle';
-import { InfoTooltip } from '../common/Tooltip';
-import apiClient from '../../services/api';
+import FleetSidebar from './gps/FleetSidebar';
+import GoogleMapView from './gps/GoogleMapView';
+import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
 
 const GpsTrackingContent = () => {
   const [activeScope, setActiveScope] = useState('All');
-  const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
+  const [activeFleetTab, setActiveFleetTab] = useState('All(00)');
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -190,16 +189,9 @@ const GpsTrackingContent = () => {
   const filteredVehicles = useMemo(() => {
     let result = vehiclesData;
 
-    // Filter by status tab
     result = filterVehiclesByStatus(result, activeFleetTab);
-
-    // Filter by search query
     result = searchVehicles(result, searchQuery);
-
-    // Filter by flagged status
-    if (showOnlyFlagged) {
-      result = result.filter(v => v.isFlagged);
-    }
+    if (showOnlyFlagged) result = result.filter(v => v.isFlagged);
 
     return result;
   }, [vehiclesData, activeFleetTab, searchQuery, showOnlyFlagged]);
@@ -207,9 +199,9 @@ const GpsTrackingContent = () => {
   // Calculate fleet stats
   const fleetStats = useMemo(() => {
     const all = vehiclesData.length;
-    const active = vehiclesData.filter(v => v.status === 'active').length;
-    const running = vehiclesData.filter(v => v.status === 'running').length;
-    const stopped = vehiclesData.filter(v => v.status === 'stopped').length;
+    const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+    const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+    const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
 
     return {
       all,
@@ -220,12 +212,38 @@ const GpsTrackingContent = () => {
   }, [vehiclesData]);
 
   // Update fleet tabs with real counts
-  const fleetTabs = useMemo(() => [
-    `All(${String(fleetStats.all).padStart(2, '0')})`,
-    `Active(${String(fleetStats.active).padStart(2, '0')})`,
-    `Running(${String(fleetStats.running).padStart(2, '0')})`,
-    `Stopped(${String(fleetStats.stopped).padStart(2, '0')})`,
-  ], [fleetStats]);
+  const [fleetTabsState, setFleetTabsState] = useState([
+    'All(00)',
+    'Active(00)',
+    'Running(00)',
+    'Stopped(00)'
+  ]);
+  // const [activeFleetTab, setActiveFleetTab] = useState(fleetTabsState[0]);
+
+  useEffect(() => {
+    const all = vehiclesData.length;
+    const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+    const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+    const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
+
+    const updatedTabs = [
+      `All(${String(all).padStart(2, '0')})`,
+      `Active(${String(active).padStart(2, '0')})`,
+      `Running(${String(running).padStart(2, '0')})`,
+      `Stopped(${String(stopped).padStart(2, '0')})`,
+    ];
+
+    setFleetTabsState(updatedTabs);
+
+    // Sync active tab
+    setActiveFleetTab(prev => {
+      const prevStr = typeof prev === 'string' ? prev : 'All(00)';
+      const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
+      const newTab = updatedTabs.find(t => t.startsWith(statusKey));
+      return newTab || updatedTabs[0];
+    });
+
+  }, [vehiclesData]);
 
   const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
@@ -273,6 +291,10 @@ const GpsTrackingContent = () => {
   const handleVehicleSelect = (vehicle) => {
     setSelectedVehicle(vehicle);
   };
+  console.log('🟢 fleetTabsState:', fleetTabsState);
+  console.log('🟢 activeFleetTab:', activeFleetTab);
+  console.log('🟢 filteredVehicles:', filteredVehicles);
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
@@ -287,7 +309,7 @@ const GpsTrackingContent = () => {
         <FleetSidebar
           vehicles={filteredVehicles}
           activeFleetTab={activeFleetTab}
-          fleetTabs={fleetTabs}
+          fleetTabs={fleetTabsState}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onTabChange={setActiveFleetTab}
