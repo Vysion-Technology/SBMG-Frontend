@@ -192,7 +192,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
             { location: { lat: parseFloat(lat), lng: parseFloat(lng) } },
             (results, status) => {
 
-                console.log("Geocode results:", results);
+                // console.log("Geocode results:", results);
 
                 if (status === "OK" && results.length > 0) {
 
@@ -244,8 +244,8 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
         if (!complaint || !isLoaded) return;
 
-        console.log("Lat:", complaint.lat);
-        console.log("Long:", complaint.long);
+        // console.log("Lat:", complaint.lat);
+        // console.log("Long:", complaint.long);
 
         if (complaint.lat && complaint.long) {
             getAddressFromLatLng(complaint.lat, complaint.long);

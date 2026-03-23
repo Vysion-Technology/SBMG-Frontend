@@ -1710,19 +1710,19 @@ const ContractorDetails = () => {
                                                     }}
                                                     style={{
                                                         cursor: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? 'pointer' : 'default',
-                                                        color: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? '#0866c6' : '#374151',
+                                                        color: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? '#10b981' : '#374151',
                                                         textDecoration: 'none',
                                                         transition: 'color 0.2s ease'
                                                     }}
                                                     onMouseEnter={(e) => {
                                                         if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
-                                                            e.target.style.color = '#0550a3';
+                                                            e.target.style.color = '#10b981';
                                                             e.target.style.textDecoration = 'underline';
                                                         }
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
-                                                            e.target.style.color = '#0866c6';
+                                                            e.target.style.color = '#10b981';
                                                             e.target.style.textDecoration = 'none';
                                                         }
                                                     }}
