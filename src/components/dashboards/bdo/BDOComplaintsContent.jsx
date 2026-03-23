@@ -6,6 +6,7 @@ import LocationDisplay from '../../common/LocationDisplay';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
+import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
 
 const BDOComplaintsContent = () => {
   // Shared location state via context
@@ -105,6 +106,10 @@ const BDOComplaintsContent = () => {
   const [noticeCategories, setNoticeCategories] = useState([]);
   const [loadingNoticeCategories, setLoadingNoticeCategories] = useState(false);
   const [sendingNotice, setSendingNotice] = useState(false);
+
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
 
   // Notice form state
   const [noticeForm, setNoticeForm] = useState({
@@ -1326,6 +1331,7 @@ const BDOComplaintsContent = () => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status: rawStatus,
@@ -1346,6 +1352,11 @@ const BDOComplaintsContent = () => {
       comments: complaint.comments || []
     };
   });
+
+  const handleOpenComplaintDetails = (id) => {
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
+  };
 
 
   const getStatusIcon = (status) => {
@@ -2482,9 +2493,12 @@ const BDOComplaintsContent = () => {
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
                 return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50 cursor-pointer'
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -2609,6 +2623,12 @@ const BDOComplaintsContent = () => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (

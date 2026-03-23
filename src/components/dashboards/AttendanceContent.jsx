@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
@@ -191,6 +191,48 @@ const AttendanceContent = () => {
     kpiName: '',
     kpiFigure: ''
   });
+
+
+  // Sorting 
+  // const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
+
+
 
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
@@ -1972,50 +2014,53 @@ const AttendanceContent = () => {
   const getFilteredAndSortedHistoryData = () => {
     let filteredData = [...attendanceHistoryData];
 
-    // For GP view, filter and sort by date
-    if (activeScope === 'GPs') {
-      // Apply search filter (search in date or status)
-      if (historySearchTerm.trim()) {
-        const searchLower = historySearchTerm.toLowerCase();
-        filteredData = filteredData.filter(item =>
-          item.date?.toLowerCase().includes(searchLower) ||
-          item.status?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Apply sorting by date
-      filteredData.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (historySortOrder === 'asc') {
-          return dateA - dateB;
-        } else {
-          return dateB - dateA;
-        }
-      });
-
-      return filteredData;
-    }
-
-    // For other views, filter and sort by name
-    // Apply search filter
+    // 🔍 SEARCH
     if (historySearchTerm.trim()) {
       const searchLower = historySearchTerm.toLowerCase();
-      filteredData = filteredData.filter(item =>
-        item.name?.toLowerCase().includes(searchLower)
-      );
+
+      filteredData = filteredData.filter(item => {
+        if (activeScope === 'GPs') {
+          return (
+            item.date?.toLowerCase().includes(searchLower) ||
+            item.status?.toLowerCase().includes(searchLower)
+          );
+        } else {
+          return item.name?.toLowerCase().includes(searchLower);
+        }
+      });
     }
 
-    // Apply sorting (with safety check for undefined names)
-    filteredData.sort((a, b) => {
-      const nameA = a.name || '';
-      const nameB = b.name || '';
-      if (historySortOrder === 'asc') {
-        return nameA.localeCompare(nameB);
-      } else {
-        return nameB.localeCompare(nameA);
-      }
-    });
+    // 🔥 SORT (COMMON)
+    if (sortConfig.key) {
+      filteredData.sort((a, b) => {
+
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+
+        // 📅 DATE SORT (GPs)
+        if (activeScope === 'GPs' && sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc'
+            ? new Date(valA) - new Date(valB)
+            : new Date(valB) - new Date(valA);
+        }
+
+        // 🔤 NAME SORT
+        if (sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc'
+            ? (valA || '').localeCompare(valB || '')
+            : (valB || '').localeCompare(valA || '');
+        }
+
+        // 🔢 % SORT
+        if (sortConfig.key === 'attendancePercentage') {
+          return sortConfig.direction === 'asc'
+            ? (valA || 0) - (valB || 0)
+            : (valB || 0) - (valA || 0);
+        }
+
+        return 0;
+      });
+    }
 
     return filteredData;
   };
@@ -2533,6 +2578,40 @@ const AttendanceContent = () => {
     fetchDistrictAttendanceSummary();
   }, [fetchDistrictAttendanceSummary]);
 
+  // ✅ COMMON DATA
+  const attendanceData = viewingContractorsForGp
+    ? selectedGpForContractorAttendance?.contractors || []
+    : viewingGpsAttendanceForBlock
+      ? gpAttendanceSummaryData
+      : viewingBlocksAttendanceForDistrict
+        ? blockAttendanceSummaryData
+        : districtAttendanceSummaryData;
+
+  // ✅ SORT
+  const sortedAttendance = [...attendanceData].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    if (sortConfig.key === 'name') {
+      return sortConfig.direction === 'asc'
+        ? valA?.localeCompare(valB)
+        : valB?.localeCompare(valA);
+    }
+
+    if (sortConfig.key === 'attendancePercentage') {
+      return sortConfig.direction === 'asc'
+        ? valA - valB
+        : valB - valA;
+    }
+
+    return 0;
+  });
+
+
+
+
   return (
     <div>
       <style>{`
@@ -2566,7 +2645,7 @@ const AttendanceContent = () => {
           }
         }
       `}</style>
-     
+
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -3971,7 +4050,14 @@ const AttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
+                    {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('name')}>
+                      <SortIcon col="name" />
+                    </span>
+                  </div>
                 </th>
                 {viewingContractorsForGp && (
                   <>
@@ -4000,7 +4086,9 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Attendance %
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }} >
+                        Attendance %
+                      </div>
                     </th>
                   </>
                 )}
@@ -4012,7 +4100,17 @@ const AttendanceContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Attendance %
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                      Attendance %
+
+
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('attendancePercentage')}>
+                        <SortIcon col="attendancePercentage" />
+                      </span>
+
+                    </div>
                   </th>
                 )}
               </tr>
@@ -4028,7 +4126,7 @@ const AttendanceContent = () => {
                       <td style={{
                         padding: '12px',
                         fontSize: '14px',
-                        color: '#374151',
+                        color: '#10b981',
                         fontWeight: '500'
                       }}>
                         {contractor.total_contractors}
@@ -4117,7 +4215,9 @@ const AttendanceContent = () => {
                     </td>
                   </tr>
                 ) : (
-                  dataToDisplay.map((item) => (
+
+                  sortedAttendance.map((item) =>
+                  (
                     <tr key={item.id} style={{
                       borderBottom: '1px solid #f3f4f6'
                     }}>
@@ -4147,16 +4247,16 @@ const AttendanceContent = () => {
                             }}
                             style={{
                               cursor: 'pointer',
-                              color: '#0866c6',
+                              color: '#10b981',
                               textDecoration: 'none',
                               transition: 'color 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                              e.target.style.color = '#0550a3';
+                              e.target.style.color = '#10b981';
                               e.target.style.textDecoration = 'underline';
                             }}
                             onMouseLeave={(e) => {
-                              e.target.style.color = '#0866c6';
+                              e.target.style.color = '#10b981';
                               e.target.style.textDecoration = 'none';
                             }}
                           >
@@ -4354,7 +4454,7 @@ const AttendanceContent = () => {
             gap: '12px'
           }}>
             {/* Sort Button */}
-            <button
+            {/* <button
               onClick={toggleHistorySortOrder}
               style={{
                 display: 'flex',
@@ -4370,7 +4470,7 @@ const AttendanceContent = () => {
             >
               <Filter style={{ width: '16px', height: '16px' }} />
               {historySortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-            </button>
+            </button> */}
 
             {/* Search Bar */}
             <div style={{
@@ -4460,7 +4560,11 @@ const AttendanceContent = () => {
                     fontSize: '12px',
                     color: '#9ca3af'
                   }}>
-                    ↕
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('name')}>
+                      <SortIcon col="name" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -4480,7 +4584,11 @@ const AttendanceContent = () => {
                     fontSize: '12px',
                     color: '#9ca3af'
                   }}>
-                    ↕
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('attendancePercentage')}>
+                      <SortIcon col="attendancePercentage" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -4520,7 +4628,7 @@ const AttendanceContent = () => {
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
-                      color: '#374151'
+                      color: '#10b981'
                     }}>
                       {activeScope === 'GPs' ? (
                         // Format date as DD/MM/YYYY

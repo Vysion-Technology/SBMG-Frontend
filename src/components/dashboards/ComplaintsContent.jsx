@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
+import { Calendar, CheckCircle, ChevronDown, ChevronsUpDown, ChevronUp, Clock, Download, List, Plus, Search, Star, User, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../services/api';
-import LocationDisplay from '../common/LocationDisplay';
 import { useLocation } from '../../context/LocationContext';
-import NoDataFound from './common/NoDataFound';
+import apiClient, { noticesAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
 import ComplaintDetailsPopup from './common/ComplaintDetailsPopup';
+import NoDataFound from './common/NoDataFound';
 
 const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Shared location state via context
@@ -169,9 +168,49 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [showComplaintDetails, setShowComplaintDetails] = useState(false);
 
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
+
+
+
 
   const handleOpenComplaintDetails = (id) => {
-    console.log('detailssssssssssssssssssssssssssssssssss-------------', id)
     setSelectedComplaint(id);
     setShowComplaintDetails(true);
   };
@@ -1847,6 +1886,47 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     return matchesFilter && matchesSearch;
   });
 
+  const sortedComplaints = [...filteredComplaints].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    // ✅ STATUS SORT FIXED
+    if (sortConfig.key === 'statusDisplay') {
+
+      valA = a.statusDisplay || a.status;
+      valB = b.statusDisplay || b.status;
+
+      const statusOrder = {
+        open: 1,
+        resolved: 2,
+        verified: 3,
+        closed: 4
+      };
+
+      return sortConfig.direction === 'asc'
+        ? (statusOrder[valA?.toLowerCase()] || 0) - (statusOrder[valB?.toLowerCase()] || 0)
+        : (statusOrder[valB?.toLowerCase()] || 0) - (statusOrder[valA?.toLowerCase()] || 0);
+    }
+
+    // ✅ DATE SORT
+    if (sortConfig.key === 'submittedDate') {
+      return sortConfig.direction === 'asc'
+        ? new Date(valA) - new Date(valB)
+        : new Date(valB) - new Date(valA);
+    }
+
+    // ✅ TEXT SORT
+    if (typeof valA === 'string') {
+      return sortConfig.direction === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    }
+
+    return 0;
+  });
+
   // Debug logging with detailed filter analysis
   const sampleRawStatuses = complaintsListData.slice(0, 5).map(c => c.status);
   console.log('🔍 Complaints Data Debug:', {
@@ -2719,9 +2799,70 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       textAlign: 'left',
                       fontSize: '14px',
                       fontWeight: '600',
+                      color: '#374151',
+
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+
+                      }}>
+                        {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('name')}>
+                          <SortIcon col="name" />
+                        </span>
+                      </div>
+                    </th>
+
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151',
+
+                    }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          justifyContent: 'center'
+                        }}>
+                        Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('openComplaints')}>
+                          <SortIcon col="openComplaints" />
+                        </span>
+                      </div>
+                    </th>
+
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Avg. Resolution (Days)
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('avgResolution')}>
+                          <SortIcon col="avgResolution" />
+                        </span>
+                      </div>
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2730,7 +2871,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Complaints Closed %
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('closedPercent')}>
+                          <SortIcon col="closedPercent" />
+                        </span>
+                      </div>
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2739,25 +2893,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Avg. Resolution (Days)
-                    </th>
-                    <th style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Complaints Closed %
-                    </th>
-                    <th style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Status
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Status
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('status')}>
+                          <SortIcon col="status" />
+                        </span>
+                      </div>
+
                     </th>
                   </>
                 )}
@@ -2769,18 +2918,29 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 selectedGPForComplaints?.complaints && selectedGPForComplaints.complaints.length > 0 ? (
                   selectedGPForComplaints.complaints.map((complaint) => (
                     <tr
+                      className='hover:bg-gray-50'
                       onClick={() => handleOpenComplaintDetails(complaint.id)}
                       style={{
-                        borderBottom: '1px solid #f3f4f6',cursor:'pointer'
+                        borderBottom: '1px solid #f3f4f6', cursor: 'pointer'
                       }}>
 
                       <td
                         style={{
                           padding: '12px',
                           fontSize: '14px',
-                          color: '#374151',
+                          color: '#10b981',
                           fontWeight: '500'
-                        }}>
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.color = '#10b981';
+                          e.target.style.textDecoration = 'underline';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.color = '#10b981';
+                          e.target.style.textDecoration = 'none';
+                        }}
+                      >
+
                         {complaint.id}
                       </td>
                       <td style={{
@@ -2870,6 +3030,31 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   </tr>
                 ) : (() => {
                   const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
+                  const sortedData = [...dataToDisplay].sort((a, b) => {
+                    if (!sortConfig.key) return 0;
+
+                    let aVal = a[sortConfig.key];
+                    let bVal = b[sortConfig.key];
+
+                    // ✅ Handle N/A
+                    if (aVal === 'N/A') return 1;
+                    if (bVal === 'N/A') return -1;
+
+                    // ✅ Convert to number if possible
+                    const aNum = parseFloat(aVal);
+                    const bNum = parseFloat(bVal);
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                      return sortConfig.direction === 'asc'
+                        ? aNum - bNum
+                        : bNum - aNum;
+                    }
+
+                    // fallback string compare
+                    return sortConfig.direction === 'asc'
+                      ? String(aVal).localeCompare(String(bVal))
+                      : String(bVal).localeCompare(String(aVal));
+                  });
                   const isEmpty = dataToDisplay.length === 0;
 
                   return isEmpty ? (
@@ -2884,10 +3069,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       </td>
                     </tr>
                   ) : (
-                    dataToDisplay.map((item) => (
-                      <tr key={item.id} style={{
-                        borderBottom: '1px solid #f3f4f6'
-                      }}>
+                    sortedData.map((item) => (
+                      <tr className='hover:bg-gray-50'
+                        key={item.id} style={{
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
                         <td style={{
                           padding: '12px',
                           fontSize: '14px',
@@ -2911,16 +3097,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                               }}
                               style={{
                                 cursor: 'pointer',
-                                color: '#0866c6',
+                                color: '#10b981',
                                 textDecoration: 'none',
                                 transition: 'color 0.2s ease'
                               }}
                               onMouseEnter={(e) => {
-                                e.target.style.color = '#0550a3';
+                                e.target.style.color = '#10b981';
                                 e.target.style.textDecoration = 'underline';
                               }}
                               onMouseLeave={(e) => {
-                                e.target.style.color = '#0866c6';
+                                e.target.style.color = '#10b981';
                                 e.target.style.textDecoration = 'none';
                               }}
                             >
@@ -3238,17 +3424,15 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  User
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    User
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('submittedBy')}>
+                      <SortIcon col="submittedBy" />
+                    </span>
                   </div>
+
                 </th>
                 <th style={{
                   padding: '12px',
@@ -3258,16 +3442,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  District
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    District
+
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('district')}>
+                      <SortIcon col="district" />
+                    </span>
+
                   </div>
                 </th>
                 <th style={{
@@ -3279,15 +3463,43 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   Address(GP)
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
+
+                    Type of complaint
+
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('title')}>
+                      <SortIcon col="title" />
+                    </span>
+
+                  </div>
+
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    Date of complaint
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('submittedDate')}>
+                      <SortIcon col="submittedDate" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -3298,16 +3510,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Type of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    Status
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('statusDisplay')}>
+                      <SortIcon col="statusDisplay" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -3318,37 +3527,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Date of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  Status
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
+                    Action
+                 
                 </th>
               </tr>
             </thead>
@@ -3372,9 +3552,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 </tr>
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
-                return filteredComplaints.map((complaint, index) => (
+                return sortedComplaints.map((complaint, index) => (
                   <tr
                     onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50'
                     key={complaint.id || `complaint-${index}`} style={{
                       borderBottom: '1px solid #f3f4f6', cursor: 'pointer'
                     }}>
@@ -3449,24 +3630,28 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         }} title={complaint.status || 'N/A'}>
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenNoticeModal(complaint);
-                          }}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: 'transparent',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Send notice
-                        </button>
+
                       </div>
+
+                    </td>
+                    <td>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenNoticeModal(complaint);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Send notice
+                      </button>
                     </td>
                   </tr>
                 ));

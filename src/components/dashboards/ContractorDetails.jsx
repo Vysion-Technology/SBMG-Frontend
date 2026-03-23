@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, ChevronRight, Download, MapPin, TrendingUp } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Download, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -87,6 +87,52 @@ const ContractorDetails = () => {
 
     const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
     const performanceButtons = ['Time', 'Location'];
+
+
+    // Sorting 
+    const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+    const [sortConfig, setSortConfig] = useState({
+        key: null,
+        direction: 'asc'
+    });
+
+    const handleSort = (key) => {
+        setSortConfig((prev) => {
+            if (prev.key === key) {
+                return {
+                    key,
+                    direction: prev.direction === 'asc' ? 'desc' : 'asc'
+                };
+            } else {
+                return {
+                    key,
+                    direction: 'asc'
+                };
+            }
+        });
+    };
+    const SortIcon = ({ col }) => {
+
+        // agar ye column sort nahi hua hai
+        if (sortConfig.key !== col) {
+            return (
+                <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+            );
+        }
+
+        // agar sort hua hai
+        return sortConfig.direction === 'asc' ? (
+            <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+        ) : (
+            <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+        );
+    };
+
+
+    const gridColumns =
+        activeScope === 'Blocks'
+            ? '3fr  1fr '
+            : '2fr 2fr 2fr 2fr ';
 
     // Helper functions for location management
     const trackTabChange = useCallback((scope) => {
@@ -248,16 +294,19 @@ const ContractorDetails = () => {
 
             // Build URL based on active scope
             if (activeScope === 'State') {
-                url = `/annual-surveys/analytics/state?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/state`;
                 console.log('🏛️ Calling STATE analytics API');
             } else if (activeScope === 'Districts' && selectedDistrictId) {
-                url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
+                // url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/district/${selectedDistrictId}`;
                 console.log('🏙️ Calling DISTRICT analytics API');
             } else if (activeScope === 'Blocks' && selectedBlockId) {
-                url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
+                // url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/block/${selectedBlockId}`;
+                // /api/v1//block/{block_id}
                 console.log('🏘️ Calling BLOCK analytics API');
             } else if (activeScope === 'GPs' && selectedGPId) {
-                url = `/contractors/contractors?gp_id=${selectedGPId}&fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/gp/${selectedGPId}`;
                 console.log('🏡 Calling GP analytics API');
             } else {
                 console.log('⏸️ Waiting for location selection or FY data');
@@ -276,8 +325,9 @@ const ContractorDetails = () => {
 
             // Log annual_overview specifically
             if (response.data) {
-                console.log('📊 Annual Overview Data:', response.data.annual_overview);
-                console.log('📈 Scheme Data:', response.data.scheme_wise_target_achievement);
+                console.log('📊 Annual Overview Data:', response.data.coverage_percentage);
+                console.log('📈 Scheme Data:', response.data.gps_with_contractor_data);
+                console.log('📈 Scheme Data:', response.data.total_gps);
             }
 
             setAnalyticsData(response.data);
@@ -339,11 +389,10 @@ const ContractorDetails = () => {
             setBlockAnalyticsData(null);
             return;
         }
-
         try {
             setLoadingBlockAnalytics(true);
             setBlockAnalyticsError(null);
-            const response = await apiClient.get(`/annual-surveys/analytics/block/${blockId}?fy_id=${fyId}`);
+            const response = await apiClient.get(`/contractor-analytics/analytics/block/${blockId}`);
             setBlockAnalyticsData(response.data);
         } catch (error) {
             setBlockAnalyticsError(error.message || 'Failed to fetch block analytics');
@@ -528,21 +577,31 @@ const ContractorDetails = () => {
     };
 
     const handleGPClick = (gp) => {
-        const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
-        const blockId = block?.id || gp.block_id || null;
-        const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
-        const districtId = district?.id || null;
+        const gpId = gp.id || gp.gp_id || gp.geography_id;
 
-        trackDropdownChange(gp.name);
-        updateLocationSelection('GPs', gp.name, gp.id, districtId, blockId, gp.id, 'dropdown_change');
-        if (district) {
-            setSelectedDistrictForHierarchy(district);
+        console.log("🔥 GP CLICKED:", gp);
+        console.log("🆔 GP ID:", gpId);
+
+        if (!gpId) {
+            console.error("❌ GP ID missing");
+            return;
         }
-        if (block) {
-            setSelectedBlockForHierarchy(block);
-        }
-        fetchGramPanchayats(districtId, blockId);
-        setShowLocationDropdown(false);
+
+        const block = blocks.find(b => b.id === (gp.block_id || selectedBlockId)) || selectedBlockForHierarchy;
+        const district = districts.find(d => d.id === (block?.district_id || selectedDistrictId)) || selectedDistrictForHierarchy;
+
+        setActiveScope('GPs');
+        setSelectedGPId(gpId);  // ✅ ONLY HERE
+
+        updateLocationSelection(
+            'GPs',
+            gp.name,
+            gpId,
+            district?.id,
+            block?.id,
+            gpId,
+            'dropdown_change'
+        );
     };
 
     const handleRowClick = (item) => {
@@ -729,8 +788,12 @@ const ContractorDetails = () => {
 
     // Fetch block analytics when in GP scope to get gp_wise_coverage
     useEffect(() => {
-        if (activeScope === 'GPs' && selectedBlockId && selectedFyId) {
-            console.log('📡 Fetching block analytics for GP coverage table:', selectedBlockId);
+        if (
+            (activeScope === 'Blocks' || activeScope === 'GPs') &&
+            selectedBlockId &&
+            selectedFyId
+        ) {
+            console.log('📡 Fetching block analytics:', selectedBlockId);
             fetchBlockAnalytics(selectedBlockId, selectedFyId);
         } else {
             setBlockAnalyticsData(null);
@@ -806,22 +869,33 @@ const ContractorDetails = () => {
                 });
             }
         } else if (activeScope === 'Blocks' && selectedBlockForHierarchy) {
-            const districtData = contractorAnalyticsData.district_wise_coverage.find(d =>
-                (d.geography_name || '').toLowerCase().trim() === selectedDistrictForHierarchy?.name.toLowerCase().trim() ||
-                (d.district_name || '').toLowerCase().trim() === selectedDistrictForHierarchy?.name.toLowerCase().trim() ||
-                (d.district || '').toLowerCase().trim() === selectedDistrictForHierarchy?.name.toLowerCase().trim() ||
-                (d.name || '').toLowerCase().trim() === selectedDistrictForHierarchy?.name.toLowerCase().trim()
-            );
-            if (districtData && gpsForActiveBlock.length > 0) {
-                return gpsForActiveBlock.map(gp => ({
-                    name: gp.name,
-                    total_gps: districtData.total_gps || 0,
-                    gps_with_data: districtData.gps_with_data || 0,
-                    coverage_percentage: districtData.coverage_percentage || 0,
-                    object: gp
-                }));
-            }
+            if (!blockAnalyticsData || !blockAnalyticsData.gp_wise_coverage) return [];
+
+            return blockAnalyticsData.gp_wise_coverage.map(gp => ({
+                name: gp.geography_name || 'N/A',
+                coverage_percentage: gp?.coverage_percentage || 0,
+                master_data_status: gp.master_data_status || 'Not Available',
+                geography_id: gp.gp_id,
+                object: {
+                    ...gp,
+                    id: gp.geography_id    // ✅ FIX
+                }
+            }));
+
+        } else if (activeScope === 'GPs' && selectedGPId) {
+            if (!analyticsData) return [];
+            return [
+                {
+                    name: selectedLocation || 'GP',
+                    total_gps: analyticsData.total_gps || 0,
+                    gps_with_data: analyticsData.gps_with_contractor_data || 0,
+                    coverage_percentage: analyticsData.coverage_percentage || 0,
+                    master_data_status: analyticsData.master_data_status || 'Not Available',
+                    object: analyticsData
+                }
+            ];
         }
+
         return [];
     };
     const schemeData = analyticsData?.scheme_wise_target_achievement || [];
@@ -836,40 +910,56 @@ const ContractorDetails = () => {
         100
     );// Helper function to generate chart data from analytics
     const getChartData = () => {
-        if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
-            return {
-                categories: [],
-                belowAverage: [],
-                aboveAverage: [],
-                stateAverage: 0
-            };
+        if (!analyticsData) {
+            return { categories: [], belowAverage: [], aboveAverage: [], stateAverage: 0 };
         }
 
-        const data = analyticsData.response;
+        let data = [];
 
-        // Calculate state average from coverage_percentage
-        const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
-        const stateAverage = data.length > 0 ? totalCoverage / data.length : 0;
+        // 🎯 ROLE-WISE DATA FIX
+        if (activeScope === 'State') {
+            data = analyticsData.district_wise_coverage || [];
+        } else if (activeScope === 'Districts') {
+            data = analyticsData.block_wise_coverage || [];
+        } else if (activeScope === 'Blocks') {
+            data = analyticsData.gp_wise_coverage || [];
+        } else if (activeScope === 'GPs') {
+            data = analyticsData.village_wise_coverage || [];
+        }
 
-        // Extract categories (geography names)
-        const categories = data.map(item => item.geography_name || 'N/A');
+        console.log('📊 Chart Data Raw:', data);
 
-        // Split data into above and below average
+        if (!data || data.length === 0) {
+            return { categories: [], belowAverage: [], aboveAverage: [], stateAverage: 0 };
+        }
+
+        // ✅ average
+        const total = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
+        const avg = total / data.length;
+
+        const categories = data.map(item =>
+            item.geography_name ||
+            item.name ||
+            item.block_name ||
+            item.district_name ||
+            'N/A'
+        );
+
         const belowAverage = data.map(item => {
-            const coverage = item.coverage_percentage || 0;
-            return coverage < stateAverage ? coverage : 0;
+            const val = item.coverage_percentage || 0;
+            return val < avg ? val : 0;
         });
 
         const aboveAverage = data.map(item => {
-            const coverage = item.coverage_percentage || 0;
-            return coverage >= stateAverage ? coverage : 0;
+            const val = item.coverage_percentage || 0;
+            return val >= avg ? val : 0;
         });
 
         return {
             categories,
             belowAverage,
             aboveAverage,
-            stateAverage
+            stateAverage: avg
         };
     };
 
@@ -977,9 +1067,44 @@ const ContractorDetails = () => {
         }
     ];
 
+    const getSortedData = (data) => {
+        if (!sortConfig.key) return data;
+
+        return [...data].sort((a, b) => {
+            let aValue = a[sortConfig.key];
+            let bValue = b[sortConfig.key];
+
+            if (sortConfig.key === 'master_data_status') {
+                const order = { 'Available': 1, 'Not Available': 0 };
+                return sortConfig.direction === 'asc'
+                    ? (order[aValue] || 0) - (order[bValue] || 0)
+                    : (order[bValue] || 0) - (order[aValue] || 0);
+            }
+
+            // Handle string (name, status)
+            if (typeof aValue === 'string') {
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            }
+
+            // Handle numbers
+            aValue = aValue || 0;
+            bValue = bValue || 0;
+
+            return sortConfig.direction === 'asc'
+                ? aValue - bValue
+                : bValue - aValue;
+        });
+
+    };
+
     return (
         <div style={{ minHeight: 'auto', backgroundColor: '#F3F4F6' }} >
-            
+
             {/* Overview Section */}
             <div className="bg-white p-4 md:p-6 mx-2 md:mx-4 mt-1.5 rounded-lg border border-gray-300" style={{
                 backgroundColor: 'white',
@@ -1015,7 +1140,7 @@ const ContractorDetails = () => {
                 </div>
 
                 {/* Metrics Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" style={{
+                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4" style={{
                     display: 'grid',
                     gap: '16px',
                     marginBottom: '32px'
@@ -1023,45 +1148,83 @@ const ContractorDetails = () => {
 
                     {/* Village Master Data Coverage - Hidden in GP view */}
                     {activeScope !== 'GPs' && (
-                        <div style={{
-                            backgroundColor: 'white',
-                            padding: '20px',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                        }}>
+                        <>
+
                             <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                marginBottom: '12px'
+                                backgroundColor: 'white',
+                                padding: '20px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                             }}>
-                                <h3 style={{
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    color: '#6b7280',
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    marginBottom: '12px'
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        color: '#6b7280',
+                                        margin: 0
+                                    }}>
+                                        Contractor Data Filled
+                                        {/*   (total filled constrator / total contractor) * 100    */}
+                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
+                                        <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                                    </div>
+                                </div>
+                                <div style={{
+                                    fontSize: '24px',
+                                    fontWeight: '700',
+                                    color: analyticsError ? '#ef4444' : '#111827',
                                     margin: 0
                                 }}>
-                                    Contractor Data Filled
-                                    {/*   (total filled constrator / total contractor) * 100    */}
-                                </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
-                                    <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('coverage_percentage', 0)}%`}
                                 </div>
                             </div>
+
+                            {/* constrator  covered details */}
                             <div style={{
-                                fontSize: '24px',
-                                fontWeight: '700',
-                                color: analyticsError ? '#ef4444' : '#111827',
-                                margin: 0
+                                backgroundColor: 'white',
+                                padding: '24px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb'
                             }}>
-                                {loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    marginBottom: '16px'
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        color: '#6b7280',
+                                        margin: 0
+                                    }}>
+                                        Data Filled covered
+                                    </h3>
+                                    <InfoTooltip tooltipKey="gps_with_contractor_data" size={16} color="#9ca3af" />
+                                </div>
+                                <div style={{
+                                    fontSize: '32px',
+                                    fontWeight: '700',
+                                    color: '#111827',
+                                    margin: 0
+                                }}>
+                                    {/* {getVillageCoverage()} */}
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('gps_with_contractor_data', 0)}`}/
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('total_gps', 0)}`}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     )}
 
-                    {/* constrator  covered details */}
+                    {/* total_contract_amount */}
                     <div style={{
                         backgroundColor: 'white',
                         padding: '24px',
@@ -1080,18 +1243,23 @@ const ContractorDetails = () => {
                                 color: '#6b7280',
                                 margin: 0
                             }}>
-                                Data Filled covered
+                                Total Amount
                             </h3>
-                            <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
+                            <InfoTooltip tooltipKey="gps_with_contractor_data" size={16} color="#9ca3af" />
                         </div>
                         <div style={{
-                            fontSize: '32px',
+                            fontSize: '24px',
                             fontWeight: '700',
                             color: '#111827',
                             margin: 0
                         }}>
                             {/* {getVillageCoverage()} */}
-                            0/11,207
+                            {loadingAnalytics
+                                ? '...'
+                                : `₹${new Intl.NumberFormat('en-IN', {
+                                    maximumFractionDigits: 0
+                                }).format(getAnalyticsValue('total_contract_amount', 0))} L`
+                            }
                         </div>
                     </div>
                 </div>
@@ -1336,7 +1504,7 @@ const ContractorDetails = () => {
                             {/* Table Header */}
                             <div style={{
                                 display: 'grid',
-                                gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                                gridTemplateColumns: gridColumns,
                                 backgroundColor: '#f9fafb',
                                 padding: '12px 16px',
                                 borderBottom: '1px solid #e5e7eb'
@@ -1346,31 +1514,117 @@ const ContractorDetails = () => {
                                     fontWeight: '600',
                                     color: '#374151'
                                 }}>
-                                    {activeScope === 'State' ? 'District Name' :
-                                        activeScope === 'Districts' ? 'Block Name' :
-                                            activeScope === 'Blocks' ? 'GP Name' : 'Name'}
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            gap: '8px',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        {activeScope === 'State' ? 'District Name' :
+                                            activeScope === 'Districts' ? 'Block Name' :
+                                                activeScope === 'Blocks' ? 'GP Name' : 'Name'}
+
+                                        <span
+                                            style={{ cursor: 'pointer', }}
+                                            onClick={() => handleSort('name')}>
+                                            <SortIcon col="name" />
+                                        </span>
+                                    </div>
                                 </div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    Total GPs
-                                </div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    GPs with Contractor Data
-                                </div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    fontWeight: '600',
-                                    color: '#374151'
-                                }}>
-                                    Covered %
-                                </div>
+                                {activeScope !== 'Blocks' && (
+                                    <>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                Total GPs
+                                                ({getAnalyticsValue('total_gps')})
+
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('total_gps')}>
+                                                    <SortIcon col="total_gps" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                GPs with Contractor Data({getAnalyticsValue('gps_with_contractor_data')})
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('gps_with_data')}>
+                                                    <SortIcon col="gps_with_data" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                Covered %
+                                                ({getAnalyticsValue('coverage_percentage')}%)
+
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('coverage_percentage')}>
+                                                    <SortIcon col="coverage_percentage" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                {activeScope == 'Blocks' && (
+                                    <div style={{
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: '#374151'
+                                    }}>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                gap: '8px',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+
+                                            Status
+                                            <span
+                                                style={{ cursor: 'pointer', }}
+                                                onClick={() => handleSort('master_data_status')}>
+                                                <SortIcon col="master_data_status" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
                             </div>
 
                             {/* Table Body (scrollable) */}
@@ -1411,7 +1665,8 @@ const ContractorDetails = () => {
                                             </div>
                                         );
                                     }
-                                    const tableData = getContractorTableData();
+                                    const rawData = getContractorTableData();
+                                    const tableData = getSortedData(rawData);
                                     if (tableData.length === 0) {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
@@ -1422,7 +1677,7 @@ const ContractorDetails = () => {
                                     return tableData.map((item, index) => (
                                         <div key={index} style={{
                                             display: 'grid',
-                                            gridTemplateColumns: '2fr 1fr 1fr 1fr',
+                                            gridTemplateColumns: gridColumns,
                                             padding: '12px 16px',
                                             alignItems: 'center',
                                             borderBottom: index < tableData.length - 1 ? '1px solid #f3f4f6' : 'none'
@@ -1430,6 +1685,7 @@ const ContractorDetails = () => {
                                             <div style={{ fontSize: '14px', color: '#374151' }}>
                                                 <div
                                                     onClick={() => {
+                                                        console.log("🖱 ROW CLICKED", item);
                                                         if (activeScope === 'State' && item.object) {
                                                             // Navigate to Districts scope showing blocks for this district
                                                             setActiveScope('Districts');
@@ -1448,7 +1704,6 @@ const ContractorDetails = () => {
                                                             trackTabChange('Blocks');
                                                         } else if (activeScope === 'Blocks' && item.object) {
                                                             setActiveScope('GPs');
-                                                            setSelectedGPId(item.object.id);
                                                             handleGPClick(item.object);
                                                             trackTabChange('GPs');
                                                         }
@@ -1475,15 +1730,42 @@ const ContractorDetails = () => {
                                                     {item.name}
                                                 </div>
                                             </div>
-                                            <div style={{ fontSize: '14px', color: '#374151' }}>
-                                                {formatNumber(item.total_gps)}
-                                            </div>
-                                            <div style={{ fontSize: '14px', color: '#374151' }}>
-                                                {formatNumber(item.gps_with_data)}
-                                            </div>
-                                            <div style={{ fontSize: '14px', color: '#374151' }}>
-                                                {item.coverage_percentage}%
-                                            </div>
+                                            {activeScope !== 'Blocks' && (
+                                                <>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.total_gps)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.gps_with_data)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {item.coverage_percentage}%
+                                                    </div>
+                                                </>
+                                            )}
+                                            {activeScope == 'Blocks' && (
+                                                <div style={{ fontSize: '14px', color: '#111827' }}>
+                                                    <span
+                                                        style={{
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            backgroundColor:
+                                                                item.master_data_status === 'Available'
+                                                                    ? '#d1fae5'
+                                                                    : '#fee2e2',
+                                                            color:
+                                                                item.master_data_status === 'Available'
+                                                                    ? '#065f46'
+                                                                    : '#991b1b',
+                                                            fontSize: '12px',
+
+                                                        }}
+                                                    >
+                                                        {item.master_data_status || 'Not Available'}
+                                                    </span>
+                                                </div>
+                                            )}
+
                                         </div>
                                     ));
                                 })()}
@@ -1520,6 +1802,7 @@ const ContractorDetails = () => {
                             </h3>
                             <button
                                 onClick={() => {
+
                                     setActiveScope('Blocks');
                                     setSelectedLocation(selectedBlockForHierarchy?.name || 'Select Block');
                                     setSelectedGPId(null);
@@ -1545,12 +1828,12 @@ const ContractorDetails = () => {
                         {/* vendor details page static */}
                         {loadingAnalytics ? (
                             <div className="text-center text-gray-500">Loading...</div>
-                        ) : !analyticsData?.length ? (
+                        ) : !analyticsData?.contractors?.length ? (
                             <div className="text-center text-gray-400">No vendors found</div>
                         ) :
                             (
 
-                                analyticsData.map((item, index) => {
+                                analyticsData?.contractors?.map((item, index) => {
                                     return (
                                         <div key={item.person_name} className='mx-auto  w-full mt-10  rounded flex justify-center '>
                                             <div
@@ -1578,7 +1861,7 @@ const ContractorDetails = () => {
                                                         Agency name :
                                                     </div>
                                                     <div>
-                                                        {item.agency?.name || '-'}
+                                                        {item.agency_name || '-'}
                                                     </div>
                                                 </div>
                                                 <div className='flex justify-between '>
@@ -1628,12 +1911,12 @@ const ContractorDetails = () => {
 
 
                 {/* Coverage Table Section - For State, Districts, Blocks, and GPs */}
-                
+
 
 
 
             </div>
-        </div>
+        </div >
     )
 };
 

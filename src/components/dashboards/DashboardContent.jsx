@@ -1,27 +1,21 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, TrendingUp } from 'lucide-react';
-import Chart from 'react-apexcharts';
-import number1 from '../../assets/images/number1.png';
-import number2 from '../../assets/images/nnumber2.png';
-import number3 from '../../assets/images/number3.png';
+import { List } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from '../../context/LocationContext';
 import apiClient, {
+  annualSurveysAPI,
   attendanceAPI,
   contractorAnalyticsAPI,
-  vehiclesAPI,
+  eventsAPI,
   inspectionsAPI,
   schemesAPI,
-  eventsAPI,
-  annualSurveysAPI
+  vehiclesAPI
 } from '../../services/api';
-import { useLocation } from '../../context/LocationContext';
-import LocationDisplay from '../common/LocationDisplay';
-import SendNoticeModal from './common/SendNoticeModal';
-import NoDataFound from './common/NoDataFound';
-import OverviewBanner from './common/OverviewBanner';
-import ListOfDistrictsTable from './common/ListOfDistrictsTable';
-import DashboardCardsGrid from './common/DashboardCardsGrid';
-import ComplaintsDashboard from './common/ComplaintsDashboard';
 import { InfoTooltip } from '../common/Tooltip';
+import ComplaintsDashboard from './common/ComplaintsDashboard';
+import DashboardCardsGrid from './common/DashboardCardsGrid';
+import ListOfDistrictsTable from './common/ListOfDistrictsTable';
+import OverviewBanner from './common/OverviewBanner';
+import SendNoticeModal from './common/SendNoticeModal';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -2564,10 +2558,35 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
-
             districtsCount={districts.length}
             blocksCount={allBlocksForDistricts.length}
             villagesCount={totalCountOfGPs}
+            selectedLocation={{
+              districtId: selectedDistrictId,
+              blockId: selectedBlockId,
+              gpId: selectedGPId
+            }}
+            onLocationChange={({ scope, location, locationId, districtId, blockId, gpId, districtName, blockName }) => {
+              updateLocationSelection(scope, location, locationId, districtId, blockId, gpId);
+
+              // Sync hierarchy state so breadcrumb and dropdown reflect the new selection
+              if (scope === 'Districts') {
+                setActiveScope('Districts');
+                setDropdownLevel('blocks');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || location });
+                setSelectedBlockForHierarchy(null);
+              } else if (scope === 'Blocks') {
+                setActiveScope('Blocks');
+                setDropdownLevel('gps');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || '' });
+                setSelectedBlockForHierarchy({ id: blockId, name: blockName || location });
+              } else if (scope === 'GPs') {
+                setActiveScope('GPs');
+                setDropdownLevel('gps');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || '' });
+                setSelectedBlockForHierarchy({ id: blockId, name: blockName || '' });
+              }
+            }}
           />
         </div>
       </div>
