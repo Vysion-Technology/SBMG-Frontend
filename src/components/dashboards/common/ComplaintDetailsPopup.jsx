@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import ResolutionPopup from "./ResolutionPopup";
-import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
-import { useJsApiLoader } from "@react-google-maps/api";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Check, Clock, Loader, MapPin } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
+import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
+import ResolutionPopup from "./ResolutionPopup";
 
 
 const styles = {
@@ -192,7 +192,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
             { location: { lat: parseFloat(lat), lng: parseFloat(lng) } },
             (results, status) => {
 
-                console.log("Geocode results:", results);
+                // console.log("Geocode results:", results);
 
                 if (status === "OK" && results.length > 0) {
 
@@ -211,9 +211,11 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
     };
 
-    const { isLoaded } = useJsApiLoader({
-        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
-    });
+    const { isLoaded, loadError } = useGoogleMaps();
+
+    // const { isLoaded } = useJsApiLoader({
+    //     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+    // });
 
     useEffect(() => {
 
@@ -244,8 +246,8 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
         if (!complaint || !isLoaded) return;
 
-        console.log("Lat:", complaint.lat);
-        console.log("Long:", complaint.long);
+        // console.log("Lat:", complaint.lat);
+        // console.log("Long:", complaint.long);
 
         if (complaint.lat && complaint.long) {
             getAddressFromLatLng(complaint.lat, complaint.long);

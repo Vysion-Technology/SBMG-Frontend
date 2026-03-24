@@ -1173,7 +1173,7 @@ const ContractorDetails = () => {
                                         {/*   (total filled constrator / total contractor) * 100    */}
                                     </h3>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
+                                        <InfoTooltip tooltipKey="Contractor_Coverage_Percentage" size={16} color="#6b7280" />
                                         <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
                                     </div>
                                 </div>
@@ -1208,7 +1208,7 @@ const ContractorDetails = () => {
                                     }}>
                                         Data Filled covered
                                     </h3>
-                                    <InfoTooltip tooltipKey="gps_with_contractor_data" size={16} color="#9ca3af" />
+                                    <InfoTooltip tooltipKey="total_filled_constrator" size={16} color="#9ca3af" />
                                 </div>
                                 <div style={{
                                     fontSize: '32px',
@@ -1245,7 +1245,7 @@ const ContractorDetails = () => {
                             }}>
                                 Total Amount
                             </h3>
-                            <InfoTooltip tooltipKey="gps_with_contractor_data" size={16} color="#9ca3af" />
+                            <InfoTooltip tooltipKey="Total_amount" size={16} color="#9ca3af" />
                         </div>
                         <div style={{
                             fontSize: '24px',
@@ -1710,19 +1710,19 @@ const ContractorDetails = () => {
                                                     }}
                                                     style={{
                                                         cursor: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? 'pointer' : 'default',
-                                                        color: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? '#0866c6' : '#374151',
+                                                        color: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? '#10b981' : '#374151',
                                                         textDecoration: 'none',
                                                         transition: 'color 0.2s ease'
                                                     }}
                                                     onMouseEnter={(e) => {
                                                         if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
-                                                            e.target.style.color = '#0550a3';
+                                                            e.target.style.color = '#10b981';
                                                             e.target.style.textDecoration = 'underline';
                                                         }
                                                     }}
                                                     onMouseLeave={(e) => {
                                                         if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
-                                                            e.target.style.color = '#0866c6';
+                                                            e.target.style.color = '#10b981';
                                                             e.target.style.textDecoration = 'none';
                                                         }
                                                     }}

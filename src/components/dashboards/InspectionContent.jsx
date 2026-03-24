@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../assets/images/number1.png';
 import number2 from '../../assets/images/nnumber2.png';
@@ -168,6 +168,26 @@ const InspectionContent = () => {
     if (event.key !== 'Tab') {
       event.preventDefault();
     }
+  };
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+      }
+      return { key, direction: 'asc' };
+    });
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortConfig.key !== col) {
+      return <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />;
+    }
+    return sortConfig.direction === 'asc'
+      ? <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+      : <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />;
   };
 
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
@@ -2023,6 +2043,52 @@ const InspectionContent = () => {
     }
   ];
 
+  const getSortedData = (data = []) => {
+    if (!sortConfig.key) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // 🔹 special mappings
+      if (sortConfig.key === 'name') {
+        aValue = a.name || a.geo_name || '';
+        bValue = b.name || b.geo_name || '';
+      }
+
+      if (sortConfig.key === 'date') {
+        aValue = new Date(a.date);
+        bValue = new Date(b.date);
+      }
+
+      if (sortConfig.key === 'visibly_clean') {
+        aValue = a.visibly_clean ? 1 : 0;
+        bValue = b.visibly_clean ? 1 : 0;
+      }
+
+      // 🔹 null handle
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
+
+      // 🔹 string
+      if (typeof aValue === 'string') {
+        return sortConfig.direction === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      // 🔹 number / date
+      return sortConfig.direction === 'asc'
+        ? aValue - bValue
+        : bValue - aValue;
+    });
+  };
+  const sortedInspections = getSortedData(selectedGpForInspections?.inspections || []);
+
+  const sortedYourInspections = getSortedData(getYourInspections());
+
+
+
   return (
     <div>
 
@@ -2716,23 +2782,32 @@ const InspectionContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: viewingInspectionsForGp ? '1fr 150px 150px 150px' : viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
+              gridTemplateColumns: viewingInspectionsForGp ? '1fr 150px 150px 150px' : viewingGpsInspectionForBlock ? '1fr 200px 150px' : '1fr 200px 150px 150px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
-              borderBottom: '1px solid #e5e7eb'
+              borderBottom: '1px solid #e5e7eb',
+              alignItems: 'center',
             }}>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                {viewingInspectionsForGp
-                  ? `Issue`
-                  : viewingGpsInspectionForBlock
-                    ? `GP Name (${gpInspectionSummaryData.length})`
-                    : viewingBlocksInspectionForDistrict
-                      ? `Block Name (${blockInspectionSummaryData.length})`
-                      : `District Name (${districtInspectionSummaryData.length})`}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {viewingInspectionsForGp
+                    ? `Issue`
+                    : viewingGpsInspectionForBlock
+                      ? `GP Name (${gpInspectionSummaryData.length})`
+                      : viewingBlocksInspectionForDistrict
+                        ? `Block Name (${blockInspectionSummaryData.length})`
+                        : `District Name (${districtInspectionSummaryData.length})`}
+
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('name')}>
+                    <SortIcon col="name" />
+                  </span>
+                </div>
               </div>
               {viewingInspectionsForGp && (
                 <div style={{
@@ -2751,10 +2826,19 @@ const InspectionContent = () => {
                   color: '#374151',
                   textAlign: 'center', display: 'flex', gap: '3px'
                 }}>
-                  {viewingBlocksInspectionForDistrict
-                    ? `Inspected GPs`
-                    : `Inspected Blocks`}
-                  <span>({getHeaderTotal()})</span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div>
+                      {viewingBlocksInspectionForDistrict
+                        ? `Inspected GPs`
+                        : `Inspected Blocks`}<span>({getHeaderTotal()})</span>
+                    </div>
+
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('total_inspections')}>
+                      <SortIcon col="total_inspections" />
+                    </span>
+                  </div>
                 </div>
               )}
               <div style={{
@@ -2763,7 +2847,14 @@ const InspectionContent = () => {
                 color: '#374151',
                 textAlign: 'center', display: 'flex', gap: '3px', justifyContent: 'center'
               }}>
-                {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('average_score')}>
+                    <SortIcon col="average_score" />
+                  </span>
+                </div>
                 {/* <span>({headerGetAverageScore()})</span> */}
               </div>
               <div style={{
@@ -2772,7 +2863,14 @@ const InspectionContent = () => {
                 color: '#374151',
                 textAlign: 'center'
               }}>
-                {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('coverage_percentage')}>
+                    <SortIcon col="coverage_percentage" />
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -2784,10 +2882,10 @@ const InspectionContent = () => {
               {viewingInspectionsForGp ? (
                 // Individual inspections view for a GP
                 selectedGpForInspections?.inspections && selectedGpForInspections.inspections.length > 0 ? (
-                  selectedGpForInspections.inspections.map((inspection) => (
+                  sortedInspections.map((inspection) => (
                     <div key={inspection.id} style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 150px 150px 150px',
+                      gridTemplateColumns: '1fr 200px 150px 150px',
                       padding: '12px 16px',
                       alignItems: 'center',
                       borderBottom: '1px solid #f3f4f6'
@@ -2893,12 +2991,14 @@ const InspectionContent = () => {
                   Loading {viewingGpsInspectionForBlock ? 'GP' : viewingBlocksInspectionForDistrict ? 'block' : 'district'} data...
                 </div>
               ) : (() => {
-                const dataToDisplay = viewingGpsInspectionForBlock
+                const rawData = viewingGpsInspectionForBlock
                   ? gpInspectionSummaryData
                   : viewingBlocksInspectionForDistrict
                     ? blockInspectionSummaryData
                     : districtInspectionSummaryData;
-                const isEmpty = dataToDisplay.length === 0;
+
+                const dataToDisplay = getSortedData(rawData);
+                const isEmpty = rawData.length === 0;
 
                 return isEmpty ? (
                   <div style={{
@@ -2915,7 +3015,7 @@ const InspectionContent = () => {
                   dataToDisplay.map((item) => (
                     <div key={item.id} style={{
                       display: 'grid',
-                      gridTemplateColumns: viewingGpsInspectionForBlock ? '1fr 150px 150px' : '1fr 150px 150px 150px',
+                      gridTemplateColumns: viewingGpsInspectionForBlock ? '1fr 200px 150px' : '1fr 200px 150px 150px',
                       padding: '12px 16px',
                       alignItems: 'center',
                       borderBottom: '1px solid #f3f4f6'
@@ -3685,49 +3785,55 @@ const InspectionContent = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Date
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-              </div>
+              <span
+                style={{ cursor: 'pointer', }}
+                onClick={() => handleSort('date')}>
+                <SortIcon col="date" />
+              </span>
             </div>
             {activeScope === 'GPs' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 Inspection by
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('inspector_role')}>
+                  <SortIcon col="inspector_role" />
+                </span>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Village Name
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-              </div>
+              <span
+                style={{ cursor: 'pointer', }}
+                onClick={() => handleSort('village_name')}>
+                <SortIcon col="village_name" />
+              </span>
             </div>
             {activeScope !== 'GPs' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 GP Name
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('gp_name')}>
+                  <SortIcon col="gp_name" />
+                </span>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Cleaning Score
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-              </div>
+              <span
+                style={{ cursor: 'pointer', }}
+                onClick={() => handleSort('overall_score')}>
+                <SortIcon col="overall_score" />
+              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               Visibly Clean
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-              </div>
+              <span
+                style={{ cursor: 'pointer', }}
+                onClick={() => handleSort('visibly_clean')}>
+                <SortIcon col="visibly_clean" />
+              </span>
             </div>
             <div>Action</div>
           </div>
@@ -3754,10 +3860,10 @@ const InspectionContent = () => {
           {/* Data State */}
           {!loadingYourInspections && !yourInspectionsError && (
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {getYourInspections().length === 0 ? (
+              {sortedYourInspections.length === 0 ? (
                 <NoDataFound size="small" />
               ) : (
-                getYourInspections().map((inspection, index) => (
+                sortedYourInspections.map((inspection, index) => (
                   <div key={inspection.id || index} style={{
                     display: 'grid',
                     gridTemplateColumns: activeScope === 'GPs'
