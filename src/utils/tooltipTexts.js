@@ -16,11 +16,11 @@ export const TOOLTIP_TEXTS = {
   "AMOUNT_IN_LAKHS_CONVERSION": "Converts monetary amounts from Rupees to Lakhs for better readability. Formula: Amount / 100,000. Example: ₹15 L = ₹1,500,000.",
   "TOTAL_SCHEME_TARGET": "Sum of all individual SBMG scheme targets (IHHL + CSC + RRC + PWMU + Soak pit + Magic pit + Leach pit + WSP + DEWATS).",
   "TOTAL_SCHEME_ACHIEVEMENT": "Sum of all individual SBMG scheme achievements across all schemes.",
-  
+
   // District Wise Coverage Metrics
   "TOTAL_GPS": "At State/District level: Total count of Gram Panchayats (GPs). At Block level: Total count of Villages. This represents the complete number of geographical entities in the selected scope.",
   "GPS_WITH_DATA": "At State/District level: Number of GPs that have master data available. At Block level: Number of Villages that have master data available. This indicates how many entities have completed their master data entries.",
-  
+
   // Inspection Metrics
   "INSPECTION_OVERALL_SCORE": "Overall inspection performance score (0-100%). Formula: (Total Points Earned / 180) × 100. Maximum Points = 180 (Household Waste: 50, Road: 10, Drain: 30, Community Sanitation: 40, Other: 50).",
   "INSPECTION_HOUSEHOLD_WASTE_SCORE": "Score for household waste management (out of 50 points). Covers: collection frequency (10), vehicle segregation (10), covered collection (10), disposal at RRC (10), functional vehicle (10). Formula: (Points Earned / 50) × 100",
@@ -32,23 +32,29 @@ export const TOOLTIP_TEXTS = {
   "TOTAL_INSPECTIONS": "Total number of inspections conducted across all selected geographies.",
   "AVERAGE_INSPECTION_SCORE": "Average score across all inspections conducted, representing overall inspection quality.",
   "CRITICAL_ISSUES": "Number of critical sanitation or waste management issues identified during inspections that require immediate attention.",
-  
+
   // Complaint Metrics
   "COMPLAINT_SCORE": "Performance score (0-100) for complaint management. Score1 (50 points max): Rewards faster resolution within 7-day SLA. Score2 (50 points max): Rewards higher resolution rate. Formula: Score1 + Score2. Example: 3.5 days avg resolution + 85% resolved = 67.5 total score.",
   "AVERAGE_RESOLUTION_TIME": "Average time taken to resolve complaints (in seconds, convertible to days). Lower time = faster handling. Formula: Average((Resolved_At - Created_At) in seconds). Example: 288,000 seconds = 3.33 days. If unresolved, uses current time as reference.",
   "TOTAL_COMPLAINTS": "Total number of complaints registered in the system.",
   "RESOLVED_COMPLAINTS": "Number of complaints that have been successfully resolved.",
   "PENDING_COMPLAINTS": "Number of complaints that are still pending or under review.",
-  
+
   // Notice Metrics
   "TOTAL_NOTICES_SENT": "Total count of notices that have been sent by the current user/authority to other recipients. This includes all notices dispatched from your account.",
   "TOTAL_NOTICES_RECEIVED": "Total count of notices that have been received by the current user/authority from other senders. This includes all notices sent to your account.",
-  
+
   // Additional common tooltips
   "AVERAGE_RATING": "Average rating given by users based on their feedback and experience with the app.",
   "TOTAL_RATINGS": "Total number of feedback ratings submitted by users (both authority users and public users).",
   "PERFORMANCE_TREND": "Shows the trend in performance metrics over time, indicating improvement or decline.",
-  "DEFAULT": "Hover for more information about this metric."
+  "DEFAULT": "Hover for more information about this metric.",
+
+
+  // Contator Details
+  "total_filled_constrator": "Contator With Data Filed.",
+  "Contractor_Coverage_Percentage": "Coverage Percentage",
+  "Total_amount": "Total Amount"
 };
 
 // Get tooltip text by key, with fallback

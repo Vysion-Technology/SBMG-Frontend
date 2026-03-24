@@ -1,19 +1,19 @@
-import React, { useState, useMemo } from "react";
-import { Plus, MapPin } from 'lucide-react';
-import GoogleMapView from '../gps/GoogleMapView';
-import FleetSidebar from '../gps/FleetSidebar';
-import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
+import { MapPin, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from "react";
+import { useCEOLocation } from '../../../context/CEOLocationContext';
+import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../../hooks/useAddVehicle';
+import { useVehicleDetails } from '../../../hooks/useVehicleDetails';
+import { filterVehiclesByStatus, searchVehicles, useVehicles } from '../../../hooks/useVehicles';
 import AddVehicleModal from '../gps/AddVehicleModal';
 import DeleteConfirmModal from '../gps/DeleteConfirmModal';
-import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../../hooks/useVehicles';
-import { useVehicleDetails } from '../../../hooks/useVehicleDetails';
-import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../../hooks/useAddVehicle';
-import { useCEOLocation } from '../../../context/CEOLocationContext';
+import FleetSidebar from '../gps/FleetSidebar';
+import GoogleMapView from '../gps/GoogleMapView';
+import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
 
 const CEOGpsTrackingContent = () => {
     const ceoLocation = useCEOLocation();
     const selectedLocation = ceoLocation?.getCurrentLocationInfo() || {};
-    
+
     const [activeScope, setActiveScope] = useState('Blocks'); // CEO default scope
     const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
     const [searchQuery, setSearchQuery] = useState('');
@@ -22,16 +22,16 @@ const CEOGpsTrackingContent = () => {
     const [editingVehicle, setEditingVehicle] = useState(null);
     const [deleteConfirmVehicle, setDeleteConfirmVehicle] = useState(null);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
-    
+
     const scopeButtons = ['Blocks', 'GPs']; // CEO can only view Blocks and GPs within their district
-    
+
     // Fetch vehicles from API based on CEO's location context
     const { data: vehiclesData = [], isLoading: isLoadingVehicles, error: vehiclesError } = useVehicles({
         districtId: selectedLocation?.districtId || selectedLocation?.ceoDistrictId || 1,
         blockId: activeScope === 'Blocks' ? (selectedLocation?.blockId || 1) : selectedLocation?.blockId,
         gpId: activeScope === 'GPs' ? (selectedLocation?.gpId || 1) : null,
     });
-    
+
     // Fetch selected vehicle details
     const currentDate = new Date();
     const { data: vehicleDetails, isLoading: isLoadingDetails } = useVehicleDetails(
@@ -82,18 +82,18 @@ const CEOGpsTrackingContent = () => {
     // Filter and search vehicles
     const filteredVehicles = useMemo(() => {
         let result = vehiclesData;
-        
+
         // Filter by status tab
         result = filterVehiclesByStatus(result, activeFleetTab);
-        
+
         // Filter by search query
         result = searchVehicles(result, searchQuery);
-        
+
         // Filter by flagged status
         if (showOnlyFlagged) {
             result = result.filter(v => v.isFlagged);
         }
-        
+
         return result;
     }, [vehiclesData, activeFleetTab, searchQuery, showOnlyFlagged]);
 
@@ -103,7 +103,7 @@ const CEOGpsTrackingContent = () => {
         const active = vehiclesData.filter(v => v.status === 'active').length;
         const running = vehiclesData.filter(v => v.status === 'running').length;
         const stopped = vehiclesData.filter(v => v.status === 'stopped').length;
-        
+
         return {
             all,
             active,
@@ -119,6 +119,16 @@ const CEOGpsTrackingContent = () => {
         `Running(${String(fleetStats.running).padStart(2, '0')})`,
         `Stopped(${String(fleetStats.stopped).padStart(2, '0')})`,
     ], [fleetStats]);
+
+    // Sync active tab with updated counts
+    useEffect(() => {
+        setActiveFleetTab(prev => {
+            const prevStr = typeof prev === 'string' ? prev : 'All(00)';
+            const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
+            const newTab = fleetTabs.find(t => t.startsWith(statusKey));
+            return newTab || fleetTabs[0];
+        });
+    }, [fleetTabs]);
 
     const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
@@ -202,10 +212,10 @@ const CEOGpsTrackingContent = () => {
                             color: '#6b7280',
                             margin: 0
                         }}>
-                            {new Date().toLocaleDateString('en-US', { 
-                                day: 'numeric', 
-                                month: 'long', 
-                                year: 'numeric' 
+                            {new Date().toLocaleDateString('en-US', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric'
                             })}
                         </span>
                     </div>
@@ -309,7 +319,7 @@ const CEOGpsTrackingContent = () => {
                         right: '20px',
                         zIndex: 10
                     }}>
-                        <button 
+                        <button
                             onClick={() => { setEditingVehicle(null); setShowAddVehicleModal(true); }}
                             style={{
                                 display: 'flex',

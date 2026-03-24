@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   FileText,
   CheckCircle,
   ListChecks,
@@ -16,6 +16,7 @@ import {
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
 import Header from '../../common/Header';
+import TopHeaderBar from '../../common/TopHeaderBar';
 import BDODashboardContent from './BDODashboardContent';
 import BDOComplaintsContent from './BDOComplaintsContent';
 import BDOAttendanceContent from './BDOAttendanceContent';
@@ -46,11 +47,11 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
     { name: 'Feedbacks', icon: MessageSquare }
   ];
 
- return (
-    <aside className="h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
+  return (
+    <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
-      height: '100vh',
-      backgroundColor: '#F0FDF4',
+      height: '100%',
+      backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
@@ -64,18 +65,18 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
         paddingRight: '6px',
         margin: 0
       }}>
-       <div style={{
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         gap: isSidebarOpen ? '12px' : '0',
-         backgroundColor: 'white',
-         border: '1px solid #d1d5db',
-         borderRadius: '8px',
-         margin: 10,
-         padding: '5px',
-         minHeight: '48px'
-       }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: isSidebarOpen ? '12px' : '0',
+          backgroundColor: 'white',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          margin: 10,
+          padding: '5px',
+          minHeight: '48px'
+        }}>
           {/* Swach Logo */}
           <div style={{
             width: '36px',
@@ -85,9 +86,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <img 
-              src={swachLogo} 
-              alt="Swach Logo" 
+            <img
+              src={swachLogo}
+              alt="Swach Logo"
               style={{
                 width: '100%',
                 height: '100%',
@@ -126,9 +127,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.name === activeItem;
-            
+
             return (
-              <li key={item.name} style={{marginTop: '10px'}}>
+              <li key={item.name} style={{ marginTop: '10px' }}>
                 <button
                   onClick={() => setActiveItem(item.name)}
                   title={!isSidebarOpen ? item.name : ''}
@@ -141,8 +142,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                     borderRadius: '8px',
                     textAlign: 'left',
                     position: 'relative',
-                    backgroundColor: isActive ? '#009B56' : 'transparent',
-                    color: isActive ? 'white' : '#374151',
+                    borderLeft: isActive ? '4px solid #22c55e' : '4px solid transparent',
+                    backgroundColor: isActive ? '#f3f4f6' : 'transparent',
+                    color: '#374151',
                     border: 'none',
                     cursor: 'pointer',
                     padding: '12px 8px',
@@ -162,7 +164,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                       whiteSpace: 'nowrap'
                     }}>{item.name}</span>
                   )}
-                 
+
                 </button>
               </li>
             );
@@ -177,7 +179,7 @@ const UnifiedDashboardBDO = () => {
   const [activeItem, setActiveItem] = useState('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const bdoLocation = useBDOLocation();
-  
+
   // Show loading screen while BDO data is being fetched
   if (!bdoLocation || bdoLocation.loadingBDOData || !bdoLocation.bdoDistrictId || !bdoLocation.bdoBlockId) {
     return (
@@ -185,7 +187,7 @@ const UnifiedDashboardBDO = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
+        height: '100%',
         backgroundColor: '#F3F4F6'
       }}>
         <div style={{ textAlign: 'center' }}>
@@ -241,39 +243,52 @@ const UnifiedDashboardBDO = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white m-0 p-0" style={{
+    <div style={{
       display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
       backgroundColor: 'white',
       margin: 0,
-      padding: 0
+      padding: 0,
+      overflow: 'hidden'
     }}>
-      <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
-        width: isSidebarOpen ? '272px' : '80px',
-        transition: 'width 0.25s ease',
-        overflow: 'hidden',
-        flexShrink: 0
-      }}>
-        <Sidebar 
-          activeItem={activeItem} 
-          setActiveItem={setActiveItem} 
-          isSidebarOpen={isSidebarOpen}
-        />
-      </div>
-      <div className="flex-1 bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
-        flex: 1,
-        backgroundColor: '#F3F4F6',
-        margin: 0,
-        padding: 0,
+      <TopHeaderBar />
+      <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
-        flexDirection: 'column',
-        overflow: 'auto'
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden'
       }}>
-        <Header
-          onMenuClick={() => setIsSidebarOpen(prev => !prev)}
-          onNotificationsClick={() => setActiveItem('Notices')}
-        />
-        {renderContent()}
+        <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
+          width: isSidebarOpen ? '272px' : '80px',
+          transition: 'width 0.25s ease',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}>
+          <Sidebar
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            isSidebarOpen={isSidebarOpen}
+          />
+        </div>
+        <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+          flex: 1,
+          backgroundColor: '#F3F4F6',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'auto'
+        }}>
+          <Header
+            pageTitle={activeItem}
+            onMenuClick={() => setIsSidebarOpen(prev => !prev)}
+            onNotificationsClick={() => setActiveItem('Notices')}
+          />
+          <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+            {renderContent()}
+          </div>
+        </div>
       </div>
     </div>
   );

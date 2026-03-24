@@ -1,4 +1,4 @@
-import { ArrowUpDown, Calendar, ChevronDown, ChevronRight, Database, Download, Edit, Filter, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -6,7 +6,6 @@ import apiClient, { annualSurveysAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 import EditGPMasterModal from './EditGPMasterModal';
 import { generateAnnualSurveysPDF } from '../../utils/annualSurveysPdf';
-import { InfoTooltip } from '../common/Tooltip';
 import { Link } from 'react-router-dom';
 import * as XLSX from "xlsx";
 import { jsPDF } from "jspdf";
@@ -28,7 +27,6 @@ const VillageMasterContent = () => {
     selectedDistrictId,
     selectedBlockId,
     selectedGPId,
-
     dropdownLevel,
     selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
@@ -93,8 +91,8 @@ const VillageMasterContent = () => {
   // Sorting 
   const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
   const [sortConfig, setSortConfig] = useState({
-    key: 'geography_name',
-    direction: 'asc' // 'asc' | 'desc'
+    key: null,
+    direction: 'asc'
   });
 
   const handleSort = (key) => {
@@ -111,6 +109,22 @@ const VillageMasterContent = () => {
         };
       }
     });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
   };
 
 
@@ -162,9 +176,9 @@ const VillageMasterContent = () => {
   }, [contextUpdateLocationSelection]);
 
   // Handler for downloading PDF with master data
-  const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+  const handleDownloadPDF = useCallback(async (surveyId = 1, action = 'download') => {
     try {
-      console.log('📥 Downloading PDF for survey ID:', surveyId);
+      console.log(`📥 ${action === 'download' ? 'Downloading' : 'Viewing'} PDF for survey ID:`, surveyId);
 
       // Fetch annual survey data
       const response = await apiClient.get(`/annual-surveys/${surveyId}`);
@@ -173,17 +187,17 @@ const VillageMasterContent = () => {
       console.log('✅ Survey data fetched:', surveyData);
 
       // Generate PDF
-      generatePDF(surveyData);
+      generatePDF(surveyData, action);
 
     } catch (error) {
-      console.error('❌ Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error(`❌ Error ${action === 'download' ? 'downloading' : 'viewing'} PDF:`, error);
+      alert(`Failed to ${action === 'download' ? 'download' : 'view'} PDF. Please try again.`);
     }
   }, []);
 
   // Function to generate PDF from survey data
   // Function to generate PDF from survey data
-  const generatePDF = (data) => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -426,11 +440,17 @@ const VillageMasterContent = () => {
       doc.text(`Page ${i} of ${pageCount}`, 170, 285);
     }
 
-    doc.save(`Survey-${data.gp_name}.pdf`);
+    if (action === 'view') {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(`Survey-${data.gp_name}.pdf`);
+    }
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
-  const handleDownloadAnnualSurveys = async (item) => {
+  const handleDownloadAnnualSurveys = async (item, action = 'download') => {
     try {
       if (!selectedFyId) {
         alert("Please select a Financial Year.");
@@ -476,7 +496,32 @@ const VillageMasterContent = () => {
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Blocks List");
-        XLSX.writeFile(workbook, `Blocks_of_${geoName}.xlsx`);
+        if (action === "view") {
+          const html = XLSX.utils.sheet_to_html(worksheet);
+
+          const win = window.open("", "_blank");
+          win.document.write(`
+    <html>
+      <head>
+        <title>Blocks of ${geoName}</title>
+        <style>
+          body{font-family:Arial;padding:20px}
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ddd;padding:8px;text-align:center}
+          th{background:#f3f4f6}
+        </style>
+      </head>
+      <body>
+        <h2>Blocks of ${geoName}</h2>
+        ${html}
+      </body>
+    </html>
+  `);
+          win.document.close();
+
+        } else {
+          XLSX.writeFile(workbook, `Blocks_of_${geoName}.xlsx`);
+        }
       }
 
       // ==========================================
@@ -511,17 +556,43 @@ const VillageMasterContent = () => {
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "GPs List");
-        XLSX.writeFile(workbook, `GPs_of_${geoName}.xlsx`);
+        if (action === "view") {
+          const html = XLSX.utils.sheet_to_html(worksheet);
+
+          const win = window.open("", "_blank");
+          win.document.write(`
+    <html>
+      <head>
+        <title>GPs of ${geoName}</title>
+        <style>
+          body{font-family:Arial;padding:20px}
+          table{border-collapse:collapse;width:100%}
+          th,td{border:1px solid #ddd;padding:8px;text-align:center}
+          th{background:#f3f4f6}
+        </style>
+      </head>
+      <body>
+        <h2>GPs of ${geoName}</h2>
+        ${html}
+      </body>
+    </html>
+  `);
+          win.document.close();
+
+        } else {
+          XLSX.writeFile(workbook, `GPs_of_${geoName}.xlsx`);
+        }
       }
 
       // ==========================================
       // CASE 3: BLOCKS SCOPE -> Generate PDF
       // ==========================================
       else if (activeScope === "Blocks") {
+        console.log(`🔍 ${action === 'download' ? 'Fetching' : 'Viewing'} survey for GP ID: ${geoId}, FY ID: ${selectedFyId}`);
         const surveyListRes = await apiClient.get(
-          `/annual-surveys?gp_id=${geoId}&fy_id=${selectedFyId}`
+          `/annual-surveys/?gp_id=${geoId}&fy_id=${selectedFyId}`
         );
-        const surveyList = surveyListRes.data;
+        const surveyList = Array.isArray(surveyListRes.data) ? surveyListRes.data : (surveyListRes.data?.data || []);
 
         if (!surveyList || !surveyList.length) {
           alert("No survey found for this GP.");
@@ -529,8 +600,9 @@ const VillageMasterContent = () => {
         }
 
         const surveyId = surveyList[0].id;
+        console.log(`✅ Found survey ID: ${surveyId}, fetching full details...`);
         const surveyRes = await apiClient.get(`/annual-surveys/${surveyId}`);
-        generatePDF(surveyRes.data);
+        generatePDF(surveyRes.data, action);
       }
 
     } catch (error) {
@@ -982,6 +1054,8 @@ const VillageMasterContent = () => {
     if (activeScope === 'Districts') {
       trackDropdownChange(district.name);
       updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
+      setSelectedDistrictForHierarchy(district);
+      setSelectedBlockForHierarchy(null);
       fetchBlocks(district.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'Blocks') {
@@ -1303,279 +1377,6 @@ const VillageMasterContent = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-      {/* Header Section */}
-      <div className="bg-white border-b border-gray-200 py-1 px-2 md:px-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4" style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 className="text-lg md:text-xl" style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            GP Master Data
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 w-full md:w-auto" style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div className="flex flex-wrap md:flex-nowrap bg-gray-100 rounded-xl p-1 gap-0.5" style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => handleScopeChange(scope)}
-                className="px-2 md:px-2.5 py-1 rounded-lg text-xs md:text-sm font-medium transition-all"
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-          {/* Location dropdown */}
-          <div
-            data-location-dropdown
-            className="relative w-full md:w-auto md:min-w-[200px]"
-            style={{
-              position: 'relative',
-              minWidth: '200px'
-            }}
-          >
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm md:text-base flex items-center justify-between"
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu */}
-            {showLocationDropdown && activeScope !== 'State' && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
-                }}
-              >
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto',
-                    borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
-                  }}
-                >
-                  {loadingDistricts ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading districts...
-                    </div>
-                  ) : districts.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No districts available
-                    </div>
-                  ) : (
-                    districts.map((district) => {
-                      const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                      const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                      const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-
-                      return (
-                        <div
-                          key={`district-${district.id}`}
-                          onClick={() => handleDistrictClick(district)}
-                          onMouseEnter={() => handleDistrictHover(district)}
-                          style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                        >
-                          <span>{district.name}</span>
-                          {showArrow && (
-                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                {activeScope !== 'Districts' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                    }}
-                  >
-                    {loadingBlocks ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading blocks...
-                      </div>
-                    ) : !activeHierarchyDistrict ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a district to view blocks
-                      </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No blocks found
-                      </div>
-                    ) : (
-                      blocksForActiveDistrict.map((block) => {
-                        const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                        const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                        const showArrow = activeScope === 'GPs';
-
-                        return (
-                          <div
-                            key={`block-${block.id}`}
-                            onClick={() => handleBlockClick(block)}
-                            onMouseEnter={() => handleBlockHover(block)}
-                            style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                          >
-                            <span>{block.name}</span>
-                            {showArrow && (
-                              <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-
-                {activeScope === 'GPs' && (
-                  <div
-                    style={{
-                      minWidth: '240px',
-                      maxHeight: '280px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {loadingGPs ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading GPs...
-                      </div>
-                    ) : !activeHierarchyBlock ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Select a block to view GPs
-                      </div>
-                    ) : gpsForActiveBlock.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No GPs found
-                      </div>
-                    ) : (
-                      gpsForActiveBlock.map((gp) => {
-                        const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-
-                        return (
-                          <div
-                            key={`gp-${gp.id}`}
-                            onClick={() => handleGPClick(gp)}
-                            style={getMenuItemStyles(isSelectedGP)}
-                          >
-                            <span>{gp.name}</span>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              const blockName = selectedBlockForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${blockName}`;
-            } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation || ''}`;
-            }
-            return `Rajasthan / ${selectedLocation}`;
-          })()}
-        </span>
-      </div>
 
       {/* Overview Section */}
       <div className="bg-white p-4 md:p-6 mx-2 md:mx-4 mt-1.5 rounded-lg border border-gray-300" style={{
@@ -1670,10 +1471,6 @@ const VillageMasterContent = () => {
                 }}>
                   Total GP Master Data
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <InfoTooltip tooltipKey="TOTAL_GP_MASTER_DATA" size={16} color="#6b7280" />
-                  <Database style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                </div>
               </div>
               <div style={{
                 fontSize: '24px',
@@ -1718,10 +1515,6 @@ const VillageMasterContent = () => {
                 }}>
                   Village GP Data Coverage
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
-                  <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-                </div>
               </div>
               <div style={{
                 fontSize: '24px',
@@ -1756,9 +1549,6 @@ const VillageMasterContent = () => {
               }}>
                 Total funds sanctioned
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
-              </div>
             </div>
             <div style={{
               fontSize: '24px',
@@ -1792,9 +1582,6 @@ const VillageMasterContent = () => {
               }}>
                 Total work order Amount
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-              </div>
             </div>
             <div style={{
               fontSize: '24px',
@@ -1828,7 +1615,6 @@ const VillageMasterContent = () => {
               }}>
                 SBMG Target Achievement Rate
               </h3>
-              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
             </div>
             <div style={{
               fontSize: '24px',
@@ -1935,7 +1721,6 @@ const VillageMasterContent = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
-                  <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate ?? analyticsData?.fund_utilization_rate ?? '0')}%
@@ -1946,7 +1731,6 @@ const VillageMasterContent = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
-                  <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
                 </div>
                 <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                   {loadingAnalytics ? '...' : `₹${formatNumber(analyticsData?.annual_overview?.average_cost_per_household_d2d || 0)}`}
@@ -1958,7 +1742,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
-                    <InfoTooltip tooltipKey="HOUSEHOLDS_COVERED_D2D" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.households_covered_d2d ?? analyticsData?.households_covered_d2d ?? 0)}
@@ -1971,7 +1754,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
-                    <InfoTooltip tooltipKey="GPS_WITH_ASSET_GAPS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.gps_with_asset_gaps || 0)}
@@ -1984,7 +1766,6 @@ const VillageMasterContent = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
-                    <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
                   </div>
                   <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
                     {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.active_sanitation_bidders || 0)}
@@ -2131,6 +1912,27 @@ const VillageMasterContent = () => {
                     >
                       <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
                     </button>
+
+                    <button
+                      onClick={() => hasData && handleDownloadPDF(survey.id, 'view')}
+                      disabled={!hasData}
+                      title={hasData ? 'View PDF' : 'No data to view'}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: '#374151',
+                        cursor: hasData ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: hasData ? 1 : 0.6
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
               );
@@ -2153,53 +1955,88 @@ const VillageMasterContent = () => {
       {activeScope !== 'GPs' && (
         <div style={{
           backgroundColor: 'white',
-          padding: '14px',
+          padding: '24px',
           marginLeft: '16px',
           marginRight: '16px',
           marginTop: '16px',
           borderRadius: '8px',
           border: '1px solid lightgray'
         }}>
-          <div
-            style={{
+          {/* Header with title and back buttons */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '20px'
+          }}>
+            <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
-              padding: '0 5px'
-            }}
-          >
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '12px'
+              alignItems: 'center',
+              gap: '8px'
             }}>
-              {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
-            </h3>
-            <h3>
+              <div>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  GP Master Data
+                </h2>
+              </div>
+              <span style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '4px'
+              }}>
+                {activeScope === 'Districts'
+                  ? `${selectedLocation || ''}`
+                  : activeScope === 'Blocks'
+                    ? `${selectedBlockForHierarchy?.name || ''}`
+                    : ''}
+              </span>
+            </div>
+            {activeScope === 'Blocks' && (
               <button
-                onClick={tableDataDownload}
-                type="button"
-                title="Download Data"
+                onClick={() => { setActiveScope('Districts'); setSelectedLocation(selectedDistrictForHierarchy?.name || 'Select District'); }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '6px',
-                  border: '1px solid #e5e7eb',
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
                   borderRadius: '6px',
-                  backgroundColor: '#10B981',
+                  fontSize: '14px',
+                  fontWeight: '500',
                   cursor: 'pointer',
-                  color: 'white'
+                  transition: 'background-color 0.2s ease'
                 }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                <Download style={{ width: '20px', height: '20px' }} />
+                ← Back to Districts
               </button>
-            </h3>
+            )}
+            {activeScope === 'Districts' && (
+              <button
+                onClick={() => setActiveScope('State')}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              >
+                ← Back to State
+              </button>
+            )}
           </div>
-
-
-
 
           {/* Table */}
           {(() => {
@@ -2254,15 +2091,15 @@ const VillageMasterContent = () => {
                 ? '3fr  1fr 60px'
                 : '2fr 2fr 2fr 2fr 1.5fr 60px';
             return (
-              <div style={{
+              <div data-table-scroll style={{
                 borderRadius: '8px',
                 border: '1px solid #e5e7eb',
+                maxHeight: '400px',
+                overflowY: 'auto',
                 overflowX: 'auto'
               }}>
                 <div style={{
-                  minWidth: '600px',
-                  overflowY: 'auto',
-                  overflowX: 'auto'
+                  minWidth: '600px'
                 }}>
                   {/* Table Header - Sticky */}
                   <div style={{
@@ -2275,16 +2112,33 @@ const VillageMasterContent = () => {
                     top: 0,
                     zIndex: 10
                   }}>
-                    <div onClick={() => handleSort('geography_name')} style={{ /* aapka existing style */ }}>
-                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                      ({totalGeographyCount})
+                    <div
 
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151'
+                      }}
+                    >
+                      {activeScope === 'State'
+                        ? 'District'
+                        : activeScope === 'Districts'
+                          ? 'Block'
+                          : 'GP'} Name
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('geography_name')}>
+                        <SortIcon col="geography_name" />
+                      </span>
+
                     </div>
 
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('total_gps')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -2292,64 +2146,68 @@ const VillageMasterContent = () => {
                           fontSize: '14px',
                           fontWeight: '600',
                           color: '#374151',
-                          cursor: 'pointer'
                         }}>
                         Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Gps'}
                         ({totalGpsSum})
 
-                        <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('total_gps')}>
+                          <SortIcon col="total_gps" />
+                        </span>
                       </div>)}
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('gps_with_data')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151',
-                          cursor: 'pointer'
+                          color: '#374151'
                         }}>
                         {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
                         ({loadingAnalytics ? '...' : formatNumber(getAnalyticsValue('total_village_master_data', 0))})
-                        <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('gps_with_data')}>
+                          <SortIcon col="gps_with_data" />
+                        </span>
+
                       </div>)}
 
                     {activeScope !== 'Blocks' && (
                       <div
-                        onClick={() => handleSort('coverage_percentage')}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           fontSize: '14px',
                           fontWeight: '600',
-                          color: '#374151',
-                          cursor: 'pointer'
+                          color: '#374151'
                         }}>
                         Coverage   ({loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`})
 
-                        <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
-                        <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('coverage_percentage')}>
+                          <SortIcon col="coverage_percentage" />
+                        </span>
                       </div>
+
                     )}
 
                     <div
-                      onClick={() => handleSort('master_data_status')}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
                         fontSize: '14px',
                         fontWeight: '600',
-                        color: '#374151',
-                        cursor: 'pointer'
+                        color: '#374151'
                       }}>
                       Status
-                      <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
                     <div style={{
                       display: 'flex',
@@ -2375,11 +2233,11 @@ const VillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div 
+                      <div
                         onClick={() => handleRowClick(item)}
-                        style={{ 
-                          fontSize: '14px', 
-                          color: activeScope === 'GPs' ? '#111827' : '#10b981', 
+                        style={{
+                          fontSize: '14px',
+                          color: activeScope === 'GPs' ? '#111827' : '#10b981',
                           fontWeight: '500',
                           cursor: activeScope === 'GPs' ? 'default' : 'pointer',
                           textDecoration: activeScope === 'GPs' ? 'none' : 'underline'
@@ -2411,7 +2269,7 @@ const VillageMasterContent = () => {
                           {item.master_data_status || 'Not Available'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button
                           type="button"
                           onClick={() => handleDownloadAnnualSurveys(item)}
@@ -2431,6 +2289,28 @@ const VillageMasterContent = () => {
                         >
                           <Download style={{ width: '18px', height: '18px' }} />
                         </button>
+
+
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadAnnualSurveys(item, 'view')}
+                          disabled={downloadingId === item.geography_id}
+                          title="View Data"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                            color: '#374151'
+                          }}
+                        >
+                          <Eye style={{ width: '18px', height: '18px' }} />
+                        </button>
+
                       </div>
                     </div>
 
@@ -2440,7 +2320,8 @@ const VillageMasterContent = () => {
             );
           })()}
         </div>
-      )}
+      )
+      }
 
 
       {/* Send Notice Modal */}
@@ -2452,7 +2333,7 @@ const VillageMasterContent = () => {
         kpiName={noticeModuleData.kpiName}
         kpiFigure={noticeModuleData.kpiFigure}
       />
-    </div>
+    </div >
   );
 };
 

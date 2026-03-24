@@ -204,9 +204,9 @@ const BDOVillageMasterContent = () => {
   }, [contextUpdateLocationSelection]);
 
   // Handler for downloading PDF with master data
-  const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+  const handleDownloadPDF = useCallback(async (surveyId = 1, action = 'download') => {
     try {
-      console.log('📥 Downloading PDF for survey ID:', surveyId);
+      console.log(`📥 ${action === 'download' ? 'Downloading' : 'Viewing'} PDF for survey ID:`, surveyId);
 
       // Fetch annual survey data
       const response = await apiClient.get(`/annual-surveys/${surveyId}`);
@@ -215,19 +215,18 @@ const BDOVillageMasterContent = () => {
       console.log('✅ Survey data fetched:', surveyData);
 
       // Generate PDF
-      generatePDF(surveyData);
+      generatePDF(surveyData, action);
 
     } catch (error) {
-      console.error('❌ Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error(`❌ Error ${action === 'download' ? 'downloading' : 'viewing'} PDF:`, error);
+      alert(`Failed to ${action === 'download' ? 'download' : 'view'} PDF. Please try again.`);
     }
   }, []);
 
-
-
   // Function to generate PDF from survey data
-  const generatePDF = (data) => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
+
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
 
@@ -469,11 +468,17 @@ const BDOVillageMasterContent = () => {
       doc.text(`Page ${i} of ${pageCount}`, 170, 285);
     }
 
-    doc.save(`Survey-${data.gp_name}.pdf`);
+    if (action === 'view') {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(`Survey-${data.gp_name}.pdf`);
+    }
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
-  const handleDownloadAnnualSurveys = async (item) => {
+  const handleDownloadAnnualSurveys = async (item, action = 'download') => {
     try {
       if (!selectedFyId) {
         alert("Please select a Financial Year.");
@@ -514,15 +519,17 @@ const BDOVillageMasterContent = () => {
       // Case 2: Blocks Tab logic (as per your requirement)
       if (activeScope === "Blocks") {
         const gpId = item.geography_id;
-        const surveyListRes = await apiClient.get(`/annual-surveys?gp_id=${gpId}&fy_id=${selectedFyId}`);
+        console.log(`🔍 ${action === 'download' ? 'Fetching' : 'Viewing'} survey for GP ID: ${gpId}, FY ID: ${selectedFyId}`);
+        const surveyListRes = await apiClient.get(`/annual-surveys/?gp_id=${gpId}&fy_id=${selectedFyId}`);
         const surveyList = Array.isArray(surveyListRes.data) ? surveyListRes.data : (surveyListRes.data?.data || []);
 
         if (surveyList.length > 0) {
           const surveyId = surveyList[0].id;
+          console.log(`✅ Found survey ID: ${surveyId}, fetching full details...`);
           const surveyRes = await apiClient.get(`/annual-surveys/${surveyId}`);
-          generatePDF(surveyRes.data);
+          generatePDF(surveyRes.data, action);
         } else {
-          alert("No survey found");
+          alert("No survey found for this GP.");
         }
       }
 
@@ -1907,6 +1914,27 @@ const BDOVillageMasterContent = () => {
                     >
                       <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
                     </button>
+
+                    <button
+                      onClick={() => hasData && handleDownloadPDF(survey.id, 'view')}
+                      disabled={!hasData}
+                      title={hasData ? 'View PDF' : 'No data to view'}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: '#374151',
+                        cursor: hasData ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: hasData ? 1 : 0.6
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
               );
@@ -2123,7 +2151,7 @@ const BDOVillageMasterContent = () => {
                           {item.master_data_status || 'Not Available'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button
                           type="button"
                           onClick={() => handleDownloadAnnualSurveys(item)}
@@ -2143,6 +2171,28 @@ const BDOVillageMasterContent = () => {
                         >
                           <Download style={{ width: '18px', height: '18px' }} />
                         </button>
+
+                        {activeScope === 'Blocks' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadAnnualSurveys(item, 'view')}
+                            disabled={downloadingId === item.geography_id}
+                            title="View PDF"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                              color: '#374151'
+                            }}
+                          >
+                            <Eye style={{ width: '18px', height: '18px' }} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

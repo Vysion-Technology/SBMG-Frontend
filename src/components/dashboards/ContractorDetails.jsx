@@ -1,4 +1,4 @@
-import { ArrowUpDown, ChevronDown, ChevronRight, Download, MapPin, TrendingUp } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Download, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
@@ -61,6 +61,24 @@ const ContractorDetails = () => {
     const [analyticsError, setAnalyticsError] = useState(null);
     const [downloadingId, setDownloadingId] = useState(null);
 
+    // Contractor Analytics state
+    const [contractorAnalyticsData, setContractorAnalyticsData] = useState(null);
+    const [loadingContractorAnalytics, setLoadingContractorAnalytics] = useState(false);
+    const [contractorAnalyticsError, setContractorAnalyticsError] = useState(null);
+
+    // District-level Contractor Analytics state
+    const [districtContractorAnalyticsData, setDistrictContractorAnalyticsData] = useState(null);
+    const [loadingDistrictContractorAnalytics, setLoadingDistrictContractorAnalytics] = useState(false);
+    const [districtContractorAnalyticsError, setDistrictContractorAnalyticsError] = useState(null);
+
+    // Block-level Analytics state (for GP scope coverage table)
+    const [blockAnalyticsData, setBlockAnalyticsData] = useState(null);
+    const [loadingBlockAnalytics, setLoadingBlockAnalytics] = useState(false);
+    const [blockAnalyticsError, setBlockAnalyticsError] = useState(null);
+
+    // Hover state for back buttons
+    const [backButtonHover, setBackButtonHover] = useState(false);
+
     // GP Report: surveys for selected GP + FY, and edit modal
     const [gpSurveyList, setGpSurveyList] = useState([]);
     const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
@@ -70,16 +88,60 @@ const ContractorDetails = () => {
     const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
     const performanceButtons = ['Time', 'Location'];
 
+
+    // Sorting 
+    const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+    const [sortConfig, setSortConfig] = useState({
+        key: null,
+        direction: 'asc'
+    });
+
+    const handleSort = (key) => {
+        setSortConfig((prev) => {
+            if (prev.key === key) {
+                return {
+                    key,
+                    direction: prev.direction === 'asc' ? 'desc' : 'asc'
+                };
+            } else {
+                return {
+                    key,
+                    direction: 'asc'
+                };
+            }
+        });
+    };
+    const SortIcon = ({ col }) => {
+
+        // agar ye column sort nahi hua hai
+        if (sortConfig.key !== col) {
+            return (
+                <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+            );
+        }
+
+        // agar sort hua hai
+        return sortConfig.direction === 'asc' ? (
+            <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+        ) : (
+            <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+        );
+    };
+
+
+    const gridColumns =
+        activeScope === 'Blocks'
+            ? '3fr  1fr '
+            : '2fr 2fr 2fr 2fr ';
+
     // Helper functions for location management
     const trackTabChange = useCallback((scope) => {
-        console.log('Tab changed to:', scope);
         if (typeof contextTrackTabChange === 'function') {
             contextTrackTabChange(scope);
         }
     }, [contextTrackTabChange]);
 
     const trackDropdownChange = useCallback((location, locationId, districtId, blockId, gpId) => {
-        console.log('Dropdown changed to:', location);
         if (typeof contextTrackDropdownChange === 'function') {
             contextTrackDropdownChange(location, locationId, districtId, blockId, gpId);
         }
@@ -232,16 +294,19 @@ const ContractorDetails = () => {
 
             // Build URL based on active scope
             if (activeScope === 'State') {
-                url = `/annual-surveys/analytics/state?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/state`;
                 console.log('🏛️ Calling STATE analytics API');
             } else if (activeScope === 'Districts' && selectedDistrictId) {
-                url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
+                // url = `/annual-surveys/analytics/district/${selectedDistrictId}?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/district/${selectedDistrictId}`;
                 console.log('🏙️ Calling DISTRICT analytics API');
             } else if (activeScope === 'Blocks' && selectedBlockId) {
-                url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
+                // url = `/annual-surveys/analytics/block/${selectedBlockId}?fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/block/${selectedBlockId}`;
+                // /api/v1//block/{block_id}
                 console.log('🏘️ Calling BLOCK analytics API');
             } else if (activeScope === 'GPs' && selectedGPId) {
-                url = `/contractors/contractors?gp_id=${selectedGPId}&fy_id=${fyId}`;
+                url = `/contractor-analytics/analytics/gp/${selectedGPId}`;
                 console.log('🏡 Calling GP analytics API');
             } else {
                 console.log('⏸️ Waiting for location selection or FY data');
@@ -260,8 +325,9 @@ const ContractorDetails = () => {
 
             // Log annual_overview specifically
             if (response.data) {
-                console.log('📊 Annual Overview Data:', response.data.annual_overview);
-                console.log('📈 Scheme Data:', response.data.scheme_wise_target_achievement);
+                console.log('📊 Annual Overview Data:', response.data.coverage_percentage);
+                console.log('📈 Scheme Data:', response.data.gps_with_contractor_data);
+                console.log('📈 Scheme Data:', response.data.total_gps);
             }
 
             setAnalyticsData(response.data);
@@ -281,6 +347,60 @@ const ContractorDetails = () => {
             setLoadingAnalytics(false);
         }
     }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedFyId]);
+
+    // Fetch contractor analytics data
+    const fetchContractorAnalytics = useCallback(async () => {
+        try {
+            setLoadingContractorAnalytics(true);
+            setContractorAnalyticsError(null);
+            const response = await apiClient.get('/contractor-analytics/analytics/state');
+            setContractorAnalyticsData(response.data);
+        } catch (error) {
+            setContractorAnalyticsError(error.message || 'Failed to fetch contractor analytics');
+            setContractorAnalyticsData(null);
+        } finally {
+            setLoadingContractorAnalytics(false);
+        }
+    }, []);
+
+    // Fetch district-level contractor analytics data
+    const fetchDistrictContractorAnalytics = useCallback(async (districtId) => {
+        if (!districtId) {
+            setDistrictContractorAnalyticsData(null);
+            return;
+        }
+
+        try {
+            setLoadingDistrictContractorAnalytics(true);
+            setDistrictContractorAnalyticsError(null);
+            const response = await apiClient.get(`/contractor-analytics/analytics/district/${districtId}`);
+            setDistrictContractorAnalyticsData(response.data);
+        } catch (error) {
+            setDistrictContractorAnalyticsError(error.message || 'Failed to fetch district contractor analytics');
+            setDistrictContractorAnalyticsData(null);
+        } finally {
+            setLoadingDistrictContractorAnalytics(false);
+        }
+    }, []);
+
+    // Fetch block-level analytics data for GP scope coverage table
+    const fetchBlockAnalytics = useCallback(async (blockId, fyId) => {
+        if (!blockId || !fyId) {
+            setBlockAnalyticsData(null);
+            return;
+        }
+        try {
+            setLoadingBlockAnalytics(true);
+            setBlockAnalyticsError(null);
+            const response = await apiClient.get(`/contractor-analytics/analytics/block/${blockId}`);
+            setBlockAnalyticsData(response.data);
+        } catch (error) {
+            setBlockAnalyticsError(error.message || 'Failed to fetch block analytics');
+            setBlockAnalyticsData(null);
+        } finally {
+            setLoadingBlockAnalytics(false);
+        }
+    }, []);
 
     // Handle scope change
     const handleScopeChange = async (scope) => {
@@ -457,21 +577,31 @@ const ContractorDetails = () => {
     };
 
     const handleGPClick = (gp) => {
-        const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
-        const blockId = block?.id || gp.block_id || null;
-        const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
-        const districtId = district?.id || null;
+        const gpId = gp.id || gp.gp_id || gp.geography_id;
 
-        trackDropdownChange(gp.name);
-        updateLocationSelection('GPs', gp.name, gp.id, districtId, blockId, gp.id, 'dropdown_change');
-        if (district) {
-            setSelectedDistrictForHierarchy(district);
+        console.log("🔥 GP CLICKED:", gp);
+        console.log("🆔 GP ID:", gpId);
+
+        if (!gpId) {
+            console.error("❌ GP ID missing");
+            return;
         }
-        if (block) {
-            setSelectedBlockForHierarchy(block);
-        }
-        fetchGramPanchayats(districtId, blockId);
-        setShowLocationDropdown(false);
+
+        const block = blocks.find(b => b.id === (gp.block_id || selectedBlockId)) || selectedBlockForHierarchy;
+        const district = districts.find(d => d.id === (block?.district_id || selectedDistrictId)) || selectedDistrictForHierarchy;
+
+        setActiveScope('GPs');
+        setSelectedGPId(gpId);  // ✅ ONLY HERE
+
+        updateLocationSelection(
+            'GPs',
+            gp.name,
+            gpId,
+            district?.id,
+            block?.id,
+            gpId,
+            'dropdown_change'
+        );
     };
 
     const handleRowClick = (item) => {
@@ -480,6 +610,8 @@ const ContractorDetails = () => {
             const district = districts.find(d => d.id === item.geography_id) || { id: item.geography_id, name: item.geography_name };
             trackTabChange('Districts');
             setActiveScope('Districts');
+            setSelectedDistrictForHierarchy(district);
+            setSelectedDistrictId(district.id);
             trackDropdownChange(district.name);
             updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
             fetchBlocks(district.id);
@@ -491,6 +623,7 @@ const ContractorDetails = () => {
             const district = districts.find(d => d.id === selectedDistrictId) || selectedDistrictForHierarchy;
             if (district) setSelectedDistrictForHierarchy(district);
             setSelectedBlockForHierarchy(block);
+            setSelectedBlockId(block.id);
             trackDropdownChange(block.name);
             updateLocationSelection('Blocks', block.name, block.id, selectedDistrictId, block.id, null, 'dropdown_change');
             fetchGramPanchayats(selectedDistrictId, block.id);
@@ -503,6 +636,7 @@ const ContractorDetails = () => {
             const district = districts.find(d => d.id === selectedDistrictId) || selectedDistrictForHierarchy;
             if (district) setSelectedDistrictForHierarchy(district);
             if (block) setSelectedBlockForHierarchy(block);
+            setSelectedGPId(gp.id);
             trackDropdownChange(gp.name);
             updateLocationSelection('GPs', gp.name, gp.id, selectedDistrictId, selectedBlockId, gp.id, 'dropdown_change');
         }
@@ -548,6 +682,16 @@ const ContractorDetails = () => {
         fetchGramPanchayats
     ]);
 
+    // Sync selectedDistrictForHierarchy when in Districts scope
+    useEffect(() => {
+        if (activeScope === 'Districts' && districts.length > 0 && selectedDistrictId && !selectedDistrictForHierarchy) {
+            const district = districts.find(d => d.id === selectedDistrictId);
+            if (district) {
+                setSelectedDistrictForHierarchy(district);
+            }
+        }
+    }, [activeScope, districts, selectedDistrictId, selectedDistrictForHierarchy]);
+
     useEffect(() => {
         if ((activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId) {
             fetchBlocks(selectedDistrictId);
@@ -586,6 +730,7 @@ const ContractorDetails = () => {
         hasFetchedInitialData.current = true;
         fetchDistricts();
         fetchFyList();
+        fetchContractorAnalytics();
     }, []);
 
     // Set default selected year when fyList loads or selection becomes invalid
@@ -621,6 +766,17 @@ const ContractorDetails = () => {
         }
     }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedFyId, fetchAnalytics]);
 
+    // Fetch district contractor analytics when in Districts scope
+    useEffect(() => {
+        if (activeScope === 'Districts' && selectedDistrictId) {
+            console.log('📡 Calling district contractor analytics API for district:', selectedDistrictId);
+            fetchDistrictContractorAnalytics(selectedDistrictId);
+        } else {
+            // Clear district contractor analytics when not in Districts scope
+            setDistrictContractorAnalyticsData(null);
+        }
+    }, [activeScope, selectedDistrictId, fetchDistrictContractorAnalytics]);
+
     // Fetch GP surveys when in GP scope with selected GP and FY
     useEffect(() => {
         if (activeScope === 'GPs' && selectedGPId && selectedFyId) {
@@ -629,6 +785,20 @@ const ContractorDetails = () => {
             setGpSurveyList([]);
         }
     }, [activeScope, selectedGPId, selectedFyId, fetchGpSurveys]);
+
+    // Fetch block analytics when in GP scope to get gp_wise_coverage
+    useEffect(() => {
+        if (
+            (activeScope === 'Blocks' || activeScope === 'GPs') &&
+            selectedBlockId &&
+            selectedFyId
+        ) {
+            console.log('📡 Fetching block analytics:', selectedBlockId);
+            fetchBlockAnalytics(selectedBlockId, selectedFyId);
+        } else {
+            setBlockAnalyticsData(null);
+        }
+    }, [activeScope, selectedBlockId, selectedFyId, fetchBlockAnalytics]);
 
     // Helper function to format numbers
     const formatNumber = (num) => {
@@ -652,7 +822,82 @@ const ContractorDetails = () => {
         return value !== null && value !== undefined ? value : defaultValue;
     };
 
-    // Process scheme-wise target achievement data for the chart
+    // Get contractor table data
+    const getContractorTableData = () => {
+        if (!contractorAnalyticsData || !contractorAnalyticsData.district_wise_coverage) return [];
+
+        const getDistrictObject = (districtName) => {
+            return districts.find(d => d.name.toLowerCase().trim() === districtName.toLowerCase().trim());
+        };
+
+        if (activeScope === 'State') {
+            return contractorAnalyticsData.district_wise_coverage.map(district => {
+                const districtObj = getDistrictObject(district.geography_name || district.district_name || district.district || district.name);
+                return {
+                    name: district.geography_name || district.district_name || district.district || district.name || 'N/A',
+                    total_gps: district.total_gps || 0,
+                    gps_with_data: district.gps_with_data || 0,
+                    coverage_percentage: district.coverage_percentage || 0,
+                    object: districtObj
+                };
+            });
+        } else if (activeScope === 'Districts' && (selectedDistrictForHierarchy || selectedDistrictId)) {
+            // Use district-level contractor analytics data with block_wise_coverage
+            if (!districtContractorAnalyticsData || !districtContractorAnalyticsData.block_wise_coverage) return [];
+
+            const hierarchyDistrict = selectedDistrictForHierarchy || (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
+            if (!hierarchyDistrict) return [];
+
+            const activeDistrictBlocks = hierarchyDistrict ? blocks.filter(block => block.district_id === hierarchyDistrict.id) : [];
+            if (activeDistrictBlocks.length > 0) {
+                return activeDistrictBlocks.map(block => {
+                    // Find block data from the district API response
+                    const blockData = districtContractorAnalyticsData.block_wise_coverage.find(b =>
+                        (b.geography_name || '').toLowerCase().trim() === block.name.toLowerCase().trim() ||
+                        (b.block_name || '').toLowerCase().trim() === block.name.toLowerCase().trim() ||
+                        (b.block || '').toLowerCase().trim() === block.name.toLowerCase().trim() ||
+                        (b.name || '').toLowerCase().trim() === block.name.toLowerCase().trim()
+                    );
+
+                    return {
+                        name: block.name,
+                        total_gps: blockData?.total_gps || 0,
+                        gps_with_data: blockData?.gps_with_data || 0,
+                        coverage_percentage: blockData?.coverage_percentage || 0,
+                        object: block
+                    };
+                });
+            }
+        } else if (activeScope === 'Blocks' && selectedBlockForHierarchy) {
+            if (!blockAnalyticsData || !blockAnalyticsData.gp_wise_coverage) return [];
+
+            return blockAnalyticsData.gp_wise_coverage.map(gp => ({
+                name: gp.geography_name || 'N/A',
+                coverage_percentage: gp?.coverage_percentage || 0,
+                master_data_status: gp.master_data_status || 'Not Available',
+                geography_id: gp.gp_id,
+                object: {
+                    ...gp,
+                    id: gp.geography_id    // ✅ FIX
+                }
+            }));
+
+        } else if (activeScope === 'GPs' && selectedGPId) {
+            if (!analyticsData) return [];
+            return [
+                {
+                    name: selectedLocation || 'GP',
+                    total_gps: analyticsData.total_gps || 0,
+                    gps_with_data: analyticsData.gps_with_contractor_data || 0,
+                    coverage_percentage: analyticsData.coverage_percentage || 0,
+                    master_data_status: analyticsData.master_data_status || 'Not Available',
+                    object: analyticsData
+                }
+            ];
+        }
+
+        return [];
+    };
     const schemeData = analyticsData?.scheme_wise_target_achievement || [];
     const chartCategories = schemeData.map(item => item.scheme_name || item.scheme_code);
     const targetData = schemeData.map(item => item.target || 0);
@@ -665,40 +910,56 @@ const ContractorDetails = () => {
         100
     );// Helper function to generate chart data from analytics
     const getChartData = () => {
-        if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
-            return {
-                categories: [],
-                belowAverage: [],
-                aboveAverage: [],
-                stateAverage: 0
-            };
+        if (!analyticsData) {
+            return { categories: [], belowAverage: [], aboveAverage: [], stateAverage: 0 };
         }
 
-        const data = analyticsData.response;
+        let data = [];
 
-        // Calculate state average from coverage_percentage
-        const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
-        const stateAverage = data.length > 0 ? totalCoverage / data.length : 0;
+        // 🎯 ROLE-WISE DATA FIX
+        if (activeScope === 'State') {
+            data = analyticsData.district_wise_coverage || [];
+        } else if (activeScope === 'Districts') {
+            data = analyticsData.block_wise_coverage || [];
+        } else if (activeScope === 'Blocks') {
+            data = analyticsData.gp_wise_coverage || [];
+        } else if (activeScope === 'GPs') {
+            data = analyticsData.village_wise_coverage || [];
+        }
 
-        // Extract categories (geography names)
-        const categories = data.map(item => item.geography_name || 'N/A');
+        console.log('📊 Chart Data Raw:', data);
 
-        // Split data into above and below average
+        if (!data || data.length === 0) {
+            return { categories: [], belowAverage: [], aboveAverage: [], stateAverage: 0 };
+        }
+
+        // ✅ average
+        const total = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
+        const avg = total / data.length;
+
+        const categories = data.map(item =>
+            item.geography_name ||
+            item.name ||
+            item.block_name ||
+            item.district_name ||
+            'N/A'
+        );
+
         const belowAverage = data.map(item => {
-            const coverage = item.coverage_percentage || 0;
-            return coverage < stateAverage ? coverage : 0;
+            const val = item.coverage_percentage || 0;
+            return val < avg ? val : 0;
         });
 
         const aboveAverage = data.map(item => {
-            const coverage = item.coverage_percentage || 0;
-            return coverage >= stateAverage ? coverage : 0;
+            const val = item.coverage_percentage || 0;
+            return val >= avg ? val : 0;
         });
 
         return {
             categories,
             belowAverage,
             aboveAverage,
-            stateAverage
+            stateAverage: avg
         };
     };
 
@@ -806,283 +1067,43 @@ const ContractorDetails = () => {
         }
     ];
 
+    const getSortedData = (data) => {
+        if (!sortConfig.key) return data;
 
+        return [...data].sort((a, b) => {
+            let aValue = a[sortConfig.key];
+            let bValue = b[sortConfig.key];
 
+            if (sortConfig.key === 'master_data_status') {
+                const order = { 'Available': 1, 'Not Available': 0 };
+                return sortConfig.direction === 'asc'
+                    ? (order[aValue] || 0) - (order[bValue] || 0)
+                    : (order[bValue] || 0) - (order[aValue] || 0);
+            }
 
+            // Handle string (name, status)
+            if (typeof aValue === 'string') {
+                aValue = aValue.toLowerCase();
+                bValue = bValue.toLowerCase();
 
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            }
 
+            // Handle numbers
+            aValue = aValue || 0;
+            bValue = bValue || 0;
 
+            return sortConfig.direction === 'asc'
+                ? aValue - bValue
+                : bValue - aValue;
+        });
+
+    };
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }} >
-            {/* Header */}
-            <div className="bg-white border-b border-gray-200 py-1 px-2 md:px-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4" style={{
-                backgroundColor: 'white',
-                borderBottom: '1px solid #e5e7eb',
-                padding: '5px 15px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-            }}>
-                {/* Left side - Dashboard title */}
-                <div>
-                    <h1 className="text-lg md:text-xl" style={{
-                        fontSize: '20px',
-                        fontWeight: '600',
-                        color: '#374151',
-                        margin: 0
-                    }}>
-                        Contractor Details
-                    </h1>
-                </div>
-
-                {/* Right side - Scope buttons and Location dropdown */}
-                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-4 w-full md:w-auto" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px'
-                }}>
-                    {/* Scope segmented buttons */}
-                    <div className="flex flex-wrap md:flex-nowrap bg-gray-100 rounded-xl p-1 gap-0.5" style={{
-                        display: 'flex',
-                        backgroundColor: '#f3f4f6',
-                        borderRadius: '12px',
-                        padding: '4px',
-                        gap: '2px'
-                    }}>
-                        {scopeButtons.map((scope) => (
-                            <button
-                                key={scope}
-                                onClick={() => handleScopeChange(scope)}
-                                className="px-2 md:px-2.5 py-1 rounded-lg text-xs md:text-sm font-medium transition-all"
-                                style={{
-                                    padding: '3px 10px',
-                                    borderRadius: '8px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                                    color: activeScope === scope ? 'white' : '#6b7280',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                {scope}
-                            </button>
-                        ))}
-                    </div>
-                    {/* Location dropdown */}
-                    <div
-                        data-location-dropdown
-                        className="relative w-full md:w-auto md:min-w-[200px]"
-                        style={{
-                            position: 'relative',
-                            minWidth: '200px'
-                        }}
-                    >
-                        <button
-                            onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-                            disabled={activeScope === 'State'}
-                            className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm md:text-base flex items-center justify-between"
-                            style={{
-                                width: '100%',
-                                padding: '5px 12px',
-                                border: '1px solid #d1d5db',
-                                borderRadius: '10px',
-                                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                                fontSize: '14px',
-                                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                                opacity: activeScope === 'State' ? 0.6 : 1
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                                <span>{selectedLocation}</span>
-                            </div>
-                            <ChevronDown style={{
-                                width: '16px',
-                                height: '16px',
-                                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-                            }} />
-                        </button>
-
-                        {/* Location Dropdown Menu */}
-                        {showLocationDropdown && activeScope !== 'State' && (
-                            <div
-                                key={`dropdown-${activeScope}`}
-                                style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    right: 0,
-                                    left: 'auto',
-                                    backgroundColor: 'white',
-                                    border: '1px solid #d1d5db',
-                                    borderRadius: '10px',
-                                    boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                                    zIndex: 1000,
-                                    marginTop: '6px',
-                                    display: 'flex',
-                                    overflow: 'hidden',
-                                    minWidth: activeScope === 'Districts' ? '280px' : activeScope === 'Blocks' ? '520px' : '780px'
-                                }}
-                            >
-                                <div
-                                    style={{
-                                        minWidth: '240px',
-                                        maxHeight: '280px',
-                                        overflowY: 'auto',
-                                        borderRight: activeScope !== 'Districts' ? '1px solid #f3f4f6' : 'none'
-                                    }}
-                                >
-                                    {loadingDistricts ? (
-                                        <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                            Loading districts...
-                                        </div>
-                                    ) : districts.length === 0 ? (
-                                        <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                            No districts available
-                                        </div>
-                                    ) : (
-                                        districts.map((district) => {
-                                            const isActiveDistrict = activeHierarchyDistrict?.id === district.id;
-                                            const isSelectedDistrict = activeScope === 'Districts' && selectedLocation === district.name;
-                                            const showArrow = activeScope === 'Blocks' || activeScope === 'GPs';
-
-                                            return (
-                                                <div
-                                                    key={`district-${district.id}`}
-                                                    onClick={() => handleDistrictClick(district)}
-                                                    onMouseEnter={() => handleDistrictHover(district)}
-                                                    style={getMenuItemStyles(isActiveDistrict || isSelectedDistrict)}
-                                                >
-                                                    <span>{district.name}</span>
-                                                    {showArrow && (
-                                                        <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                                    )}
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-
-                                {activeScope !== 'Districts' && (
-                                    <div
-                                        style={{
-                                            minWidth: '240px',
-                                            maxHeight: '280px',
-                                            overflowY: 'auto',
-                                            borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
-                                        }}
-                                    >
-                                        {loadingBlocks ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                Loading blocks...
-                                            </div>
-                                        ) : !activeHierarchyDistrict ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                Select a district to view blocks
-                                            </div>
-                                        ) : blocksForActiveDistrict.length === 0 ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                No blocks found
-                                            </div>
-                                        ) : (
-                                            blocksForActiveDistrict.map((block) => {
-                                                const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                                                const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                                                const showArrow = activeScope === 'GPs';
-
-                                                return (
-                                                    <div
-                                                        key={`block-${block.id}`}
-                                                        onClick={() => handleBlockClick(block)}
-                                                        onMouseEnter={() => handleBlockHover(block)}
-                                                        style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                                                    >
-                                                        <span>{block.name}</span>
-                                                        {showArrow && (
-                                                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                                        )}
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeScope === 'GPs' && (
-                                    <div
-                                        style={{
-                                            minWidth: '240px',
-                                            maxHeight: '280px',
-                                            overflowY: 'auto'
-                                        }}
-                                    >
-                                        {loadingGPs ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                Loading GPs...
-                                            </div>
-                                        ) : !activeHierarchyBlock ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                Select a block to view GPs
-                                            </div>
-                                        ) : gpsForActiveBlock.length === 0 ? (
-                                            <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                                                No GPs found
-                                            </div>
-                                        ) : (
-                                            gpsForActiveBlock.map((gp) => {
-                                                const isSelectedGP = activeScope === 'GPs' && selectedLocation === gp.name;
-
-                                                return (
-                                                    <div
-                                                        key={`gp-${gp.id}`}
-                                                        onClick={() => handleGPClick(gp)}
-                                                        style={getMenuItemStyles(isSelectedGP)}
-                                                    >
-                                                        <span>{gp.name}</span>
-                                                    </div>
-                                                );
-                                            })
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Location Indicator */}
-            <div style={{
-                padding: '10px 0px 0px 16px',
-            }}>
-                <span style={{
-                    fontSize: '14px',
-                    color: '#6B7280',
-                    fontWeight: '600'
-                }}>
-                    {(() => {
-                        if (activeScope === 'State') {
-                            return selectedLocation;
-                        } else if (activeScope === 'Districts') {
-                            return `Rajasthan / ${selectedLocation}`;
-                        } else if (activeScope === 'Blocks') {
-                            const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-                            return `Rajasthan / ${districtName} / ${selectedLocation}`;
-                        } else if (activeScope === 'GPs') {
-                            const districtName = selectedDistrictForHierarchy?.name || '';
-                            const blockName = selectedBlockForHierarchy?.name || '';
-                            return `Rajasthan / ${districtName} / ${blockName} / ${selectedLocation}`;
-                        }
-                        return `Rajasthan / ${selectedLocation}`;
-                    })()}
-                </span>
-            </div>
+        <div style={{ minHeight: 'auto', backgroundColor: '#F3F4F6' }} >
 
             {/* Overview Section */}
             <div className="bg-white p-4 md:p-6 mx-2 md:mx-4 mt-1.5 rounded-lg border border-gray-300" style={{
@@ -1119,7 +1140,7 @@ const ContractorDetails = () => {
                 </div>
 
                 {/* Metrics Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" style={{
+                <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4" style={{
                     display: 'grid',
                     gap: '16px',
                     marginBottom: '32px'
@@ -1127,45 +1148,83 @@ const ContractorDetails = () => {
 
                     {/* Village Master Data Coverage - Hidden in GP view */}
                     {activeScope !== 'GPs' && (
-                        <div style={{
-                            backgroundColor: 'white',
-                            padding: '20px',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                        }}>
+                        <>
+
                             <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                marginBottom: '12px'
+                                backgroundColor: 'white',
+                                padding: '20px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
                             }}>
-                                <h3 style={{
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    color: '#6b7280',
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    marginBottom: '12px'
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        color: '#6b7280',
+                                        margin: 0
+                                    }}>
+                                        Contractor Data Filled
+                                        {/*   (total filled constrator / total contractor) * 100    */}
+                                    </h3>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <InfoTooltip tooltipKey="Contractor_Coverage_Percentage" size={16} color="#6b7280" />
+                                        <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                                    </div>
+                                </div>
+                                <div style={{
+                                    fontSize: '24px',
+                                    fontWeight: '700',
+                                    color: analyticsError ? '#ef4444' : '#111827',
                                     margin: 0
                                 }}>
-                                    Contractor Data Filled
-                                    {/*   (total filled constrator / total contractor) * 100    */}
-                                </h3>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
-                                    <TrendingUp style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('coverage_percentage', 0)}%`}
                                 </div>
                             </div>
+
+                            {/* constrator  covered details */}
                             <div style={{
-                                fontSize: '24px',
-                                fontWeight: '700',
-                                color: analyticsError ? '#ef4444' : '#111827',
-                                margin: 0
+                                backgroundColor: 'white',
+                                padding: '24px',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb'
                             }}>
-                                {loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`}
+                                <div style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'flex-start',
+                                    marginBottom: '16px'
+                                }}>
+                                    <h3 style={{
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        color: '#6b7280',
+                                        margin: 0
+                                    }}>
+                                        Data Filled covered
+                                    </h3>
+                                    <InfoTooltip tooltipKey="total_filled_constrator" size={16} color="#9ca3af" />
+                                </div>
+                                <div style={{
+                                    fontSize: '32px',
+                                    fontWeight: '700',
+                                    color: '#111827',
+                                    margin: 0
+                                }}>
+                                    {/* {getVillageCoverage()} */}
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('gps_with_contractor_data', 0)}`}/
+                                    {loadingAnalytics ? '...' : `${getAnalyticsValue('total_gps', 0)}`}
+                                </div>
                             </div>
-                        </div>
+                        </>
                     )}
 
-                    {/* constrator  covered details */}
+                    {/* total_contract_amount */}
                     <div style={{
                         backgroundColor: 'white',
                         padding: '24px',
@@ -1184,18 +1243,23 @@ const ContractorDetails = () => {
                                 color: '#6b7280',
                                 margin: 0
                             }}>
-                                Data Filled covered
+                                Total Amount
                             </h3>
-                            <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
+                            <InfoTooltip tooltipKey="Total_amount" size={16} color="#9ca3af" />
                         </div>
                         <div style={{
-                            fontSize: '32px',
+                            fontSize: '24px',
                             fontWeight: '700',
                             color: '#111827',
                             margin: 0
                         }}>
                             {/* {getVillageCoverage()} */}
-                            0/11,207
+                            {loadingAnalytics
+                                ? '...'
+                                : `₹${new Intl.NumberFormat('en-IN', {
+                                    maximumFractionDigits: 0
+                                }).format(getAnalyticsValue('total_contract_amount', 0))} L`
+                            }
                         </div>
                     </div>
                 </div>
@@ -1269,7 +1333,6 @@ const ContractorDetails = () => {
                                 </div>
                             </div>
                         </div>
-                        <divider />
                         <div style={{
                             height: '1px',
                             backgroundColor: '#e5e7eb',
@@ -1331,6 +1394,386 @@ const ContractorDetails = () => {
                     </div>
                 )}
 
+                {/* Contractor Coverage Table Section - Only for State, Districts, and Blocks */}
+                {activeScope !== 'GPs' && (
+                    <div data-table-scroll style={{
+                        backgroundColor: 'white',
+                        padding: '24px',
+                        marginLeft: '16px',
+                        marginRight: '16px',
+                        marginTop: '16px',
+                        borderRadius: '8px',
+                        border: '1px solid lightgray'
+                    }}>
+                        {/* Header with title and back buttons */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '20px'
+                        }}>
+                            <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                            }}>
+                                <div>
+                                    <h2 style={{
+                                        fontSize: '20px',
+                                        fontWeight: '600',
+                                        color: '#111827',
+                                        margin: 0
+                                    }}>
+                                        Contractor Data
+                                    </h2>
+                                </div>
+                                <span style={{
+                                    fontSize: '12px',
+                                    color: '#6b7280',
+                                    marginTop: '4px'
+                                }}>
+                                    {activeScope === 'Districts'
+                                        ? `${selectedLocation || ''}`
+                                        : activeScope === 'Blocks'
+                                            ? `${selectedBlockForHierarchy?.name || ''}`
+                                            : ''}
+                                </span>
+                            </div>
+                            {activeScope === 'Districts' && (
+                                <button
+                                    onClick={() => {
+                                        setActiveScope('State');
+                                        setSelectedLocation(null);
+                                        setSelectedBlockForHierarchy(null);
+                                        setSelectedBlockId(null);
+                                        setSelectedGPId(null);
+                                        trackTabChange('Districts');
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#f3f4f6',
+                                        color: '#374151',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                                >
+                                    ← Back to Districts
+                                </button>
+                            )}
+                            {activeScope === 'Blocks' && (
+                                <button
+                                    onClick={() => {
+                                        setActiveScope('Districts');
+                                        setSelectedLocation(selectedDistrictForHierarchy?.name || 'Select District');
+                                        setSelectedBlockForHierarchy(null);
+                                        setSelectedBlockId(null);
+                                        setSelectedGPId(null);
+                                        trackTabChange('Districts');
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#f3f4f6',
+                                        color: '#374151',
+                                        border: '1px solid #d1d5db',
+                                        borderRadius: '6px',
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                                    onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                                >
+                                    ← Back to Blocks
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Table */}
+                        <div style={{
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb',
+                            overflow: 'hidden'
+                        }}>
+                            {/* Table Header */}
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: gridColumns,
+                                backgroundColor: '#f9fafb',
+                                padding: '12px 16px',
+                                borderBottom: '1px solid #e5e7eb'
+                            }}>
+                                <div style={{
+                                    fontSize: '14px',
+                                    fontWeight: '600',
+                                    color: '#374151'
+                                }}>
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            gap: '8px',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        {activeScope === 'State' ? 'District Name' :
+                                            activeScope === 'Districts' ? 'Block Name' :
+                                                activeScope === 'Blocks' ? 'GP Name' : 'Name'}
+
+                                        <span
+                                            style={{ cursor: 'pointer', }}
+                                            onClick={() => handleSort('name')}>
+                                            <SortIcon col="name" />
+                                        </span>
+                                    </div>
+                                </div>
+                                {activeScope !== 'Blocks' && (
+                                    <>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                Total GPs
+                                                ({getAnalyticsValue('total_gps')})
+
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('total_gps')}>
+                                                    <SortIcon col="total_gps" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                GPs with Contractor Data({getAnalyticsValue('gps_with_contractor_data')})
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('gps_with_data')}>
+                                                    <SortIcon col="gps_with_data" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                Covered %
+                                                ({getAnalyticsValue('coverage_percentage')}%)
+
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('coverage_percentage')}>
+                                                    <SortIcon col="coverage_percentage" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+                                {activeScope == 'Blocks' && (
+                                    <div style={{
+                                        fontSize: '14px',
+                                        fontWeight: '600',
+                                        color: '#374151'
+                                    }}>
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                gap: '8px',
+                                                alignItems: 'center'
+                                            }}
+                                        >
+
+                                            Status
+                                            <span
+                                                style={{ cursor: 'pointer', }}
+                                                onClick={() => handleSort('master_data_status')}>
+                                                <SortIcon col="master_data_status" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                            </div>
+
+                            {/* Table Body (scrollable) */}
+                            <div style={{ maxHeight: '420px', overflowY: 'auto' }}>
+                                {(() => {
+                                    if (loadingContractorAnalytics) {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                                Loading contractor data...
+                                            </div>
+                                        );
+                                    }
+                                    if (contractorAnalyticsError) {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#ef4444' }}>
+                                                {contractorAnalyticsError}
+                                            </div>
+                                        );
+                                    }
+                                    if (loadingDistricts && activeScope === 'State') {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                                Loading districts...
+                                            </div>
+                                        );
+                                    }
+                                    if ((loadingBlocks || loadingDistrictContractorAnalytics) && activeScope === 'Districts') {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                                Loading blocks...
+                                            </div>
+                                        );
+                                    }
+                                    if (loadingGPs && activeScope === 'Blocks') {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                                Loading GPs...
+                                            </div>
+                                        );
+                                    }
+                                    const rawData = getContractorTableData();
+                                    const tableData = getSortedData(rawData);
+                                    if (tableData.length === 0) {
+                                        return (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                                No data available
+                                            </div>
+                                        );
+                                    }
+                                    return tableData.map((item, index) => (
+                                        <div key={index} style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: gridColumns,
+                                            padding: '12px 16px',
+                                            alignItems: 'center',
+                                            borderBottom: index < tableData.length - 1 ? '1px solid #f3f4f6' : 'none'
+                                        }}>
+                                            <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                <div
+                                                    onClick={() => {
+                                                        console.log("🖱 ROW CLICKED", item);
+                                                        if (activeScope === 'State' && item.object) {
+                                                            // Navigate to Districts scope showing blocks for this district
+                                                            setActiveScope('Districts');
+                                                            setSelectedDistrictForHierarchy(item.object);
+                                                            setSelectedDistrictId(item.object.id);
+                                                            updateLocationSelection('Districts', item.object.name, item.object.id, item.object.id, null, null, 'table_click');
+                                                            fetchBlocks(item.object.id);
+                                                            trackTabChange('Districts');
+                                                        } else if (activeScope === 'Districts' && item.object) {
+                                                            // In Districts scope, table shows blocks, clicking a block goes to Blocks scope
+                                                            setActiveScope('Blocks');
+                                                            setSelectedBlockForHierarchy(item.object);
+                                                            setSelectedBlockId(item.object.id);
+                                                            updateLocationSelection('Blocks', item.object.name, item.object.id, selectedDistrictForHierarchy?.id || selectedDistrictId, item.object.id, null, 'table_click');
+                                                            fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, item.object.id);
+                                                            trackTabChange('Blocks');
+                                                        } else if (activeScope === 'Blocks' && item.object) {
+                                                            setActiveScope('GPs');
+                                                            handleGPClick(item.object);
+                                                            trackTabChange('GPs');
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        cursor: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? 'pointer' : 'default',
+                                                        color: (activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object ? '#10b981' : '#374151',
+                                                        textDecoration: 'none',
+                                                        transition: 'color 0.2s ease'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
+                                                            e.target.style.color = '#10b981';
+                                                            e.target.style.textDecoration = 'underline';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if ((activeScope === 'State' || activeScope === 'Districts' || activeScope === 'Blocks') && item.object) {
+                                                            e.target.style.color = '#10b981';
+                                                            e.target.style.textDecoration = 'none';
+                                                        }
+                                                    }}
+                                                >
+                                                    {item.name}
+                                                </div>
+                                            </div>
+                                            {activeScope !== 'Blocks' && (
+                                                <>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.total_gps)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.gps_with_data)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {item.coverage_percentage}%
+                                                    </div>
+                                                </>
+                                            )}
+                                            {activeScope == 'Blocks' && (
+                                                <div style={{ fontSize: '14px', color: '#111827' }}>
+                                                    <span
+                                                        style={{
+                                                            padding: '4px 8px',
+                                                            borderRadius: '4px',
+                                                            backgroundColor:
+                                                                item.master_data_status === 'Available'
+                                                                    ? '#d1fae5'
+                                                                    : '#fee2e2',
+                                                            color:
+                                                                item.master_data_status === 'Available'
+                                                                    ? '#065f46'
+                                                                    : '#991b1b',
+                                                            fontSize: '12px',
+
+                                                        }}
+                                                    >
+                                                        {item.master_data_status || 'Not Available'}
+                                                    </span>
+                                                </div>
+                                            )}
+
+                                        </div>
+                                    ));
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Report Section - Only for GP view */}
                 {activeScope === 'GPs' && (
 
@@ -1343,23 +1786,54 @@ const ContractorDetails = () => {
                         borderRadius: '8px',
                         border: '1px solid lightgray'
                     }}>
-                        <h3 style={{
-                            fontSize: '20px',
-                            fontWeight: '600',
-                            color: '#111827',
-                            margin: '0 0 16px 0'
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginBottom: '20px'
                         }}>
-                            Contractor  Details
-                        </h3>
+                            <h3 style={{
+                                fontSize: '20px',
+                                fontWeight: '600',
+                                color: '#111827',
+                                margin: 0
+                            }}>
+                                Contractor Details
+                            </h3>
+                            <button
+                                onClick={() => {
+
+                                    setActiveScope('Blocks');
+                                    setSelectedLocation(selectedBlockForHierarchy?.name || 'Select Block');
+                                    setSelectedGPId(null);
+                                    trackTabChange('Blocks');
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: backButtonHover ? '#e5e7eb' : '#f3f4f6',
+                                    color: '#374151',
+                                    border: '1px solid #d1d5db',
+                                    borderRadius: '6px',
+                                    fontSize: '14px',
+                                    fontWeight: '500',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.2s ease'
+                                }}
+                                onMouseEnter={() => setBackButtonHover(true)}
+                                onMouseLeave={() => setBackButtonHover(false)}
+                            >
+                                ← Back to Blocks
+                            </button>
+                        </div>
                         {/* vendor details page static */}
                         {loadingAnalytics ? (
                             <div className="text-center text-gray-500">Loading...</div>
-                        ) : !analyticsData?.length ? (
+                        ) : !analyticsData?.contractors?.length ? (
                             <div className="text-center text-gray-400">No vendors found</div>
                         ) :
                             (
 
-                                analyticsData.map((item, index) => {
+                                analyticsData?.contractors?.map((item, index) => {
                                     return (
                                         <div key={item.person_name} className='mx-auto  w-full mt-10  rounded flex justify-center '>
                                             <div
@@ -1387,7 +1861,7 @@ const ContractorDetails = () => {
                                                         Agency name :
                                                     </div>
                                                     <div>
-                                                        {item.agency?.name || '-'}
+                                                        {item.agency_name || '-'}
                                                     </div>
                                                 </div>
                                                 <div className='flex justify-between '>
@@ -1395,7 +1869,7 @@ const ContractorDetails = () => {
                                                         Annual Contract Amount :
                                                     </div>
                                                     <div>
-                                                       ₹ {item.contract_amount}
+                                                        ₹ {item.contract_amount}
                                                     </div>
                                                 </div>
 
@@ -1436,221 +1910,14 @@ const ContractorDetails = () => {
                 )}
 
 
-                {/* Coverage Table Section - Only for State, Districts, and Blocks */}
-                {activeScope !== 'GPs' && (
-                    <div style={{
-                        backgroundColor: 'white',
-                        padding: '14px',
-                        marginLeft: '16px',
-                        marginRight: '16px',
-                        marginTop: '16px',
-                        borderRadius: '8px',
-                        border: '1px solid lightgray',
-                        overflow: 'hidden'
+                {/* Coverage Table Section - For State, Districts, Blocks, and GPs */}
 
-                    }}>
-                        <h3 style={{
-                            fontSize: '18px',
-                            fontWeight: '600',
-                            color: '#111827',
-                            margin: 0,
-                            marginBottom: '12px'
-                        }}>
-                            {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
-                        </h3>
-
-                        {/* Table */}
-                        {(() => {
-                            const coverageData = activeScope === 'State'
-                                ? analyticsData?.district_wise_coverage || []
-                                : activeScope === 'Districts'
-                                    ? analyticsData?.block_wise_coverage || []
-                                    : analyticsData?.gp_wise_coverage || [];
-
-                            if (coverageData.length === 0) {
-                                return (
-                                    <div style={{
-                                        padding: '40px',
-                                        textAlign: 'center',
-                                        color: '#9ca3af',
-                                        fontSize: '14px'
-                                    }}>
-                                        {loadingAnalytics ? 'Loading...' : 'No coverage data available'}
-                                    </div>
-                                );
-                            }
-
-                            return (
-                                <div style={{
-                                    borderRadius: '8px',
-                                    border: '1px solid #e5e7eb',
-                                    overflowX: 'auto'
-                                }}>
-                                    <div style={{
-                                        minWidth: '600px',
-                                        maxHeight: '500px',
-                                        overflowY: 'auto',
-                                        overflowX: 'auto'
-                                    }}>
-                                        {/* Table Header - Sticky */}
-                                        <div style={{
-                                            display: 'grid',
-                                            gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
-                                            backgroundColor: '#f9fafb',
-                                            padding: '12px 16px',
-                                            borderBottom: '1px solid #e5e7eb',
-                                            position: 'sticky',
-                                            top: 0,
-                                            zIndex: 10
-                                        }}>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                                                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                            </div>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                Total GPs
-                                                <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
-                                                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                            </div>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                GPs with Contrators Data
-                                                <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
-                                                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                            </div>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                Coverage %
-                                                <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
-                                                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                            </div>
-                                            <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '8px',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                Status
-                                                <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                                            </div>
-                                            {/* <div style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                fontSize: '14px',
-                                                fontWeight: '600',
-                                                color: '#374151'
-                                            }}>
-                                                Action
-                                            </div> */}
-                                        </div>
-
-                                        {/* Table Rows */}
-                                        {coverageData.map((item, index) => (
-                                            <div key={item.geography_id || index} style={{
-                                                display: 'grid',
-                                                gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr',
-                                                padding: '12px 16px',
-                                                borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
-                                                backgroundColor: 'white',
-                                                transition: 'background-color 0.2s'
-                                            }}
-                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                                            >
-                                                <div 
-                                                    onClick={() => handleRowClick(item)}
-                                                    style={{ 
-                                                        fontSize: '14px', 
-                                                        color: activeScope === 'GPs' ? '#111827' : '#10b981', 
-                                                        fontWeight: '500',
-                                                        cursor: activeScope === 'GPs' ? 'default' : 'pointer',
-                                                        textDecoration: activeScope === 'GPs' ? 'none' : 'underline'
-                                                    }}>
-                                                    {item.geography_name}
-                                                </div>
-                                                <div style={{ fontSize: '14px', color: '#111827' }}>
-                                                    {formatNumber(item.total_gps || 0)}
-                                                </div>
-                                                <div style={{ fontSize: '14px', color: '#111827' }}>
-                                                    {formatNumber(item.gps_with_data || 0)}
-                                                </div>
-                                                <div style={{ fontSize: '14px', color: '#111827' }}>
-                                                    {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
-                                                </div>
-                                                <div style={{ fontSize: '14px', color: '#111827' }}>
-                                                    <span style={{
-                                                        padding: '4px 8px',
-                                                        borderRadius: '4px',
-                                                        backgroundColor: item.master_data_status === 'Available' ? '#d1fae5' : '#fee2e2',
-                                                        color: item.master_data_status === 'Available' ? '#065f46' : '#991b1b',
-                                                        fontSize: '12px'
-                                                    }}>
-                                                        {item.master_data_status || 'Not Available'}
-                                                    </span>
-                                                </div>
-                                                {/* <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDownloadAnnualSurveys(item)}
-                                                        disabled={downloadingId === item.geography_id}
-                                                        title="Download PDF"
-                                                        style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            padding: '6px',
-                                                            border: '1px solid #e5e7eb',
-                                                            borderRadius: '6px',
-                                                            backgroundColor: 'white',
-                                                            cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
-                                                            color: '#374151'
-                                                        }}
-                                                    >
-                                                        <Download style={{ width: '18px', height: '18px' }} />
-                                                    </button>
-                                                </div> */}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                    </div>
-                )}
 
 
 
             </div>
-        </div>
+        </div >
     )
-}
+};
 
-export default ContractorDetails
+export default ContractorDetails;

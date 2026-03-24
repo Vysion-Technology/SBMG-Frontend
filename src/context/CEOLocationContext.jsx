@@ -36,6 +36,13 @@ export const CEOLocationProvider = ({ children }) => {
   const [dropdownLevel, setDropdownLevel] = useState('blocks'); // Start with blocks for CEO
   const [selectedBlockForHierarchy, setSelectedBlockForHierarchy] = useState(null);
 
+  // Breadcrumb dropdown UI state - persists across module switches
+  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
+  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
+  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
+  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
+  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
+
   // Change tracking state
   const [changeHistory, setChangeHistory] = useState([]);
   const [lastChange, setLastChange] = useState(null);
@@ -256,6 +263,12 @@ export const CEOLocationProvider = ({ children }) => {
     selectedGPId,
     dropdownLevel,
     selectedBlockForHierarchy,
+    // Breadcrumb dropdown state
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     changeHistory,
     lastChange,
     ceoDistrictId, // CEO-specific
@@ -270,6 +283,12 @@ export const CEOLocationProvider = ({ children }) => {
     setSelectedGPId,
     setDropdownLevel,
     setSelectedBlockForHierarchy,
+    // Breadcrumb dropdown setters
+    setOpenBreadcrumbDropdown,
+    setBreadcrumbDistricts,
+    setBreadcrumbBlocks,
+    setBreadcrumbGps,
+    setLoadingBreadcrumb,
 
     // Actions
     updateLocationSelection,
@@ -290,6 +309,11 @@ export const CEOLocationProvider = ({ children }) => {
     selectedGPId,
     dropdownLevel,
     selectedBlockForHierarchy,
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     changeHistory,
     lastChange,
     ceoDistrictId,
@@ -305,7 +329,7 @@ export const CEOLocationProvider = ({ children }) => {
     clearChangeHistory
   ]);
 
-  
+
   return (
     <CEOLocationContext.Provider value={value}>
       {children}
