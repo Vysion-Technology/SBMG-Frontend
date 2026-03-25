@@ -39,20 +39,32 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for handling 401 errors
+// Add response interceptor for handling token refresh and 401 errors
 apiClient.interceptors.response.use(
   (response) => {
+    // Check for X-Refresh-Token in the response headers
+    const refreshToken = response.headers['x-refresh-token'];
+    if (refreshToken) {
+      console.log('🔄 Received new access token via X-Refresh-Token header');
+      localStorage.setItem('access_token', refreshToken);
+      // The next request will pick up the new token from localStorage via the request interceptor
+    }
     return response;
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear stored tokens and user data
+      console.warn('⚠️ Session expired or unauthorized (401). Clearing session...');
+      // Clear all stored auth data
       localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
-
-      // Redirect to login page
-      // window.location.href = '/login';
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('rememberMe');
+      
+      // Force redirect to login page if not already there
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+        window.alert("session expired!")
+      }
     }
     return Promise.reject(error);
   }
@@ -211,7 +223,7 @@ export const feedbackAPI = {
     const queryParams = new URLSearchParams();
     if (params.feedback_source) queryParams.append('feedback_source', params.feedback_source);
     if (params.skip !== undefined) queryParams.append('skip', params.skip);
-    if (params.limit !== undefined) queryParams.append('limit', params.limit);
+    if (params.limit !== undefined) queryParams.append('limit', 100);
     return apiClient.get(`/feedback/?${queryParams.toString()}`);
   },
 
@@ -219,7 +231,7 @@ export const feedbackAPI = {
   getFeedbackById: (feedbackId) => apiClient.get(`/feedback/${feedbackId}`),
 
   // Get authenticated user's own feedback
-  getMyFeedback: () => apiClient.get('/feedback/my/'),
+  getMyFeedback: () => apiClient.get('/feedback/my'),
 
   // Create new feedback
   createFeedback: (feedbackData) => {
@@ -231,7 +243,7 @@ export const feedbackAPI = {
 
   // Update authenticated user's own feedback
   updateMyFeedback: (feedbackData) => {
-    return apiClient.put('/feedback/my/', {
+    return apiClient.put('/feedback/my', {
       comment: feedbackData.comment,
       rating: feedbackData.rating
     });
