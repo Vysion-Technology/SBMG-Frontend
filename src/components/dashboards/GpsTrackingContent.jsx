@@ -1,4 +1,4 @@
-import { ArrowUpDown, Plus } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronsUpDown, ChevronUp, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../hooks/useAddVehicle';
 import { useVehicleDetails } from '../../hooks/useVehicleDetails';
@@ -38,6 +38,45 @@ const GpsTrackingContent = () => {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [backButtonHover, setBackButtonHover] = useState(false);
+
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
 
   const scopeButtons = ['All', 'Districts', 'Blocks', 'GPs'];
 
@@ -296,6 +335,41 @@ const GpsTrackingContent = () => {
   console.log('🟢 filteredVehicles:', filteredVehicles);
 
 
+  // utils.js or inside your component
+  const getSortedData = (data = [], sortConfig = {}, filterId = null, idKey = 'geography_id') => {
+    // Copy data to avoid mutation
+    let sortedData = [...data];
+
+    // Optional filtering by selected ID (for GP view)
+    if (filterId) {
+      sortedData = sortedData.filter(item => item[idKey] === filterId || item.id === filterId);
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      sortedData.sort((a, b) => {
+        const key = sortConfig.key;
+        let valA = a[key] ?? 0;
+        let valB = b[key] ?? 0;
+
+        // String comparison for names
+        if (key === 'geography_name') {
+          valA = valA.toString().toLowerCase();
+          valB = valB.toString().toLowerCase();
+          if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        }
+
+        // Number comparison
+        return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+
+    return sortedData;
+  };
+
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
@@ -512,8 +586,14 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                    <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('geography_name')}>
+                        <SortIcon col="geography_name" />
+                      </span>
+                    </div>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -524,6 +604,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Total Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('total_vehicles')}>
+                      <SortIcon col="total_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -534,6 +619,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Active Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('active_vehicles')}>
+                      <SortIcon col="active_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -544,6 +634,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Running Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('running_vehicles')}>
+                      <SortIcon col="running_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -554,14 +649,22 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Stopped Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('stopped_vehicles')}>
+                      <SortIcon col="stopped_vehicles" />
+                    </span>
                   </div>
                 </div>
 
                 {/* Table Rows */}
                 {(() => {
-                  const displayRows = activeScope === 'GPs' && selectedLocation.gpId
-                    ? coverageData.filter(item => item.geography_id === selectedLocation.gpId || item.id === selectedLocation.gpId)
-                    : coverageData;
+                  const displayRows = getSortedData(
+                    coverageData,
+                    sortConfig,
+                    activeScope === 'GPs' ? selectedLocation.gpId : null,
+                    'geography_id'
+                  );
 
                   return displayRows.map((item, index) => (
                     <div key={item.geography_id || item.id || index} style={{
