@@ -315,6 +315,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
   const [totalCountOfGPs, setTotalCountOfGPs] = useState(0);
+  const totalCountInitializedRef = useRef(false);
 
   const [location, setLocation] = useState(null)
 
@@ -903,7 +904,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           const totalGPs = d.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
           const covered = `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
 
-          !totalCountOfGPs ? setTotalCountOfGPs(totalGPs) : null;
+          // Set total count of GPs from API response (only when viewing state level, on first load)
+          if (!totalCountInitializedRef.current && totalGPs > 0 && activeScope === 'State') {
+            setTotalCountOfGPs(totalGPs);
+            totalCountInitializedRef.current = true;
+          }
 
           setInspectionCardData({ averageScore: avg, totalInspections: Number(total), villageCovered: String(covered || '0/0') });
         } else setInspectionCardData(null);
