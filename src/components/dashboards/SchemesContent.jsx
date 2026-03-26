@@ -150,9 +150,34 @@ const SchemesContent = () => {
     };
 
     // Handle file selection
+    // Strict File Selection Validation
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
         if (file) {
+            // 1. Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                alert("File size exceeds 5MB limit.");
+                event.target.value = ''; // Reset the input
+                return;
+            }
+
+            // 2. Check for double extensions / null bytes
+            const fileName = file.name;
+            const fileParts = fileName.split('.');
+            if (fileParts.length > 2 || fileName.includes('%00')) {
+                alert("Invalid file name. Double extensions and special characters are not allowed.");
+                event.target.value = ''; // Reset the input
+                return;
+            }
+
+            // 3. Check MIME type (whitelist)
+            const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            if (!validMimeTypes.includes(file.type)) {
+                alert("Invalid file type. Only JPG, JPEG, and PNG are allowed.");
+                event.target.value = ''; // Reset the input
+                return;
+            }
+
             setSelectedFile(file);
         }
     };
