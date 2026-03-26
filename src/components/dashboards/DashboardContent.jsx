@@ -204,11 +204,12 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
-const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, }) => {
+const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
+
   return (
     <div onClick={onClick}
-      className="relative rounded-xl overflow-hidden !p-4 border cursor-pointer flex flex-col justify-between"
-      style={{ borderColor: border }}
+      className={`relative rounded-xl    overflow-hidden !p-4 border cursor-pointer flex flex-col justify-between`}
+      style={{ borderColor: border, width: width }}
     >
       {/* Background */}
       <div
@@ -2832,6 +2833,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "FSTPs",
           label: "No. of FSTPs",
+          // width: "279px",
           bgColor: "#FFEDF3",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -2844,6 +2846,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           textColor: "#364153",
           border: "#E5E7EB",
           bgImg: "/gobar.png",
+          width: "575px",
         },
       ],
     },
@@ -2861,6 +2864,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "Total_Work_Sanctioned_Status",
           label: "Total No. of Work Sanctioned Status",
+          width: "574px",
           bgColor: "#FFEDD5",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -2902,6 +2906,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           key: "work_status",
           label: "Work Status",
           bgColor: "#FEFCE8",
+          // width: "279px",
           textColor: "#364153",
           border: "#E5E7EB",
           bgImg: "/doortodoorimg.png",
@@ -3099,7 +3104,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           borderRadius: "12px",
           border: "1px solid #e5e7eb",
           boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          padding: "24px",
+          padding: "20px",
         }}
       >
         {/* Top Heading */}
@@ -3133,9 +3138,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
             {/* Cards */}
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-                gap: "20px",
+                display: "flex",
+                flexWrap: "wrap",
+                // gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "15px",
               }}
             >
               {section.cards.map((card, j) => (
@@ -3153,6 +3159,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       textColor={card.textColor}
                       border={card.border}
                       bgImg={card.bgImg}
+                      width={card.width}
 
                     />
                   }
