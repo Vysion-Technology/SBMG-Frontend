@@ -232,7 +232,7 @@ export const feedbackAPI = {
   getFeedbackById: (feedbackId) => apiClient.get(`/feedback/${feedbackId}`),
 
   // Get authenticated user's own feedback
-  getMyFeedback: () => apiClient.get('/feedback/my/'),
+  getMyFeedback: () => apiClient.get('/feedback/my'),
 
   // Create new feedback
   createFeedback: (feedbackData) => {
@@ -244,7 +244,7 @@ export const feedbackAPI = {
 
   // Update authenticated user's own feedback
   updateMyFeedback: (feedbackData) => {
-    return apiClient.put('/feedback/my/', {
+    return apiClient.put('/feedback/my', {
       comment: feedbackData.comment,
       rating: feedbackData.rating
     });
