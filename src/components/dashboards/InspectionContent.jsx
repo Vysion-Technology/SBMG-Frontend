@@ -1367,6 +1367,84 @@ const InspectionContent = () => {
     };
   }, []);
 
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocksInspection: selectedDistrictForBlocksInspection?.id,
+      selectedBlockForGpsInspection: selectedBlockForGpsInspection?.id,
+      selectedGpForInspections: selectedGpForInspections?.id,
+      viewingBlocksInspectionForDistrict,
+      viewingGpsInspectionForBlock,
+      viewingInspectionsForGp
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksInspectionForDistrict(false);
+      setViewingGpsInspectionForBlock(false);
+      setViewingInspectionsForGp(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocksInspection?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlockInspectionSummary(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksInspectionForDistrict) {
+      setViewingBlocksInspectionForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGpsInspection?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGpInspectionSummary(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGpsInspectionForBlock) {
+      setViewingGpsInspectionForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show inspections for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show inspections for a different GP
+      if (selectedGP && selectedGpForInspections?.id !== selectedGPId) {
+        console.log('📊 GPs scope: Showing inspections for GP', selectedGP.name);
+
+        // Set the selected GP to trigger viewing inspections
+        setSelectedGpForInspections(selectedGP);
+        setViewingInspectionsForGp(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingInspectionsForGp) {
+      setViewingInspectionsForGp(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, selectedGpForInspections, viewingBlocksInspectionForDistrict, viewingGpsInspectionForBlock, viewingInspectionsForGp, fetchBlockInspectionSummary, fetchGpInspectionSummary]);
+
   // Helper functions to extract values from analyticsData
   const getAverageScore = () => {
     if (loadingAnalytics) return '...';
@@ -2705,6 +2783,8 @@ const InspectionContent = () => {
                 onClick={() => {
                   setSelectedGpForInspections(null);
                   setViewingInspectionsForGp(false);
+                  // Update breadcrumb - back to GPs list level
+                  setActiveScope('GPs');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2729,6 +2809,13 @@ const InspectionContent = () => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
                   setGpInspectionSummaryData([]);
+                  setViewingBlocksInspectionForDistrict(true);
+                  // Refetch blocks listing
+                  if (selectedDistrictForBlocksInspection) {
+                    fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
+                  }
+                  // Update breadcrumb - back to blocks level (keep block selected)
+                  setActiveScope('Blocks');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2753,6 +2840,10 @@ const InspectionContent = () => {
                   setViewingBlocksInspectionForDistrict(false);
                   setSelectedDistrictForBlocksInspection(null);
                   setBlockInspectionSummaryData([]);
+                  // Update breadcrumb - back to state level (all selections cleared)
+                  setActiveScope('State');
+                  setSelectedDistrictForHierarchy(null);
+                  setSelectedBlockForHierarchy(null);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -3034,12 +3125,45 @@ const InspectionContent = () => {
                             if (viewingGpsInspectionForBlock) {
                               // GPs are now clickable - fetch inspection issues
                               fetchInspectionsForGp(item);
+                              setSelectedGpInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('GPs');
+                              setSelectedGPId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+                              setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
+                              trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
+                              updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
                             } else if (viewingBlocksInspectionForDistrict) {
                               // Clicking on block to view GPs
                               fetchGpInspectionSummary(item);
+                              setSelectedBlockForGpsInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('Blocks');
+                              setSelectedBlockId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+                              setSelectedBlockForHierarchy(item);
+                              trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
+                              updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
                             } else {
                               // Clicking on district to view blocks
                               fetchBlockInspectionSummary(item);
+                              setSelectedDistrictForBlocksInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('Districts');
+                              setSelectedDistrictId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(item);
+                              setSelectedBlockForHierarchy(null);
+                              trackDropdownChange(item.name || item.geo_name, item.id, item.id);
+                              updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
                             }
                           }}
                           style={{

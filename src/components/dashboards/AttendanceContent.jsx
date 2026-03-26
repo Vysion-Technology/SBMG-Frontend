@@ -1490,6 +1490,84 @@ const AttendanceContent = () => {
     fetchTop3Data();
   }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, fetchTop3Data]);
 
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocksAttendance: selectedDistrictForBlocksAttendance?.id,
+      selectedBlockForGpsAttendance: selectedBlockForGpsAttendance?.id,
+      selectedGpForContractorAttendance: selectedGpForContractorAttendance?.id,
+      viewingBlocksAttendanceForDistrict,
+      viewingGpsAttendanceForBlock,
+      viewingContractorsForGp
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksAttendanceForDistrict(false);
+      setViewingGpsAttendanceForBlock(false);
+      setViewingContractorsForGp(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocksAttendance?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlockAttendanceSummary(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksAttendanceForDistrict) {
+      setViewingBlocksAttendanceForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGpsAttendance?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGpAttendanceSummary(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGpsAttendanceForBlock) {
+      setViewingGpsAttendanceForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show contractors for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show contractors for a different GP
+      if (selectedGP && selectedGpForContractorAttendance?.id !== selectedGPId) {
+        console.log('📊 GPs scope: Showing contractors for GP', selectedGP.name);
+
+        // Set the selected GP and flag to show contractors view
+        setSelectedGpForContractorAttendance(selectedGP);
+        setViewingContractorsForGp(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingContractorsForGp) {
+      setViewingContractorsForGp(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksAttendance, selectedBlockForGpsAttendance, selectedGpForContractorAttendance, viewingBlocksAttendanceForDistrict, viewingGpsAttendanceForBlock, viewingContractorsForGp, fetchBlockAttendanceSummary, fetchGpAttendanceSummary]);
+
   // Helper function to calculate attendance metrics from API data
   const calculateAttendanceMetrics = () => {
     if (!analyticsData) {
@@ -3954,6 +4032,8 @@ const AttendanceContent = () => {
               onClick={() => {
                 setSelectedGpForContractorAttendance(null);
                 setViewingContractorsForGp(false);
+                // Update breadcrumb - back to GPs list level
+                setActiveScope('GPs');
               }}
               style={{
                 padding: '8px 16px',
@@ -3978,6 +4058,13 @@ const AttendanceContent = () => {
                 setViewingGpsAttendanceForBlock(false);
                 setSelectedBlockForGpsAttendance(null);
                 setGpAttendanceSummaryData([]);
+                setViewingBlocksAttendanceForDistrict(true);
+                // Refetch blocks listing
+                if (selectedDistrictForBlocksAttendance) {
+                  fetchBlockAttendanceSummary(selectedDistrictForBlocksAttendance);
+                }
+                // Update breadcrumb - back to blocks level (keep block selected)
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
@@ -4002,6 +4089,10 @@ const AttendanceContent = () => {
                 setViewingBlocksAttendanceForDistrict(false);
                 setSelectedDistrictForBlocksAttendance(null);
                 setBlockAttendanceSummaryData([]);
+                // Update breadcrumb - back to state level (all selections cleared)
+                setActiveScope('State');
+                setSelectedDistrictForHierarchy(null);
+                setSelectedBlockForHierarchy(null);
               }}
               style={{
                 padding: '8px 16px',
@@ -4236,13 +4327,45 @@ const AttendanceContent = () => {
                                 enrichedGp.then((gp) => {
                                   setSelectedGpForContractorAttendance(gp);
                                   setViewingContractorsForGp(true);
+                                  // Sync header with table selection
+                                  setActiveScope('GPs');
+                                  setSelectedGPId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocksAttendance);
+                                  setSelectedBlockForHierarchy(selectedBlockForGpsAttendance);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocksAttendance?.id);
+                                  updateLocationSelection('GPs', item.name, item.id, selectedDistrictForBlocksAttendance?.id, selectedBlockForGpsAttendance?.id, item.id, 'table_click');
                                 });
                               } else if (viewingBlocksAttendanceForDistrict) {
                                 // Clicking on block to view GPs
                                 fetchGpAttendanceSummary(item);
+                                setSelectedBlockForGpsAttendance(item);
+                                // Sync header with table selection
+                                setActiveScope('Blocks');
+                                setSelectedBlockId(item.id);
+                                setSelectedLocation(item.name);
+                                setSelectedLocationId(item.id);
+                                // Update breadcrumb hierarchy
+                                setSelectedDistrictForHierarchy(selectedDistrictForBlocksAttendance);
+                                setSelectedBlockForHierarchy(item);
+                                trackDropdownChange(item.name, item.id, selectedDistrictForBlocksAttendance?.id);
+                                updateLocationSelection('Blocks', item.name, item.id, selectedDistrictForBlocksAttendance?.id, item.id, null, 'table_click');
                               } else {
                                 // Clicking on district to view blocks
                                 fetchBlockAttendanceSummary(item);
+                                setSelectedDistrictForBlocksAttendance(item);
+                                // Sync header with table selection
+                                setActiveScope('Districts');
+                                setSelectedDistrictId(item.id);
+                                setSelectedLocation(item.name);
+                                setSelectedLocationId(item.id);
+                                // Update breadcrumb hierarchy
+                                setSelectedDistrictForHierarchy(item);
+                                setSelectedBlockForHierarchy(null);
+                                trackDropdownChange(item.name, item.id, item.id);
+                                updateLocationSelection('Districts', item.name, item.id, item.id, null, null, 'table_click');
                               }
                             }}
                             style={{

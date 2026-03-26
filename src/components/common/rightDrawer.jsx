@@ -16,7 +16,7 @@ const RightDrawer = ({ clickFunction, trigger, title, children }) => {
     return (
         <>
             {/* 1. The Trigger: Clones the passed element and adds an onClick */}
-            {React.cloneElement(trigger, { onClick: () => { setIsOpen(true); clickFunction() } })}
+            {React.cloneElement(trigger, { onClick: (e) => { e.stopPropagation(); e.preventDefault(); setIsOpen(true); clickFunction() } })}
 
             {/* 2. Overlay Backdrop */}
             <div
