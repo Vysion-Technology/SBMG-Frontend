@@ -13,6 +13,84 @@ const apiClient = axios.create({
   },
 });
 
+// ============================================================================
+// GLOBAL SECURITY INTERCEPTOR (XSS & File Upload Protection)
+// ============================================================================
+const validatePayload = (data) => {
+  if (!data) return;
+
+  const containsHTML = (str) => typeof str === 'string' && /[<>]/.test(str);
+
+  // Scenario A: Handle FormData (File Uploads & Mixed Forms)
+  if (data instanceof FormData) {
+    for (let [key, value] of data.entries()) {
+      // 1. Check Text Fields for XSS
+      if (typeof value === 'string' && containsHTML(value)) {
+        alert(`Security Alert: HTML tags (<, >) and scripts are not allowed`)
+        throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+      }
+      
+      // 2. Check File Uploads (Size, Type, Double-Extensions)
+      if (value instanceof File) {
+        // Size Check (5MB)
+        if (value.size > 5 * 1024 * 1024) {
+          alert(`Security Alert: File "${value.name}" exceeds the 5MB limit.`)
+          throw new Error(`Security Alert: File "${value.name}" exceeds the 5MB limit.`);
+        }
+        
+        // Double-Extension & Null Byte Check
+        const fileName = value.name;
+        const fileParts = fileName.split('.');
+        if (fileParts.length > 2 || fileName.includes('%00')) {
+          alert(`Security Alert: File "${fileName}" has an invalid format or double extension.`)
+          throw new Error(`Security Alert: File "${fileName}" has an invalid format or double extension.`);
+        }
+        
+        // MIME Type Check (Whitelist)
+        const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (!validMimeTypes.includes(value.type)) {
+          alert(`Security Alert: File type "${value.type}" is not allowed.`)
+          throw new Error(`Security Alert: File type "${value.type}" is not allowed.`);
+        }
+      }
+    }
+  } 
+  // Scenario B: Handle Standard JSON Objects
+  else if (typeof data === 'object') {
+    const checkObject = (obj) => {
+      for (let key in obj) {
+        if (typeof obj[key] === 'string' && containsHTML(obj[key])) {
+          alert("Security Alert: HTML tags (<, >) and scripts are not allowed")
+          throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          checkObject(obj[key]); // Recursive check for nested JSON
+        }
+      }
+    };
+    checkObject(data);
+  }
+};
+
+apiClient.interceptors.request.use(
+  (config) => {
+    // Only intercept data-mutating requests for security validation
+    if (['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+      try {
+        validatePayload(config.data);
+      } catch (error) {
+        // Reject the request BEFORE it leaves the browser
+        return Promise.reject(error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+// ============================================================================
+
+
 // Add request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
@@ -269,4 +347,3 @@ export const villagesAPI = {
 };
 
 export default apiClient;
-
