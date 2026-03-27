@@ -234,17 +234,17 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
         {/* ✅ CASE 1: Single value */}
         {typeof value === "string" || typeof value === "number" ? (
           <h1 className="text-xl font-semibold text-gray-900">
-            {value || "NaN"}
+            {value || "-"}
           </h1>
         ) : null}
 
         {/* ✅ CASE 2: Multiple values (array) */}
         {Array.isArray(value) && (
-          <div className="flex gap-4 mt-1">
+          <div className="flex gap-8 mt-1">
             {value.map((item, i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {item.value || 'NaN'}
+                  {item.value || '-'}
                 </h1>
                 <p className="text-xs text-gray-600">{item.label}</p>
               </div>
@@ -254,11 +254,11 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
 
         {/* ✅ CASE 3: Object values */}
         {typeof value === "object" && !Array.isArray(value) && (
-          <div className="flex gap-4 mt-1">
+          <div className="flex gap-8 mt-1">
             {Object.entries(value).map(([key, val], i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {val || 'NaN'}
+                  {val || '-'}
                 </h1>
                 <p className="text-xs text-gray-600 capitalize">
                   {key}
@@ -2851,7 +2851,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           textColor: "#364153",
           border: "#E5E7EB",
           bgImg: "/gobar.png",
-          width: "575px",
+          width: "558px",
         },
       ],
     },
@@ -2869,7 +2869,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "Total_Work_Sanctioned_Status",
           label: "Total No. of Work Sanctioned Status",
-          width: "574px",
+          width: "558px",
           bgColor: "#FFEDD5",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -2924,8 +2924,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const apiData = {
     // ODF
     ihhl: "8602045",
-    retrofitting: "4,85,589",
-    community_sanitary: "",
+    community_sanitary: "28152",
     total_csc: "",
 
     // Solid waste
@@ -3110,6 +3109,9 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           border: "1px solid #e5e7eb",
           boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           padding: "20px",
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0
         }}
       >
         {/* Top Heading */}
@@ -3121,7 +3123,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           }}
         >
           <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
-          <div>this year</div>
+          {/* <div>this year</div> */}
         </div>
 
         {/* Sections */}
