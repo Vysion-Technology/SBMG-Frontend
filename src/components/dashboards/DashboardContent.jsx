@@ -234,7 +234,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
         {/* ✅ CASE 1: Single value */}
         {typeof value === "string" || typeof value === "number" ? (
           <h1 className="text-xl font-semibold text-gray-900">
-            {value || "NaN"}
+            {value || "-"}
           </h1>
         ) : null}
 
@@ -244,7 +244,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
             {value.map((item, i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {item.value || 'NaN'}
+                  {item.value || '-'}
                 </h1>
                 <p className="text-xs text-gray-600">{item.label}</p>
               </div>
@@ -258,7 +258,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
             {Object.entries(value).map(([key, val], i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {val || 'NaN'}
+                  {val || '-'}
                 </h1>
                 <p className="text-xs text-gray-600 capitalize">
                   {key}
@@ -2924,8 +2924,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const apiData = {
     // ODF
     ihhl: "8602045",
-    retrofitting: "4,85,589",
-    community_sanitary: "",
+    community_sanitary: "28152",
     total_csc: "",
 
     // Solid waste
@@ -3110,6 +3109,9 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           border: "1px solid #e5e7eb",
           boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
           padding: "20px",
+          width:'100%',
+          maxWidth:'100%',
+          minWidth:0
         }}
       >
         {/* Top Heading */}
