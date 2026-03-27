@@ -198,20 +198,23 @@ const UnifiedDashboard = () => {
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
 
   const scrollToMainTable = (scrollTarget = 'default') => {
-    // Scroll to the main data table after a brief delay to allow component to render
-    setTimeout(() => {
-      let selector = '[data-table-scroll]';
-      
-      // For complaints, scroll to the complaints list table instead of district summary
-      if (scrollTarget === 'complaints-list') {
-        selector = '[data-complaints-list-table]';
-      }
-      
-      const tableContainer = document.querySelector(selector);
-      if (tableContainer) {
-        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    // Scroll to the main data table after waiting for content to render
+    // Use requestAnimationFrame to wait for browser paint, then additional timeout for React renders
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        let selector = '[data-table-scroll]';
+
+        // For complaints, scroll to the complaints list table instead of district summary
+        if (scrollTarget === 'complaints-list') {
+          selector = '[data-complaints-list-table]';
+        }
+
+        const tableContainer = document.querySelector(selector);
+        if (tableContainer) {
+          tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    });
   };
 
   const handleNavigateToComplaints = (filter) => {

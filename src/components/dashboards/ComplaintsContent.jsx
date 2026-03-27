@@ -248,7 +248,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     hasScrolledRef.current = false;
   }, [initialFilter]);
 
-  // Auto-scroll to complaints table after data loads following filter navigation
+  // Auto-scroll to complaints table after data loads following filter navigation (from dashboard cards)
   useEffect(() => {
     if (!initialFilter || !complaintsTableRef.current || hasScrolledRef.current) {
       return;
@@ -256,24 +256,38 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     // Only scroll once data is loaded and not loading
     if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
-      setTimeout(() => {
-        if (complaintsTableRef.current) {
-          complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          hasScrolledRef.current = true;
-        }
-      }, 100);
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            hasScrolledRef.current = true;
+          }
+        }, 300);
+      });
     }
   }, [initialFilter, loadingAnalytics, loadingComplaints, complaintsListData]);
 
-  // Predefined date ranges
-  const dateRanges = [
-    { label: 'Year', value: 'year' },
-    { label: 'Quarter', value: 'quarter' },
-    { label: 'Month', value: 'month' },
-    { label: 'Week', value: 'week' },
-    { label: 'Today', value: 'today' },
-    { label: 'Custom', value: 'custom' }
-  ];
+  // Auto-scroll to complaints table after all APIs finish loading
+  useEffect(() => {
+    if (!complaintsTableRef.current) {
+      return;
+    }
+
+    // Only scroll when both APIs are no longer loading (initial load or when filters/dates change)
+    if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      });
+    }
+  }, [loadingAnalytics, loadingComplaints, complaintsListData]);
 
   // Months array
   const months = [
@@ -591,17 +605,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   useEffect(() => {
     fetchDistricts();
   }, []);
-
-  // Fetch data immediately when complaints tab is selected
-  useEffect(() => {
-    console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
-    if (activeScope === 'State') {
-      console.log('📡 Calling initial API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-    }
-  }, []); // Empty dependency array means this runs only once when component mounts
 
   // Load additional data based on scope
   useEffect(() => {
@@ -1280,7 +1283,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     } finally {
       setLoadingAnalytics(false);
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
@@ -1328,7 +1331,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats, fetchComplaintsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchAnalyticsData, fetchComplaintsData]);
 
   // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
   useEffect(() => {
