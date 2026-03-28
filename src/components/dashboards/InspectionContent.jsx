@@ -9,6 +9,8 @@ import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
+import InspectionDetailPage from "./common/InspectionDetailPage";
+import { AnimatePresence } from "framer-motion";
 
 
 const InspectionContent = () => {
@@ -139,6 +141,10 @@ const InspectionContent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year');
+
+  const [opendetails, setOpenDetails] = useState(false);
+  const [selectedInspectionId, setSelectedInspectionId] = useState(null);
+
 
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
@@ -329,6 +335,13 @@ const InspectionContent = () => {
     }
     return [];
   };
+
+  const updateLocationSelection = useCallback((scope, location, locationId, districtId, blockId, gpId, changeType) => {
+    console.log('🔄 updateLocationSelection called:', { scope, location, locationId, districtId, blockId, gpId, changeType });
+    if (typeof contextUpdateLocationSelection === 'function') {
+      contextUpdateLocationSelection(scope, location, locationId, districtId, blockId, gpId, changeType);
+    }
+  }, [contextUpdateLocationSelection]);
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
@@ -1183,7 +1196,7 @@ const InspectionContent = () => {
 
       // Map inspection issues to a format suitable for display
       const inspectionIssues = inspectionData.map((item, index) => ({
-        id: item.geography_id,
+        id: item.id,
         name: item.village_name,
         remarks: item.remarks,
         score: item.overall_score,
@@ -2206,6 +2219,11 @@ const InspectionContent = () => {
 
   const sortedYourInspections = getSortedData(getYourInspections());
 
+  const handleDetailspage = (id) => {
+    setOpenDetails(true);
+    setSelectedInspectionId(id);
+  }
+
 
 
   return (
@@ -2846,22 +2864,17 @@ const InspectionContent = () => {
             )}
             {viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
               <button
-                onClick={async () => {
-                  // 1. FIRST clear UI state (instant)
+                onClick={() => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
                   setGpInspectionSummaryData([]);
                   setViewingBlocksInspectionForDistrict(true);
-
-                  setActiveScope('Blocks');
-
-                  // 2. prevent render freeze (IMPORTANT)
-                  await new Promise((r) => setTimeout(r, 0));
-
-                  // 3. THEN fetch data
+                  // Refetch blocks listing
                   if (selectedDistrictForBlocksInspection) {
                     fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
                   }
+                  // Update breadcrumb - back to blocks level (keep block selected)
+                  setActiveScope('Blocks');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -3051,8 +3064,8 @@ const InspectionContent = () => {
               {viewingInspectionsForGp ? (
                 // Individual inspections view for a GP
                 selectedGpForInspections?.inspections && selectedGpForInspections.inspections.length > 0 ? (
-                  sortedInspections.map((inspection) => (
-                    <div key={inspection.id} style={{
+                  sortedInspections.map((inspection, index) => (
+                    <div key={inspection.id || index} style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 200px 150px  150px',
                       padding: '12px 16px',
@@ -3060,10 +3073,11 @@ const InspectionContent = () => {
                       borderBottom: '1px solid #f3f4f6'
                     }}>
                       {/* Issue Title Column */}
-                      <div style={{
+                      <div onClick={() => handleDetailspage(inspection.id)} style={{
                         fontSize: '14px',
                         color: '#10b981',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        cursor: 'pointer'
                       }}>
                         <div>{inspection.name}</div>
                         <div style={{
@@ -3204,6 +3218,7 @@ const InspectionContent = () => {
                             if (viewingGpsInspectionForBlock) {
                               // GPs are now clickable - fetch inspection issues
                               fetchInspectionsForGp(item);
+                              // setSelectedGpInspection(item);
                               // Sync header with table selection
                               setActiveScope('GPs');
                               setSelectedGPId(item.id);
@@ -4081,7 +4096,7 @@ const InspectionContent = () => {
                     alignItems: 'center',
                     borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
                   }}>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                    <div style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
                       {formatDate(inspection.date)}
                     </div>
                     {activeScope === 'GPs' && (
@@ -4112,6 +4127,7 @@ const InspectionContent = () => {
                       alignItems: 'center',
                       gap: '8px'
                     }}>
+
                       <button
                         onClick={() => handleOpenNoticeModalFromInspection(inspection)}
                         style={{
@@ -4143,6 +4159,25 @@ const InspectionContent = () => {
                       >
                         <Download style={{ width: '14px', height: '14px' }} />
                         PDF
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDetailspage(inspection.id)}
+                        title="View Data"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '6px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          backgroundColor: 'white',
+                          cursor: 'pointer',
+                          color: '#374151'
+                        }}
+                      >
+                        <Eye style={{ width: '18px', height: '18px' }} />
                       </button>
                     </div>
                   </div>
@@ -4200,6 +4235,15 @@ const InspectionContent = () => {
           )}
         </div>
       </div>
+
+
+
+      <InspectionDetailPage
+        inspectionId={selectedInspectionId}
+        isopen={opendetails}
+        onClose={() => setOpenDetails(false)} />
+
+
 
       {/* Send Notice Modal */}
       <SendNoticeModal

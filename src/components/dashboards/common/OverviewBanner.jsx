@@ -91,7 +91,7 @@ const OverviewBanner = ({
               <span
                 style={{
                   fontSize: 15,
-                  color: '#6b7280',
+                  color: 'black',
                   fontWeight: 700
                 }}
               >
