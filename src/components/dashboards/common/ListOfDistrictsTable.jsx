@@ -918,12 +918,15 @@ const ListOfDistrictsTable = ({
   };
 
   // Handle block selection from table row click
-  const handleBlockRowClick = (blockId, blockName, districtId) => {
+  const handleBlockRowClick = (blockId, blockName, districtId, districtName) => {
     if (updateLocationSelection) {
       updateLocationSelection('Blocks', blockName, blockId, districtId, blockId, null, 'table_click');
       console.log('🔍 Block selected from table:', blockName, 'ID:', blockId);
 
-      // Also update the header's hierarchy display
+      // Also update the header's hierarchy display for complete navigation
+      if (setSelectedDistrictForHierarchy && districtId && districtName) {
+        setSelectedDistrictForHierarchy({ id: districtId, name: districtName });
+      }
       if (setSelectedBlockForHierarchy) {
         setSelectedBlockForHierarchy({ id: blockId, name: blockName });
       }
@@ -1561,12 +1564,13 @@ const ListOfDistrictsTable = ({
                                 ) : (
                                   blocksForDistrict.map((block) => {
                                     const selectedBlockDetails = getGPbyBlock(block.id);
+                                    const districtData = districts.find(d => d.id === selectedDistrictId);
 
                                     return (
                                       <tr
                                         key={block.id}
                                         style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer', backgroundColor: selectedBlockId === block.id ? '#f0f9ff' : 'white' }}
-                                        onClick={() => handleBlockRowClick(block.id, block.name, selectedDistrictId)}
+                                        onClick={() => handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name)}
                                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedBlockId === block.id ? '#f0f9ff' : 'white'}
                                       >
@@ -1582,7 +1586,7 @@ const ListOfDistrictsTable = ({
                                                 className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-2 py-1 rounded text-sm"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                                  handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                                 }}
                                               >
                                                 {selectedBlockDetails?.gp_wise_coverage?.length} GPs
@@ -1793,7 +1797,7 @@ const ListOfDistrictsTable = ({
                                           <ComplaintsBar
                                             {...blockStats.complaints[block.id]}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onComplaintsClick?.();
                                             }}
                                           />
@@ -1802,7 +1806,7 @@ const ListOfDistrictsTable = ({
                                           <AttendanceBar
                                             {...blockStats.attendance[block.id]}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onAttendanceClick?.();
                                             }}
                                           />
@@ -1811,7 +1815,7 @@ const ListOfDistrictsTable = ({
                                           <GPDataCoverageBar
                                             percentage={selectedBlockDetails?.village_master_data_coverage_percentage}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onGPDataCoverageClick?.();
                                             }}
                                           />
@@ -1820,7 +1824,7 @@ const ListOfDistrictsTable = ({
                                           <ContractorDataBar
                                             percentage={blockStats.contractor[block.id]?.contractorDataPercent}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onContractorDataClick?.();
                                             }}
                                           />
@@ -1829,7 +1833,7 @@ const ListOfDistrictsTable = ({
                                           <InspectionScoreBar
                                             averageScore={blockStats.inspection[block.id]?.average_score}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onInspectionClick?.();
                                             }}
                                           />
@@ -1838,7 +1842,7 @@ const ListOfDistrictsTable = ({
                                           <GpsTrackingBar
                                             vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles}
                                             onClick={() => {
-                                              handleBlockRowClick(block.id, block.name, selectedDistrictId);
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
                                               onGPSTrackingClick?.();
                                             }}
                                           />
