@@ -208,7 +208,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
 
   return (
     <div onClick={onClick}
-      className={`relative rounded-xl    overflow-hidden !p-4 border cursor-pointer flex flex-col justify-between`}
+      className={`relative rounded-xl    overflow-hidden p-4! border cursor-pointer flex flex-col justify-between`}
       style={{ borderColor: border, width: width }}
     >
       {/* Background */}
@@ -228,7 +228,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
       />
 
       {/* Content */}
-      <div className="relative z-10 !p-2">
+      <div className="relative z-10 p-2!">
         <p style={{ color: textColor }}>{title}</p>
 
         {/* ✅ CASE 1: Single value */}
@@ -852,6 +852,13 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         if (params.district_id) inspParams.district_id = params.district_id;
         if (params.block_id) inspParams.block_id = params.block_id;
         if (params.gp_id) inspParams.gp_id = params.gp_id;
+
+        // Always fetch DISTRICT-level data for GP count display
+        const districtLevelCountParams = { ...params, level: 'DISTRICT' };
+        delete districtLevelCountParams.district_id;
+        delete districtLevelCountParams.block_id;
+        delete districtLevelCountParams.gp_id;
+
         const [
           attRes,
           inspRes,
@@ -860,7 +867,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           eventsRes,
           gpMasterRes,
           gpsRes,
-          performersDataRes
+          performersDataRes,
+          districtCountRes
         ] = await Promise.allSettled([
           attendanceAPI.overview(params),
           inspectionsAPI.analytics(inspParams),
@@ -869,7 +877,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           eventsAPI.getEvents({ skip: 0, limit: 100, active: false }),
           gpMasterPromise,
           vehiclesAPI.getVehiclesByLocation(params),
-          inspectionsAPI.analytics(params)
+          inspectionsAPI.analytics(params),
+          inspectionsAPI.analytics(districtLevelCountParams)
         ]);
 
         // Attendance Data
@@ -904,15 +913,19 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           const totalGPs = d.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
           const covered = `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
 
-          // Set total count of GPs from API response (only when viewing state level, on first load)
-          if (!totalCountInitializedRef.current && totalGPs > 0 && activeScope === 'State') {
-            setTotalCountOfGPs(totalGPs);
-            totalCountInitializedRef.current = true;
-          }
-
           setInspectionCardData({ averageScore: avg, totalInspections: Number(total), villageCovered: String(covered || '0/0') });
         } else setInspectionCardData(null);
         if (inspRes.status === 'rejected') setInspectionCardError(inspRes.reason?.message || 'Failed to load');
+
+        // Get total GP count from DISTRICT-level data (always use DISTRICT level for village count)
+        if (!totalCountInitializedRef.current && districtCountRes.status === 'fulfilled' && districtCountRes.value?.data) {
+          const districtData = districtCountRes.value.data;
+          const districtTotalGPs = districtData.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
+          if (districtTotalGPs > 0) {
+            setTotalCountOfGPs(districtTotalGPs);
+            totalCountInitializedRef.current = true;
+          }
+        }
 
         // Contractor Data
         if (contrRes.status === 'fulfilled' && contrRes.value?.data) {
