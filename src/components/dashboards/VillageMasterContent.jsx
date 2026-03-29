@@ -1592,39 +1592,6 @@ const VillageMasterContent = () => {
               {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
-
-          {/* SBMG Target Achievement Rate */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                SBMG Target Achievement Rate
-              </h3>
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : `${getAnalyticsValue('sbmg_target_achievement_rate', 0)}%`}
-            </div>
-          </div>
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}
@@ -1633,65 +1600,113 @@ const VillageMasterContent = () => {
           gap: '10px',
           marginTop: '16px'
         }}>
-          {/* SBMG Target vs Achievement Chart - Hidden in GP view */}
+          {/* Coverage Overview Chart */}
+          {/* Coverage Overview Chart */}
           {activeScope !== 'GPs' && (
             <div style={{
               flex: 2,
+              minWidth: 0, // 🔥 VERY IMPORTANT (flex fix)
               backgroundColor: 'white',
               padding: '14px',
               borderRadius: '8px',
               border: '1px solid #e5e7eb'
             }}>
+
+              {/* Header */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '24px'
+                marginBottom: '12px'
               }}>
                 <h3 style={{
                   fontSize: '18px',
                   fontWeight: '600',
-                  color: '#111827',
                   margin: 0
                 }}>
-                  SBMG Target vs. Achievement
+                  Coverage Overview
                 </h3>
-                {/* Legend */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#9ca3af', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Target</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Achievement</span>
-                  </div>
-                </div>
               </div>
 
-              <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
+              <div style={{ height: '1px', background: '#e5e7eb', margin: '10px 0' }} />
 
-              <div style={{ height: '400px' }}>
-                <Chart
-                  // Yahan hum ensure kar rahe hain ki shared aur intersect properties apply ho rahi hain
-                  options={{
-                    ...chartOptions,
-                    tooltip: {
-                      ...chartOptions.tooltip,
-                      shared: true,
-                      intersect: false,
-                      followCursor: true
-                    }
-                  }}
-                  series={chartSeries}
-                  type="bar"
-                  height="100%"
-                />
-              </div>
+              {(() => {
+
+                const coverageData = activeScope === 'State'
+                  ? analyticsData?.district_wise_coverage || []
+                  : activeScope === 'Districts'
+                    ? analyticsData?.block_wise_coverage || []
+                    : analyticsData?.gp_wise_coverage || [];
+
+                if (!coverageData.length) {
+                  return <div style={{ padding: 40, textAlign: 'center' }}>No Data</div>;
+                }
+
+                return (
+                  <div style={{
+                    width: '100%',
+                    overflowX: 'auto',   // ✅ SCROLL HERE
+                  }}>
+                    <div style={{
+                      minWidth: `${coverageData.length * 100}px`, // 🔥 dynamic width
+                    }}>
+                      <Chart
+                        options={{
+                          chart: {
+                            type: 'bar',
+                            toolbar: { show: false }
+                          },
+                          plotOptions: {
+                            bar: {
+                              columnWidth: '40%',
+                              borderRadius: 4
+                            }
+                          },
+                          colors: coverageData.map(item => {
+                            const v = item.coverage_percentage || 0;
+                            if (v < 70) return '#ef4444';
+                            if (v < 90) return '#f59e0b';
+                            return '#10b981';
+                          }),
+                          dataLabels: {
+                            enabled: true,
+                            formatter: (val) => `${val}%`,
+                            style: { fontSize: '10px' }
+                          },
+                          xaxis: {
+                            categories: coverageData.map(i => i.geography_name),
+                            labels: {
+                              rotate: -60,
+                              trim: false,
+                              style: { fontSize: '8px' }
+                            }
+                          },
+                          yaxis: {
+                            max: 100,
+                            labels: {
+                              formatter: (val) => `${val}%`
+                            }
+                          },
+                          grid: {
+                            padding: {
+                              left: 10,
+                              right: 10,
+                              top: 10,
+                              bottom: 20
+                            }
+                          }
+                        }}
+                        series={[{
+                          name: 'Coverage %',
+                          data: coverageData.map(i => i.coverage_percentage || 0)
+                        }]}
+                        type="bar"
+                        height={300}
+                      />
+                    </div>
+                  </div>
+                );
+
+              })()}
             </div>
           )}
 

@@ -139,11 +139,6 @@ const Login = () => {
             max-height: none !important;
             height: auto !important;
             padding: 20px !important;
-            padding-bottom: 30px !important;
-          }
-          .login-logo-section {
-            margin-top: 10px !important;
-            margin-bottom: 20px !important;
           }
         }
         @media (min-width: 1025px) {
@@ -157,12 +152,11 @@ const Login = () => {
         }
         @media (min-width: 1025px) and (max-width: 1366px) {
           .login-dialog-responsive {
-            top: 60% !important;
+            top: 58% !important;
             transform: translate(-50%, -50%) !important;
             max-height: 65vh !important;
             max-width: 380px !important;
             padding: 20px !important;
-            padding-bottom: 25px !important;
           }
         }
            /* => change top postion 68% to 70% */
@@ -182,9 +176,14 @@ const Login = () => {
             transform: translate(-50%, -50%) !important;
             max-width: 420px !important;
             padding: 28px !important;
-            padding-bottom: 32px !important;
+            
           }
         }
+          @media (max-height: 700px) {
+  .login-dialog-responsive {
+    transform: translateY(-20px);
+  }
+}
       `}</style>
       <div className="h-screen w-full relative  ">
         {/* Full-screen background */}
@@ -208,29 +207,32 @@ const Login = () => {
         ></div>
 
         {/* Government Logos Section */}
-        {/*  change margin top 40px to 20px */}
-        <div className="login-logo-section relative flex justify-center items-center gap-2 md:gap-4 mb-2 md:mb-4 mt-2 md:mt-2 flex-wrap" style={{ paddingTop: '15px' }}>
+        <div className="login-logo-section relative flex justify-center" style={{ paddingTop: '15px', paddingLeft: '60px' }}>
           <figure style={{
             display: 'flex',
-            gap: '10px'
+            gap: '10px',
+            justifyContent: 'center',
+            alignContent: 'center',
+
+
           }}>
             <img
               src={swachhrajasthanLogo}
               alt="Swachh Rajasthan Mission initiative logos"
-              className="h-[30px] md:h-[45px] w-auto object-contain"
+              className="h-[45px] w-auto object-contain  "
             />
             <span style={{ borderRight: '2px solid #D1D5DB' }} />
             <img
               src={bharatlogo}
               alt="Bharat logos"
-              className="h-[30px] md:h-[45px] w-auto object-contain"
+              className="h-[45px] w-auto object-contain "
             />
             <span style={{ borderRight: '2px solid #D1D5DB' }} />
 
             <img
               src={swachhBharatLogo}
               alt="Swachh Bharat Mission initiative logos"
-              className="h-[30px] md:h-[45px] w-auto object-contain"
+              className="h-[45px] w-auto object-contain  "
             />
           </figure>
         </div>
@@ -252,14 +254,14 @@ const Login = () => {
                       <img
                         src={minister1}
                         alt="Minister 1"
-                        className="h-[80px] md:h-[120px] lg:h-[180px] w-auto object-cover"
+                        className="h-[80px] md:h-[120px] lg:h-[165px] w-auto object-cover"
                       />
                     </div>
-                    <div className=" absolute left-[85px] top-[190px]  text-center max-w-[150px] -mr-4">
-                      <div className="text-[11px] md:text-[13px] font-bold text-gray-800">
+                    <div className=" absolute left-[85px] top-[175px]  text-center max-w-[150px] -mr-4">
+                      <div className="text-[11px] md:text-[12px] font-bold text-gray-800">
                         श्री नरेंद्र मोदी
                       </div>
-                      <div className="text-[9px] md:text-[11px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                      <div className="text-[9px] md:text-[10px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
                         माननीय प्रधानमंत्री
                       </div>
                     </div>
@@ -267,19 +269,19 @@ const Login = () => {
 
                   {/* Minister 2 - Overlapping Minister 1 */}
                   <div className='flex flex-col gap-10'>
-                    <div className="relative z-0" style={{ marginLeft: '-190px' }}>
+                    <div className="relative z-0" style={{ marginLeft: '-80px' }}>
                       <img
                         src={minister2}
                         alt="Minister 2"
-                        className="h-[70px] md:h-[110px] lg:h-[140px] w-auto object-cover"
+                        className="h-[70px] md:h-[110px] lg:h-[125px] w-auto object-cover"
                       />
                     </div>
 
-                    <div className=" absolute left-[170px] top-[190px]  text-center max-w-[150px] -mr-4">
-                      <div className="text-[11px] md:text-[13px] font-bold text-gray-800">
+                    <div className=" absolute left-[170px] top-[175px]  text-center max-w-[150px] -mr-4">
+                      <div className="text-[11px] md:text-[12px] font-bold text-gray-800">
                         श्री भजन लाल शर्मा
                       </div>
-                      <div className="text-[9px] md:text-[11px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                      <div className="text-[9px] md:text-[10px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
                         माननीय मुख्यमंत्री-राजस्थान सरकार
                       </div>
                     </div>
@@ -295,21 +297,21 @@ const Login = () => {
 
 
                 {/* Right Side - Ministers 3 */}
-                <div className="absolute flex flex-col gap-10 right-[-10px] z-10 md:right-[-5px] lg:right-[45px] top-[-70px]  gap-0 items-end px-1 md:px-2">
+                <div className="absolute flex flex-col gap-10 right-[-10px] z-10 md:right-[-5px] lg:right-[65px] top-[-70px]  gap-0 items-end px-1 md:px-2">
                   <div className='flex flex-col gap-10'>
-                    <div className="  relative flex justify-center items-end" style={{ position: 'relative', bottom: '-15px' }}>
+                    <div className="  relative flex justify-center items-end" style={{ position: 'relative', bottom: '-40px' }}>
                       <img
                         src={minister3}
                         alt="Ministers 3 and 4"
-                        className="h-[70px] md:h-[110px] lg:h-[130px] w-auto object-cover"
+                        className="h-[70px] md:h-[110px] lg:h-[105px] w-auto object-cover"
                       />
                     </div>
                     {/* Minister 3 Name */}
-                    <div className=" absolute left-[-28px] top-[155px]  text-center max-w-[150px] -mr-4">
-                      <div className="text-[11px] md:text-[13px] font-bold text-gray-800">
+                    <div className=" absolute left-[18px] top-[155px]  text-center   max-w-[130px] ">
+                      <div className="text-[11px] md:text-[12px] font-bold text-gray-800">
                         श्री मदन दिलावर
                       </div>
-                      <div className="text-[9px] md:text-[11px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                      <div className="text-[9px] md:text-[10px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
                         माननीय मंत्री-स्कूल शिक्षा, पंचायती राज एवं संस्कृत शिक्षा विभाग, राजस्थान
                       </div>
                     </div>
@@ -317,22 +319,22 @@ const Login = () => {
                 </div>
 
                 {/* Minister 4*/}
-                <div className="absolute f right-[-10px] md:right-[-5px] lg:right-[1px] top-[-60px] flex gap-0 items-end px-1 md:px-2">
+                <div className="absolute f right-[-10px] md:right-[-4px] lg:right-[1px] top-[-60px] flex gap-0 items-end px-1 md:px-2">
                   <div className='lex flex-col gap-10'>
-                    <div className=" relative flex justify-center items-end" style={{ position: 'relative', bottom: '-15px' }}>
+                    <div className=" relative flex justify-center items-end" style={{ position: 'relative', bottom: '-40px' }}>
                       <img
                         src={minister4}
                         alt="Ministers 3 and 4"
-                        className="h-[70px] md:h-[110px] lg:h-[120px] w-auto object-cover"
+                        className="h-[70px] md:h-[110px] lg:h-[95px] w-auto object-cover"
                       />
                     </div>
                   </div>
                   {/* Minister 4 Name */}
-                  <div className=" absolute left-[-40px] top-[145px] text-center max-w-[150px] -mr-4">
-                    <div className="text-[11px] md:text-[13px] font-bold text-gray-800">
+                  <div className=" absolute left-[0px] top-[145px] text-center max-w-[150px]">
+                    <div className="text-[11px] md:text-[12px] font-bold text-gray-800">
                       श्री ओटाराम देवासी
                     </div>
-                    <div className="text-[9px] md:text-[11px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
+                    <div className="text-[9px] md:text-[10px] text-gray-500 leading-tight" style={{ lineHeight: '1.15' }}>
                       माननीय राज्य मंत्री-पंचायती राज, ग्रामीण विकास एवं आपदा प्रबंधन, राजस्थान
                     </div>
                   </div>
@@ -345,10 +347,10 @@ const Login = () => {
 
         {/* White dialog box in center */}
         <div
-          className="login-dialog-responsive absolute left-1/2  w-[90%] max-w-[450px] z-[1000] bg-white flex flex-col items-center rounded-xl shadow-lg"
+          className="login-dialog-responsive  absolute left-1/2  w-[90%] max-w-[450px] z-[1000] bg-white flex flex-col items-center rounded-xl shadow-lg"
           style={{
             padding: '32px',
-            paddingBottom: '50px',
+
             maxHeight: '90vh',
             boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
           }}
@@ -383,7 +385,8 @@ const Login = () => {
               margin: 0,
               fontWeight: 'bold'
             }}>
-              For authorise personal - SMD, CEO, BDO & VDO only.
+              For
+              Authorised Person - SMD, CEO, BDO & VDO only.
             </p>
           </div>
 
@@ -556,72 +559,75 @@ const Login = () => {
           </form>
 
           {/* App Store Buttons - Hidden on large screens to save space */}
-          <div className="flex lg:hidden" style={{
-            display: 'flex',
-            gap: '6px',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginTop: '6px',
-            marginBottom: '6px'
-          }}>
-            <a
-              href="https://play.google.com/store/apps/details?id=com.sbmg.rajasthan"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'block',
-                cursor: 'pointer'
-              }}
-            >
-              <img
-                src={googlePlay}
-                alt="Get it on Google Play"
-                className="h-7 md:h-8 lg:h-9 w-auto object-contain"
-                style={{
-                  height: '40px',
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-            </a>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              style={{
-                display: 'block',
-                cursor: 'pointer'
-              }}
-            >
-              <img
-                src={appStore}
-                alt="Download on the App Store"
-                className="h-7 md:h-8 lg:h-9 w-auto object-contain"
-                style={{
-                  height: '40px',
-                  width: 'auto',
-                  objectFit: 'contain'
-                }}
-              />
-            </a>
-          </div>
-          {/* Complaint Contact Banner */}
-          <div style={{
-            width: '100%',
-            backgroundColor: '#FFF7ED',
-            borderRadius: '6px',
-            padding: '6px',
-            textAlign: 'center',
-            marginTop: '6px',
-            marginBottom: '0px'
-          }}>
-            <p className="text-[10px] md:text-xs lg:text-xs" style={{
-              color: '#C2410C',
-              fontSize: '14px',
-              fontWeight: '500',
-              margin: 0
+          <div className='flex flex-col '>
+            <div className="flex lg:hidden" style={{
+              display: 'flex',
+              gap: '6px',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: '6px',
+              marginBottom: '6px'
             }}>
-              Call at <a href="tel:0141-2204880">0141-2204880</a> for rural sanitation complaints
-            </p>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.sbmg.rajasthan"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  cursor: 'pointer'
+                }}
+              >
+                <img
+                  src={googlePlay}
+                  alt="Get it on Google Play"
+                  className="h-7 md:h-8 lg:h-9 w-auto object-contain"
+                  style={{
+                    height: '40px',
+                    width: 'auto',
+                    objectFit: 'contain'
+                  }}
+                />
+              </a>
+              <a
+                href="#"
+                onClick={(e) => e.preventDefault()}
+                style={{
+                  display: 'block',
+                  cursor: 'pointer'
+                }}
+              >
+                <img
+                  src={appStore}
+                  alt="Download on the App Store"
+                  className="h-7 md:h-8 lg:h-9 w-auto object-contain"
+                  style={{
+                    height: '40px',
+                    width: 'auto',
+                    objectFit: 'contain'
+                  }}
+                />
+              </a>
+            </div>
+            {/* Complaint Contact Banner */}
+            <div style={{
+              width: '100%',
+              backgroundColor: '#FFF7ED',
+              borderRadius: '6px',
+              padding: '6px',
+              textAlign: 'center',
+              marginTop: '6px',
+              marginBottom: '0px'
+            }}>
+              <p className="text-[10px] md:text-xs lg:text-xs" style={{
+                color: '#C2410C',
+                fontSize: '14px',
+                fontWeight: '500',
+                margin: 0
+              }}>
+                Call at <a href="tel:0141-2204880">0141-2204880</a> for rural sanitation complaints
+              </p>
+            </div>
+
           </div>
         </div>
 

@@ -51,7 +51,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
-    { name: 'Attendance', icon: CheckCircle },
+    { name: 'CSC Cleaning', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
     { name: 'Contractor Details', icon: Building },
@@ -221,7 +221,7 @@ const UnifiedDashboard = () => {
   };
 
   const handleNavigateToAttendance = () => {
-    setActiveItem('Attendance');
+    setActiveItem('CSC Cleaning');
     scrollToMainTable();
   };
 
@@ -273,7 +273,7 @@ const UnifiedDashboard = () => {
         return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} onNavigateToSchemes={handleNavigateToSchemes} onNavigateToEvents={handleNavigateToEvents} />;
       case 'Complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
-      case 'Attendance':
+      case 'CSC Cleaning':
         return <AttendanceContent />;
       case 'Inspection':
         return <InspectionContent />;

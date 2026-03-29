@@ -1258,7 +1258,7 @@ const ContractorDetails = () => {
                                 ? '...'
                                 : `₹${new Intl.NumberFormat('en-IN', {
                                     maximumFractionDigits: 0
-                                }).format(getAnalyticsValue('total_contract_amount', 0))} L`
+                                }).format(getAnalyticsValue('total_contract_amount', 0))}`
                             }
                         </div>
                     </div>

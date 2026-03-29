@@ -35,7 +35,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
-    { name: 'Attendance', icon: CheckCircle },
+    { name: 'CSC Cleaning', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
     { name: 'Contractor Details', icon: Building },
@@ -212,7 +212,7 @@ const UnifiedDashboardBDO = () => {
         return <BDODashboardContent />;
       case 'Complaints':
         return <BDOComplaintsContent />;
-      case 'Attendance':
+      case 'CSC Cleaning':
         return <BDOAttendanceContent />;
       case 'Inspection':
         return <BDOInspectionContent />;
