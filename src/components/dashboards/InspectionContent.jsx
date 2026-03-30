@@ -9,6 +9,8 @@ import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
+import InspectionDetailPage from "./common/InspectionDetailPage";
+import { AnimatePresence } from "framer-motion";
 
 
 const InspectionContent = () => {
@@ -140,6 +142,10 @@ const InspectionContent = () => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year');
 
+  const [opendetails, setOpenDetails] = useState(false);
+  const [selectedInspectionId, setSelectedInspectionId] = useState(null);
+
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -189,6 +195,9 @@ const InspectionContent = () => {
       ? <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
       : <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />;
   };
+
+
+
 
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
   const performanceButtons = ['Time', 'Location'];
@@ -326,6 +335,13 @@ const InspectionContent = () => {
     }
     return [];
   };
+
+  const updateLocationSelection = useCallback((scope, location, locationId, districtId, blockId, gpId, changeType) => {
+    console.log('🔄 updateLocationSelection called:', { scope, location, locationId, districtId, blockId, gpId, changeType });
+    if (typeof contextUpdateLocationSelection === 'function') {
+      contextUpdateLocationSelection(scope, location, locationId, districtId, blockId, gpId, changeType);
+    }
+  }, [contextUpdateLocationSelection]);
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
@@ -1169,26 +1185,25 @@ const InspectionContent = () => {
 
       // Fetch inspection details/issues for this specific GP
       const params = new URLSearchParams({
-        start_date: startDate,
-        end_date: endDate,
-        level: 'VILLAGE',
-        geography_id: gp.id
+        village_id: gp.id
       });
 
-      const response = await apiClient.get(`/inspections/analytics?${params.toString()}`);
-      const inspectionData = Array.isArray(response.data?.response) ? response.data.response : [];
-
+      const response = await apiClient.get(`/inspections/?${params.toString()}`);
+      const inspectionData = Array.isArray(response.data?.items)
+        ? response.data.items
+        : [];
       console.log('✅ Inspection issues data fetched:', inspectionData.length, 'issues');
 
       // Map inspection issues to a format suitable for display
-      const inspectionIssues = inspectionData.map((issue, index) => ({
-        id: issue.id || index,
-        title: issue.issue_type || issue.title || `Issue ${index + 1}`,
-        description: issue.description || 'No description',
-        severity: issue.severity || 'Medium',
-        status: issue.status || 'Pending',
-        score: issue.average_score || 0,
-        date: issue.inspection_date || new Date().toISOString().split('T')[0]
+      const inspectionIssues = inspectionData.map((item, index) => ({
+        id: item.id,
+        name: item.village_name,
+        remarks: item.remarks,
+        score: item.overall_score,
+        block_name: item.block_name,
+        visibly_clean: item.visibly_clean,
+        officer_role: item.officer_role,
+        date: item.date || new Date().toISOString().split('T')[0]
       }));
 
       const enrichedGp = {
@@ -1366,6 +1381,84 @@ const InspectionContent = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocksInspection: selectedDistrictForBlocksInspection?.id,
+      selectedBlockForGpsInspection: selectedBlockForGpsInspection?.id,
+      selectedGpForInspections: selectedGpForInspections?.id,
+      viewingBlocksInspectionForDistrict,
+      viewingGpsInspectionForBlock,
+      viewingInspectionsForGp
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksInspectionForDistrict(false);
+      setViewingGpsInspectionForBlock(false);
+      setViewingInspectionsForGp(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocksInspection?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlockInspectionSummary(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksInspectionForDistrict) {
+      setViewingBlocksInspectionForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGpsInspection?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGpInspectionSummary(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGpsInspectionForBlock) {
+      setViewingGpsInspectionForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show inspections for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show inspections for a different GP
+      if (selectedGP && selectedGpForInspections?.id !== selectedGPId) {
+        console.log('📊 GPs scope: Showing inspections for GP', selectedGP.name);
+
+        // Set the selected GP to trigger viewing inspections
+        setSelectedGpForInspections(selectedGP);
+        setViewingInspectionsForGp(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingInspectionsForGp) {
+      setViewingInspectionsForGp(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, selectedGpForInspections, viewingBlocksInspectionForDistrict, viewingGpsInspectionForBlock, viewingInspectionsForGp, fetchBlockInspectionSummary, fetchGpInspectionSummary]);
 
   // Helper functions to extract values from analyticsData
   const getAverageScore = () => {
@@ -2027,6 +2120,13 @@ const InspectionContent = () => {
     }
   };
 
+
+
+
+
+
+
+
   const averageLabel = activeScope === 'State' ? 'district average' :
     activeScope === 'Districts' ? 'block average' :
       activeScope === 'Blocks' ? 'GP average' :
@@ -2043,49 +2143,86 @@ const InspectionContent = () => {
     }
   ];
 
+  const sortValueMap = {
+    name: (item) => item.name || item.geo_name || '',
+
+    total_inspections: (item) => item.total_inspections || 0,
+
+    average_score: (item) => item.average_score || 0,
+
+    coverage_percentage: (item) => item.coverage_percentage || 0,
+
+    score: (item) => item.score || 0,
+
+    date: (item) => new Date(item.date || 0),
+
+    visibly_clean: (item) => item.visibly_clean ? 1 : 0,
+
+    inspection_by: (item) => item.officer_role || ''
+  };
+
+  const resolveValue = (item, key) => {
+    switch (key) {
+      case 'name':
+        return item.name || item.geo_name || '';
+
+      case 'date':
+        return item.date ? new Date(item.date).getTime() : 0;
+
+      case 'average_score':
+        return item.average_score ?? 0;
+
+      case 'total_inspections':
+        return item.total_inspections ?? 0;
+
+      case 'coverage_percentage':
+        return item.coverage_percentage ?? 0;
+
+      case 'score':
+        return item.score ?? 0;
+
+      case 'inspection_by':
+        return item.officer_role || '';
+
+      default:
+        // 👇 fallback = original behavior
+        return item?.[key] ?? '';
+    }
+  };
+
+
   const getSortedData = (data = []) => {
     if (!sortConfig.key) return data;
 
     return [...data].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      let aValue = resolveValue(a, sortConfig.key);
+      let bValue = resolveValue(b, sortConfig.key);
 
-      // 🔹 special mappings
-      if (sortConfig.key === 'name') {
-        aValue = a.name || a.geo_name || '';
-        bValue = b.name || b.geo_name || '';
-      }
-
-      if (sortConfig.key === 'date') {
-        aValue = new Date(a.date);
-        bValue = new Date(b.date);
-      }
-
-      if (sortConfig.key === 'visibly_clean') {
-        aValue = a.visibly_clean ? 1 : 0;
-        bValue = b.visibly_clean ? 1 : 0;
-      }
-
-      // 🔹 null handle
       if (aValue == null) aValue = '';
       if (bValue == null) bValue = '';
 
-      // 🔹 string
+      // string
       if (typeof aValue === 'string') {
         return sortConfig.direction === 'asc'
           ? aValue.localeCompare(bValue)
           : bValue.localeCompare(aValue);
       }
 
-      // 🔹 number / date
+      // number/date
       return sortConfig.direction === 'asc'
         ? aValue - bValue
         : bValue - aValue;
     });
   };
+
   const sortedInspections = getSortedData(selectedGpForInspections?.inspections || []);
 
   const sortedYourInspections = getSortedData(getYourInspections());
+
+  const handleDetailspage = (id) => {
+    setOpenDetails(true);
+    setSelectedInspectionId(id);
+  }
 
 
 
@@ -2705,6 +2842,8 @@ const InspectionContent = () => {
                 onClick={() => {
                   setSelectedGpForInspections(null);
                   setViewingInspectionsForGp(false);
+                  // Update breadcrumb - back to GPs list level
+                  setActiveScope('GPs');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2729,6 +2868,13 @@ const InspectionContent = () => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
                   setGpInspectionSummaryData([]);
+                  setViewingBlocksInspectionForDistrict(true);
+                  // Refetch blocks listing
+                  if (selectedDistrictForBlocksInspection) {
+                    fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
+                  }
+                  // Update breadcrumb - back to blocks level (keep block selected)
+                  setActiveScope('Blocks');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2753,6 +2899,10 @@ const InspectionContent = () => {
                   setViewingBlocksInspectionForDistrict(false);
                   setSelectedDistrictForBlocksInspection(null);
                   setBlockInspectionSummaryData([]);
+                  // Update breadcrumb - back to state level (all selections cleared)
+                  setActiveScope('State');
+                  setSelectedDistrictForHierarchy(null);
+                  setSelectedBlockForHierarchy(null);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2782,7 +2932,7 @@ const InspectionContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: viewingInspectionsForGp ? '1fr 150px 150px 150px' : viewingGpsInspectionForBlock ? '1fr 200px 150px' : '1fr 200px 150px 150px',
+              gridTemplateColumns: viewingInspectionsForGp ? '1fr 200px  150px 150px' : viewingGpsInspectionForBlock ? '1fr 200px 150px' : '1fr 200px 150px 150px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb',
@@ -2795,7 +2945,7 @@ const InspectionContent = () => {
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {viewingInspectionsForGp
-                    ? `Issue`
+                    ? `Inspection`
                     : viewingGpsInspectionForBlock
                       ? `GP Name (${gpInspectionSummaryData.length})`
                       : viewingBlocksInspectionForDistrict
@@ -2810,14 +2960,24 @@ const InspectionContent = () => {
                 </div>
               </div>
               {viewingInspectionsForGp && (
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  textAlign: 'center'
-                }}>
-                  Inspection Severity
-                </div>
+                <>
+                  <div style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    textAlign: 'center', display: 'flex', gap: '3px', justifyContent: 'center'
+                  }}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      Inspection Date
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('date')}>
+                        <SortIcon col="date" />
+                      </span>
+                    </div>
+                  </div>
+
+                </>
               )}
               {!viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
                 <div style={{
@@ -2841,6 +3001,7 @@ const InspectionContent = () => {
                   </div>
                 </div>
               )}
+
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
@@ -2848,11 +3009,22 @@ const InspectionContent = () => {
                 textAlign: 'center', display: 'flex', gap: '3px', justifyContent: 'center'
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {viewingInspectionsForGp ? 'Status' : 'Avg. Score'}
+
+                  {viewingInspectionsForGp ? 'Inspection By' : 'Avg. Score'}
+
                   <span
                     style={{ cursor: 'pointer', }}
-                    onClick={() => handleSort('average_score')}>
-                    <SortIcon col="average_score" />
+                    onClick={() =>
+                      handleSort(
+                        viewingInspectionsForGp
+                          ? 'officer_role'
+                          : 'average_score'
+                      )
+                    }>
+                    <SortIcon col={viewingInspectionsForGp
+                      ? 'officer_role'
+                      : 'average_score'
+                    } />
                   </span>
                 </div>
                 {/* <span>({headerGetAverageScore()})</span> */}
@@ -2867,8 +3039,18 @@ const InspectionContent = () => {
                   {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
                   <span
                     style={{ cursor: 'pointer', }}
-                    onClick={() => handleSort('coverage_percentage')}>
-                    <SortIcon col="coverage_percentage" />
+                    onClick={() =>
+                      handleSort(
+                        viewingInspectionsForGp
+                          ? 'score'
+                          : 'coverage_percentage'
+                      )
+                    }>
+                    <SortIcon col={
+                      viewingInspectionsForGp
+                        ? 'score'
+                        : 'coverage_percentage'}
+                    />
                   </span>
                 </div>
               </div>
@@ -2882,31 +3064,32 @@ const InspectionContent = () => {
               {viewingInspectionsForGp ? (
                 // Individual inspections view for a GP
                 selectedGpForInspections?.inspections && selectedGpForInspections.inspections.length > 0 ? (
-                  sortedInspections.map((inspection) => (
-                    <div key={inspection.id} style={{
+                  sortedInspections.map((inspection, index) => (
+                    <div key={inspection.id || index} style={{
                       display: 'grid',
-                      gridTemplateColumns: '1fr 200px 150px 150px',
+                      gridTemplateColumns: '1fr 200px 150px  150px',
                       padding: '12px 16px',
                       alignItems: 'center',
                       borderBottom: '1px solid #f3f4f6'
                     }}>
                       {/* Issue Title Column */}
-                      <div style={{
+                      <div onClick={() => handleDetailspage(inspection.id)} style={{
                         fontSize: '14px',
                         color: '#10b981',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        cursor: 'pointer'
                       }}>
-                        <div>{inspection.title}</div>
+                        <div>{inspection.name}</div>
                         <div style={{
                           fontSize: '12px',
                           color: '#6b7280',
                           marginTop: '4px'
                         }}>
-                          {inspection.description}
+                          {inspection.remarks}
                         </div>
                       </div>
 
-                      {/* Severity Column */}
+                      {/* Date */}
                       <div style={{
                         fontSize: '14px',
                         color: '#374151',
@@ -2921,11 +3104,11 @@ const InspectionContent = () => {
                           fontSize: '12px',
                           fontWeight: '500'
                         }}>
-                          {inspection.severity}
+                          {inspection.date ? new Date(inspection.date).toLocaleDateString() : 'N/A'}
+
                         </div>
                       </div>
 
-                      {/* Status Column */}
                       <div style={{
                         fontSize: '14px',
                         color: '#374151',
@@ -2940,9 +3123,10 @@ const InspectionContent = () => {
                           fontSize: '12px',
                           fontWeight: '500'
                         }}>
-                          {inspection.status}
+                          {inspection.officer_role}
                         </div>
                       </div>
+
 
                       {/* Score Column */}
                       <div style={{
@@ -3034,12 +3218,45 @@ const InspectionContent = () => {
                             if (viewingGpsInspectionForBlock) {
                               // GPs are now clickable - fetch inspection issues
                               fetchInspectionsForGp(item);
+                              // setSelectedGpInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('GPs');
+                              setSelectedGPId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+                              setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
+                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
+                              updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
                             } else if (viewingBlocksInspectionForDistrict) {
                               // Clicking on block to view GPs
                               fetchGpInspectionSummary(item);
+                              setSelectedBlockForGpsInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('Blocks');
+                              setSelectedBlockId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+                              setSelectedBlockForHierarchy(item);
+                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
+                              updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
                             } else {
                               // Clicking on district to view blocks
                               fetchBlockInspectionSummary(item);
+                              setSelectedDistrictForBlocksInspection(item);
+                              // Sync header with table selection
+                              setActiveScope('Districts');
+                              setSelectedDistrictId(item.id);
+                              setSelectedLocation(item.name || item.geo_name);
+                              setSelectedLocationId(item.id);
+                              // Update breadcrumb hierarchy
+                              setSelectedDistrictForHierarchy(item);
+                              setSelectedBlockForHierarchy(null);
+                              // trackDropdownChange(item.name || item.geo_name, item.id, item.id);
+                              updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
                             }
                           }}
                           style={{
@@ -3113,886 +3330,943 @@ const InspectionContent = () => {
             </div>
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* Bottom Sections - Critical Issues and Top Performers - Hidden in GP view */}
-      {!showMyInspections && activeScope !== 'GPs' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '16px',
-          marginTop: '16px'
-        }}>
-          {/* Top Critical Issues */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            marginLeft: '16px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: '0 0 10px 0'
-            }}>
-              Top Critical Issues
-            </h3>
-
-            <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '2px 0'
-            }}></div>
-
-            {/* Loading State */}
-            {loadingCriticalIssues && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading critical issues...
-              </div>
-            )}
-
-            {/* Error State */}
-            {criticalIssuesError && !loadingCriticalIssues && (
-              <NoDataFound size="small" />
-            )}
-
-            {/* Data State */}
-            {!loadingCriticalIssues && !criticalIssuesError && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                {/* Issue 1 */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 12px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <span style={{ fontSize: '16px', color: '#374151' }}>No Safety Equipment</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {getCriticalIssuesCount('no_safety_equipment')}
-                  </span>
-                </div>
-
-                {/* Issue 2 */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 12px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>CSC without water/Elec.</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {getCriticalIssuesCount('csc_wo_water_or_electricity')}
-                  </span>
-                </div>
-
-                {/* Issue 3 */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 12px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <span style={{ fontSize: '16px', color: '#374151' }}>Firm Not Paid</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {getCriticalIssuesCount('firm_not_paid')}
-                  </span>
-                </div>
-
-                {/* Issue 4 */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 12px',
-                  borderBottom: '1px solid #f3f4f6'
-                }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Staff Not Paid</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {getCriticalIssuesCount('staff_not_paid')}
-                  </span>
-                </div>
-
-                {/* Issue 5 */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 12px'
-                }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Visibly Not Clean</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                    {getCriticalIssuesCount('visibly_unclean_village')}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Top 3 Performers */}
-          <div style={{
-            backgroundColor: 'white',
-            marginRight: '16px',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '20px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Top 3 Performers(Officers)
-              </h3>
-
-              {/* Dropdown */}
-              <div
-                data-dropdown
-                style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  cursor: 'pointer'
-                }}
-                onClick={handlePerformersDropdown1Click}>
-                <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter1}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-
-                {/* Dropdown Menu */}
-                {showPerformersDropdown1 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '4px',
-                    minWidth: '120px'
-                  }}>
-                    {performersFilterOptions1.map((option) => (
-                      <div
-                        key={option}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePerformersFilter1Select(option);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: selectedPerformersFilter1 === option ? '#f3f4f6' : 'transparent',
-                          borderBottom: option !== performersFilterOptions1[performersFilterOptions1.length - 1] ? '1px solid #f3f4f6' : 'none'
-                        }}
-                      >
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Table Header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '60px 1fr 1fr 100px',
-              gap: '12px',
-              padding: '12px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}>
-              <div>Rank</div>
-              <div>Name</div>
-              <div>Location</div>
-              <div>Inspections</div>
-            </div>
-
-            {/* Loading State */}
-            {loadingTopPerformers && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading top performers...
-              </div>
-            )}
-
-            {/* Error State */}
-            {topPerformersError && !loadingTopPerformers && (
-              <NoDataFound size="small" />
-            )}
-
-            {/* Data State */}
-            {!loadingTopPerformers && !topPerformersError && getTopPerformers().map((performer, index) => {
-              const rankImages = [number1, number2, number3];
-              const rankImage = rankImages[index] || number3;
-
-              return (
-                <div key={performer.geo_id || index} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '60px 1fr 1fr 100px',
-                  gap: '12px',
-                  padding: '12px',
-                  alignItems: 'center',
-                  borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
-                    <img
-                      src={rankImage}
-                      alt={`Rank ${index + 1}`}
-                      style={{
-                        width: '52px',
-                        height: '52px',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>{performer.inspector_name || 'N/A'}</div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geo_name || 'N/A'}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{performer.inspections_count || 0}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
-      {!showMyInspections && activeScope !== 'GPs' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 2fr',
-          gap: '16px',
-          marginTop: '16px',
-          marginLeft: '16px',
-        }}>
-          {/* Top 3 Performers - Updated Version */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '14px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Top 3 Performers(Locations)
-              </h3>
-
-              {/* District Dropdown */}
-              <div
-                data-dropdown
-                style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  cursor: 'pointer'
-                }}
-                onClick={handlePerformersDropdown2Click}>
-                <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter2}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-
-                {/* Dropdown Menu */}
-                {showPerformersDropdown2 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '4px',
-                    minWidth: '120px'
-                  }}>
-                    {performersFilterOptions2.map((option) => (
-                      <div
-                        key={option}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePerformersFilter2Select(option);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: selectedPerformersFilter2 === option ? '#f3f4f6' : 'transparent',
-                          borderBottom: option !== performersFilterOptions2[performersFilterOptions2.length - 1] ? '1px solid #f3f4f6' : 'none'
-                        }}
-                      >
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Table Header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '80px 1fr 100px',
-              gap: '12px',
-              padding: '12px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}>
-              <div>Rank</div>
-              <div>{selectedPerformersFilter2}</div>
-              <div>Score</div>
-            </div>
-
-            {/* Loading State */}
-            {loadingTopPerformersLocation && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading top performers...
-              </div>
-            )}
-
-            {/* Error State */}
-            {topPerformersLocationError && !loadingTopPerformersLocation && (
-              <NoDataFound size="small" />
-            )}
-
-            {/* Data State */}
-            {!loadingTopPerformersLocation && !topPerformersLocationError && getTopPerformersLocation().map((performer, index) => {
-              const rankImages = [number1, number2, number3];
-              const rankImage = rankImages[index] || number3;
-
-              return (
-                <div key={performer.geography_id || index} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '80px 1fr 100px',
-                  gap: '12px',
-                  padding: '12px',
-                  alignItems: 'center',
-                  borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
-                    <img
-                      src={rankImage}
-                      alt={`Rank ${index + 1}`}
-                      style={{
-                        width: '50px',
-                        height: '50px',
-                        objectFit: 'contain'
-                      }}
-                    />
-                  </div>
-                  <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geography_name || 'N/A'}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                    {performer.average_score ? `${performer.average_score.toFixed(0)}%` : '0%'}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Performance Report */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '14px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-            marginRight: '16px',
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Performance report
-              </h3>
-
-              {/* District Dropdown */}
-              <div
-                data-dropdown
-                style={{
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '6px 12px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e7eb',
-                  cursor: 'pointer'
-                }}
-                onClick={handlePerformanceReportDropdownClick}>
-                <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformanceReportFilter}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
-
-                {/* Dropdown Menu */}
-                {showPerformanceReportDropdown && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: '0',
-                    backgroundColor: 'white',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    zIndex: 1000,
-                    marginTop: '4px',
-                    minWidth: '120px'
-                  }}>
-                    {performersFilterOptions2.map((option) => (
-                      <div
-                        key={option}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePerformanceReportFilterSelect(option);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: selectedPerformanceReportFilter === option ? '#f3f4f6' : 'transparent',
-                          borderBottom: option !== performersFilterOptions2[performersFilterOptions2.length - 1] ? '1px solid #f3f4f6' : 'none'
-                        }}
-                      >
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Table Header with Sort Icons */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 100px 120px',
-              gap: '1px',
-              padding: '12px',
-              backgroundColor: '#f3f4f6',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start', gap: '4px' }}>
-                {selectedPerformanceReportFilter}
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Coverage
-                <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={14} color="#6b7280" />
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
-                  <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
-                </div>
-              </div>
-              <div></div>
-            </div>
-
-            {/* Loading State */}
-            {loadingPerformanceReport && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading performance report...
-              </div>
-            )}
-
-            {/* Error State */}
-            {performanceReportError && !loadingPerformanceReport && (
-              <NoDataFound size="small" />
-            )}
-
-            {/* Performance Data Rows - From API */}
-            {!loadingPerformanceReport && !performanceReportError && (
-              <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                {getPerformanceReportItems().map((item, index) => (
-                  <div key={item.geo_id || index} style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 100px 120px',
-                    gap: '1px',
-                    padding: '12px',
-                    alignItems: 'center',
-                    borderBottom: index < getPerformanceReportItems().length - 1 ? '1px solid #f3f4f6' : 'none'
-                  }}>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {item.geo_name || 'N/A'}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {item.coverage_percentage ? `${item.coverage_percentage.toFixed(0)}%` : '0%'}
-                    </div>
-                    <div>
-                      <button
-                        onClick={() => handleOpenNoticeModal(item, selectedPerformanceReportFilter)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Send notice
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Empty State */}
-                {getPerformanceReportItems().length === 0 && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    padding: '40px 20px',
-                    color: '#6b7280',
-                    fontSize: '14px'
-                  }}>
-                    No performance data available
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Your Inspections Table - Always visible at bottom */}
-      <div style={{
-        marginTop: '16px',
-        marginLeft: '16px',
-        marginRight: '16px',
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-        }}>
-          {/* Header */}
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#111827',
-            margin: '0 0 20px 0'
-          }}>
-            {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
-          </h3>
-
-          {/* Table Header */}
+      {
+        !showMyInspections && activeScope !== 'GPs' && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: activeScope === 'GPs'
-              ? '120px 120px 1.5fr 120px 120px 220px'
-              : '120px 1.5fr 1.5fr 120px 120px 220px',
+            gridTemplateColumns: '1fr 1fr',
             gap: '16px',
-            padding: '12px 16px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            marginBottom: '8px',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase'
+            marginTop: '16px'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Date
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('date')}>
-                <SortIcon col="date" />
-              </span>
-            </div>
-            {activeScope === 'GPs' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Inspection by
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('inspector_role')}>
-                  <SortIcon col="inspector_role" />
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Village Name
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('village_name')}>
-                <SortIcon col="village_name" />
-              </span>
-            </div>
-            {activeScope !== 'GPs' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                GP Name
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('gp_name')}>
-                  <SortIcon col="gp_name" />
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Cleaning Score
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('overall_score')}>
-                <SortIcon col="overall_score" />
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Visibly Clean
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('visibly_clean')}>
-                <SortIcon col="visibly_clean" />
-              </span>
-            </div>
-            <div>Action</div>
-          </div>
-
-          {/* Loading State */}
-          {loadingYourInspections && (
+            {/* Top Critical Issues */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '40px 20px',
-              color: '#6b7280',
-              fontSize: '14px'
+              backgroundColor: 'white',
+              padding: '20px',
+              marginLeft: '16px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
             }}>
-              Loading your inspections...
-            </div>
-          )}
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: '0 0 10px 0'
+              }}>
+                Top Critical Issues
+              </h3>
 
-          {/* Error State */}
-          {yourInspectionsError && !loadingYourInspections && (
-            <NoDataFound size="small" />
-          )}
+              <divider />
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '2px 0'
+              }}></div>
 
-          {/* Data State */}
-          {!loadingYourInspections && !yourInspectionsError && (
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {sortedYourInspections.length === 0 ? (
-                <NoDataFound size="small" />
-              ) : (
-                sortedYourInspections.map((inspection, index) => (
-                  <div key={inspection.id || index} style={{
-                    display: 'grid',
-                    gridTemplateColumns: activeScope === 'GPs'
-                      ? '120px 120px 1.5fr 120px 120px 220px'
-                      : '120px 1.5fr 1.5fr 120px 120px 220px',
-                    gap: '16px',
-                    padding: '12px 16px',
-                    alignItems: 'center',
-                    borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
-                  }}>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {formatDate(inspection.date)}
-                    </div>
-                    {activeScope === 'GPs' && (
-                      <div style={{ fontSize: '14px', color: '#374151' }}>
-                        {inspection.inspector_role || 'CEO'}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {inspection.village_name || 'Village name'}
-                    </div>
-                    {activeScope !== 'GPs' && (
-                      <div style={{ fontSize: '14px', color: '#374151' }}>
-                        {inspection.gp_name || 'GP name'}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                      {inspection.overall_score || 0}%
-                    </div>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: inspection.visibly_clean ? '#10b981' : '#ef4444'
-                    }}>
-                      {inspection.visibly_clean ? 'Yes' : 'No'}
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <button
-                        onClick={() => handleOpenNoticeModalFromInspection(inspection)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Send notice
-                      </button>
-                      <button
-                        onClick={() => handleDownloadPDF(inspection)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Download style={{ width: '14px', height: '14px' }} />
-                        PDF
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {/* Pagination */}
-              {getYourInspections().length > 0 && totalPages > 1 && (
+              {/* Loading State */}
+              {loadingCriticalIssues && (
                 <div style={{
                   display: 'flex',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  gap: '8px',
-                  padding: '20px',
-                  borderTop: '1px solid #f3f4f6'
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
                 }}>
-                  <button
-                    onClick={() => fetchYourInspectionsData(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
-                      color: currentPage <= 1 ? '#9ca3af' : '#374151',
-                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Previous
-                  </button>
+                  Loading critical issues...
+                </div>
+              )}
 
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                    Page {currentPage} of {totalPages}
-                  </span>
+              {/* Error State */}
+              {criticalIssuesError && !loadingCriticalIssues && (
+                <NoDataFound size="small" />
+              )}
 
-                  <button
-                    onClick={() => fetchYourInspectionsData(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
-                      color: currentPage >= totalPages ? '#9ca3af' : '#374151',
-                      cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Next
-                  </button>
+              {/* Data State */}
+              {!loadingCriticalIssues && !criticalIssuesError && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                  {/* Issue 1 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 12px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <span style={{ fontSize: '16px', color: '#374151' }}>No Safety Equipment</span>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                      {getCriticalIssuesCount('no_safety_equipment')}
+                    </span>
+                  </div>
+
+                  {/* Issue 2 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 12px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <span style={{ fontSize: '16px', color: '#6b7280' }}>CSC without water/Elec.</span>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                      {getCriticalIssuesCount('csc_wo_water_or_electricity')}
+                    </span>
+                  </div>
+
+                  {/* Issue 3 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 12px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <span style={{ fontSize: '16px', color: '#374151' }}>Firm Not Paid</span>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                      {getCriticalIssuesCount('firm_not_paid')}
+                    </span>
+                  </div>
+
+                  {/* Issue 4 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 12px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Staff Not Paid</span>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                      {getCriticalIssuesCount('staff_not_paid')}
+                    </span>
+                  </div>
+
+                  {/* Issue 5 */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px 12px'
+                  }}>
+                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Visibly Not Clean</span>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
+                      {getCriticalIssuesCount('visibly_unclean_village')}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
-          )}
+
+            {/* Top 3 Performers */}
+            <div style={{
+              backgroundColor: 'white',
+              marginRight: '16px',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '20px'
+              }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Top 3 Performers(Officers)
+                </h3>
+
+                {/* Dropdown */}
+                <div
+                  data-dropdown
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                  onClick={handlePerformersDropdown1Click}>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter1}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+
+                  {/* Dropdown Menu */}
+                  {showPerformersDropdown1 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      minWidth: '120px'
+                    }}>
+                      {performersFilterOptions1.map((option) => (
+                        <div
+                          key={option}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePerformersFilter1Select(option);
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: selectedPerformersFilter1 === option ? '#f3f4f6' : 'transparent',
+                            borderBottom: option !== performersFilterOptions1[performersFilterOptions1.length - 1] ? '1px solid #f3f4f6' : 'none'
+                          }}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Table Header */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '60px 1fr 1fr 100px',
+                gap: '12px',
+                padding: '12px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#6b7280',
+                textTransform: 'uppercase'
+              }}>
+                <div>Rank</div>
+                <div>Name</div>
+                <div>Location</div>
+                <div>Inspections</div>
+              </div>
+
+              {/* Loading State */}
+              {loadingTopPerformers && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  Loading top performers...
+                </div>
+              )}
+
+              {/* Error State */}
+              {topPerformersError && !loadingTopPerformers && (
+                <NoDataFound size="small" />
+              )}
+
+              {/* Data State */}
+              {!loadingTopPerformers && !topPerformersError && getTopPerformers().map((performer, index) => {
+                const rankImages = [number1, number2, number3];
+                const rankImage = rankImages[index] || number3;
+
+                return (
+                  <div key={performer.geo_id || index} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '60px 1fr 1fr 100px',
+                    gap: '12px',
+                    padding: '12px',
+                    alignItems: 'center',
+                    borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
+                      <img
+                        src={rankImage}
+                        alt={`Rank ${index + 1}`}
+                        style={{
+                          width: '52px',
+                          height: '52px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#374151' }}>{performer.inspector_name || 'N/A'}</div>
+                    <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geo_name || 'N/A'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>{performer.inspections_count || 0}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )
+      }
+
+      {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
+      {
+        !showMyInspections && activeScope !== 'GPs' && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 2fr',
+            gap: '16px',
+            marginTop: '16px',
+            marginLeft: '16px',
+          }}>
+            {/* Top 3 Performers - Updated Version */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px'
+              }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Top 3 Performers(Locations)
+                </h3>
+
+                {/* District Dropdown */}
+                <div
+                  data-dropdown
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                  onClick={handlePerformersDropdown2Click}>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformersFilter2}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+
+                  {/* Dropdown Menu */}
+                  {showPerformersDropdown2 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      minWidth: '120px'
+                    }}>
+                      {performersFilterOptions2.map((option) => (
+                        <div
+                          key={option}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePerformersFilter2Select(option);
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: selectedPerformersFilter2 === option ? '#f3f4f6' : 'transparent',
+                            borderBottom: option !== performersFilterOptions2[performersFilterOptions2.length - 1] ? '1px solid #f3f4f6' : 'none'
+                          }}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Table Header */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '80px 1fr 100px',
+                gap: '12px',
+                padding: '12px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#6b7280',
+                textTransform: 'uppercase'
+              }}>
+                <div>Rank</div>
+                <div>{selectedPerformersFilter2}</div>
+                <div>Score</div>
+              </div>
+
+              {/* Loading State */}
+              {loadingTopPerformersLocation && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  Loading top performers...
+                </div>
+              )}
+
+              {/* Error State */}
+              {topPerformersLocationError && !loadingTopPerformersLocation && (
+                <NoDataFound size="small" />
+              )}
+
+              {/* Data State */}
+              {!loadingTopPerformersLocation && !topPerformersLocationError && getTopPerformersLocation().map((performer, index) => {
+                const rankImages = [number1, number2, number3];
+                const rankImage = rankImages[index] || number3;
+
+                return (
+                  <div key={performer.geography_id || index} style={{
+                    display: 'grid',
+                    gridTemplateColumns: '80px 1fr 100px',
+                    gap: '12px',
+                    padding: '12px',
+                    alignItems: 'center',
+                    borderBottom: index < 2 ? '1px solid #f3f4f6' : 'none'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start' }}>
+                      <img
+                        src={rankImage}
+                        alt={`Rank ${index + 1}`}
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          objectFit: 'contain'
+                        }}
+                      />
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#374151' }}>{performer.geography_name || 'N/A'}</div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                      {performer.average_score ? `${performer.average_score.toFixed(0)}%` : '0%'}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Performance Report */}
+            <div style={{
+              backgroundColor: 'white',
+              padding: '14px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+              marginRight: '16px',
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px'
+              }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Performance report
+                </h3>
+
+                {/* District Dropdown */}
+                <div
+                  data-dropdown
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '6px 12px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer'
+                  }}
+                  onClick={handlePerformanceReportDropdownClick}>
+                  <span style={{ fontSize: '14px', color: '#374151' }}>{selectedPerformanceReportFilter}</span>
+                  <ChevronDown style={{ width: '16px', height: '16px', color: '#6b7280' }} />
+
+                  {/* Dropdown Menu */}
+                  {showPerformanceReportDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      right: '0',
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px',
+                      minWidth: '120px'
+                    }}>
+                      {performersFilterOptions2.map((option) => (
+                        <div
+                          key={option}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePerformanceReportFilterSelect(option);
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: selectedPerformanceReportFilter === option ? '#f3f4f6' : 'transparent',
+                            borderBottom: option !== performersFilterOptions2[performersFilterOptions2.length - 1] ? '1px solid #f3f4f6' : 'none'
+                          }}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Table Header with Sort Icons */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 100px 120px',
+                gap: '1px',
+                padding: '12px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#6b7280',
+                textTransform: 'uppercase'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start', gap: '4px' }}>
+                  {selectedPerformanceReportFilter}
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Coverage
+                  <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={14} color="#6b7280" />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
+                    <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
+                  </div>
+                </div>
+                <div></div>
+              </div>
+
+              {/* Loading State */}
+              {loadingPerformanceReport && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  Loading performance report...
+                </div>
+              )}
+
+              {/* Error State */}
+              {performanceReportError && !loadingPerformanceReport && (
+                <NoDataFound size="small" />
+              )}
+
+              {/* Performance Data Rows - From API */}
+              {!loadingPerformanceReport && !performanceReportError && (
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  {getPerformanceReportItems().map((item, index) => (
+                    <div key={item.geo_id || index} style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 100px 120px',
+                      gap: '1px',
+                      padding: '12px',
+                      alignItems: 'center',
+                      borderBottom: index < getPerformanceReportItems().length - 1 ? '1px solid #f3f4f6' : 'none'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {item.geo_name || 'N/A'}
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {item.coverage_percentage ? `${item.coverage_percentage.toFixed(0)}%` : '0%'}
+                      </div>
+                      <div>
+                        <button
+                          onClick={() => handleOpenNoticeModal(item, selectedPerformanceReportFilter)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Send notice
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Empty State */}
+                  {getPerformanceReportItems().length === 0 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '40px 20px',
+                      color: '#6b7280',
+                      fontSize: '14px'
+                    }}>
+                      No performance data available
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      }
+
+      {/* Your Inspections Table */}
+      {showMyInspections && (
+        <div style={{
+          marginTop: '16px',
+          marginLeft: '16px',
+          marginRight: '16px',
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            {/* Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
+              </h3>
+
+              <button
+                onClick={() => setShowMyInspections(false)}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: activeScope === 'GPs'
+                ? '120px 120px 1.5fr 120px 120px 220px'
+                : '120px 1.5fr 1.5fr 120px 120px 220px',
+              gap: '16px',
+              padding: '12px 16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#6b7280',
+              textTransform: 'uppercase'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Date
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('date')}>
+                  <SortIcon col="date" />
+                </span>
+              </div>
+              {activeScope === 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Inspection by
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('inspector_role')}>
+                    <SortIcon col="inspector_role" />
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Village Name
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('village_name')}>
+                  <SortIcon col="village_name" />
+                </span>
+              </div>
+              {activeScope !== 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  GP Name
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('gp_name')}>
+                    <SortIcon col="gp_name" />
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Cleaning Score
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('overall_score')}>
+                  <SortIcon col="overall_score" />
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Visibly Clean
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('visibly_clean')}>
+                  <SortIcon col="visibly_clean" />
+                </span>
+              </div>
+              <div>Action</div>
+            </div>
+
+            {/* Loading State */}
+            {loadingYourInspections && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px 20px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                Loading your inspections...
+              </div>
+            )}
+
+            {/* Error State */}
+            {yourInspectionsError && !loadingYourInspections && (
+              <NoDataFound size="small" />
+            )}
+
+            {/* Data State */}
+            {!loadingYourInspections && !yourInspectionsError && (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {sortedYourInspections.length === 0 ? (
+                  <NoDataFound size="small" />
+                ) : (
+                  sortedYourInspections.map((inspection, index) => (
+                    <div key={inspection.id || index} style={{
+                      display: 'grid',
+                      gridTemplateColumns: activeScope === 'GPs'
+                        ? '120px 120px 1.5fr 120px 120px 220px'
+                        : '120px 1.5fr 1.5fr 120px 120px 220px',
+                      gap: '16px',
+                      padding: '12px 16px',
+                      alignItems: 'center',
+                      borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
+                        {formatDate(inspection.date)}
+                      </div>
+                      {activeScope === 'GPs' && (
+                        <div style={{ fontSize: '14px', color: '#374151' }}>
+                          {inspection.inspector_role || 'CEO'}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {inspection.village_name || 'Village name'}
+                      </div>
+                      {activeScope !== 'GPs' && (
+                        <div style={{ fontSize: '14px', color: '#374151' }}>
+                          {inspection.gp_name || 'GP name'}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                        {inspection.overall_score || 0}%
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: inspection.visibly_clean ? '#10b981' : '#ef4444'
+                      }}>
+                        {inspection.visibly_clean ? 'Yes' : 'No'}
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+
+                        <button
+                          onClick={() => handleOpenNoticeModalFromInspection(inspection)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Send notice
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPDF(inspection)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Download style={{ width: '14px', height: '14px' }} />
+                          PDF
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDetailspage(inspection.id)}
+                          title="View Data"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                            color: '#374151'
+                          }}
+                        >
+                          <Eye style={{ width: '18px', height: '18px' }} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {/* Pagination */}
+                {getYourInspections().length > 0 && totalPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '20px',
+                    borderTop: '1px solid #f3f4f6'
+                  }}>
+                    <button
+                      onClick={() => fetchYourInspectionsData(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
+                        color: currentPage <= 1 ? '#9ca3af' : '#374151',
+                        cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Previous
+                    </button>
+
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+
+                    <button
+                      onClick={() => fetchYourInspectionsData(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
+                        color: currentPage >= totalPages ? '#9ca3af' : '#374151',
+                        cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+
+
+      <InspectionDetailPage
+        inspectionId={selectedInspectionId}
+        isopen={opendetails}
+        onClose={() => setOpenDetails(false)} />
+
+
 
       {/* Send Notice Modal */}
       <SendNoticeModal
@@ -4004,7 +4278,7 @@ const InspectionContent = () => {
         kpiName={noticeModuleData.kpiName}
         kpiFigure={noticeModuleData.kpiFigure}
       />
-    </div>
+    </div >
   );
 };
 

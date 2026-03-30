@@ -1,5 +1,5 @@
 import { Calendar, CheckCircle, ChevronDown, Clock, Download, List, Search, Star, X, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Chart from 'react-apexcharts';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import apiClient from '../../../services/api';
@@ -77,6 +77,10 @@ const VDOComplaintsContent = () => {
       contextUpdateLocationSelection(scope, location, locationId, districtId, blockId, gpId, changeType);
     }
   }, [contextUpdateLocationSelection]);
+
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -1920,7 +1924,7 @@ const VDOComplaintsContent = () => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div ref={complaintsTableRef} style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -2153,7 +2157,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Type of complaint  
+                  Type of complaint
                   <div style={{
                     position: 'absolute',
                     right: '8px',

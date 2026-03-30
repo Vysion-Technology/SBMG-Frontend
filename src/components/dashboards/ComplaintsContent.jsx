@@ -1,5 +1,5 @@
 import { Calendar, CheckCircle, ChevronDown, ChevronsUpDown, ChevronUp, Clock, Download, List, Plus, Search, Star, User, X, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
 import apiClient, { noticesAPI } from '../../services/api';
@@ -207,8 +207,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     );
   };
 
-
-
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
 
   const handleOpenComplaintDetails = (id) => {
     setSelectedComplaint(id);
@@ -243,17 +244,50 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     const valid = ['Open', 'Resolved', 'Verified', 'Closed'].includes(initialFilter);
     setActiveFilter(valid ? initialFilter : '');
     onFilterConsumed?.();
+    // Reset scroll flag when filter is applied
+    hasScrolledRef.current = false;
   }, [initialFilter]);
 
-  // Predefined date ranges
-  const dateRanges = [
-    { label: 'Year', value: 'year' },
-    { label: 'Quarter', value: 'quarter' },
-    { label: 'Month', value: 'month' },
-    { label: 'Week', value: 'week' },
-    { label: 'Today', value: 'today' },
-    { label: 'Custom', value: 'custom' }
-  ];
+  // Auto-scroll to complaints table after data loads following filter navigation (from dashboard cards)
+  useEffect(() => {
+    if (!initialFilter || !complaintsTableRef.current || hasScrolledRef.current) {
+      return;
+    }
+
+    // Only scroll once data is loaded and not loading
+    if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            hasScrolledRef.current = true;
+          }
+        }, 300);
+      });
+    }
+  }, [initialFilter, loadingAnalytics, loadingComplaints, complaintsListData]);
+
+  // Auto-scroll to complaints table after all APIs finish loading
+  useEffect(() => {
+    if (!complaintsTableRef.current) {
+      return;
+    }
+
+    // Only scroll when both APIs are no longer loading (initial load or when filters/dates change)
+    if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      });
+    }
+  }, [loadingAnalytics, loadingComplaints, complaintsListData]);
 
   // Months array
   const months = [
@@ -571,17 +605,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   useEffect(() => {
     fetchDistricts();
   }, []);
-
-  // Fetch data immediately when complaints tab is selected
-  useEffect(() => {
-    console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
-    if (activeScope === 'State') {
-      console.log('📡 Calling initial API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-    }
-  }, []); // Empty dependency array means this runs only once when component mounts
 
   // Load additional data based on scope
   useEffect(() => {
@@ -1260,7 +1283,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     } finally {
       setLoadingAnalytics(false);
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
@@ -1308,7 +1331,92 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats, fetchComplaintsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchAnalyticsData, fetchComplaintsData]);
+
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocks: selectedDistrictForBlocks?.id,
+      selectedBlockForGPs: selectedBlockForGPs?.id,
+      selectedGPForComplaints: selectedGPForComplaints?.id,
+      viewingBlocksForDistrict,
+      viewingGPsForBlock,
+      viewingGPComplaints
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksForDistrict(false);
+      setViewingGPsForBlock(false);
+      setViewingGPComplaints(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocks?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlocksSummaryData(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksForDistrict) {
+      setViewingBlocksForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGPs?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGPsSummaryData(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGPsForBlock) {
+      setViewingGPsForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show complaints for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show complaints for a different GP
+      if (selectedGP && selectedGPForComplaints?.id !== selectedGPId && allComplaintsData.length > 0) {
+        console.log('📊 GPs scope: Showing complaints for GP', selectedGP.name);
+
+        // Create GP object with complaints data
+        const gpComplaints = allComplaintsData.filter(
+          complaint => complaint.village_name?.toLowerCase() === selectedGP.name?.toLowerCase()
+        );
+
+        setSelectedGPForComplaints({
+          ...selectedGP,
+          complaints: gpComplaints
+        });
+        setViewingGPComplaints(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingGPComplaints) {
+      setViewingGPComplaints(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocks, selectedBlockForGPs, selectedGPForComplaints, viewingBlocksForDistrict, viewingGPsForBlock, viewingGPComplaints, fetchBlocksSummaryData, fetchGPsSummaryData, allComplaintsData]);
 
   // Date range functions
   const generateYears = () => {
@@ -2655,6 +2763,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               onClick={() => {
                 setSelectedGPForComplaints(null);
                 setViewingGPComplaints(false);
+                // Update breadcrumb - back to GPs list level
+                setActiveScope('GPs');
               }}
               style={{
                 padding: '8px 16px',
@@ -2679,6 +2789,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 setViewingGPsForBlock(false);
                 setSelectedBlockForGPs(null);
                 setGpsSummaryData([]);
+                setViewingBlocksForDistrict(true);
+                // Refetch blocks listing
+                if (selectedDistrictForBlocks) {
+                  fetchBlocksSummaryData(selectedDistrictForBlocks);
+                }
+                // Update breadcrumb - back to blocks level (keep block selected)
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
@@ -2703,6 +2820,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 setViewingBlocksForDistrict(false);
                 setSelectedDistrictForBlocks(null);
                 setBlocksSummaryData([]);
+                // Update breadcrumb - back to state level (all selections cleared)
+                setActiveScope('State');
+                setSelectedDistrictForHierarchy(null);
+                setSelectedBlockForHierarchy(null);
               }}
               style={{
                 padding: '8px 16px',
@@ -3087,12 +3208,44 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                                   // GPs are now clickable - show their individual complaints
                                   setSelectedGPForComplaints(item);
                                   setViewingGPComplaints(true);
+                                  // Sync header with table selection
+                                  setActiveScope('GPs');
+                                  setSelectedGPId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocks);
+                                  setSelectedBlockForHierarchy(selectedBlockForGPs);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocks?.id);
+                                  updateLocationSelection('GPs', item.name, item.id, selectedDistrictForBlocks?.id, selectedBlockForGPs?.id, item.id, 'table_click');
                                 } else if (viewingBlocksForDistrict) {
                                   // Clicking on block to view GPs
                                   fetchGPsSummaryData(item);
+                                  setSelectedBlockForGPs(item);
+                                  // Sync header with table selection
+                                  setActiveScope('Blocks');
+                                  setSelectedBlockId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocks);
+                                  setSelectedBlockForHierarchy(item);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocks?.id);
+                                  updateLocationSelection('Blocks', item.name, item.id, selectedDistrictForBlocks?.id, item.id, null, 'table_click');
                                 } else {
                                   // Clicking on district to view blocks
                                   fetchBlocksSummaryData(item);
+                                  setSelectedDistrictForBlocks(item);
+                                  // Sync header with table selection
+                                  setActiveScope('Districts');
+                                  setSelectedDistrictId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(item);
+                                  setSelectedBlockForHierarchy(null);
+                                  trackDropdownChange(item.name, item.id, item.id);
+                                  updateLocationSelection('Districts', item.name, item.id, item.id, null, null, 'table_click');
                                 }
                               }}
                               style={{
@@ -3207,7 +3360,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       </div>
 
       {/* Complaints Table Section */}
-      <div data-complaints-list-table style={{
+      <div ref={complaintsTableRef} data-complaints-list-table style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -3527,8 +3680,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                    Action
-                 
+                  Action
+
                 </th>
               </tr>
             </thead>

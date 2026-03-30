@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
@@ -71,6 +71,10 @@ const CEOComplaintsContent = () => {
       contextUpdateLocationSelection(scope, location, locationId, districtId, blockId, gpId, changeType);
     }
   }, [contextUpdateLocationSelection]);
+
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -2222,7 +2226,7 @@ const CEOComplaintsContent = () => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div ref={complaintsTableRef} style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',

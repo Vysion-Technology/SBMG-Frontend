@@ -51,7 +51,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
-    { name: 'Attendance', icon: CheckCircle },
+    { name: 'CSC Cleaning', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
     { name: 'Contractor Details', icon: Building },
@@ -198,20 +198,23 @@ const UnifiedDashboard = () => {
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
 
   const scrollToMainTable = (scrollTarget = 'default') => {
-    // Scroll to the main data table after a brief delay to allow component to render
-    setTimeout(() => {
-      let selector = '[data-table-scroll]';
-      
-      // For complaints, scroll to the complaints list table instead of district summary
-      if (scrollTarget === 'complaints-list') {
-        selector = '[data-complaints-list-table]';
-      }
-      
-      const tableContainer = document.querySelector(selector);
-      if (tableContainer) {
-        tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    // Scroll to the main data table after waiting for content to render
+    // Use requestAnimationFrame to wait for browser paint, then additional timeout for React renders
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        let selector = '[data-table-scroll]';
+
+        // For complaints, scroll to the complaints list table instead of district summary
+        if (scrollTarget === 'complaints-list') {
+          selector = '[data-complaints-list-table]';
+        }
+
+        const tableContainer = document.querySelector(selector);
+        if (tableContainer) {
+          tableContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    });
   };
 
   const handleNavigateToComplaints = (filter) => {
@@ -221,7 +224,7 @@ const UnifiedDashboard = () => {
   };
 
   const handleNavigateToAttendance = () => {
-    setActiveItem('Attendance');
+    setActiveItem('CSC Cleaning');
     scrollToMainTable();
   };
 
@@ -273,7 +276,7 @@ const UnifiedDashboard = () => {
         return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} onNavigateToSchemes={handleNavigateToSchemes} onNavigateToEvents={handleNavigateToEvents} />;
       case 'Complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
-      case 'Attendance':
+      case 'CSC Cleaning':
         return <AttendanceContent />;
       case 'Inspection':
         return <InspectionContent />;

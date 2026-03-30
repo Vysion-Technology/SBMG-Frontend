@@ -121,7 +121,10 @@ const ComplaintsBar = ({ open = 0, verified = 0, resolved = 0, disposed = 0, onC
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onClick={() => onClick?.()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
         <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total}</span>
@@ -158,7 +161,10 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onClick={() => onClick?.()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
         style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: onClick ? 'pointer' : 'default' }}
       >
         <span style={{ fontSize: '14px', fontWeight: 500, color: '#374151', minWidth: 24 }}>{total === 151 ? 0 : total}</span>
@@ -197,7 +203,10 @@ const ContractorDataBar = ({ percentage = 0, onClick }) => {
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onClick={() => onClick?.()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -256,7 +265,10 @@ const GPDataCoverageBar = ({ percentage = 0, onClick }) => {
       <div
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
-        onClick={() => onClick?.()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick?.();
+        }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -308,7 +320,10 @@ const GpsTrackingBar = ({ vehicles = 0, onClick }) => {
   if (vehicles === 0) return <span style={{ fontSize: '14px', color: '#9ca3af' }}>—</span>;
   return (
     <span
-      onClick={() => onClick?.()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
       style={{ fontSize: '14px', fontWeight: 500, color: '#374151', cursor: onClick ? 'pointer' : 'default' }}
     >
       {vehicles} Vehicles
@@ -333,7 +348,10 @@ const InspectionScoreBar = ({ averageScore = 0, onClick }) => {
 
   return (
     <span
-      onClick={() => onClick?.()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
       style={{
         fontSize: '14px',
         fontWeight: 500,
@@ -372,7 +390,12 @@ const ListOfDistrictsTable = ({
   const {
     selectedDistrictId,
     selectedBlockId,
-    updateLocationSelection
+    selectedGPId,
+    updateLocationSelection,
+    setSelectedDistrictForHierarchy,
+    setSelectedBlockForHierarchy,
+    setActiveScope,
+    setDropdownLevel
   } = locationContext || {};
 
   const [sortBy, setSortBy] = useState(null);
@@ -875,6 +898,69 @@ const ListOfDistrictsTable = ({
     );
   };
 
+  // Handle district selection from table row click
+  const handleDistrictRowClick = (districtId, districtName) => {
+    if (updateLocationSelection) {
+      updateLocationSelection('Districts', districtName, districtId, districtId, null, null, 'table_click');
+      console.log('🔍 District selected from table:', districtName, 'ID:', districtId);
+
+      // Also update the header's hierarchy display
+      if (setSelectedDistrictForHierarchy) {
+        setSelectedDistrictForHierarchy({ id: districtId, name: districtName });
+      }
+      if (setActiveScope) {
+        setActiveScope('Districts');
+      }
+      if (setDropdownLevel) {
+        setDropdownLevel('blocks');
+      }
+    }
+  };
+
+  // Handle block selection from table row click
+  const handleBlockRowClick = (blockId, blockName, districtId, districtName) => {
+    if (updateLocationSelection) {
+      updateLocationSelection('Blocks', blockName, blockId, districtId, blockId, null, 'table_click');
+      console.log('🔍 Block selected from table:', blockName, 'ID:', blockId);
+
+      // Also update the header's hierarchy display for complete navigation
+      if (setSelectedDistrictForHierarchy && districtId && districtName) {
+        setSelectedDistrictForHierarchy({ id: districtId, name: districtName });
+      }
+      if (setSelectedBlockForHierarchy) {
+        setSelectedBlockForHierarchy({ id: blockId, name: blockName });
+      }
+      if (setActiveScope) {
+        setActiveScope('Blocks');
+      }
+      if (setDropdownLevel) {
+        setDropdownLevel('gps');
+      }
+    }
+  };
+
+  // Handle GP selection from table row click
+  const handleGPRowClick = (gpId, gpName, blockId, districtId, blockName, districtName) => {
+    if (updateLocationSelection) {
+      updateLocationSelection('GPs', gpName, gpId, districtId, blockId, gpId, 'table_click');
+      console.log('🔍 GP selected from table:', gpName, 'ID:', gpId);
+
+      // Also update the header's hierarchy display for complete navigation
+      if (setSelectedDistrictForHierarchy && districtId && districtName) {
+        setSelectedDistrictForHierarchy({ id: districtId, name: districtName });
+      }
+      if (setSelectedBlockForHierarchy && blockId && blockName) {
+        setSelectedBlockForHierarchy({ id: blockId, name: blockName });
+      }
+      if (setActiveScope) {
+        setActiveScope('GPs');
+      }
+      if (setDropdownLevel) {
+        setDropdownLevel('gps');
+      }
+    }
+  };
+
   const filterBlocksByDistrict = async (districtId) => {
     setBlocksForDistrict([]); // Clear previous data to show loading state in drawer
 
@@ -1323,14 +1409,10 @@ const ListOfDistrictsTable = ({
               sortedRows.map((row) => (
                 <tr
                   key={row.id}
-                  style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
-                  onClick={() => {
-                    // Update location context when district is clicked
-                    if (updateLocationSelection) {
-                      updateLocationSelection('Districts', row.name, row.id, row.id, null, null, 'table_click');
-                      console.log('🔍 District selected from table:', row.name, 'ID:', row.id);
-                    }
-                  }}
+                  style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer', backgroundColor: selectedDistrictId === row.id ? '#f0f9ff' : 'white' }}
+                  onClick={() => handleDistrictRowClick(row.id, row.name)}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedDistrictId === row.id ? '#f0f9ff' : 'white'}
                 >
                   <td style={{ padding: '12px 16px' }}>
                     <span style={{ color: '#059669', fontWeight: 500, fontSize: 14 }}>{row.name}</span>
@@ -1340,7 +1422,13 @@ const ListOfDistrictsTable = ({
                       title={`${row.name} - Blocks`}
                       clickFunction={() => filterBlocksByDistrict(row.id)}
                       trigger={
-                        <button className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-4 py-2 rounded flex gap-2">
+                        <button
+                          className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-4 py-2 rounded flex gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDistrictRowClick(row.id, row.name);
+                          }}
+                        >
                           {row.blocksDisplay} Blocks
                         </button>
                       }
@@ -1476,19 +1564,15 @@ const ListOfDistrictsTable = ({
                                 ) : (
                                   blocksForDistrict.map((block) => {
                                     const selectedBlockDetails = getGPbyBlock(block.id);
+                                    const districtData = districts.find(d => d.id === selectedDistrictId);
 
                                     return (
                                       <tr
                                         key={block.id}
-                                        style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
-                                        onClick={() => {
-                                          // Update location context when block is clicked
-                                          if (updateLocationSelection) {
-                                            const districtId = districts.find(d => d.id === selectedDistrictId)?.id || selectedDistrictId;
-                                            updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'table_click');
-                                            console.log('🔍 Block selected from table:', block.name, 'ID:', block.id);
-                                          }
-                                        }}
+                                        style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer', backgroundColor: selectedBlockId === block.id ? '#f0f9ff' : 'white' }}
+                                        onClick={() => handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name)}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedBlockId === block.id ? '#f0f9ff' : 'white'}
                                       >
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
                                           <span style={{ fontWeight: 500, color: '#059669' }}>{block.name}</span>
@@ -1498,7 +1582,13 @@ const ListOfDistrictsTable = ({
                                             title={`${block.name} - GPs`}
                                             clickFunction={() => filterGPsByBlock(block.id, block.name)}
                                             trigger={
-                                              <button className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-2 py-1 rounded text-sm">
+                                              <button
+                                                className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-2 py-1 rounded text-sm"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                                }}
+                                              >
                                                 {selectedBlockDetails?.gp_wise_coverage?.length} GPs
                                               </button>
                                             }
@@ -1611,59 +1701,89 @@ const ListOfDistrictsTable = ({
                                                           </td>
                                                         </tr>
                                                       ) : (
-                                                        gpsForBlock.map((gp) => (
-                                                          <tr
-                                                            key={gp.id}
-                                                            style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer' }}
-                                                            onClick={() => {
-                                                              // Update location context when GP is clicked
-                                                              if (updateLocationSelection) {
-                                                                updateLocationSelection('GPs', gp.name, gp.id, block.district_id, block.id, gp.id, 'table_click');
-                                                                console.log('🔍 GP selected from table:', gp.name, 'ID:', gp.id);
-                                                              }
-                                                            }}
-                                                          >
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <span style={{ fontWeight: 500, color: '#059669' }}>{gp.name}</span>
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <ComplaintsBar {...gpStatics.complaints[gp.id]} onClick={() => onComplaintsClick?.()} />
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <AttendanceBar {...gpStatics.attendance[gp.id]} onClick={() => onAttendanceClick?.()} />
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <InspectionScoreBar averageScore={gpStatics.inspection[gp.id]?.average_score} onClick={() => onInspectionClick?.()} />
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <GpsTrackingBar vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <span
-                                                                onClick={() => onGPDataStatusClick?.()}
-                                                                style={{
-                                                                  fontWeight: 500,
-                                                                  color: gpStatics.gpDataStatus?.[gp.id]?.master_data_available === 'Available' || gpStatics.gpDataStatus?.[gp.id]?.master_data_available === true ? '#059669' : '#dc2626',
-                                                                  cursor: 'pointer'
-                                                                }}
-                                                              >
-                                                                {gpStatics.gpDataStatus?.[gp.id]?.master_data_available ? 'Available' : 'Not Available'}
-                                                              </span>
-                                                            </td>
-                                                            <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                                              <span
-                                                                onClick={() => onContractorDataClick?.()}
-                                                                style={{
-                                                                  fontWeight: 500,
-                                                                  color: gpStatics.contractor?.[gp.id]?.hasContractorData === 'Available' || gpStatics.contractor?.[gp.id]?.hasContractorData === true ? '#059669' : '#dc2626',
-                                                                  cursor: 'pointer'
-                                                                }}
-                                                              >
-                                                                {gpStatics.contractor?.[gp.id]?.hasContractorData}
-                                                              </span>
-                                                            </td>
-                                                          </tr>
-                                                        ))
+                                                        gpsForBlock.map((gp) => {
+                                                          const blockData = blocksForDistrict.find(b => b.id === block.id);
+                                                          const districtData = districts.find(d => d.id === selectedDistrictId);
+                                                          return (
+                                                            <tr
+                                                              key={gp.id}
+                                                              style={{ borderBottom: '1px solid #e5e7eb', cursor: 'pointer', backgroundColor: selectedGPId === gp.id ? '#f0f9ff' : 'white' }}
+                                                              onClick={() => handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name)}
+                                                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = selectedGPId === gp.id ? '#f0f9ff' : 'white'}
+                                                            >
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <span style={{ fontWeight: 500, color: '#059669' }}>{gp.name}</span>
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <ComplaintsBar
+                                                                  {...gpStatics.complaints[gp.id]}
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onComplaintsClick?.();
+                                                                  }}
+                                                                />
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <AttendanceBar
+                                                                  {...gpStatics.attendance[gp.id]}
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onAttendanceClick?.();
+                                                                  }}
+                                                                />
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <InspectionScoreBar
+                                                                  averageScore={gpStatics.inspection[gp.id]?.average_score}
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onInspectionClick?.();
+                                                                  }}
+                                                                />
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <GpsTrackingBar
+                                                                  vehicles={gpStatics.gpsTracker[gp.id]?.gpsVehicles}
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onGPSTrackingClick?.();
+                                                                  }}
+                                                                />
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <span
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onGPDataStatusClick?.();
+                                                                  }}
+                                                                  style={{
+                                                                    fontWeight: 500,
+                                                                    color: gpStatics.gpDataStatus?.[gp.id]?.master_data_available === 'Available' || gpStatics.gpDataStatus?.[gp.id]?.master_data_available === true ? '#059669' : '#dc2626',
+                                                                    cursor: 'pointer'
+                                                                  }}
+                                                                >
+                                                                  {gpStatics.gpDataStatus?.[gp.id]?.master_data_available ? 'Available' : 'Not Available'}
+                                                                </span>
+                                                              </td>
+                                                              <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
+                                                                <span
+                                                                  onClick={() => {
+                                                                    handleGPRowClick(gp.id, gp.name, block.id, selectedDistrictId, block.name, districtData?.name);
+                                                                    onContractorDataClick?.();
+                                                                  }}
+                                                                  style={{
+                                                                    fontWeight: 500,
+                                                                    color: gpStatics.contractor?.[gp.id]?.hasContractorData === 'Available' || gpStatics.contractor?.[gp.id]?.hasContractorData === true ? '#059669' : '#dc2626',
+                                                                    cursor: 'pointer'
+                                                                  }}
+                                                                >
+                                                                  {gpStatics.contractor?.[gp.id]?.hasContractorData}
+                                                                </span>
+                                                              </td>
+                                                            </tr>
+                                                          );
+                                                        })
                                                       )}
                                                     </tbody>
                                                   </table>
@@ -1674,22 +1794,58 @@ const ListOfDistrictsTable = ({
                                           </RightDrawer>
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <ComplaintsBar {...blockStats.complaints[block.id]} onClick={() => onComplaintsClick?.()} />
+                                          <ComplaintsBar
+                                            {...blockStats.complaints[block.id]}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onComplaintsClick?.();
+                                            }}
+                                          />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <AttendanceBar {...blockStats.attendance[block.id]} onClick={() => onAttendanceClick?.()} />
+                                          <AttendanceBar
+                                            {...blockStats.attendance[block.id]}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onAttendanceClick?.();
+                                            }}
+                                          />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <GPDataCoverageBar percentage={selectedBlockDetails?.village_master_data_coverage_percentage} onClick={() => onGPDataCoverageClick?.()} />
+                                          <GPDataCoverageBar
+                                            percentage={selectedBlockDetails?.village_master_data_coverage_percentage}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onGPDataCoverageClick?.();
+                                            }}
+                                          />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <ContractorDataBar percentage={blockStats.contractor[block.id]?.contractorDataPercent} onClick={() => onContractorDataClick?.()} />
+                                          <ContractorDataBar
+                                            percentage={blockStats.contractor[block.id]?.contractorDataPercent}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onContractorDataClick?.();
+                                            }}
+                                          />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <InspectionScoreBar averageScore={blockStats.inspection[block.id]?.average_score} onClick={() => onInspectionClick?.()} />
+                                          <InspectionScoreBar
+                                            averageScore={blockStats.inspection[block.id]?.average_score}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onInspectionClick?.();
+                                            }}
+                                          />
                                         </td>
                                         <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                                          <GpsTrackingBar vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
+                                          <GpsTrackingBar
+                                            vehicles={blockStats.gpsTracker[block.id]?.gpsVehicles}
+                                            onClick={() => {
+                                              handleBlockRowClick(block.id, block.name, selectedDistrictId, districtData?.name);
+                                              onGPSTrackingClick?.();
+                                            }}
+                                          />
                                         </td>
                                       </tr>
                                     );
@@ -1707,22 +1863,58 @@ const ListOfDistrictsTable = ({
                     {row.gpsDisplay} GPs
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <ComplaintsBar {...row.complaints} onClick={() => onComplaintsClick?.()} />
+                    <ComplaintsBar
+                      {...row.complaints}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onComplaintsClick?.();
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <AttendanceBar {...row.attendance} onClick={() => onAttendanceClick?.()} />
+                    <AttendanceBar
+                      {...row.attendance}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onAttendanceClick?.();
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '12px 16px', fontSize: 14, color: '#374151' }}>
-                    <GPDataCoverageBar percentage={row.gpDataCoverage} onClick={() => onGPDataCoverageClick?.()} />
+                    <GPDataCoverageBar
+                      percentage={row.gpDataCoverage}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onGPDataCoverageClick?.();
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <ContractorDataBar percentage={row.contractorPct} onClick={() => onContractorDataClick?.()} />
+                    <ContractorDataBar
+                      percentage={row.contractorPct}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onContractorDataClick?.();
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <InspectionScoreBar averageScore={row.inspectionScore} onClick={() => onInspectionClick?.()} />
+                    <InspectionScoreBar
+                      averageScore={row.inspectionScore}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onInspectionClick?.();
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '12px 16px', minWidth: 140 }}>
-                    <GpsTrackingBar vehicles={row.gpsVehicles} onClick={() => onGPSTrackingClick?.()} />
+                    <GpsTrackingBar
+                      vehicles={row.gpsVehicles}
+                      onClick={() => {
+                        handleDistrictRowClick(row.id, row.name);
+                        onGPSTrackingClick?.();
+                      }}
+                    />
                   </td>
                 </tr>
               ))
