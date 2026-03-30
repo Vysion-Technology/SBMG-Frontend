@@ -14,26 +14,31 @@ const CommonTable = ({
 
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(200px, 1fr))`,
+        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, auto))`,
     };
 
     return (
         <>
-            <div className=" max-h-[350px] bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto no-scrollbar text-sm">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
 
-                {/* HEADER SAME AS DISTRICT */}
-                <div className="!p-4 border-b border-gray-200 bg-gray-50/50">
-                    <h3 className="text-md  font-bold text-gray-800 uppercase">
+                {/* HEADER TITLE */}
+                <div className="!p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-30">
+                    <h3 className="text-md font-bold text-gray-800 uppercase">
                         {title}
                     </h3>
                 </div>
-                <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full min-w-max border-collapse block">
+
+                {/* SCROLLABLE AREA */}
+                <div className="max-h-[400px] overflow-auto">
+
+                    <table className="w-full min-w-max border-collapse">
 
                         {/* HEADER */}
-                        <thead className="block sticky top-0 left-0 z-10">
-                            <tr style={gridStyle} className="border-b border-gray-200 bg-white">
-                                <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-20 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
+                        <thead className="sticky top-0 z-20 bg-white">
+                            <tr style={gridStyle} className="border-b border-gray-200">
+
+                                {/* STICKY FIRST COLUMN HEADER */}
+                                <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-30 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
                                     {nameKey.toUpperCase()}
                                 </th>
 
@@ -46,27 +51,27 @@ const CommonTable = ({
                         </thead>
 
                         {/* BODY */}
-                        <tbody className="block">
+                        <tbody>
                             {loading ? (
-                                <tr className="block">
-                                    <td className="!p-6 text-center text-gray-400">
+                                <tr>
+                                    <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
                                         Loading...
                                     </td>
                                 </tr>
                             ) : data.length > 0 ? (
                                 data.map((row, i) => (
-                                    <tr key={i} style={gridStyle} className="group border-b border-gray-50 hover:bg-gray-50">
+                                    <tr key={i} style={gridStyle} className="border-b border-gray-50 hover:bg-gray-50">
 
-                                        {/* STICKY COLUMN SAME */}
+                                        {/* STICKY FIRST COLUMN */}
                                         <td
                                             onClick={() => onRowClick && onRowClick(row)}
-                                            className="!p-4 cursor-pointer font-bold text-emerald-600 sticky left-0 bg-white z-10 group-hover:bg-gray-50 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]"
+                                            className="!p-4 cursor-pointer font-bold text-emerald-600 sticky left-0 bg-white z-10 hover:bg-gray-50 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]"
                                         >
                                             {row[nameKey] || "-"}
                                         </td>
 
                                         {cards.map(card => (
-                                            <td key={card.key} className="!p-4 text-gray-700 font-medium">
+                                            <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap">
                                                 {row[card.key] ?? "-"}
                                             </td>
                                         ))}
@@ -74,13 +79,14 @@ const CommonTable = ({
                                     </tr>
                                 ))
                             ) : (
-                                <tr className="block">
-                                    <td className="!p-6 text-center text-gray-400">
+                                <tr>
+                                    <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
                                         No Data Available
                                     </td>
                                 </tr>
                             )}
                         </tbody>
+
                     </table>
                 </div>
             </div>
@@ -100,7 +106,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
     // Grid configuration for table rows
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(200px, 1fr))`,
+        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, auto))`,
     };
 
 
@@ -193,16 +199,10 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
 
     return (
         <>
-            <div className="w-full max-h-[350px] bg-white rounded-lg shadow-sm border border-gray-200 overflow-auto no-scrollbar text-sm">
-                <style>
-                    {`
-                    .no-scrollbar::-webkit-scrollbar { display: none; }
-                    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-                `}
-                </style>
+            <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
 
-                {/* Header Title */}
-                <div className="!p-4 border-b border-gray-200 bg-gray-50/50">
+                {/* HEADER TITLE */}
+                <div className="!p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-30">
                     <h3 className="text-md font-bold text-gray-800 uppercase">
                         {level === "district" && "DISTRICT"}
                         {level === "block" && "BLOCK"}
@@ -210,17 +210,22 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                     </h3>
                 </div>
 
-                {/* Scrollable Container */}
-                <div className="overflow-x-auto no-scrollbar">
-                    <table className="w-full min-w-max border-collapse block">
-                        {/* Header Section */}
-                        <thead className="block sticky top-0 z-10">
-                            <tr style={gridStyle} className="border-b border-gray-200 bg-white ">
-                                <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-20 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
+                {/* TABLE SCROLL CONTAINER */}
+                <div className="max-h-[350px] overflow-auto">
+
+                    <table className="w-full min-w-max border-collapse">
+
+                        {/* HEADER */}
+                        <thead className="sticky top-0 z-20 bg-white">
+                            <tr style={gridStyle} className="border-b border-gray-200">
+
+                                {/* LEFT STICKY HEADER */}
+                                <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-30 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
                                     {level === "district" && "DISTRICT"}
                                     {level === "block" && "BLOCK"}
                                     {level === "gp" && "GRAM PANCHAYAT"}
                                 </th>
+
                                 {cards.map((card) => (
                                     <th key={card.key} className="!p-4 font-bold text-gray-600 text-left">
                                         {card.label.toUpperCase()}
@@ -229,37 +234,38 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                             </tr>
                         </thead>
 
-                        {/* Body Section */}
-                        <tbody className="block">
+                        {/* BODY */}
+                        <tbody>
                             {getTableData()?.length > 0 ? (
-                                getTableData()?.map((row, rowIndex) => (
-                                    <tr key={rowIndex} style={gridStyle} className="group border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                                        {/* Sticky District Cell with Right Shadow */}
-                                        <td onClick={() => handleRowClick(row)} className="!p-4  cursor-pointer hover:underline font-bold text-emerald-600 sticky left-0 bg-white z-10 group-hover:bg-gray-50 uppercase transition-colors shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
+                                getTableData().map((row, rowIndex) => (
+                                    <tr key={rowIndex} style={gridStyle} className="border-b border-gray-50 hover:bg-gray-50">
+
+                                        {/* ✅ STICKY FIRST COLUMN */}
+                                        <td
+                                            onClick={() => handleRowClick(row)}
+                                            className="!p-4 cursor-pointer font-bold text-emerald-600 sticky left-0 bg-white z-10 hover:bg-gray-50 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]"
+                                        >
                                             {getName(row) || "-"}
                                         </td>
 
-                                        {/* Dynamic Data Cells */}
-                                        {cards.map((card) => {
-                                            const value = row[card.key];
-                                            return (
-                                                <td key={card.key} className="!p-4 text-gray-700 font-medium whitespace-nowrap self-center">
-                                                    {typeof value !== "object" ? (value || "-") : "-"}
-                                                </td>
-                                            );
-                                        })}
+                                        {cards.map((card) => (
+                                            <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap">
+                                                {row[card.key] ?? "-"}
+                                            </td>
+                                        ))}
                                     </tr>
                                 ))
                             ) : (
-                                <tr className="block !p-10  text-center text-gray-400">
-                                    <td className="block">No Data Available</td>
+                                <tr>
+                                    <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
+                                        No Data Available
+                                    </td>
                                 </tr>
                             )}
                         </tbody>
+
                     </table>
                 </div>
-
-
             </div>
 
             <p className="bg-[#D8E6FD] !p-4 !mt-5 text-sm select-none text-[#3B82F6] rounded-2xl">This table will be open on the click of any card from assets. on the click of card table will show data of same category.

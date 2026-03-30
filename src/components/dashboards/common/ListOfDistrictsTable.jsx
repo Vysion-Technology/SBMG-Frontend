@@ -150,8 +150,8 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
   const absentPct = (absent / total) * 100;
 
   const tooltipItems = [
-    { color: '#10b981', label: 'Present', value: present },
-    { color: '#ef4444', label: 'Absent', value: absent }
+    { color: '#10b981', label: 'CSC Cleaned', value: present },
+    { color: '#ef4444', label: 'CSC Not Cleaned', value: absent }
   ];
 
 
@@ -853,7 +853,7 @@ const ListOfDistrictsTable = ({
           va = (Number(a.complaints.open) || 0) + (Number(a.complaints.verified) || 0) + (Number(a.complaints.resolved) || 0) + (Number(a.complaints.disposed) || 0);
           vb = (Number(b.complaints.open) || 0) + (Number(b.complaints.verified) || 0) + (Number(b.complaints.resolved) || 0) + (Number(b.complaints.disposed) || 0);
           break;
-        case 'attendance':
+        case 'CSC Cleaning':
           va = a.attendance.present + a.attendance.absent;
           vb = b.attendance.present + b.attendance.absent;
           break;
@@ -1330,9 +1330,9 @@ const ListOfDistrictsTable = ({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
-                onClick={() => handleSort('attendance')}
+                onClick={() => handleSort('CSC Cleaning')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance <SortIcon col="attendance" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning <SortIcon col="attendance" /></span>
               </th>
               <th
                 style={{
@@ -1491,7 +1491,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
                                   </th>
                                   <th
                                     style={{
@@ -1634,7 +1634,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
                                                         </th>
                                                         <th
                                                           style={{

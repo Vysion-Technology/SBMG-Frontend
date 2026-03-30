@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
-import { schemesAPI, MEDIA_BASE_URL } from '../../services/api';
+import { Edit, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { MEDIA_BASE_URL, schemesAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 
 const SchemesContent = () => {
@@ -21,6 +21,10 @@ const SchemesContent = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitProgress, setSubmitProgress] = useState('');
+
+  // Img ration Error state
+  const [imageError, setImageError] = useState('');
+
 
   // Edit scheme state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -150,19 +154,51 @@ const SchemesContent = () => {
   };
 
   // Handle file selection
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 🔥 always reset FIRST
+    setImageError('');
+    setSelectedFile(null);
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const expected = 4 / 5;
+      const tolerance = 0.03;
+
+      if (Math.abs(ratio - expected) > tolerance) {
+        setImageError('Only 4:5 aspect ratio images are allowed');
+        setSelectedFile(null);
+        URL.revokeObjectURL(url);
+        return;
+      }
+
       setSelectedFile(file);
-    }
+      setImageError('');
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
   };
 
   // Handle form submission with seamless two-step API flow
   const handleSubmit = async () => {
+
+    if (!selectedFile) {
+      setImageError('Please upload a 4:5 image');
+      return;
+    }
+
     if (!formData.name.trim() || !formData.description.trim()) {
       alert('Please fill in all required fields');
       return;
     }
+
+
 
     setIsSubmitting(true);
     setSubmitProgress('Creating scheme...');
@@ -204,6 +240,7 @@ const SchemesContent = () => {
       console.error('Error creating scheme:', error);
       setSubmitProgress('');
       setIsSubmitting(false);
+      setImageError('');
       alert('Failed to create scheme. Please try again.');
     }
   };
@@ -280,6 +317,15 @@ const SchemesContent = () => {
       setIsUpdating(false);
       alert('Failed to update scheme. Please try again.');
     }
+  };
+
+  const resetModal = () => {
+    setShowModal(false);
+    setFormData({ name: '', description: '', details: '', benefits: '' });
+    setSelectedFile(null);
+    setImageError('');
+    setSubmitProgress('');
+    setIsSubmitting(false);
   };
 
   return (
@@ -432,65 +478,24 @@ const SchemesContent = () => {
 
         {/* Scheme Cards Grid */}
         {!loading && !error && (
-          <div className="columns-1 sm:columns-2 md:columns-3  lg:columns-4 gap-4 mt-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
             {schemes.map((scheme) => (
               <div
                 key={scheme.id}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
                 onClick={() => {
                   setSelectedScheme(scheme);
                   setShowDetailsModal(true);
                   setActiveTab('Details');
                 }}
-                style={{
-                  breakInside: 'avoid', // ⭐ important (card break na ho)
-                  marginBottom: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  width: '100%',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
               >
-                <div style={{
-                  width: '100%',
-                  marginBottom: '8px',
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  backgroundColor: '#f3f4f6',
-                  breakInside: 'avoid',
-                }}>
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
                   <img
                     src={getSchemeImage(scheme)}
                     alt="scheme"
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      display: 'block',
-                      objectFit: 'cover',
-                    }}
-
+                    className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.log('Image failed to load:', getEventImage(event));
-                      e.target.src = '/background.png';
-                    }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', getEventImage(event));
+                      e.currentTarget.src = "/background.png";
                     }}
                   />
                   <div style={{
@@ -606,7 +611,7 @@ const SchemesContent = () => {
                   Add scheme
                 </h2>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={resetModal}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -665,6 +670,19 @@ const SchemesContent = () => {
                     </p>
                   )}
                 </div>
+
+                {/* 👇 ADD THIS ERROR MESSAGE HERE */}
+                {imageError && (
+                  <p style={{
+                    color: '#ef4444',
+                    fontSize: '12px',
+                    marginTop: '-12px',
+                    marginBottom: '16px'
+                  }}>
+                    {imageError}
+                  </p>
+                )}
+
 
                 {/* Form Fields */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

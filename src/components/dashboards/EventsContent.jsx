@@ -22,6 +22,10 @@ const EventsContent = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitProgress, setSubmitProgress] = useState('');
 
+    // Img ration Error state
+    const [imageError, setImageError] = useState('');
+
+
     // Edit event state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editFormData, setEditFormData] = useState({
@@ -160,14 +164,48 @@ const EventsContent = () => {
 
     // Handle file selection
     const handleFileSelect = (event) => {
+
+
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
         }
+        if (!file) return;
+
+        // 🔥 always reset FIRST
+        setImageError('');
+        setSelectedFile(null);
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const expected = 4 / 5;
+            const tolerance = 0.03;
+
+            if (Math.abs(ratio - expected) > tolerance) {
+                setImageError('Only 4:5 aspect ratio images are allowed');
+                setSelectedFile(null);
+                URL.revokeObjectURL(url);
+                return;
+            }
+
+            setSelectedFile(file);
+            setImageError('');
+            URL.revokeObjectURL(url);
+        };
+
+        img.src = url;
     };
 
     // Handle form submission with seamless two-step API flow
     const handleSubmit = async () => {
+        if (!selectedFile) {
+            setImageError('Please upload a 4:5 image');
+            return;
+        }
+
         if (!formData.title.trim() || !formData.description.trim()) {
             alert('Please fill in all required fields');
             return;
@@ -211,6 +249,7 @@ const EventsContent = () => {
             console.error('Error creating event:', error);
             setSubmitProgress('');
             setIsSubmitting(false);
+            setImageError('');
             alert('Failed to create event. Please try again.');
         }
     };
@@ -283,6 +322,15 @@ const EventsContent = () => {
             setIsUpdating(false);
             alert('Failed to update event. Please try again.');
         }
+    };
+
+    const resetModal = () => {
+        setShowModal(false);
+        setFormData({ name: '', description: '', details: '', benefits: '' });
+        setSelectedFile(null);
+        setImageError('');
+        setSubmitProgress('');
+        setIsSubmitting(false);
     };
 
     return (
@@ -435,62 +483,24 @@ const EventsContent = () => {
 
                 {/* Event Cards Grid */}
                 {!loading && !error && (
-                    <div className="columns-1 sm:columns-2 md:columns-3  lg:columns-4 gap-4 mt-6" >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
                         {events.map((event) => (
                             <div
                                 key={event.id}
+                                className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
                                 onClick={() => {
                                     setSelectedEvent(event);
                                     setShowDetailsModal(true);
                                     setActiveTab('Details');
                                 }}
-                                style={{
-                                    breakInside: 'avoid', // ⭐ important (card break na ho)
-                                    marginBottom: '20px',
-                                    backgroundColor: 'white',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e5e7eb',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    width: '100%',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        transform: 'translateY(-2px)'
-                                    }
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                }}
                             >
-                                <div style={{
-                                    width: '100%',
-                                    marginBottom: '8px',
-                                    borderTopLeftRadius: '8px',
-                                    borderTopRightRadius: '8px',
-                                    overflow: 'hidden',
-                                    position: 'relative',
-                                    backgroundColor: '#f3f4f6',
-                                    breakInside: 'avoid',
-                                }}>
+                                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100" >
                                     <img
                                         src={getEventImage(event)}
                                         alt={event.name || 'Event image'}
-                                        style={{
-                                            width: '100%',
-                                            height: 'auto',
-                                            display: 'block',
-                                            objectFit: 'cover',
-
-                                        }}
+                                        className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            console.log('Image failed to load:', getEventImage(event));
-                                            e.target.src = '/background.png';
+                                            e.currentTarget.src = "/background.png";
                                         }}
                                         onLoad={() => {
                                             console.log('Image loaded successfully:', getEventImage(event));
@@ -639,7 +649,7 @@ const EventsContent = () => {
                                     Add Event
                                 </h2>
                                 <button
-                                    onClick={() => setShowModal(false)}
+                                    onClick={resetModal}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -698,6 +708,18 @@ const EventsContent = () => {
                                         </p>
                                     )}
                                 </div>
+
+                                {/* 👇 ADD THIS ERROR MESSAGE HERE */}
+                                {imageError && (
+                                    <p style={{
+                                        color: '#ef4444',
+                                        fontSize: '12px',
+                                        marginTop: '-12px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {imageError}
+                                    </p>
+                                )}
 
                                 {/* Form Fields */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
