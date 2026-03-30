@@ -497,6 +497,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                         onClick={() => {
 
                                                             setPopupData({
+                                                                status: item.status,
                                                                 message: item.data?.comment || "No message available",
                                                                 images: item.showImages ? complaint.media : []
                                                             });

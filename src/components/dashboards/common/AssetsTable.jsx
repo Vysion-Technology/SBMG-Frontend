@@ -271,7 +271,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                 open={isBlockDrawerOpen}
                 onClose={() => setIsBlockDrawerOpen(false)}
                 title="Blocks"
-                width="md:w-2/3 w-full"
+                width="md:w-[90%] w-full"
 
             >
                 <CommonTable
@@ -302,7 +302,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                 open={isGpDrawerOpen}
                 onClose={() => setIsGpDrawerOpen(false)}
                 title="Gram Panchayat"
-                width="md:w-1/2 w-full"
+                width="md:w-[80%] w-full"
             >
                 <CommonTable
                     title="GRAM PANCHAYAT"

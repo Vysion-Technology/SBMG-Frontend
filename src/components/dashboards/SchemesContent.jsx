@@ -4,290 +4,290 @@ import { schemesAPI, MEDIA_BASE_URL } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 
 const SchemesContent = () => {
-    const [showModal, setShowModal] = useState(false);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [selectedScheme, setSelectedScheme] = useState(null);
-    const [activeTab, setActiveTab] = useState('Details');
-    const [schemes, setSchemes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [schemeFilter, setSchemeFilter] = useState('active'); // 'active', 'inactive', 'all'
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        details: '',
-        benefits: ''
+  const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedScheme, setSelectedScheme] = useState(null);
+  const [activeTab, setActiveTab] = useState('Details');
+  const [schemes, setSchemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [schemeFilter, setSchemeFilter] = useState('active'); // 'active', 'inactive', 'all'
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    details: '',
+    benefits: ''
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState('');
+
+  // Edit scheme state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    eligibility: '',
+    benefits: '',
+    start_time: '',
+    end_time: '',
+    active: true
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch schemes data on component mount and when filter changes
+  useEffect(() => {
+    fetchSchemes();
+  }, [schemeFilter]);
+
+  // Close modals if selected scheme is no longer in the filtered list
+  useEffect(() => {
+    if (selectedScheme && !loading) {
+      const schemeStillVisible = schemes.some(s => s.id === selectedScheme.id);
+      if (!schemeStillVisible) {
+        // Scheme is no longer visible (likely disabled and filtered out)
+        setShowEditModal(false);
+        setShowDetailsModal(false);
+        setSelectedScheme(null);
+      }
+    }
+  }, [schemes, selectedScheme, loading]);
+
+  const fetchSchemes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      // Fetch schemes based on filter - use API filtering when possible, but always apply client-side filtering as backup
+      let schemesData = [];
+
+      if (schemeFilter === 'all') {
+        // For 'all', fetch both active and inactive separately to ensure we get everything
+        const [activeResponse, inactiveResponse] = await Promise.all([
+          schemesAPI.getSchemes({ skip: 0, limit: 100, active: true }),
+          schemesAPI.getSchemes({ skip: 0, limit: 100, active: false })
+        ]);
+        const activeSchemes = activeResponse.data || [];
+        const inactiveSchemes = inactiveResponse.data || [];
+        schemesData = [...activeSchemes, ...inactiveSchemes];
+      } else {
+        // For 'active' or 'inactive', fetch with the appropriate parameter
+        const activeParam = schemeFilter === 'active' ? true : false;
+        const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
+        schemesData = response.data || [];
+      }
+
+      // Deduplicate schemes by ID and name to prevent duplicate entries
+      const uniqueSchemes = schemesData.reduce((acc, scheme) => {
+        // First check if scheme with same ID already exists
+        const existingById = acc.find(s => s.id === scheme.id);
+        if (existingById) {
+          console.warn('Duplicate scheme detected by ID:', scheme.name, 'ID:', scheme.id);
+          return acc;
+        }
+
+        // Then check if scheme with same name already exists (case-insensitive)
+        // Keep the first occurrence and skip duplicates
+        const existingByName = acc.find(s =>
+          s.name && scheme.name &&
+          s.name.toLowerCase().trim() === scheme.name.toLowerCase().trim()
+        );
+        if (existingByName) {
+          console.warn('Duplicate scheme detected by name:', scheme.name, 'ID:', scheme.id, '- Keeping first occurrence');
+          return acc;
+        }
+
+        acc.push(scheme);
+        return acc;
+      }, []);
+
+      // Apply client-side filtering to ensure correct display (backup safety check)
+      let filteredSchemes = uniqueSchemes;
+      if (schemeFilter === 'active') {
+        filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === true);
+      } else if (schemeFilter === 'inactive') {
+        filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === false);
+      }
+      // 'all' filter: show all schemes (no additional filtering needed)
+
+      setSchemes(filteredSchemes);
+    } catch (err) {
+      console.error('Error fetching schemes:', err);
+      setError('Failed to load schemes. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to format date
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-IN', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  // Helper function to truncate text
+  const truncateText = (text, maxLength = 100) => {
+    if (!text) return '';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  };
+
+  // Helper function to get scheme image
+  const getSchemeImage = (scheme) => {
+    if (scheme.media && scheme.media.length > 0) {
+      // Use the public media API endpoint
+      return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
+    }
+    return '/background.png'; // Fallback to placeholder
+  };
+
+  // Handle file selection
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  // Handle form submission with seamless two-step API flow
+  const handleSubmit = async () => {
+    if (!formData.name.trim() || !formData.description.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitProgress('Creating scheme...');
+
+    try {
+      // Step 1: Create the scheme
+      const schemePayload = {
+        name: formData.name,
+        description: formData.description,
+        eligibility: formData.details || '',
+        benefits: formData.benefits || '',
+        start_time: new Date().toISOString(),
+        end_time: new Date().toISOString(),
+      };
+
+      const createResponse = await schemesAPI.createScheme(schemePayload);
+      const createdScheme = createResponse.data;
+
+      // Step 2: Upload media if file is selected
+      if (selectedFile) {
+        setSubmitProgress('Uploading media...');
+        console.log('Uploading media for scheme ID:', createdScheme.id, 'File:', selectedFile);
+        const uploadResponse = await schemesAPI.uploadSchemeMedia(createdScheme.id, selectedFile);
+        console.log('Media upload response:', uploadResponse.data);
+      }
+
+      // Success - close modal and refresh schemes
+      setSubmitProgress('Scheme created successfully!');
+      setTimeout(() => {
+        setShowModal(false);
+        setFormData({ name: '', description: '', details: '', benefits: '' });
+        setSelectedFile(null);
+        setIsSubmitting(false);
+        setSubmitProgress('');
+        fetchSchemes(); // Refresh the schemes list
+      }, 1000);
+
+    } catch (error) {
+      console.error('Error creating scheme:', error);
+      setSubmitProgress('');
+      setIsSubmitting(false);
+      alert('Failed to create scheme. Please try again.');
+    }
+  };
+
+  // Handle edit button click
+  const handleEditClick = (scheme) => {
+    setSelectedScheme(scheme);
+    setEditFormData({
+      name: scheme.name || '',
+      description: scheme.description || '',
+      eligibility: scheme.eligibility || '',
+      benefits: scheme.benefits || '',
+      start_time: scheme.start_time || '',
+      end_time: scheme.end_time || '',
+      active: scheme.active !== undefined ? scheme.active : true
     });
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitProgress, setSubmitProgress] = useState('');
-    
-    // Edit scheme state
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editFormData, setEditFormData] = useState({
-        name: '',
-        description: '',
-        eligibility: '',
-        benefits: '',
-        start_time: '',
-        end_time: '',
-        active: true
-    });
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
+    setShowEditModal(true);
+  };
 
-    // Fetch schemes data on component mount and when filter changes
-    useEffect(() => {
-        fetchSchemes();
-    }, [schemeFilter]);
+  const handleDeleteScheme = async (schemeId) => {
+    if (!schemeId || isDeleting) return;
+    const confirmDelete = window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.');
+    if (!confirmDelete) {
+      return;
+    }
 
-    // Close modals if selected scheme is no longer in the filtered list
-    useEffect(() => {
-        if (selectedScheme && !loading) {
-            const schemeStillVisible = schemes.some(s => s.id === selectedScheme.id);
-            if (!schemeStillVisible) {
-                // Scheme is no longer visible (likely disabled and filtered out)
-                setShowEditModal(false);
-                setShowDetailsModal(false);
-                setSelectedScheme(null);
-            }
-        }
-    }, [schemes, selectedScheme, loading]);
+    try {
+      setIsDeleting(true);
+      await schemesAPI.deleteScheme(schemeId);
+      setShowDetailsModal(false);
+      setSelectedScheme(null);
+      await fetchSchemes();
+    } catch (error) {
+      console.error('Error deleting scheme:', error);
+      alert('Failed to delete scheme. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
-    const fetchSchemes = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            // Fetch schemes based on filter - use API filtering when possible, but always apply client-side filtering as backup
-            let schemesData = [];
-            
-            if (schemeFilter === 'all') {
-                // For 'all', fetch both active and inactive separately to ensure we get everything
-                const [activeResponse, inactiveResponse] = await Promise.all([
-                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: true }),
-                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: false })
-                ]);
-                const activeSchemes = activeResponse.data || [];
-                const inactiveSchemes = inactiveResponse.data || [];
-                schemesData = [...activeSchemes, ...inactiveSchemes];
-            } else {
-                // For 'active' or 'inactive', fetch with the appropriate parameter
-                const activeParam = schemeFilter === 'active' ? true : false;
-                const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
-                schemesData = response.data || [];
-            }
-            
-            // Deduplicate schemes by ID and name to prevent duplicate entries
-            const uniqueSchemes = schemesData.reduce((acc, scheme) => {
-                // First check if scheme with same ID already exists
-                const existingById = acc.find(s => s.id === scheme.id);
-                if (existingById) {
-                    console.warn('Duplicate scheme detected by ID:', scheme.name, 'ID:', scheme.id);
-                    return acc;
-                }
-                
-                // Then check if scheme with same name already exists (case-insensitive)
-                // Keep the first occurrence and skip duplicates
-                const existingByName = acc.find(s => 
-                    s.name && scheme.name && 
-                    s.name.toLowerCase().trim() === scheme.name.toLowerCase().trim()
-                );
-                if (existingByName) {
-                    console.warn('Duplicate scheme detected by name:', scheme.name, 'ID:', scheme.id, '- Keeping first occurrence');
-                    return acc;
-                }
-                
-                acc.push(scheme);
-                return acc;
-            }, []);
-            
-            // Apply client-side filtering to ensure correct display (backup safety check)
-            let filteredSchemes = uniqueSchemes;
-            if (schemeFilter === 'active') {
-                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === true);
-            } else if (schemeFilter === 'inactive') {
-                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === false);
-            }
-            // 'all' filter: show all schemes (no additional filtering needed)
-            
-            setSchemes(filteredSchemes);
-        } catch (err) {
-            console.error('Error fetching schemes:', err);
-            setError('Failed to load schemes. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
+  // Handle scheme update
+  const handleUpdateScheme = async () => {
+    if (!editFormData.name.trim() || !editFormData.description.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
-    // Helper function to format date
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (error) {
-            return 'Invalid Date';
-        }
-    };
+    setIsUpdating(true);
 
-    // Helper function to truncate text
-    const truncateText = (text, maxLength = 100) => {
-        if (!text) return '';
-        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
+    try {
+      const updatePayload = {
+        name: editFormData.name,
+        description: editFormData.description,
+        eligibility: editFormData.eligibility,
+        benefits: editFormData.benefits,
+        start_time: editFormData.start_time,
+        end_time: editFormData.end_time,
+        active: editFormData.active
+      };
 
-    // Helper function to get scheme image
-    const getSchemeImage = (scheme) => {
-        if (scheme.media && scheme.media.length > 0) {
-            // Use the public media API endpoint
-            return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
-        }
-        return '/background.png'; // Fallback to placeholder
-    };
+      await schemesAPI.updateScheme(selectedScheme.id, updatePayload);
 
-    // Handle file selection
-    const handleFileSelect = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            setSelectedFile(file);
-        }
-    };
+      // If scheme is set to inactive, switch filter to "All" so user can see it as inactive
+      if (!editFormData.active && schemeFilter === 'active') {
+        setSchemeFilter('all');
+      }
 
-    // Handle form submission with seamless two-step API flow
-    const handleSubmit = async () => {
-        if (!formData.name.trim() || !formData.description.trim()) {
-            alert('Please fill in all required fields');
-            return;
-        }
+      // Close modal and refresh
+      setShowEditModal(false);
+      setIsUpdating(false);
+      fetchSchemes(); // Refresh schemes
+    } catch (error) {
+      console.error('Error updating scheme:', error);
+      setIsUpdating(false);
+      alert('Failed to update scheme. Please try again.');
+    }
+  };
 
-        setIsSubmitting(true);
-        setSubmitProgress('Creating scheme...');
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
-        try {
-            // Step 1: Create the scheme
-            const schemePayload = {
-                name: formData.name,
-                description: formData.description,
-                eligibility: formData.details || '',
-                benefits: formData.benefits || '',
-                start_time: new Date().toISOString(),
-                end_time: new Date().toISOString(),
-            };
 
-            const createResponse = await schemesAPI.createScheme(schemePayload);
-            const createdScheme = createResponse.data;
-
-            // Step 2: Upload media if file is selected
-            if (selectedFile) {
-                setSubmitProgress('Uploading media...');
-                console.log('Uploading media for scheme ID:', createdScheme.id, 'File:', selectedFile);
-                const uploadResponse = await schemesAPI.uploadSchemeMedia(createdScheme.id, selectedFile);
-                console.log('Media upload response:', uploadResponse.data);
-            }
-
-            // Success - close modal and refresh schemes
-            setSubmitProgress('Scheme created successfully!');
-            setTimeout(() => {
-                setShowModal(false);
-                setFormData({ name: '', description: '', details: '', benefits: '' });
-                setSelectedFile(null);
-                setIsSubmitting(false);
-                setSubmitProgress('');
-                fetchSchemes(); // Refresh the schemes list
-            }, 1000);
-
-        } catch (error) {
-            console.error('Error creating scheme:', error);
-            setSubmitProgress('');
-            setIsSubmitting(false);
-            alert('Failed to create scheme. Please try again.');
-        }
-    };
-
-    // Handle edit button click
-    const handleEditClick = (scheme) => {
-        setSelectedScheme(scheme);
-        setEditFormData({
-            name: scheme.name || '',
-            description: scheme.description || '',
-            eligibility: scheme.eligibility || '',
-            benefits: scheme.benefits || '',
-            start_time: scheme.start_time || '',
-            end_time: scheme.end_time || '',
-            active: scheme.active !== undefined ? scheme.active : true
-        });
-        setShowEditModal(true);
-    };
-
-    const handleDeleteScheme = async (schemeId) => {
-        if (!schemeId || isDeleting) return;
-        const confirmDelete = window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.');
-        if (!confirmDelete) {
-            return;
-        }
-
-        try {
-            setIsDeleting(true);
-            await schemesAPI.deleteScheme(schemeId);
-            setShowDetailsModal(false);
-            setSelectedScheme(null);
-            await fetchSchemes();
-        } catch (error) {
-            console.error('Error deleting scheme:', error);
-            alert('Failed to delete scheme. Please try again.');
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
-    // Handle scheme update
-    const handleUpdateScheme = async () => {
-        if (!editFormData.name.trim() || !editFormData.description.trim()) {
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        setIsUpdating(true);
-
-        try {
-            const updatePayload = {
-                name: editFormData.name,
-                description: editFormData.description,
-                eligibility: editFormData.eligibility,
-                benefits: editFormData.benefits,
-                start_time: editFormData.start_time,
-                end_time: editFormData.end_time,
-                active: editFormData.active
-            };
-
-            await schemesAPI.updateScheme(selectedScheme.id, updatePayload);
-            
-            // If scheme is set to inactive, switch filter to "All" so user can see it as inactive
-            if (!editFormData.active && schemeFilter === 'active') {
-                setSchemeFilter('all');
-            }
-            
-            // Close modal and refresh
-            setShowEditModal(false);
-            setIsUpdating(false);
-            fetchSchemes(); // Refresh schemes
-        } catch (error) {
-            console.error('Error updating scheme:', error);
-            setIsUpdating(false);
-            alert('Failed to update scheme. Please try again.');
-        }
-    };
-
-    return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-          
-      
-  {/* Overview Section */}
-  <div style={{
+      {/* Overview Section */}
+      <div style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -308,104 +308,104 @@ const SchemesContent = () => {
             alignItems: 'center',
             gap: '8px'
           }}>
-                        <h2 style={{
-                          fontSize: '20px',
-                          fontWeight: '600',
-                          color: '#111827',
-                          margin: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px'
-                        }}>
-                          Overview
-                          <span style={{
-                            fontSize: '16px',
-                            fontWeight: '400',
-                            color: '#6b7280'
-                          }}>
-                            {schemes.length.toString().padStart(2, '0')}
-                          </span>
-                        </h2>
-           
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              Overview
+              <span style={{
+                fontSize: '16px',
+                fontWeight: '400',
+                color: '#6b7280'
+              }}>
+                {schemes.length.toString().padStart(2, '0')}
+              </span>
+            </h2>
+
           </div>
           {/* Right side - Filter and Add Scheme button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {/* Scheme Filter Toggle */}
-                        <div style={{
-                            display: 'flex',
-                            backgroundColor: '#f3f4f6',
-                            borderRadius: '8px',
-                            padding: '2px',
-                            gap: '2px'
-                        }}>
-                            <button
-                                onClick={() => setSchemeFilter('active')}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    backgroundColor: schemeFilter === 'active' ? '#10b981' : 'transparent',
-                                    color: schemeFilter === 'active' ? 'white' : '#6b7280',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                Active
-                            </button>
-                            <button
-                                onClick={() => setSchemeFilter('inactive')}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    backgroundColor: schemeFilter === 'inactive' ? '#ef4444' : 'transparent',
-                                    color: schemeFilter === 'inactive' ? 'white' : '#6b7280',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                Inactive
-                            </button>
-                            <button
-                                onClick={() => setSchemeFilter('all')}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    backgroundColor: schemeFilter === 'all' ? '#3b82f6' : 'transparent',
-                                    color: schemeFilter === 'all' ? 'white' : '#6b7280',
-                                    transition: 'all 0.2s'
-                                }}
-                            >
-                                All
-                            </button>
-                        </div>
-          <button 
-            onClick={() => setShowModal(true)}
-            style={{
+            {/* Scheme Filter Toggle */}
+            <div style={{
               display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              backgroundColor: '#10b981',
-              color: 'white',
-              border: 'none',
+              backgroundColor: '#f3f4f6',
               borderRadius: '8px',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'all 0.2s'
+              padding: '2px',
+              gap: '2px'
             }}>
-            <Plus style={{ width: '16px', height: '16px' }} />
-            Add Scheme
-          </button>
+              <button
+                onClick={() => setSchemeFilter('active')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  backgroundColor: schemeFilter === 'active' ? '#10b981' : 'transparent',
+                  color: schemeFilter === 'active' ? 'white' : '#6b7280',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setSchemeFilter('inactive')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  backgroundColor: schemeFilter === 'inactive' ? '#ef4444' : 'transparent',
+                  color: schemeFilter === 'inactive' ? 'white' : '#6b7280',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Inactive
+              </button>
+              <button
+                onClick={() => setSchemeFilter('all')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  backgroundColor: schemeFilter === 'all' ? '#3b82f6' : 'transparent',
+                  color: schemeFilter === 'all' ? 'white' : '#6b7280',
+                  transition: 'all 0.2s'
+                }}
+              >
+                All
+              </button>
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                backgroundColor: '#10b981',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '6px 10px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                transition: 'all 0.2s'
+              }}>
+              <Plus style={{ width: '16px', height: '16px' }} />
+              Add Scheme
+            </button>
           </div>
         </div>
 
@@ -432,28 +432,25 @@ const SchemesContent = () => {
 
         {/* Scheme Cards Grid */}
         {!loading && !error && (
-        <div style={{
-          display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '20px',
-          marginTop: '24px'
-        }}>
+          <div className="columns-1 sm:columns-2 md:columns-3  lg:columns-4 gap-4 mt-6">
             {schemes.map((scheme) => (
-          <div 
+              <div
                 key={scheme.id}
-            onClick={() => {
+                onClick={() => {
                   setSelectedScheme(scheme);
-              setShowDetailsModal(true);
-              setActiveTab('Details');
-            }}
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-                  minHeight: '250px',
+                  setShowDetailsModal(true);
+                  setActiveTab('Details');
+                }}
+                style={{
+                  breakInside: 'avoid', // ⭐ important (card break na ho)
+                  marginBottom: '20px',
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  width: '100%',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
                   '&:hover': {
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                     transform: 'translateY(-2px)'
@@ -469,15 +466,33 @@ const SchemesContent = () => {
                 }}
               >
                 <div style={{
-                  height: '160px',
-                  backgroundImage: `url(${getSchemeImage(scheme)})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  width: '100%',
                   marginBottom: '8px',
                   borderTopLeftRadius: '8px',
                   borderTopRightRadius: '8px',
-                  position: 'relative'
+                  overflow: 'hidden',
+                  position: 'relative',
+                  backgroundColor: '#f3f4f6',
+                  breakInside: 'avoid',
                 }}>
+                  <img
+                    src={getSchemeImage(scheme)}
+                    alt="scheme"
+                    style={{
+                      width: '100%',
+                      height: 'auto',
+                      display: 'block',
+                      objectFit: 'cover',
+                    }}
+
+                    onError={(e) => {
+                      console.log('Image failed to load:', getEventImage(event));
+                      e.target.src = '/background.png';
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', getEventImage(event));
+                    }}
+                  />
                   <div style={{
                     position: 'absolute',
                     top: '12px',
@@ -487,8 +502,8 @@ const SchemesContent = () => {
                     padding: '4px 8px',
                     borderRadius: '12px',
                     fontSize: '12px',
-                fontWeight: '500'
-              }}>
+                    fontWeight: '500'
+                  }}>
                     {scheme.active ? 'Active' : 'Inactive'}
                   </div>
                   {/* Media count indicator if multiple images */}
@@ -507,29 +522,33 @@ const SchemesContent = () => {
                       +{scheme.media.length - 1} more
                     </div>
                   )}
-                
-          </div>
+
+                </div>
                 <div style={{ padding: '16px' }}>
-                <h3 style={{
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  color: '#111827',
+                  <h3 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827',
                     margin: '0 0 6px 0',
-                  lineHeight: '1.4'
-                }}>
-                  {scheme.name || 'Untitled Scheme'}
-                </h3>
-                <p style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                    margin: '0 0 6px 0',
-                  lineHeight: '1.5'
-                }}>
-                  {truncateText(scheme.description, 80)}
-                </p>
-            
-            </div>
-          </div>
+                    lineHeight: '1.4'
+                  }}>
+                    {scheme.name || 'Untitled Scheme'}
+                  </h3>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0,
+                    lineHeight: '1.4',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {truncateText(scheme.description, 60)}
+                  </p>
+
+                </div>
+              </div>
             ))}
           </div>
         )}
@@ -545,10 +564,11 @@ const SchemesContent = () => {
             <NoDataFound size="large" />
           </div>
         )}
-        </div>
+      </div>
 
-        {/* Add Scheme Modal */}
-        {showModal && (
+      {/* Add Scheme Modal */}
+      {
+        showModal && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -614,7 +634,7 @@ const SchemesContent = () => {
                   backgroundColor: selectedFile ? '#f0f9ff' : 'transparent',
                   borderColor: selectedFile ? '#10b981' : '#d1d5db'
                 }}
-                onClick={() => document.getElementById('schemeFileInput').click()}>
+                  onClick={() => document.getElementById('schemeFileInput').click()}>
                   <input
                     id="schemeFileInput"
                     type="file"
@@ -622,11 +642,11 @@ const SchemesContent = () => {
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
                   />
-                  <Upload style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    color: selectedFile ? '#10b981' : '#9ca3af', 
-                    margin: '0 auto 12px' 
+                  <Upload style={{
+                    width: '32px',
+                    height: '32px',
+                    color: selectedFile ? '#10b981' : '#9ca3af',
+                    margin: '0 auto 12px'
                   }} />
                   <p style={{
                     fontSize: '14px',
@@ -663,7 +683,7 @@ const SchemesContent = () => {
                       type="text"
                       placeholder="Enter scheme"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -690,7 +710,7 @@ const SchemesContent = () => {
                       type="text"
                       placeholder="Description"
                       value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -716,7 +736,7 @@ const SchemesContent = () => {
                     <textarea
                       placeholder="Enter eligibility criteria"
                       value={formData.details}
-                      onChange={(e) => setFormData({...formData, details: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                       rows={4}
                       style={{
                         width: '100%',
@@ -744,7 +764,7 @@ const SchemesContent = () => {
                     <textarea
                       placeholder="Benefits"
                       value={formData.benefits}
-                      onChange={(e) => setFormData({...formData, benefits: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, benefits: e.target.value })}
                       rows={3}
                       style={{
                         width: '100%',
@@ -781,7 +801,7 @@ const SchemesContent = () => {
                     {submitProgress}
                   </div>
                 )}
-                
+
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
                   <button
@@ -831,10 +851,12 @@ const SchemesContent = () => {
               </div>
             </div>
           </div>
-        )}
+        )
+      }
 
-        {/* Scheme Details Modal */}
-        {showDetailsModal && selectedScheme && (
+      {/* Scheme Details Modal */}
+      {
+        showDetailsModal && selectedScheme && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -960,23 +982,23 @@ const SchemesContent = () => {
                 ))}
               </div>
               <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
-          
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '12px 0'
+              }}></div>
 
-          <divider />
-         
-                       {/* Tab Content */}
+
+              <divider />
+
+              {/* Tab Content */}
               <div style={{ padding: '24px' }}>
                 {activeTab === 'Details' && (
                   <div>
-                  <p style={{
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: '#374151',
+                    <p style={{
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      color: '#374151',
                       margin: '0 0 16px 0'
                     }}>
                       {selectedScheme?.description || 'No description available.'}
@@ -987,7 +1009,7 @@ const SchemesContent = () => {
                       gap: '16px',
                       marginTop: '20px'
                     }}>
-                    
+
                     </div>
                   </div>
                 )}
@@ -1081,10 +1103,12 @@ const SchemesContent = () => {
               </div>
             </div>
           </div>
-        )}
+        )
+      }
 
-        {/* Edit Scheme Modal */}
-        {showEditModal && selectedScheme && (
+      {/* Edit Scheme Modal */}
+      {
+        showEditModal && selectedScheme && (
           <div style={{
             position: 'fixed',
             top: 0,
@@ -1154,7 +1178,7 @@ const SchemesContent = () => {
                       type="text"
                       placeholder="Enter scheme name"
                       value={editFormData.name}
-                      onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -1180,7 +1204,7 @@ const SchemesContent = () => {
                     <textarea
                       placeholder="Description"
                       value={editFormData.description}
-                      onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                       rows={4}
                       style={{
                         width: '100%',
@@ -1208,7 +1232,7 @@ const SchemesContent = () => {
                     <textarea
                       placeholder="Eligibility criteria"
                       value={editFormData.eligibility}
-                      onChange={(e) => setEditFormData({...editFormData, eligibility: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, eligibility: e.target.value })}
                       rows={3}
                       style={{
                         width: '100%',
@@ -1236,7 +1260,7 @@ const SchemesContent = () => {
                     <textarea
                       placeholder="Benefits"
                       value={editFormData.benefits}
-                      onChange={(e) => setEditFormData({...editFormData, benefits: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, benefits: e.target.value })}
                       rows={3}
                       style={{
                         width: '100%',
@@ -1264,7 +1288,7 @@ const SchemesContent = () => {
                     <input
                       type="datetime-local"
                       value={editFormData.start_time ? new Date(editFormData.start_time).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setEditFormData({...editFormData, start_time: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -1290,7 +1314,7 @@ const SchemesContent = () => {
                     <input
                       type="datetime-local"
                       value={editFormData.end_time ? new Date(editFormData.end_time).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setEditFormData({...editFormData, end_time: e.target.value})}
+                      onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '12px',
@@ -1316,7 +1340,7 @@ const SchemesContent = () => {
                       <input
                         type="checkbox"
                         checked={editFormData.active}
-                        onChange={(e) => setEditFormData({...editFormData, active: e.target.checked})}
+                        onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
                         style={{
                           width: '16px',
                           height: '16px',
@@ -1377,9 +1401,10 @@ const SchemesContent = () => {
               </div>
             </div>
           </div>
-        )}
-        </div>
-    );
+        )
+      }
+    </div >
+  );
 };
 
 export default SchemesContent;

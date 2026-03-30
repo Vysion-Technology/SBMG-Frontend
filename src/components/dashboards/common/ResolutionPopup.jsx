@@ -109,6 +109,12 @@ const ResolutionPopup = ({ open, onClose, data }) => {
 
     const [selectedImage, setSelectedImage] = React.useState(null);
 
+    const statusTitleMap = {
+        "Complaint Created": "Complaint Details",
+        "Resolved": "Resolution Details",
+        "Verified": "Verification Details",
+        "Closed": "Closure Details"
+    };
     return (
         <AnimatePresence>
             {open && (
@@ -124,7 +130,9 @@ const ResolutionPopup = ({ open, onClose, data }) => {
                     >
 
                         <div style={styles.header}>
-                            <h3 style={{ fontWeight: 600 }}>Resolution</h3>
+                            <h3 style={{ fontWeight: 600 }}>
+                                {statusTitleMap[data?.status] || "Details"}
+                            </h3>
                             <span style={styles.close} onClick={onClose}>✕</span>
                         </div>
 

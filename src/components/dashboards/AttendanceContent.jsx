@@ -7,7 +7,7 @@ import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
 
-const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
+const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
   const getArcPath = (startAngle, endAngle, radius, strokeWidth) => {
     const innerRadius = radius - strokeWidth;
@@ -1936,7 +1936,7 @@ const AttendanceContent = () => {
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
       return responseData.map(item => {
-        const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
+        const status = (item.present_count || 0) > 0 ? 'CSC Cleaned' : 'CSC Not Cleaned';
         return {
           id: `${item.geography_id}_${item.date}`,
           date: item.date,
@@ -2017,8 +2017,8 @@ const AttendanceContent = () => {
         headers = [
           'Date',
           'Status',
-          'Present Count',
-          'Absent Count',
+          'CSC Cleaned Count',
+          'CSC Not Cleaned Count',
           'Attendance Rate (%)',
           'Geography ID',
           'Geography Name'
@@ -2043,8 +2043,8 @@ const AttendanceContent = () => {
           scopeLabel,
           'Attendance Percentage (%)',
           'Total Contractors',
-          'Total Present',
-          'Total Absent',
+          'Total CSC Cleaned',
+          'Total CSC Not Cleaned',
           'Geography ID'
         ];
 
@@ -2466,22 +2466,22 @@ const AttendanceContent = () => {
     const metrics = calculateAttendanceMetrics();
 
     return [
+      // {
+      //   title: 'Total Vendor/Supervisor',
+      //   value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
+      //   icon: List,
+      //   color: '#3b82f6',
+      //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
+      // },
       {
-        title: 'Total Vendor/Supervisor',
-        value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
-        icon: List,
-        color: '#3b82f6',
-        tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
-      },
-      {
-        title: 'Vendor/Supervisor Present',
+        title: 'CSC Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
-        icon: UserCheck,
-        color: '#10b981',
+        icon: UserX,
+        color: '#ef4444',
         tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
       },
       {
-        title: 'Vendor/Supervisor Absent',
+        title: 'CSC Not Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
@@ -3035,9 +3035,8 @@ const AttendanceContent = () => {
           {/* Left Side - Three Cards */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
             gap: '12px',
-            width: '75%'
+            width: '100%'
           }}>
             {/* Total Vendor/Supervisor - Full Width */}
             <div style={{
@@ -3046,7 +3045,8 @@ const AttendanceContent = () => {
               borderRadius: '8px',
               border: '1px solid #e5e7eb',
               position: 'relative',
-              minHeight: isMultiDayRange() ? '315px' : '140px'
+              minHeight: isMultiDayRange() ? '315px' : '140px',
+              width: '100%'
             }}>
               {/* Info icon */}
               <div style={{
@@ -3067,9 +3067,17 @@ const AttendanceContent = () => {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+
                 }}>
-                  {React.createElement(attendanceMetrics[0].icon, { style: { width: '16px', height: '16px', color: '#6b7280' } })}
+
+                  {/* ascsacsacsacsacs */}
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'green'
+                  }}></div>
                   <span style={{
                     fontSize: '14px',
                     color: '#6b7280',
@@ -3129,7 +3137,7 @@ const AttendanceContent = () => {
                   borderRadius: '8px',
                   border: '1px solid #e5e7eb',
                   position: 'relative',
-                  width: '50%',
+                  width: '100%',
                   minHeight: '159px'
                 }}>
                   {/* Info icon */}
@@ -3242,7 +3250,7 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                Attendance
+                CSC Cleaning
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -3267,7 +3275,7 @@ const AttendanceContent = () => {
                   <div>
                     <SegmentedGauge
                       percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
-                      label={loadingAnalytics ? "Loading..." : "Present"}
+                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -3688,7 +3696,7 @@ const AttendanceContent = () => {
                       activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
                 </h2>
                 <InfoTooltip
-                  text="Performance score is calculated based on attendance percentage: (Present count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned / CSC Not Cleaned) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
                   size={16}
                   color="#9ca3af"
                 />
@@ -4000,7 +4008,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Attendance
+              CSC Cleaning
             </h2>
             {viewingContractorsForGp && (
               <span style={{
@@ -4159,7 +4167,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Present
+                      CSC Cleaned
                     </th>
                     <th style={{
                       padding: '12px',
@@ -4168,7 +4176,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Absent
+                      CSC Not Cleaned
                     </th>
                     <th style={{
                       padding: '12px',
@@ -4178,7 +4186,7 @@ const AttendanceContent = () => {
                       color: '#374151'
                     }}>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }} >
-                        Attendance %
+                        CSC Cleaning %
                       </div>
                     </th>
                   </>
@@ -4192,7 +4200,7 @@ const AttendanceContent = () => {
                     color: '#374151'
                   }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                      Attendance %
+                      CSC Cleaned %
 
 
                       <span
@@ -4452,7 +4460,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Attendance History
+              CSC History
             </h2>
             <div
               onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
@@ -4698,7 +4706,7 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : 'Attendance (%)'}
+                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaned (%)'}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -4734,7 +4742,7 @@ const AttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading attendance history...
+                    Loading history...
                   </td>
                 </tr>
               ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
@@ -4764,7 +4772,7 @@ const AttendanceContent = () => {
                       padding: '12px',
                       fontSize: '14px',
                       color: activeScope === 'GPs'
-                        ? (item.status === 'Present' ? '#10b981' : '#ef4444')
+                        ? (item.status === 'CSC Cleaned' ? '#10b981' : '#ef4444')
                         : '#374151'
                     }}>
                       {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}

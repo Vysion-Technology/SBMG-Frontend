@@ -8,7 +8,7 @@ const SlideDrawer = ({
     title,
     children,
     clickFunction,
-    width = "md:w-2/3"
+    width = "md:w-3/4"
 }) => {
 
     const [internalOpen, setInternalOpen] = useState(false);

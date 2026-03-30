@@ -204,6 +204,16 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
+const formatNumber = (val) => {
+  if (val === "" || val === null || val === undefined) return "-";
+
+  // number ya numeric string dono handle karega
+  const num = Number(val);
+  if (isNaN(num)) return val;
+
+  return num.toLocaleString("en-IN"); // Indian format
+};
+
 const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
 
   return (
@@ -234,7 +244,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
         {/* ✅ CASE 1: Single value */}
         {typeof value === "string" || typeof value === "number" ? (
           <h1 className="text-xl font-semibold text-gray-900">
-            {value || "-"}
+            {formatNumber(value)}
           </h1>
         ) : null}
 
@@ -244,7 +254,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
             {value.map((item, i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {item.value || '-'}
+                  {formatNumber(item.value)}
                 </h1>
                 <p className="text-xs text-gray-600">{item.label}</p>
               </div>
@@ -258,7 +268,7 @@ const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick,
             {Object.entries(value).map(([key, val], i) => (
               <div key={i}>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {val || '-'}
+                  {formatNumber(val)}
                 </h1>
                 <p className="text-xs text-gray-600 capitalize">
                   {key}
@@ -2629,7 +2639,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "community_sanitary",
-          label: "Community Sanitary Complex",
+          label: "Community Sanitary Complex (CSC)",
           bgColor: "#ECFDF5",
           textColor: "#065F46",
           border: "#A7F3D0",
@@ -2637,7 +2647,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "total_csc",
-          label: "Total No. of CSCs",
+          label: "Total No. of CSCs in Shala Darpan (Schools)",
           bgColor: "#ECFDF5",
           textColor: "#065F46",
           border: "#A7F3D0",
@@ -2760,7 +2770,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "Drainage_channels",
-          label: "Drainage channels",
+          label: "Drainage channels (meters)",
           bgColor: "#FEFCE8",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -2806,7 +2816,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       ],
     },
     {
-      title: "FSM",
+      title: "Faecal Sludge Management (FSM)",
       cards: [
         {
           key: "No_twin_pits_Toilets",
@@ -2826,7 +2836,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "Septic_bank_Toilets",
-          label: "No. of Septic bank Toilets",
+          label: "No. of Septic tank Toilets",
           bgColor: "#FFEDF3",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -2881,7 +2891,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "Total_Work_Sanctioned_Status",
-          label: "Total No. of Work Sanctioned Status",
+          label: "Total No. of Work Sanctioned",
           width: "558px",
           bgColor: "#FFEDD5",
           textColor: "#364153",
@@ -2890,7 +2900,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "Total_Expenditure_Amt",
-          label: "Total Expenditure Amt.",
+          label: "Total Expenditure Amt. (Rs in Lakhs)",
           bgColor: "#FFEDD5",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -3040,6 +3050,13 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     blocks: [], // initially empty
   }));
 
+  const formatValue = (key, value) => {
+    if (key === "Drainage_channels") {
+      return `${(parseFloat(value || 0) * 1000).toLocaleString('en-in')} m`;
+    }
+    return value;
+  };
+
   return (
     <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }} >
       <style>{`
@@ -3174,7 +3191,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   trigger={
                     <Card
                       title={card.label}
-                      value={apiData[card.key]}
+                      value={formatValue(card.key, apiData[card.key])}
                       bgColorOverlay={card.bgColor}
                       textColor={card.textColor}
                       border={card.border}

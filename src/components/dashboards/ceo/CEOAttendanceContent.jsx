@@ -7,21 +7,21 @@ import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 
-const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
+const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
   const getArcPath = (startAngle, endAngle, radius, strokeWidth) => {
     const innerRadius = radius - strokeWidth;
     const centerX = 100;
     const centerY = 100;
-    
+
     // Calculate the main arc points
     const start = polarToCartesian(centerX, centerY, radius, endAngle);
     const end = polarToCartesian(centerX, centerY, radius, startAngle);
     const innerStart = polarToCartesian(centerX, centerY, innerRadius, endAngle);
     const innerEnd = polarToCartesian(centerX, centerY, innerRadius, startAngle);
-    
+
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
+
     return `M ${start.x} ${start.y} 
             A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}
             L ${innerEnd.x} ${innerEnd.y}
@@ -41,33 +41,33 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
   const gapSize = 20; // degrees gap between segments
   const totalAngle = 180; // total arc angle (semicircle)
   const usableAngle = totalAngle - gapSize; // 160 degrees for data
-  
+
   // Calculate angles proportional to percentages
   const presentPercentage = Math.max(0, Math.min(100, percentage)); // Clamp between 0-100
   const absentPercentage = 100 - presentPercentage;
-  
+
   // Convert percentages to angles
   const presentAngle = (presentPercentage / 100) * usableAngle;
   const absentAngle = (absentPercentage / 100) * usableAngle;
-  
+
   // Define segments with proportional angles
   const segments = [
-    { 
-      start: -90, 
-      end: -90 + presentAngle, 
+    {
+      start: -90,
+      end: -90 + presentAngle,
       color: presentPercentage > 0 ? '#10b981' : '#f3f4f6' // Green for present
     },
-    { 
-      start: -90 + presentAngle + gapSize, 
-      end: -90 + presentAngle + gapSize + absentAngle, 
+    {
+      start: -90 + presentAngle + gapSize,
+      end: -90 + presentAngle + gapSize + absentAngle,
       color: absentPercentage > 0 && absentDays > 0 ? '#ef4444' : '#f3f4f6' // Red for absent
     }
   ];
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       width: '100%'
     }}>
@@ -79,11 +79,11 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
           const radius = 80;
           const strokeWidth = 20;
           const innerRadius = radius - strokeWidth;
-          
+
           // Calculate circular end cap positions
-          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, endAngle);
-          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, startAngle);
-          
+          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, endAngle);
+          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, startAngle);
+
           return (
             <g key={index}>
               <path
@@ -97,19 +97,19 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
               <circle
                 cx={startCapPos.x}
                 cy={startCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
               <circle
                 cx={endCapPos.x}
                 cy={endCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
             </g>
           );
         })}
-        
+
         {/* Center text - percentage */}
         <text
           x="100"
@@ -122,7 +122,7 @@ const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
           }}>
           {percentage == null || isNaN(percentage) ? 'NaN' : `${percentage}%`}
         </text>
-        
+
         {/* Center text - label */}
         <text
           x="100"
@@ -172,9 +172,9 @@ const AttendanceContent = () => {
     () => ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null,
     [ceoDistrictId, ceoDistrictName]
   );
-  const setSelectedDistrictId = () => {}; // No-op for CEO
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for CEO
-  
+  const setSelectedDistrictId = () => { }; // No-op for CEO
+  const setSelectedDistrictForHierarchy = () => { }; // No-op for CEO
+
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -183,13 +183,13 @@ const AttendanceContent = () => {
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
-  
+
   // Attendance specific state
-    const [activeFilter, setActiveFilter] = useState('All');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [activePerformance, setActivePerformance] = useState('Time');
-    const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
-    const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activePerformance, setActivePerformance] = useState('Time');
+  const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
+  const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
 
   // Send Notice Modal state
   const [showSendNoticeModal, setShowSendNoticeModal] = useState(false);
@@ -308,7 +308,7 @@ const AttendanceContent = () => {
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -327,7 +327,7 @@ const AttendanceContent = () => {
       event.preventDefault();
     }
   };
-  
+
   const scopeButtons = ['Blocks', 'GPs']; // CEO: Only Blocks and GPs (no State or Districts)
   const performanceButtons = ['Time', 'Location'];
   const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
@@ -371,14 +371,14 @@ const AttendanceContent = () => {
       contextTrackTabChange(scope);
     }
   }, [contextTrackTabChange]);
-  
+
   const trackDropdownChange = useCallback((location, locationId, districtId, blockId, gpId) => {
     console.log('Dropdown changed to:', location);
     if (typeof contextTrackDropdownChange === 'function') {
       contextTrackDropdownChange(location, locationId, districtId, blockId, gpId);
     }
   }, [contextTrackDropdownChange]);
-  
+
   const getCurrentLocationInfo = useCallback(() => {
     if (typeof contextGetCurrentLocationInfo === 'function') {
       return contextGetCurrentLocationInfo();
@@ -391,7 +391,7 @@ const AttendanceContent = () => {
       gpId: selectedGPId
     };
   }, [contextGetCurrentLocationInfo, activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId]);
-  
+
   const updateLocationSelection = useCallback((scope, location, locationId, districtId, blockId, gpId, changeType) => {
     console.log('🔄 updateLocationSelection called:', { scope, location, locationId, districtId, blockId, gpId, changeType });
     if (typeof contextUpdateLocationSelection === 'function') {
@@ -479,7 +479,7 @@ const AttendanceContent = () => {
     trackTabChange(scope);
     setActiveScope(scope);
     setShowLocationDropdown(false);
-    
+
     // Use updateLocationSelection like dashboard for proper state management
     if (scope === 'State') {
       // For State scope, set Rajasthan as default and disable dropdown
@@ -623,7 +623,7 @@ const AttendanceContent = () => {
       console.log('⏸️ Overview API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       analyticsCallInProgress.current = true;
       setLoadingAnalytics(true);
@@ -664,31 +664,31 @@ const AttendanceContent = () => {
       const url = `/attendance/overview?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       // Check if token exists
       const token = localStorage.getItem('access_token');
       console.log('🔑 Token Status:', token ? 'Present' : 'Missing');
       if (token) {
         console.log('🔑 Token Preview:', token.substring(0, 20) + '...');
       }
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Attendance Overview API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       console.log('📦 Response Data Structure:', {
         total_contractors: response.data?.total_contractors,
         attendance_rate: response.data?.attendance_rate,
         present: response.data?.present,
         absent: response.data?.absent
       });
-      
+
       setAnalyticsData(response.data);
-      
+
       console.log('📈 Overview Data:', {
         total_contractors: response.data?.total_contractors || 0,
         present: response.data?.present || 0,
@@ -696,7 +696,7 @@ const AttendanceContent = () => {
         attendance_rate: response.data?.attendance_rate || 0
       });
       console.log('🔄 ===== END ATTENDANCE OVERVIEW API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== ATTENDANCE ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -704,13 +704,13 @@ const AttendanceContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END ATTENDANCE ANALYTICS API ERROR =====\n');
-      
+
       const errMsg = error.response?.status === 422
         ? (typeof error.response?.data?.detail === 'string'
-            ? error.response.data.detail
-            : (Array.isArray(error.response?.data?.detail)
-                ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
-                : error.response?.data?.message || error.message))
+          ? error.response.data.detail
+          : (Array.isArray(error.response?.data?.detail)
+            ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+            : error.response?.data?.message || error.message))
         : (error.message || 'Failed to fetch analytics data');
       setAnalyticsError(errMsg);
       setAnalyticsData(null);
@@ -727,7 +727,7 @@ const AttendanceContent = () => {
       console.log('⏸️ Top 3 API call already in progress, skipping...');
       return;
     }
-    
+
     try {
       top3CallInProgress.current = true;
       setLoadingTop3(true);
@@ -735,17 +735,17 @@ const AttendanceContent = () => {
 
       // Calculate date range based on selected period (Month or Year)
       let periodStartDate, periodEndDate;
-      
+
       if (top3Period === 'Month') {
         // Use selected month and current year
         const year = top3SelectedYear;
         const month = top3SelectedMonth - 1; // Month is 0-indexed in Date
-        
+
         // First day of selected month
         const firstDayOfMonth = new Date(year, month, 1);
         // Last day of selected month
         const lastDayOfMonth = new Date(year, month + 1, 0);
-        
+
         periodStartDate = firstDayOfMonth.toISOString().split('T')[0];
         periodEndDate = lastDayOfMonth.toISOString().split('T')[0];
       } else {
@@ -795,28 +795,28 @@ const AttendanceContent = () => {
 
       const url = `/attendance/top-n-geo?${params.toString()}`;
       console.log('🌐 Top 3 API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Top 3 API Response:', {
         status: response.status,
         data: response.data
       });
-      
+
       // Process and rank the data
       const processedData = processTop3Data(response.data);
       setTop3Data(processedData);
-      
+
       console.log('📈 Top 3 Processed Data:', processedData);
       console.log('🔄 ===== END TOP 3 API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== TOP 3 API ERROR =====');
       console.error('Error Type:', error.name);
       console.error('Error Message:', error.message);
       console.error('Error Details:', error.response?.data || error);
       console.error('🔄 ===== END TOP 3 API ERROR =====\n');
-      
+
       setTop3Error(error.message || 'Failed to fetch top 3 data');
       setTop3Data([]);
     } finally {
@@ -966,9 +966,9 @@ const AttendanceContent = () => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       const today = new Date();
-      
+
       // For "Today" and "Yesterday", both start and end dates should be the same
       if (range.value === 'today') {
         // Today: start = today, end = today
@@ -988,7 +988,7 @@ const AttendanceContent = () => {
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
       }
-      
+
       setShowDateDropdown(false);
     }
   };
@@ -1028,12 +1028,12 @@ const AttendanceContent = () => {
   // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (!event.target.closest('[data-location-dropdown]') && 
-          !event.target.closest('[data-date-dropdown]') &&
-          !event.target.closest('[data-top3-dropdown]') &&
-          !event.target.closest('[data-top3-period-dropdown]') &&
-          !event.target.closest('[data-performance-year-dropdown]') &&
-          !event.target.closest('[data-history-date-dropdown]')) {
+      if (!event.target.closest('[data-location-dropdown]') &&
+        !event.target.closest('[data-date-dropdown]') &&
+        !event.target.closest('[data-top3-dropdown]') &&
+        !event.target.closest('[data-top3-period-dropdown]') &&
+        !event.target.closest('[data-performance-year-dropdown]') &&
+        !event.target.closest('[data-history-date-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowTop3Dropdown(false);
@@ -1082,7 +1082,7 @@ const AttendanceContent = () => {
       setAnalyticsData(null);
       return;
     }
-    
+
     console.log('🔄 CEO Analytics useEffect triggered:', {
       activeScope,
       ceoDistrictId,
@@ -1091,19 +1091,19 @@ const AttendanceContent = () => {
       startDate,
       endDate
     });
-    
+
     // CEO only has Blocks and GPs scopes
     if (activeScope === 'Blocks') {
       console.log('📡 CEO: Calling analytics for Blocks scope');
       fetchAnalyticsData();
       return;
     }
-    
+
     if (activeScope === 'GPs' && !selectedGPId) {
       console.log('⏳ CEO: Waiting for GP selection');
       return;
     }
-    
+
     console.log('📡 CEO: Calling analytics API');
     fetchAnalyticsData();
   }, [activeScope, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, ceoDistrictId]);
@@ -1116,7 +1116,7 @@ const AttendanceContent = () => {
       top3SelectedMonth,
       top3SelectedYear
     });
-    
+
     fetchTop3Data();
   }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, fetchTop3Data]);
 
@@ -1149,14 +1149,14 @@ const AttendanceContent = () => {
   const calculateTotalWorkingDays = (date) => {
     const year = new Date(date).getFullYear();
     const month = new Date(date).getMonth();
-    
+
     // Get the first and last day of the month
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    
+
     let totalDays = lastDay.getDate();
     let sundayCount = 0;
-    
+
     // Count Sundays in the month
     for (let day = 1; day <= totalDays; day++) {
       const currentDate = new Date(year, month, day);
@@ -1164,17 +1164,17 @@ const AttendanceContent = () => {
         sundayCount++;
       }
     }
-    
+
     return totalDays - sundayCount;
   };
 
   // Helper function to calculate working days for a specific date range
   const calculateWorkingDaysForRange = (startDate, endDate) => {
     if (!startDate || !endDate) return 0;
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     // If it's the same day (like "Today" selection)
     if (startDate === endDate) {
       // Check if it's a Sunday
@@ -1183,18 +1183,18 @@ const AttendanceContent = () => {
       }
       return 1; // Single working day
     }
-    
+
     // For date ranges, count working days (excluding Sundays)
     let workingDays = 0;
     const currentDate = new Date(start);
-    
+
     while (currentDate <= end) {
       if (currentDate.getDay() !== 0) { // Not Sunday
         workingDays++;
       }
       currentDate.setDate(currentDate.getDate() + 1);
     }
-    
+
     return workingDays;
   };
 
@@ -1210,10 +1210,10 @@ const AttendanceContent = () => {
     }
 
     const metrics = calculateAttendanceMetrics();
-    
+
     // Use attendance_rate directly from API (it's already a percentage)
     const presentPercentage = Math.round(metrics.attendance_rate);
-    
+
     console.log('📅 Attendance Calculation:', {
       attendance_rate: metrics.attendance_rate,
       presentPercentage,
@@ -1265,8 +1265,8 @@ const AttendanceContent = () => {
 
       // Use selected year
       const year = performanceSelectedYear;
-      
-      console.log('📅 Selected Year Info:', { 
+
+      console.log('📅 Selected Year Info:', {
         year
       });
 
@@ -1275,7 +1275,7 @@ const AttendanceContent = () => {
       if (activePerformance === 'Location') {
         // Location tab - Use new performance/annual API
         const params = new URLSearchParams();
-        
+
         // Determine level based on active scope
         let level = 'DISTRICT';
         if (activeScope === 'Districts') {
@@ -1302,7 +1302,7 @@ const AttendanceContent = () => {
 
         url = `/attendance/performance/annual?${params.toString()}`;
         console.log('🌐 Performance Annual API URL:', url);
-        
+
         response = await apiClient.get(url);
         console.log('✅ Performance Annual API Response:', response.data);
       } else {
@@ -1323,7 +1323,7 @@ const AttendanceContent = () => {
           const endDate = `${year}-12-31`;   // December 31st
 
           const params = new URLSearchParams();
-          
+
           // Determine level based on active scope
           let level = 'DISTRICT';
           if (activeScope === 'Districts') {
@@ -1382,7 +1382,7 @@ const AttendanceContent = () => {
       selectedBlockId,
       selectedGPId
     });
-    
+
     fetchChartData();
   }, [activePerformance, performanceSelectedYear, activeScope, selectedDistrictId, selectedBlockId, selectedGPId, fetchChartData]);
 
@@ -1392,10 +1392,10 @@ const AttendanceContent = () => {
       setLoadingHistory(true);
       setHistoryError(null);
 
-      console.log('🔄 Fetching attendance history for:', { 
-        activeScope, 
-        selectedDistrictId, 
-        selectedBlockId, 
+      console.log('🔄 Fetching attendance history for:', {
+        activeScope,
+        selectedDistrictId,
+        selectedBlockId,
         selectedGPId,
         historyStartDate,
         historyEndDate
@@ -1423,7 +1423,7 @@ const AttendanceContent = () => {
 
       // Build query parameters based on current scope
       const params = new URLSearchParams();
-      
+
       // Determine level based on active scope
       let level = 'DISTRICT';
       if (activeScope === 'Districts') {
@@ -1461,10 +1461,10 @@ const AttendanceContent = () => {
       console.error('❌ History API Error:', error);
       const msg = error.response?.status === 422
         ? (typeof error.response?.data?.detail === 'string'
-            ? error.response.data.detail
-            : (Array.isArray(error.response?.data?.detail)
-                ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
-                : error.response?.data?.message || error.message))
+          ? error.response.data.detail
+          : (Array.isArray(error.response?.data?.detail)
+            ? error.response.data.detail.map(d => d.msg || JSON.stringify(d)).join('; ')
+            : error.response?.data?.message || error.message))
         : (error.message || 'Failed to fetch attendance history');
       setHistoryError(msg);
       setAttendanceHistoryData([]);
@@ -1488,7 +1488,7 @@ const AttendanceContent = () => {
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
       return responseData.map(item => {
-        const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
+        const status = (item.present_count || 0) > 0 ? 'CSC Cleaned' : 'CSC Not Cleaned';
         return {
           id: `${item.geography_id}_${item.date}`,
           date: item.date,
@@ -1527,13 +1527,13 @@ const AttendanceContent = () => {
 
     // Calculate average attendance rate for each geography
     const processedItems = Array.from(geographyMap.values()).map(item => {
-      const avgAttendanceRate = item.attendanceRates.length > 0 
+      const avgAttendanceRate = item.attendanceRates.length > 0
         ? item.attendanceRates.reduce((sum, rate) => sum + rate, 0) / item.attendanceRates.length
         : 0;
-      
+
       // attendance_rate from API is already a percentage, so just round it
       const attendancePercentage = Math.min(Math.round(avgAttendanceRate), 100);
-      
+
       return {
         id: item.id,
         name: item.name,
@@ -1554,7 +1554,7 @@ const AttendanceContent = () => {
     try {
       // Use filtered and sorted data so the export respects current filters and search
       const dataToExport = getFilteredAndSortedHistoryData();
-      
+
       if (dataToExport.length === 0) {
         alert('No attendance data to export');
         return;
@@ -1569,8 +1569,8 @@ const AttendanceContent = () => {
         headers = [
           'Date',
           'Status',
-          'Present Count',
-          'Absent Count',
+          'CSC Cleaned Count',
+          'CSC Not Cleaned Count',
           'Attendance Rate (%)',
           'Geography ID',
           'Geography Name'
@@ -1588,15 +1588,15 @@ const AttendanceContent = () => {
       } else {
         // Other views - geography-wise attendance
         const scopeLabel = activeScope === 'State' ? 'District Name' :
-                          activeScope === 'Districts' ? 'Block Name' :
-                          activeScope === 'Blocks' ? 'GP Name' : 'Geography Name';
+          activeScope === 'Districts' ? 'Block Name' :
+            activeScope === 'Blocks' ? 'GP Name' : 'Geography Name';
 
         headers = [
           scopeLabel,
           'Attendance Percentage (%)',
           'Total Contractors',
-          'Total Present',
-          'Total Absent',
+          'Total CSC Cleaned',
+          'Total CSC Not Cleaned',
           'Geography ID'
         ];
 
@@ -1620,20 +1620,20 @@ const AttendanceContent = () => {
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       // Generate filename with current date, scope, and date range
       const date = new Date().toISOString().split('T')[0];
       const scopeText = activeScope.toLowerCase();
       const dateRangeText = historyDateRange !== 'Custom' ? historyDateRange.toLowerCase().replace(/\s+/g, '_') : 'custom';
       const filename = `attendance_export_${scopeText}_${dateRangeText}_${date}.csv`;
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', filename);
       link.style.visibility = 'hidden';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       console.log(`✅ Exported ${dataToExport.length} attendance records to ${filename}`);
     } catch (error) {
       console.error('Error exporting to CSV:', error);
@@ -1700,14 +1700,14 @@ const AttendanceContent = () => {
   // Check if date range spans more than one day
   const isMultiDayRange = () => {
     if (!startDate || !endDate) return false;
-    
+
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     // Calculate difference in days
     const diffTime = Math.abs(end - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     return diffDays > 0;
   };
 
@@ -1727,7 +1727,7 @@ const AttendanceContent = () => {
       historyStartDate,
       historyEndDate
     });
-    
+
     fetchAttendanceHistory();
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, historyStartDate, historyEndDate, fetchAttendanceHistory]);
 
@@ -1749,7 +1749,7 @@ const AttendanceContent = () => {
       ? apiData
       : (apiData?.response ?? apiData?.data ?? []);
     const safeArray = Array.isArray(dataArray) ? dataArray : [];
-    
+
     if (safeArray.length === 0) {
       return { chartData: generateEmptyChartData(), averageRate: 65 };
     }
@@ -1759,28 +1759,28 @@ const AttendanceContent = () => {
     // Calculate average attendance rate from all API data
     const allAttendanceRates = safeArray.map(item => item.attendance_rate || 0);
     console.log('🔍 Raw Attendance Rates:', allAttendanceRates);
-    
+
     // For new API, attendance_rate is already a percentage, for old API it's decimal
-    const averageRate = allAttendanceRates.length > 0 
+    const averageRate = allAttendanceRates.length > 0
       ? Math.round(allAttendanceRates.reduce((sum, rate) => sum + rate, 0) / allAttendanceRates.length * (isNewAPIFormat ? 1 : 100))
       : 65;
-    
+
     console.log('📊 Average Attendance Rate:', averageRate + '%');
 
     if (activePerformance === 'Time') {
       // Time tab - check if data has month field (new APIs) or date field (old API)
       const hasMonthField = safeArray.length > 0 && safeArray[0].hasOwnProperty('month');
-      
+
       // Create map of API data by month
       const monthMap = new Map();
-      
+
       if (hasMonthField) {
         // New API format - data has month field directly
         safeArray.forEach(item => {
           const monthKey = item.month - 1; // Convert to 0-indexed (1=Jan becomes 0)
-          
+
           console.log('📅 API Month:', item.month, 'Year:', item.year, 'Geography:', item.geo_name || 'State', 'Rate:', item.attendance_rate);
-          
+
           if (!monthMap.has(monthKey)) {
             monthMap.set(monthKey, []);
           }
@@ -1792,36 +1792,36 @@ const AttendanceContent = () => {
           const date = new Date(item.date);
           const month = date.getMonth(); // 0-indexed (0 = January, 11 = December)
           const monthKey = month;
-          
+
           console.log('📅 API Date:', item.date, 'Month:', month + 1, 'Geography:', item.geography_name, 'Rate:', item.attendance_rate);
-          
+
           if (!monthMap.has(monthKey)) {
             monthMap.set(monthKey, []);
           }
           monthMap.get(monthKey).push(item);
         });
       }
-      
+
       console.log('📊 MonthMap keys:', Array.from(monthMap.keys()));
 
       // Generate chart data for all months of the year
       const chartItems = [];
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
+
       for (let month = 0; month < 12; month++) {
         const monthLabel = monthNames[month];
-        
+
         console.log('🔍 Checking month:', { month: month + 1, monthLabel, hasData: monthMap.has(month) });
-        
+
         // Check if we have data for this month
         const monthData = monthMap.get(month);
-        
+
         if (monthData && monthData.length > 0) {
           // Calculate average attendance rate for this month
           const avgAttendanceRate = monthData.reduce((sum, item) => sum + (item.attendance_rate || 0), 0) / monthData.length;
           // New APIs already have percentages, old API uses decimals
           const attendancePercentage = Math.min(Math.round(hasMonthField ? avgAttendanceRate : avgAttendanceRate * 100), 100);
-          
+
           chartItems.push({
             x: monthLabel,
             y: attendancePercentage,
@@ -1836,7 +1836,7 @@ const AttendanceContent = () => {
           });
         }
       }
-      
+
       return { chartData: chartItems, averageRate };
     } else {
       // Location tab
@@ -1844,20 +1844,20 @@ const AttendanceContent = () => {
         // New API - data is already in array format with geo_id, geo_name
         const chartItems = safeArray.map(item => {
           const attendancePercentage = Math.round(item.attendance_rate); // Already a percentage
-          
+
           return {
             x: item.geo_name,
             y: attendancePercentage,
             fillColor: attendancePercentage >= averageRate ? '#10b981' : '#ef4444'
           };
         });
-        
+
         return { chartData: chartItems, averageRate };
       } else {
         // Old API - ALWAYS show all districts (State Performance)
         const districtsList = Array.isArray(districts) ? districts : [];
         let entities = districtsList.map(d => ({ id: d.id, name: d.name }));
-        
+
         // Create map of API data by geography_id
         const geoMap = new Map();
         safeArray.forEach(item => {
@@ -1867,16 +1867,16 @@ const AttendanceContent = () => {
           }
           geoMap.get(key).push(item);
         });
-        
+
         // Match entities with API data
         const chartItems = entities.map(entity => {
           const entityData = geoMap.get(entity.id);
-          
+
           if (entityData && entityData.length > 0) {
             // Calculate average attendance rate
             const avgAttendanceRate = entityData.reduce((sum, item) => sum + (item.attendance_rate || 0), 0) / entityData.length;
             const attendancePercentage = Math.min(Math.round(avgAttendanceRate * 100), 100);
-            
+
             return {
               x: entity.name,
               y: attendancePercentage,
@@ -1891,7 +1891,7 @@ const AttendanceContent = () => {
             };
           }
         });
-        
+
         return { chartData: chartItems, averageRate };
       }
     }
@@ -1902,24 +1902,24 @@ const AttendanceContent = () => {
     if (activePerformance === 'Time') {
       // Time tab - show all months of the year
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
+
       const chartItems = monthNames.map(monthName => ({
         x: monthName,
         y: 0,
         fillColor: '#d1d5db'
       }));
-      
+
       return { chartData: chartItems, averageRate: 65 };
     } else {
       // Location tab - ALWAYS show all districts (State Performance)
       const districtsList = Array.isArray(districts) ? districts : [];
-      return { 
+      return {
         chartData: districtsList.map(district => ({
           x: district.name,
           y: 0,
           fillColor: '#d1d5db'
-        })), 
-        averageRate: 65 
+        })),
+        averageRate: 65
       };
     }
   };
@@ -1937,7 +1937,7 @@ const AttendanceContent = () => {
       historyEndDate,
       historyDateRange
     });
-    
+
     if (isHistoryCustomRange && historyStartDate && historyEndDate) {
       const start = new Date(historyStartDate);
       const end = new Date(historyEndDate);
@@ -1953,7 +1953,7 @@ const AttendanceContent = () => {
   // Handle predefined date range selection for history
   const handleHistoryDateRangeSelection = (range) => {
     console.log('🔄 History date range selected:', range);
-    
+
     if (range.value === 'custom') {
       setIsHistoryCustomRange(true);
       setHistoryDateRange('Custom');
@@ -1962,10 +1962,10 @@ const AttendanceContent = () => {
     } else {
       setIsHistoryCustomRange(false);
       setHistoryDateRange(range.label);
-      
+
       const today = new Date();
       let startDate, endDate;
-      
+
       if (range.value === 'today') {
         startDate = today.toISOString().split('T')[0];
         endDate = today.toISOString().split('T')[0];
@@ -1980,13 +1980,13 @@ const AttendanceContent = () => {
         startDate = start.toISOString().split('T')[0];
         endDate = today.toISOString().split('T')[0];
       }
-      
+
       console.log('📅 Setting history dates:', {
         startDate,
         endDate,
         range: range.label
       });
-      
+
       setHistoryStartDate(startDate);
       setHistoryEndDate(endDate);
       setShowHistoryDateDropdown(false);
@@ -2013,34 +2013,34 @@ const AttendanceContent = () => {
   // Get dynamic attendance metrics from API data
   const getAttendanceMetrics = () => {
     const metrics = calculateAttendanceMetrics();
-    
+
     return [
+      // {
+      //   title: 'Total Vendor/Supervisor',
+      //   value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
+      //   icon: List,
+      //   color: '#3b82f6',
+      //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
+      // },
       {
-        title: 'Total Vendor/Supervisor',
-        value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
-        icon: List,
-        color: '#3b82f6',
-        tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
-      },
-      {
-        title: 'Vendor/Supervisor Present',
+        title: 'CSC Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserCheck,
         color: '#10b981',
-        tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
+        tooltipText: 'Number of vendors and supervisors who marked CSC Cleaning as present for the selected date/period.'
       },
       {
-        title: 'Vendor/Supervisor Absent',
+        title: 'CSC Not Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
-        tooltipText: 'Number of vendors and supervisors who were absent or did not mark attendance for the selected date/period.'
+        tooltipText: 'Number of vendors and supervisors who were absent or did not mark CSC Cleaning for the selected date/period.'
       }
     ];
   };
 
   const attendanceMetrics = getAttendanceMetrics();
-  
+
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
 
@@ -2250,7 +2250,7 @@ const AttendanceContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            Attendance
+            CSC Cleaning
           </h1>
         </div>
 
@@ -2290,13 +2290,13 @@ const AttendanceContent = () => {
           </div>
 
           {/* Location dropdown */}
-          <div 
+          <div
             data-location-dropdown
             style={{
               position: 'relative',
               minWidth: '200px'
             }}>
-            <button 
+            <button
               onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
               disabled={activeScope === 'State'}
               style={{
@@ -2318,13 +2318,13 @@ const AttendanceContent = () => {
                 <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
                 <span>{selectedLocation}</span>
               </div>
-              <ChevronDown style={{ 
-                width: '16px', 
-                height: '16px', 
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af' 
+              <ChevronDown style={{
+                width: '16px',
+                height: '16px',
+                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
               }} />
             </button>
-            
+
             {/* Location Dropdown Menu - CEO: Blocks and GPs ONLY (no districts) */}
             {showLocationDropdown && (
               <div
@@ -2354,35 +2354,35 @@ const AttendanceContent = () => {
                     borderRight: activeScope === 'GPs' ? '1px solid #f3f4f6' : 'none'
                   }}
                 >
-                    {loadingBlocks ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        Loading blocks...
-                      </div>
-                    ) : blocksForActiveDistrict.length === 0 ? (
-                      <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                        No blocks found
-                      </div>
-                    ) : (
-                      blocksForActiveDistrict.map((block) => {
-                        const isActiveBlock = activeHierarchyBlock?.id === block.id;
-                        const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
-                        const showArrow = activeScope === 'GPs';
-                        return (
-                          <div
-                            key={`block-${block.id}`}
-                            onClick={() => handleBlockClick(block)}
-                            onMouseEnter={() => handleBlockHover(block)}
-                            style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
-                          >
-                            <span>{block.name}</span>
-                            {showArrow && (
-                              <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
-                            )}
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
+                  {loadingBlocks ? (
+                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                      Loading blocks...
+                    </div>
+                  ) : blocksForActiveDistrict.length === 0 ? (
+                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
+                      No blocks found
+                    </div>
+                  ) : (
+                    blocksForActiveDistrict.map((block) => {
+                      const isActiveBlock = activeHierarchyBlock?.id === block.id;
+                      const isSelectedBlock = activeScope === 'Blocks' && selectedLocation === block.name;
+                      const showArrow = activeScope === 'GPs';
+                      return (
+                        <div
+                          key={`block-${block.id}`}
+                          onClick={() => handleBlockClick(block)}
+                          onMouseEnter={() => handleBlockHover(block)}
+                          style={getMenuItemStyles(isActiveBlock || isSelectedBlock)}
+                        >
+                          <span>{block.name}</span>
+                          {showArrow && (
+                            <ChevronRight style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
 
                 {/* CEO: Second column is GPs (when GPs tab is active) */}
                 {activeScope === 'GPs' && (
@@ -2496,15 +2496,15 @@ const AttendanceContent = () => {
               • {getDateDisplayText()}
             </span>
           </div>
-          <div 
+          <div
             onClick={handleCalendarClick}
             data-date-dropdown
             style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#6b7280',
-            fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#6b7280',
+              fontSize: '14px',
               padding: '8px 12px',
               border: '1px solid #d1d5db',
               borderRadius: '8px',
@@ -2517,10 +2517,10 @@ const AttendanceContent = () => {
             <Calendar style={{ width: '16px', height: '16px' }} />
             <span>{getDateDisplayText()}</span>
             <ChevronDown style={{ width: '16px', height: '16px' }} />
-            
+
             {/* Modern Date Range Picker */}
             {showDateDropdown && (
-              <div 
+              <div
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   position: 'absolute',
@@ -2546,11 +2546,11 @@ const AttendanceContent = () => {
                   padding: '16px 0'
                 }}>
                   <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
-                    <h3 style={{ 
-                      margin: 0, 
-                      fontSize: '14px', 
-                      fontWeight: '600', 
-                      color: '#1e293b' 
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#1e293b'
                     }}>
                       Quick Select
                     </h3>
@@ -2583,23 +2583,23 @@ const AttendanceContent = () => {
                 }}>
                   {isCustomRange ? (
                     <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Select Date Range
                       </h3>
-                      
+
                       {/* Custom Date Inputs - use drafts; only commit on Apply to avoid API call until then */}
                       <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
                         <div>
-                          <label style={{ 
-                            display: 'block', 
-                            fontSize: '12px', 
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                          <label style={{
+                            display: 'block',
+                            fontSize: '12px',
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             Start Date
                           </label>
@@ -2618,11 +2618,11 @@ const AttendanceContent = () => {
                           />
                         </div>
                         <div>
-                          <label style={{ 
-                            display: 'block', 
+                          <label style={{
+                            display: 'block',
                             fontSize: '12px',
-                            color: '#64748b', 
-                            marginBottom: '4px' 
+                            color: '#64748b',
+                            marginBottom: '4px'
                           }}>
                             End Date
                           </label>
@@ -2643,9 +2643,9 @@ const AttendanceContent = () => {
                       </div>
 
                       {/* Action Buttons */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '8px', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '8px',
                         justifyContent: 'flex-end'
                       }}>
                         <button
@@ -2671,7 +2671,7 @@ const AttendanceContent = () => {
                         >
                           Cancel
                         </button>
-                        
+
                         <button
                           onClick={() => {
                             const s = (customStartDraft || '').trim();
@@ -2713,15 +2713,15 @@ const AttendanceContent = () => {
                     </div>
                   ) : (
                     <div>
-                      <h3 style={{ 
-                        margin: '0 0 16px 0', 
-                        fontSize: '14px', 
-                        fontWeight: '600', 
-                        color: '#1e293b' 
+                      <h3 style={{
+                        margin: '0 0 16px 0',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
                       }}>
                         Selected Range
                       </h3>
-                      
+
                       <div style={{
                         padding: '12px',
                         backgroundColor: '#f0fdf4',
@@ -2738,7 +2738,7 @@ const AttendanceContent = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <button
                         onClick={() => setShowDateDropdown(false)}
                         style={{
@@ -2769,7 +2769,6 @@ const AttendanceContent = () => {
           {/* Left Side - Three Cards */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
             gap: '12px',
             width: '75%'
           }}>
@@ -2780,7 +2779,8 @@ const AttendanceContent = () => {
               borderRadius: '8px',
               border: '1px solid #e5e7eb',
               position: 'relative',
-              minHeight: isMultiDayRange() ? '315px' : '140px'
+              minHeight: isMultiDayRange() ? '315px' : '140px',
+              width: '100%'
             }}>
               {/* Info icon */}
               <div style={{
@@ -2797,13 +2797,21 @@ const AttendanceContent = () => {
 
               {/* Card content */}
               <div >
-                
+
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
                 }}>
-                  {React.createElement(attendanceMetrics[0].icon, { style: { width: '16px', height: '16px', color: '#6b7280' } })}
+                  <span
+                    style={{
+                      background: 'green',
+                      borderRadius: '50%',
+                      width: '8px',
+                      height: '8px',
+                    }}
+                  >
+                  </span>
                   <span style={{
                     fontSize: '14px',
                     color: '#6b7280',
@@ -2824,7 +2832,7 @@ const AttendanceContent = () => {
               }}>
                 {analyticsError ? '—' : attendanceMetrics[0].value}
               </div>
-              
+
               {/* Loading indicator */}
               {loadingAnalytics && (
                 <div style={{
@@ -2836,7 +2844,7 @@ const AttendanceContent = () => {
                   Loading...
                 </div>
               )}
-              
+
               {/* Error message */}
               {analyticsError && (
                 <div style={{
@@ -2863,7 +2871,7 @@ const AttendanceContent = () => {
                   borderRadius: '8px',
                   border: '1px solid #e5e7eb',
                   position: 'relative',
-                  width: '50%',
+                  width: '100%',
                   minHeight: '159px'
                 }}>
                   {/* Info icon */}
@@ -2912,7 +2920,7 @@ const AttendanceContent = () => {
                   }}>
                     {analyticsError ? '—' : item.value}
                   </div>
-                  
+
                   {/* Loading indicator */}
                   {loadingAnalytics && (
                     <div style={{
@@ -2924,7 +2932,7 @@ const AttendanceContent = () => {
                       Loading...
                     </div>
                   )}
-                  
+
                   {/* Error message */}
                   {analyticsError && (
                     <div style={{
@@ -2957,7 +2965,7 @@ const AttendanceContent = () => {
               right: '12px'
             }}>
               <InfoTooltip
-                text="Overall attendance statistics for vendors and supervisors in the selected date/period and location."
+                text="Overall CSC Cleaning statistics for CSC Cleaned  in the selected date/period and location."
                 size={16}
                 color="#9ca3af"
               />
@@ -2976,7 +2984,7 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                Attendance
+                CSC Cleaning
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -2999,9 +3007,9 @@ const AttendanceContent = () => {
                 const attendanceData = calculateAttendancePercentage();
                 return (
                   <div>
-                    <SegmentedGauge 
-                      percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage} 
-                      label={loadingAnalytics ? "Loading..." : "Present"}
+                    <SegmentedGauge
+                      percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
+                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -3012,8 +3020,8 @@ const AttendanceContent = () => {
         </div>
       </div>
 
-        {/* Top 3 and State Performance Section - Hidden in GP view */}
-        {activeScope !== 'GPs' && (
+      {/* Top 3 and State Performance Section - Hidden in GP view */}
+      {activeScope !== 'GPs' && (
         <div style={{
           display: 'flex',
           gap: '16px',
@@ -3021,183 +3029,183 @@ const AttendanceContent = () => {
           marginRight: '16px',
           marginTop: '16px'
         }}>
-        {/* Top 3 Section */}
-        <div style={{
-          flex: 1.2,
-          backgroundColor: 'white',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid lightgray',
-          minHeight: '450px'
-        }}>
-          {/* Top 3 Header */}
-          <div className="top3-header-container" style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '16px'
+          {/* Top 3 Section */}
+          <div style={{
+            flex: 1.2,
+            backgroundColor: 'white',
+            padding: '16px',
+            borderRadius: '8px',
+            border: '1px solid lightgray',
+            minHeight: '450px'
           }}>
-            <div style={{
+            {/* Top 3 Header */}
+            <div className="top3-header-container" style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              justifyContent: 'space-between',
+              marginBottom: '16px'
             }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Top 3
-              </h2>
-              <InfoTooltip
-                text="Top 3 performers ranked by attendance score. Monthly score = attendance % for selected month. Yearly score = average attendance % across all months in the selected year."
-                size={16}
-                color="#9ca3af"
-              />
-            </div>
-            
-            {/* Right side controls in same row */}
-            <div className="top3-controls-container" style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              {/* District/Block/GP Dropdown */}
-              <div 
-                data-top3-dropdown
-                style={{
-                  position: 'relative',
-                  minWidth: '100px'
-                }}
-              >
-                <button 
-                  onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#6b7280'
-                  }}
-                >
-                  <span>{top3Scope}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-                
-                {/* Top 3 Dropdown Menu */}
-                {showTop3Dropdown && (
-                  <div 
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      zIndex: 1000,
-                      marginTop: '4px',
-                      maxHeight: '200px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {top3ScopeOptions.map((option) => (
-                      <div
-                        key={option}
-                        onClick={() => {
-                          setTop3Scope(option);
-                          setShowTop3Dropdown(false);
-                        }}
-                        style={{
-                          padding: '8px 12px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
-                          borderBottom: '1px solid #f3f4f6'
-                        }}
-                      >
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Month/Year Tabs */}
               <div style={{
                 display: 'flex',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '12px',
-                padding: '4px',
-                gap: '2px'
+                alignItems: 'center',
+                gap: '8px'
               }}>
-                {top3PeriodButtons.map((period) => (
-                  <button
-                    key={period}
-                    onClick={() => setTop3Period(period)}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      backgroundColor: top3Period === period ? '#10b981' : 'transparent',
-                      color: top3Period === period ? 'white' : '#6b7280',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {period}
-                  </button>
-                ))}
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Top 3
+                </h2>
+                <InfoTooltip
+                  text="Top 3 performers ranked by CSC Cleaning score. Monthly score = CSC Cleaning % for selected month. Yearly score = average CSC Cleaning % across all months in the selected year."
+                  size={16}
+                  color="#9ca3af"
+                />
               </div>
 
-              {/* Conditional Month/Year Dropdown */}
-              <div 
-                data-top3-period-dropdown
-                style={{
-                  position: 'relative',
-                  minWidth: '120px'
-                }}
-              >
-                <button 
-                  onClick={() => setShowTop3PeriodDropdown(!showTop3PeriodDropdown)}
+              {/* Right side controls in same row */}
+              <div className="top3-controls-container" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                {/* District/Block/GP Dropdown */}
+                <div
+                  data-top3-dropdown
                   style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    fontWeight: '500',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden'
+                    position: 'relative',
+                    minWidth: '100px'
                   }}
                 >
-                  <span style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    flex: 1,
-                    textAlign: 'left'
-                  }}>
-                    {top3Period === 'Month' 
-                      ? (() => {
+                  <button
+                    onClick={() => setShowTop3Dropdown(!showTop3Dropdown)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}
+                  >
+                    <span>{top3Scope}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {/* Top 3 Dropdown Menu */}
+                  {showTop3Dropdown && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        marginTop: '4px',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {top3ScopeOptions.map((option) => (
+                        <div
+                          key={option}
+                          onClick={() => {
+                            setTop3Scope(option);
+                            setShowTop3Dropdown(false);
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: top3Scope === option ? '#f3f4f6' : 'transparent',
+                            borderBottom: '1px solid #f3f4f6'
+                          }}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Month/Year Tabs */}
+                <div style={{
+                  display: 'flex',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '12px',
+                  padding: '4px',
+                  gap: '2px'
+                }}>
+                  {top3PeriodButtons.map((period) => (
+                    <button
+                      key={period}
+                      onClick={() => setTop3Period(period)}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        backgroundColor: top3Period === period ? '#10b981' : 'transparent',
+                        color: top3Period === period ? 'white' : '#6b7280',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {period}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Conditional Month/Year Dropdown */}
+                <div
+                  data-top3-period-dropdown
+                  style={{
+                    position: 'relative',
+                    minWidth: '120px'
+                  }}
+                >
+                  <button
+                    onClick={() => setShowTop3PeriodDropdown(!showTop3PeriodDropdown)}
+                    style={{
+                      width: '100%',
+                      padding: '6px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#374151',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <span style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      flex: 1,
+                      textAlign: 'left'
+                    }}>
+                      {top3Period === 'Month'
+                        ? (() => {
                           const month = months.find(m => m.value === top3SelectedMonth);
                           return month ? (
                             <>
@@ -3206,143 +3214,816 @@ const AttendanceContent = () => {
                             </>
                           ) : ''
                         })()
-                      : top3SelectedYear}
-                  </span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0, marginLeft: '8px' }} />
-                </button>
-                
-                {/* Month/Year Dropdown Menu */}
-                {showTop3PeriodDropdown && (
-                  <div 
-                    onClick={(e) => e.stopPropagation()}
+                        : top3SelectedYear}
+                    </span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0, marginLeft: '8px' }} />
+                  </button>
+
+                  {/* Month/Year Dropdown Menu */}
+                  {showTop3PeriodDropdown && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        zIndex: 9999,
+                        marginTop: '4px',
+                        maxHeight: '250px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {top3Period === 'Month' ? (
+                        // Show months
+                        months.map((month) => (
+                          <div
+                            key={month.value}
+                            onClick={() => {
+                              setTop3SelectedMonth(month.value);
+                              setShowTop3PeriodDropdown(false);
+                            }}
+                            style={{
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#374151',
+                              backgroundColor: top3SelectedMonth === month.value ? '#f3f4f6' : 'transparent',
+                              borderBottom: '1px solid #f3f4f6'
+                            }}
+                          >
+                            {month.name}
+                          </div>
+                        ))
+                      ) : (
+                        // Show years
+                        years.map((year) => (
+                          <div
+                            key={year}
+                            onClick={() => {
+                              setTop3SelectedYear(year);
+                              setShowTop3PeriodDropdown(false);
+                            }}
+                            style={{
+                              padding: '10px 16px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: '#374151',
+                              backgroundColor: top3SelectedYear === year ? '#f3f4f6' : 'transparent',
+                              borderBottom: '1px solid #f3f4f6'
+                            }}
+                          >
+                            {year}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Top 3 Table */}
+            <div style={{
+              overflowX: 'auto'
+            }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse'
+              }}>
+                <thead>
+                  <tr style={{
+                    borderBottom: '1px solid #e5e7eb'
+                  }}>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {activeScope === 'State' ? 'District' :
+                        activeScope === 'Districts' ? 'Block' :
+                          activeScope === 'Blocks' ? 'GP' : 'GP'}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      Rank
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingTop3 ? (
+                    <tr>
+                      <td colSpan="3" style={{
+                        padding: '40px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#6b7280'
+                      }}>
+                        Loading top 3 data...
+                      </td>
+                    </tr>
+                  ) : (top3Error || top3Data.length === 0) ? (
+                    <tr>
+                      <td colSpan="3" style={{ padding: 0 }}>
+                        <NoDataFound size="small" />
+                      </td>
+                    </tr>
+                  ) : (
+                    top3Data.map((item, index) => (
+                      <tr key={item.id || index} style={{
+                        borderBottom: '1px solid #f3f4f6'
+                      }}>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {item.name}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {item.monthlyScore}%
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          <div style={{
+                            backgroundColor: item.rank === 1 ? '#dcfce7' :
+                              item.rank === 2 ? '#fef3c7' : '#fce7f3',
+                            color: item.rank === 1 ? '#166534' :
+                              item.rank === 2 ? '#92400e' : '#be185d',
+                            padding: '4px 8px',
+                            borderRadius: '50%',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            width: '24px',
+                            height: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            {item.rank}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* State Performance Score Section */}
+          <div style={{
+            flex: 1.5,
+            backgroundColor: 'white',
+            padding: '16px',
+            borderRadius: '8px',
+            border: '1px solid lightgray',
+            minHeight: '450px'
+          }}>
+            {/* State Performance Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '5px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  {activeScope === 'State' ? 'State performance score' :
+                    activeScope === 'Districts' ? 'District performance score' :
+                      activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
+                </h2>
+                <InfoTooltip
+                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned / Total CSCs) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  size={16}
+                  color="#9ca3af"
+                />
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                {/* Time/Location Tabs */}
+                <div style={{
+                  display: 'flex',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '12px',
+                  padding: '4px',
+                  gap: '2px'
+                }}>
+                  {performanceButtons.map((scope) => (
+                    <button
+                      key={scope}
+                      onClick={() => setActivePerformance(scope)}
+                      style={{
+                        padding: '3px 10px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        backgroundColor: activePerformance === scope ? '#10b981' : 'transparent',
+                        color: activePerformance === scope ? 'white' : '#6b7280',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {scope}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Year Dropdown */}
+                <div
+                  data-performance-year-dropdown
+                  style={{
+                    position: 'relative',
+                    minWidth: '100px'
+                  }}
+                >
+                  <button
+                    onClick={() => setShowPerformanceYearDropdown(!showPerformanceYearDropdown)}
                     style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: 'white',
+                      width: '100%',
+                      padding: '6px 12px',
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      zIndex: 9999,
-                      marginTop: '4px',
-                      maxHeight: '250px',
-                      overflowY: 'auto'
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#374151',
+                      fontWeight: '500'
                     }}
                   >
-                    {top3Period === 'Month' ? (
-                      // Show months
-                      months.map((month) => (
-                        <div
-                          key={month.value}
-                          onClick={() => {
-                            setTop3SelectedMonth(month.value);
-                            setShowTop3PeriodDropdown(false);
-                          }}
-                          style={{
-                            padding: '10px 16px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            color: '#374151',
-                            backgroundColor: top3SelectedMonth === month.value ? '#f3f4f6' : 'transparent',
-                            borderBottom: '1px solid #f3f4f6'
-                          }}
-                        >
-                          {month.name}
-                        </div>
-                      ))
-                    ) : (
-                      // Show years
-                      years.map((year) => (
+                    <span>{performanceSelectedYear}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {/* Year Dropdown Menu */}
+                  {showPerformanceYearDropdown && (
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        backgroundColor: 'white',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1000,
+                        marginTop: '4px',
+                        maxHeight: '250px',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      {years.map((year) => (
                         <div
                           key={year}
                           onClick={() => {
-                            setTop3SelectedYear(year);
-                            setShowTop3PeriodDropdown(false);
+                            setPerformanceSelectedYear(year);
+                            setShowPerformanceYearDropdown(false);
                           }}
                           style={{
                             padding: '10px 16px',
                             cursor: 'pointer',
                             fontSize: '14px',
                             color: '#374151',
-                            backgroundColor: top3SelectedYear === year ? '#f3f4f6' : 'transparent',
+                            backgroundColor: performanceSelectedYear === year ? '#f3f4f6' : 'transparent',
                             borderBottom: '1px solid #f3f4f6'
                           }}
                         >
                           {year}
                         </div>
-                      ))
-                    )}
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+
+
+            {/* Legend */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
+              marginBottom: '8px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ef4444'
+                }}></div>
+                <span style={{
+                  fontSize: '12px',
+                  color: '#6b7280'
+                }}>
+                  Below state average
+                </span>
+              </div>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#10b981'
+                }}></div>
+                <span style={{
+                  fontSize: '12px',
+                  color: '#6b7280'
+                }}>
+                  Above state average
+                </span>
+              </div>
+            </div>
+
+            <divider />
+            <div style={{
+              height: '1px',
+              backgroundColor: '#e5e7eb',
+              margin: '12px 0'
+            }}></div>
+
+            {/* Bar Chart */}
+            <div style={{ height: '300px' }}>
+              {(() => {
+                const currentChartData = generateDynamicXAxisData();
+
+                // Show loading state if data is being fetched
+                if (loadingChartData) {
+                  return (
+                    <div style={{
+                      height: '300px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#6b7280',
+                      fontSize: '14px'
+                    }}>
+                      Loading chart data...
+                    </div>
+                  );
+                }
+
+                // Show error state or empty state with NoDataFound component
+                if (chartError || !Array.isArray(currentChartData) || currentChartData.length === 0) {
+                  return (
+                    <div style={{ height: '300px' }}>
+                      <NoDataFound size="medium" />
+                    </div>
+                  );
+                }
+
+                return (
+                  <Chart
+                    options={{
+                      chart: {
+                        type: 'bar',
+                        height: 300,
+                        toolbar: { show: false }
+                      },
+                      plotOptions: {
+                        bar: {
+                          horizontal: false,
+                          columnWidth: '60%',
+                          borderRadius: 4
+                        }
+                      },
+                      dataLabels: { enabled: false },
+                      stroke: { show: false },
+                      grid: {
+                        show: true,
+                        borderColor: '#f1f5f9',
+                        strokeDashArray: 0,
+                        position: 'back',
+                        xaxis: { lines: { show: false } },
+                        yaxis: { lines: { show: true } },
+                        padding: { top: 0, right: 0, bottom: 0, left: 0 }
+                      },
+                      xaxis: {
+                        labels: {
+                          style: {
+                            fontSize: activePerformance === 'Time' ? '10px' : '11px',
+                            colors: '#6b7280'
+                          },
+                          rotate: activePerformance === 'Time' ? -90 : -45,
+                          maxHeight: activePerformance === 'Time' ? 60 : 50,
+                          trim: true,
+                          hideOverlappingLabels: true
+                        },
+                        axisBorder: { show: false },
+                        axisTicks: { show: false }
+                      },
+                      yaxis: {
+                        min: 0,
+                        max: 100,
+                        tickAmount: 5,
+                        labels: {
+                          style: {
+                            fontSize: '12px',
+                            colors: '#6b7280'
+                          },
+                          formatter: function (val) {
+                            return val
+                          }
+                        }
+                      },
+                      colors: ['#10b981', '#ef4444'],
+                      annotations: {
+                        yaxis: [{
+                          y: averageAttendanceRate,
+                          borderColor: '#6b7280',
+                          borderWidth: 2,
+                          borderDashArray: [5, 5],
+                          label: {
+                            show: false
+                          }
+                        }]
+                      },
+                      tooltip: {
+                        enabled: true,
+                        y: {
+                          formatter: function (val) {
+                            return val + '%'
+                          }
+                        }
+                      }
+                    }}
+                    series={[{
+                      name: 'Performance Score',
+                      data: Array.isArray(currentChartData) ? currentChartData : []
+                    }]}
+                    type="bar"
+                    height={340}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Attendance History Section */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: '16px 24px',
+        marginLeft: '16px',
+        marginRight: '16px',
+        marginTop: '16px',
+        borderRadius: '8px',
+        border: '1px solid lightgray'
+      }}>
+        {/* Attendance History Header */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          marginBottom: '20px'
+        }}>
+          <div style={{ position: 'relative' }}>
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0
+            }}>
+              CSC Cleaning History
+            </h2>
+            <div
+              onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
+              data-history-date-dropdown
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#6b7280',
+                fontSize: '14px',
+                marginTop: '14px',
+                padding: '4px 8px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                width: 'fit-content'
+              }}
+            >
+              <Calendar style={{ width: '16px', height: '16px' }} />
+              <span>{getHistoryDateDisplayText()}</span>
+              <ChevronDown style={{ width: '16px', height: '16px' }} />
+            </div>
+
+            {/* History Date Dropdown */}
+            {showHistoryDateDropdown && (
+              <div
+                data-history-date-dropdown
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: '0',
+                  zIndex: 1000,
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  minWidth: '200px',
+                  marginTop: '4px'
+                }}>
+                {/* Predefined ranges */}
+                <div style={{ padding: '8px 0' }}>
+                  {[
+                    { label: 'Today', value: 'today', days: 0 },
+                    { label: 'Yesterday', value: 'yesterday', days: 1 },
+                    { label: 'Last 7 days', value: 'last7days', days: 7 },
+                    { label: 'Last 30 days', value: 'last30days', days: 30 },
+                    { label: 'Last 90 days', value: 'last90days', days: 90 },
+                    { label: 'Custom', value: 'custom' }
+                  ].map((range) => (
+                    <div
+                      key={range.value}
+                      onClick={(e) => {
+                        console.log('🖱️ History date option clicked:', range);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleHistoryDateRangeSelection(range);
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#374151',
+                        backgroundColor: historyDateRange === range.label ? '#f3f4f6' : 'transparent'
+                      }}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.target.style.backgroundColor = historyDateRange === range.label ? '#f3f4f6' : 'transparent'}
+                    >
+                      {range.label}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Custom date picker */}
+                {isHistoryCustomRange && (
+                  <div style={{
+                    borderTop: '1px solid #e5e7eb',
+                    padding: '12px 16px',
+                    backgroundColor: '#f9fafb'
+                  }}>
+                    <div style={{ marginBottom: '8px', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
+                      Select Date Range
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="date"
+                        value={historyStartDate || ''}
+                        onKeyDown={handleDateKeyDown}
+                        onChange={(e) => setHistoryStartDate(e.target.value)}
+                        style={{
+                          padding: '4px 8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          width: '100%'
+                        }}
+                      />
+                      <span style={{ fontSize: '12px', color: '#6b7280' }}>to</span>
+                      <input
+                        type="date"
+                        value={historyEndDate || ''}
+                        onKeyDown={handleDateKeyDown}
+                        onChange={(e) => setHistoryEndDate(e.target.value)}
+                        style={{
+                          padding: '4px 8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          width: '100%'
+                        }}
+                      />
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Top 3 Table */}
           <div style={{
-            overflowX: 'auto'
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
           }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
+            {/* Sort Button */}
+            <button
+              onClick={toggleHistorySortOrder}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                backgroundColor: 'white',
+                color: '#374151',
+                cursor: 'pointer'
+              }}
+            >
+              <Filter style={{ width: '16px', height: '16px' }} />
+              {historySortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+            </button>
+
+            {/* Search Bar */}
+            <div style={{
+              position: 'relative',
+              width: '180px'
             }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '1px solid #e5e7eb'
+              <Search style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '16px',
+                height: '16px',
+                color: '#9ca3af'
+              }} />
+              <input
+                type="text"
+                placeholder="Search"
+                value={historySearchTerm}
+                onChange={(e) => setHistorySearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  paddingLeft: '40px',
+                  paddingRight: '12px',
+                  paddingTop: '3px',
+                  paddingBottom: '3px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '14px',
+                  outline: 'none',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            {/* Download Button */}
+            <button
+              onClick={exportToCSV}
+              style={{
+                width: '36px',
+                height: '30px',
+                borderRadius: '15%',
+                border: 'none',
+                backgroundColor: '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'white'
+              }}
+            >
+              <Download style={{ width: '16px', height: '16px' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Attendance History Table */}
+        <div style={{
+          overflowX: 'auto',
+          maxHeight: '1000px',
+          overflowY: 'auto'
+        }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse'
+          }}>
+            <thead>
+              <tr style={{
+                borderBottom: '2px solid #e5e7eb'
+              }}>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
                 }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
+                  {activeScope === 'GPs' ? 'Date' :
+                    activeScope === 'State' ? 'District name' :
+                      activeScope === 'Districts' ? 'Block name' :
+                        activeScope === 'Blocks' ? 'GP name' : 'Village name'}
+                  <div style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '12px',
+                    color: '#9ca3af'
                   }}>
-                    {activeScope === 'State' ? 'District' : 
-                     activeScope === 'Districts' ? 'Block' : 
-                     activeScope === 'Blocks' ? 'GP' : 'GP'}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
+                    ↕
+                  </div>
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaning (%)'}
+                  <div style={{
+                    position: 'absolute',
+                    right: '8px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '12px',
+                    color: '#9ca3af'
                   }}>
-                    {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
+                    ↕
+                  </div>
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'right',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151'
+                }}>
+                  Action
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingHistory ? (
+                <tr>
+                  <td colSpan="3" style={{
+                    padding: '40px',
+                    textAlign: 'center',
                     fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
+                    color: '#6b7280'
                   }}>
-                    Rank
-                  </th>
+                    Loading  history...
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {loadingTop3 ? (
-                  <tr>
-                    <td colSpan="3" style={{
-                      padding: '40px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      Loading top 3 data...
-                    </td>
-                  </tr>
-                ) : (top3Error || top3Data.length === 0) ? (
-                  <tr>
-                    <td colSpan="3" style={{ padding: 0 }}>
-                      <NoDataFound size="small" />
-                    </td>
-                  </tr>
-                ) : (
-                  top3Data.map((item, index) => (
-                    <tr key={item.id || index} style={{
+              ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
+                <tr>
+                  <td colSpan="3" style={{ padding: 0 }}>
+                    <NoDataFound size="small" />
+                  </td>
+                </tr>
+              ) : (
+                getFilteredAndSortedHistoryData().map((item, index) => (
+                  <tr key={item.id || index} style={{
                     borderBottom: '1px solid #f3f4f6'
                   }}>
                     <td style={{
@@ -3350,702 +4031,29 @@ const AttendanceContent = () => {
                       fontSize: '14px',
                       color: '#374151'
                     }}>
-                        {item.name}
+                      {activeScope === 'GPs' ? (
+                        // Format date as DD/MM/YYYY
+                        item.date ? new Date(item.date).toLocaleDateString('en-GB') : item.date
+                      ) : (
+                        item.name || '-'
+                      )}
                     </td>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
-                      color: '#374151'
+                      color: activeScope === 'GPs'
+                        ? (item.status === 'CSC Cleaned' ? '#10b981' : '#ef4444')
+                        : '#374151'
                     }}>
-                        {item.monthlyScore}%
+                      {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}
                     </td>
                     <td style={{
                       padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
+                      textAlign: 'right'
                     }}>
-                      <div style={{
-                          backgroundColor: item.rank === 1 ? '#dcfce7' : 
-                                         item.rank === 2 ? '#fef3c7' : '#fce7f3',
-                          color: item.rank === 1 ? '#166534' : 
-                                item.rank === 2 ? '#92400e' : '#be185d',
-                        padding: '4px 8px',
-                        borderRadius: '50%',
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        {item.rank}
-                      </div>
-                    </td>
-                  </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* State Performance Score Section */}
-        <div style={{
-          flex: 1.5,
-          backgroundColor: 'white',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid lightgray',
-          minHeight: '450px'
-        }}>
-          {/* State Performance Header */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: '5px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                {activeScope === 'State' ? 'State performance score' : 
-                 activeScope === 'Districts' ? 'District performance score' : 
-                 activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
-              </h2>
-              <InfoTooltip
-                text="Performance score is calculated based on attendance percentage: (Present count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
-                size={16}
-                color="#9ca3af"
-              />
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              {/* Time/Location Tabs */}
-              <div style={{
-                display: 'flex',
-                backgroundColor: '#f3f4f6',
-                borderRadius: '12px',
-                padding: '4px',
-                gap: '2px'
-              }}>
-                {performanceButtons.map((scope) => (
-                  <button
-                    key={scope}
-                    onClick={() => setActivePerformance(scope)}
-                    style={{
-                      padding: '3px 10px',
-                      borderRadius: '8px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      backgroundColor: activePerformance === scope ? '#10b981' : 'transparent',
-                      color: activePerformance === scope ? 'white' : '#6b7280',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {scope}
-                  </button>
-                ))}
-              </div>
-
-              {/* Year Dropdown */}
-              <div 
-                data-performance-year-dropdown
-                style={{
-                  position: 'relative',
-                  minWidth: '100px'
-                }}
-              >
-                <button 
-                  onClick={() => setShowPerformanceYearDropdown(!showPerformanceYearDropdown)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    backgroundColor: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#374151',
-                    fontWeight: '500'
-                  }}
-                >
-                  <span>{performanceSelectedYear}</span>
-                  <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                </button>
-                
-                {/* Year Dropdown Menu */}
-                {showPerformanceYearDropdown && (
-                  <div 
-                    onClick={(e) => e.stopPropagation()}
-                    style={{
-                      position: 'absolute',
-                      top: '100%',
-                      right: 0,
-                      backgroundColor: 'white',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      zIndex: 1000,
-                      marginTop: '4px',
-                      maxHeight: '250px',
-                      overflowY: 'auto'
-                    }}
-                  >
-                    {years.map((year) => (
-                      <div
-                        key={year}
-                        onClick={() => {
-                          setPerformanceSelectedYear(year);
-                          setShowPerformanceYearDropdown(false);
-                        }}
+                      <button
+                        onClick={() => handleOpenNoticeModal(item)}
                         style={{
-                          padding: '10px 16px',
-                          cursor: 'pointer',
-                          fontSize: '14px',
-                          color: '#374151',
-                          backgroundColor: performanceSelectedYear === year ? '#f3f4f6' : 'transparent',
-                          borderBottom: '1px solid #f3f4f6'
-                        }}
-                      >
-                        {year}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-        
-
-          {/* Legend */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px',
-            marginBottom: '8px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: '#ef4444'
-              }}></div>
-              <span style={{
-                fontSize: '12px',
-                color: '#6b7280'
-              }}>
-                Below state average
-              </span>
-            </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}>
-              <div style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: '#10b981'
-              }}></div>
-              <span style={{
-                fontSize: '12px',
-                color: '#6b7280'
-              }}>
-                Above state average
-              </span>
-            </div>
-          </div>
-
-          <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
-            
-          {/* Bar Chart */}
-          <div style={{ height: '300px' }}>
-            {(() => {
-              const currentChartData = generateDynamicXAxisData();
-              
-              // Show loading state if data is being fetched
-              if (loadingChartData) {
-                return (
-                  <div style={{
-                    height: '300px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#6b7280',
-                    fontSize: '14px'
-                  }}>
-                    Loading chart data...
-                  </div>
-                );
-              }
-              
-              // Show error state or empty state with NoDataFound component
-              if (chartError || !Array.isArray(currentChartData) || currentChartData.length === 0) {
-                return (
-                  <div style={{ height: '300px' }}>
-                    <NoDataFound size="medium" />
-                  </div>
-                );
-              }
-              
-              return (
-                <Chart
-              options={{
-                chart: {
-                  type: 'bar',
-                  height: 300,
-                  toolbar: { show: false }
-                },
-                plotOptions: {
-                  bar: {
-                    horizontal: false,
-                    columnWidth: '60%',
-                    borderRadius: 4
-                  }
-                },
-                dataLabels: { enabled: false },
-                stroke: { show: false },
-                grid: {
-                  show: true,
-                  borderColor: '#f1f5f9',
-                  strokeDashArray: 0,
-                  position: 'back',
-                  xaxis: { lines: { show: false } },
-                  yaxis: { lines: { show: true } },
-                  padding: { top: 0, right: 0, bottom: 0, left: 0 }
-                },
-                xaxis: {
-                  labels: {
-                    style: {
-                      fontSize: activePerformance === 'Time' ? '10px' : '11px',
-                      colors: '#6b7280'
-                    },
-                    rotate: activePerformance === 'Time' ? -90 : -45,
-                    maxHeight: activePerformance === 'Time' ? 60 : 50,
-                    trim: true,
-                    hideOverlappingLabels: true
-                  },
-                  axisBorder: { show: false },
-                  axisTicks: { show: false }
-                },
-                yaxis: {
-                  min: 0,
-                  max: 100,
-                  tickAmount: 5,
-                  labels: {
-                    style: {
-                      fontSize: '12px',
-                      colors: '#6b7280'
-                    },
-                    formatter: function(val) {
-                      return val
-                    }
-                  }
-                },
-                colors: ['#10b981', '#ef4444'],
-                annotations: {
-                  yaxis: [{
-                    y: averageAttendanceRate,
-                    borderColor: '#6b7280',
-                    borderWidth: 2,
-                    borderDashArray: [5, 5],
-                    label: {
-                      show: false
-                    }
-                  }]
-                },
-                tooltip: {
-                  enabled: true,
-                  y: {
-                    formatter: function(val) {
-                      return val + '%'
-                    }
-                  }
-                }
-              }}
-              series={[{
-                name: 'Performance Score',
-                data: Array.isArray(currentChartData) ? currentChartData : []
-              }]}
-              type="bar"
-              height={340}
-            />
-              );
-            })()}
-          </div>
-        </div>
-      </div>
-        )}
-
-        {/* Attendance History Section */}
-        <div style={{
-          backgroundColor: 'white',
-          padding: '16px 24px',
-          marginLeft: '16px',
-          marginRight: '16px',
-          marginTop: '16px',
-          borderRadius: '8px',
-          border: '1px solid lightgray'
-        }}>
-          {/* Attendance History Header */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-            marginBottom: '20px'
-          }}>
-            <div style={{ position: 'relative' }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Attendance History
-              </h2>
-               <div 
-                 onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
-                 data-history-date-dropdown
-                 style={{
-                   display: 'flex',
-                   alignItems: 'center',
-                   gap: '6px',
-                   color: '#6b7280',
-                   fontSize: '14px',
-                   marginTop: '14px',
-                   padding: '4px 8px',
-                   border: '1px solid #d1d5db',
-                   borderRadius: '6px',
-                   backgroundColor: 'white',
-                   cursor: 'pointer',
-                   width: 'fit-content'
-                 }}
-               >
-                 <Calendar style={{ width: '16px', height: '16px' }} />
-                 <span>{getHistoryDateDisplayText()}</span>
-                 <ChevronDown style={{ width: '16px', height: '16px' }} />
-               </div>
-               
-               {/* History Date Dropdown */}
-               {showHistoryDateDropdown && (
-                 <div 
-                   data-history-date-dropdown
-                   style={{
-                     position: 'absolute',
-                     top: '100%',
-                     left: '0',
-                     zIndex: 1000,
-                     backgroundColor: 'white',
-                     border: '1px solid #d1d5db',
-                     borderRadius: '8px',
-                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                     minWidth: '200px',
-                     marginTop: '4px'
-                   }}>
-                   {/* Predefined ranges */}
-                   <div style={{ padding: '8px 0' }}>
-                     {[
-                       { label: 'Today', value: 'today', days: 0 },
-                       { label: 'Yesterday', value: 'yesterday', days: 1 },
-                       { label: 'Last 7 days', value: 'last7days', days: 7 },
-                       { label: 'Last 30 days', value: 'last30days', days: 30 },
-                       { label: 'Last 90 days', value: 'last90days', days: 90 },
-                       { label: 'Custom', value: 'custom' }
-                     ].map((range) => (
-                       <div
-                         key={range.value}
-                         onClick={(e) => {
-                           console.log('🖱️ History date option clicked:', range);
-                           e.preventDefault();
-                           e.stopPropagation();
-                           handleHistoryDateRangeSelection(range);
-                         }}
-                         style={{
-                           padding: '8px 16px',
-                           cursor: 'pointer',
-                           fontSize: '14px',
-                           color: '#374151',
-                           backgroundColor: historyDateRange === range.label ? '#f3f4f6' : 'transparent'
-                         }}
-                         onMouseEnter={(e) => e.target.style.backgroundColor = '#f9fafb'}
-                         onMouseLeave={(e) => e.target.style.backgroundColor = historyDateRange === range.label ? '#f3f4f6' : 'transparent'}
-                       >
-                         {range.label}
-                       </div>
-                     ))}
-                   </div>
-                   
-                   {/* Custom date picker */}
-                   {isHistoryCustomRange && (
-                     <div style={{
-                       borderTop: '1px solid #e5e7eb',
-                       padding: '12px 16px',
-                       backgroundColor: '#f9fafb'
-                     }}>
-                       <div style={{ marginBottom: '8px', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
-                         Select Date Range
-                       </div>
-                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                         <input
-                           type="date"
-                           value={historyStartDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                           onChange={(e) => setHistoryStartDate(e.target.value)}
-                           style={{
-                             padding: '4px 8px',
-                             border: '1px solid #d1d5db',
-                             borderRadius: '4px',
-                             fontSize: '12px',
-                             width: '100%'
-                           }}
-                         />
-                         <span style={{ fontSize: '12px', color: '#6b7280' }}>to</span>
-                         <input
-                           type="date"
-                           value={historyEndDate || ''}
-                          onKeyDown={handleDateKeyDown}
-                           onChange={(e) => setHistoryEndDate(e.target.value)}
-                           style={{
-                             padding: '4px 8px',
-                             border: '1px solid #d1d5db',
-                             borderRadius: '4px',
-                             fontSize: '12px',
-                             width: '100%'
-                           }}
-                         />
-                       </div>
-                     </div>
-                   )}
-                 </div>
-               )}
-            </div>
-
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              {/* Sort Button */}
-              <button
-                onClick={toggleHistorySortOrder}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '4px 10px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  cursor: 'pointer'
-                }}
-              >
-                <Filter style={{ width: '16px', height: '16px' }} />
-                {historySortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-              </button>
-
-              {/* Search Bar */}
-              <div style={{
-                position: 'relative',
-                width: '180px'
-              }}>
-                <Search style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af'
-                }} />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={historySearchTerm}
-                  onChange={(e) => setHistorySearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    paddingLeft: '40px',
-                    paddingRight: '12px',
-                    paddingTop: '3px',
-                    paddingBottom: '3px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '14px',
-                    outline: 'none',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-
-              {/* Download Button */}
-              <button
-                onClick={exportToCSV}
-                style={{
-                  width: '36px',
-                  height: '30px',
-                  borderRadius: '15%',
-                  border: 'none',
-                  backgroundColor: '#10b981',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: 'white'
-                }}
-              >
-                <Download style={{ width: '16px', height: '16px' }} />
-              </button>
-            </div>
-          </div>
-
-          {/* Attendance History Table */}
-          <div style={{
-            overflowX: 'auto',
-            maxHeight: '1000px',
-            overflowY: 'auto'
-          }}>
-            <table style={{
-              width: '100%',
-              borderCollapse: 'collapse'
-            }}>
-              <thead>
-                <tr style={{
-                  borderBottom: '2px solid #e5e7eb'
-                }}>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative'
-                  }}>
-                     {activeScope === 'GPs' ? 'Date' : 
-                      activeScope === 'State' ? 'District name' : 
-                      activeScope === 'Districts' ? 'Block name' : 
-                      activeScope === 'Blocks' ? 'GP name' : 'Village name'}
-                    <div style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '12px',
-                      color: '#9ca3af'
-                    }}>
-                      ↕
-                    </div>
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative'
-                  }}>
-                    {activeScope === 'GPs' ? 'Status' : 'Attendance (%)'}
-                    <div style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '12px',
-                      color: '#9ca3af'
-                    }}>
-                      ↕
-                    </div>
-                  </th>
-                  <th style={{
-                    padding: '12px',
-                    textAlign: 'right',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingHistory ? (
-                  <tr>
-                    <td colSpan="3" style={{
-                      padding: '40px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      Loading attendance history...
-                    </td>
-                  </tr>
-                ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
-                  <tr>
-                    <td colSpan="3" style={{ padding: 0 }}>
-                      <NoDataFound size="small" />
-                    </td>
-                  </tr>
-                ) : (
-                  getFilteredAndSortedHistoryData().map((item, index) => (
-                    <tr key={item.id || index} style={{
-                      borderBottom: '1px solid #f3f4f6'
-                    }}>
-                      <td style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#374151'
-                      }}>
-                        {activeScope === 'GPs' ? (
-                          // Format date as DD/MM/YYYY
-                          item.date ? new Date(item.date).toLocaleDateString('en-GB') : item.date
-                        ) : (
-                          item.name || '-'
-                        )}
-                      </td>
-                      <td style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: activeScope === 'GPs' 
-                          ? (item.status === 'Present' ? '#10b981' : '#ef4444')
-                          : '#374151'
-                      }}>
-                        {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}
-                      </td>
-                      <td style={{
-                        padding: '12px',
-                        textAlign: 'right'
-                      }}>
-                        <button 
-                          onClick={() => handleOpenNoticeModal(item)}
-                          style={{
                           padding: '6px 12px',
                           backgroundColor: 'transparent',
                           border: '1px solid #d1d5db',
@@ -4054,16 +4062,16 @@ const AttendanceContent = () => {
                           color: '#374151',
                           cursor: 'pointer'
                         }}>
-                          Send notice
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        Send notice
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
       <SendNoticeModal
         isOpen={showSendNoticeModal}

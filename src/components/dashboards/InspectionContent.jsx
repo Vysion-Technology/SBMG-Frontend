@@ -9,6 +9,8 @@ import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
+import InspectionDetailPage from "./common/InspectionDetailPage";
+import { AnimatePresence } from "framer-motion";
 
 
 const InspectionContent = () => {
@@ -139,6 +141,10 @@ const InspectionContent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year');
+
+  const [opendetails, setOpenDetails] = useState(false);
+  const [selectedInspectionId, setSelectedInspectionId] = useState(null);
+
 
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
@@ -329,6 +335,13 @@ const InspectionContent = () => {
     }
     return [];
   };
+
+  const updateLocationSelection = useCallback((scope, location, locationId, districtId, blockId, gpId, changeType) => {
+    console.log('🔄 updateLocationSelection called:', { scope, location, locationId, districtId, blockId, gpId, changeType });
+    if (typeof contextUpdateLocationSelection === 'function') {
+      contextUpdateLocationSelection(scope, location, locationId, districtId, blockId, gpId, changeType);
+    }
+  }, [contextUpdateLocationSelection]);
 
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
@@ -1183,7 +1196,7 @@ const InspectionContent = () => {
 
       // Map inspection issues to a format suitable for display
       const inspectionIssues = inspectionData.map((item, index) => ({
-        id: item.geography_id,
+        id: item.id,
         name: item.village_name,
         remarks: item.remarks,
         score: item.overall_score,
@@ -2206,6 +2219,11 @@ const InspectionContent = () => {
 
   const sortedYourInspections = getSortedData(getYourInspections());
 
+  const handleDetailspage = (id) => {
+    setOpenDetails(true);
+    setSelectedInspectionId(id);
+  }
+
 
 
   return (
@@ -2846,22 +2864,17 @@ const InspectionContent = () => {
             )}
             {viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
               <button
-                onClick={async () => {
-                  // 1. FIRST clear UI state (instant)
+                onClick={() => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
                   setGpInspectionSummaryData([]);
                   setViewingBlocksInspectionForDistrict(true);
-
-                  setActiveScope('Blocks');
-
-                  // 2. prevent render freeze (IMPORTANT)
-                  await new Promise((r) => setTimeout(r, 0));
-
-                  // 3. THEN fetch data
+                  // Refetch blocks listing
                   if (selectedDistrictForBlocksInspection) {
                     fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
                   }
+                  // Update breadcrumb - back to blocks level (keep block selected)
+                  setActiveScope('Blocks');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -3051,8 +3064,8 @@ const InspectionContent = () => {
               {viewingInspectionsForGp ? (
                 // Individual inspections view for a GP
                 selectedGpForInspections?.inspections && selectedGpForInspections.inspections.length > 0 ? (
-                  sortedInspections.map((inspection) => (
-                    <div key={inspection.id} style={{
+                  sortedInspections.map((inspection, index) => (
+                    <div key={inspection.id || index} style={{
                       display: 'grid',
                       gridTemplateColumns: '1fr 200px 150px  150px',
                       padding: '12px 16px',
@@ -3060,10 +3073,11 @@ const InspectionContent = () => {
                       borderBottom: '1px solid #f3f4f6'
                     }}>
                       {/* Issue Title Column */}
-                      <div style={{
+                      <div onClick={() => handleDetailspage(inspection.id)} style={{
                         fontSize: '14px',
                         color: '#10b981',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        cursor: 'pointer'
                       }}>
                         <div>{inspection.name}</div>
                         <div style={{
@@ -3204,6 +3218,7 @@ const InspectionContent = () => {
                             if (viewingGpsInspectionForBlock) {
                               // GPs are now clickable - fetch inspection issues
                               fetchInspectionsForGp(item);
+                              // setSelectedGpInspection(item);
                               // Sync header with table selection
                               setActiveScope('GPs');
                               setSelectedGPId(item.id);
@@ -3951,255 +3966,307 @@ const InspectionContent = () => {
         )
       }
 
-      {/* Your Inspections Table - Always visible at bottom */}
-      <div style={{
-        marginTop: '16px',
-        marginLeft: '16px',
-        marginRight: '16px',
-      }}>
+      {/* Your Inspections Table */}
+      {showMyInspections && (
         <div style={{
-          backgroundColor: 'white',
-          padding: '20px',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          marginTop: '16px',
+          marginLeft: '16px',
+          marginRight: '16px',
         }}>
-          {/* Header */}
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#111827',
-            margin: '0 0 20px 0'
-          }}>
-            {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
-          </h3>
-
-          {/* Table Header */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: activeScope === 'GPs'
-              ? '120px 120px 1.5fr 120px 120px 220px'
-              : '120px 1.5fr 1.5fr 120px 120px 220px',
-            gap: '16px',
-            padding: '12px 16px',
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            marginBottom: '8px',
-            fontSize: '12px',
-            fontWeight: '600',
-            color: '#6b7280',
-            textTransform: 'uppercase'
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Date
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('date')}>
-                <SortIcon col="date" />
-              </span>
-            </div>
-            {activeScope === 'GPs' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Inspection by
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('inspector_role')}>
-                  <SortIcon col="inspector_role" />
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Village Name
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('village_name')}>
-                <SortIcon col="village_name" />
-              </span>
-            </div>
-            {activeScope !== 'GPs' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                GP Name
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('gp_name')}>
-                  <SortIcon col="gp_name" />
-                </span>
-              </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Cleaning Score
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('overall_score')}>
-                <SortIcon col="overall_score" />
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              Visibly Clean
-              <span
-                style={{ cursor: 'pointer', }}
-                onClick={() => handleSort('visibly_clean')}>
-                <SortIcon col="visibly_clean" />
-              </span>
-            </div>
-            <div>Action</div>
-          </div>
-
-          {/* Loading State */}
-          {loadingYourInspections && (
+            {/* Header */}
             <div style={{
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '40px 20px',
-              color: '#6b7280',
-              fontSize: '14px'
+              marginBottom: '16px'
             }}>
-              Loading your inspections...
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
+              </h3>
+
+              <button
+                onClick={() => setShowMyInspections(false)}
+                style={{
+                  padding: '6px 12px',
+                  backgroundColor: '#10B981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
             </div>
-          )}
 
-          {/* Error State */}
-          {yourInspectionsError && !loadingYourInspections && (
-            <NoDataFound size="small" />
-          )}
-
-          {/* Data State */}
-          {!loadingYourInspections && !yourInspectionsError && (
-            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {sortedYourInspections.length === 0 ? (
-                <NoDataFound size="small" />
-              ) : (
-                sortedYourInspections.map((inspection, index) => (
-                  <div key={inspection.id || index} style={{
-                    display: 'grid',
-                    gridTemplateColumns: activeScope === 'GPs'
-                      ? '120px 120px 1.5fr 120px 120px 220px'
-                      : '120px 1.5fr 1.5fr 120px 120px 220px',
-                    gap: '16px',
-                    padding: '12px 16px',
-                    alignItems: 'center',
-                    borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
-                  }}>
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {formatDate(inspection.date)}
-                    </div>
-                    {activeScope === 'GPs' && (
-                      <div style={{ fontSize: '14px', color: '#374151' }}>
-                        {inspection.inspector_role || 'CEO'}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '14px', color: '#374151' }}>
-                      {inspection.village_name || 'Village name'}
-                    </div>
-                    {activeScope !== 'GPs' && (
-                      <div style={{ fontSize: '14px', color: '#374151' }}>
-                        {inspection.gp_name || 'GP name'}
-                      </div>
-                    )}
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                      {inspection.overall_score || 0}%
-                    </div>
-                    <div style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: inspection.visibly_clean ? '#10b981' : '#ef4444'
-                    }}>
-                      {inspection.visibly_clean ? 'Yes' : 'No'}
-                    </div>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <button
-                        onClick={() => handleOpenNoticeModalFromInspection(inspection)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Send notice
-                      </button>
-                      <button
-                        onClick={() => handleDownloadPDF(inspection)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#f3f4f6',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '8px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Download style={{ width: '14px', height: '14px' }} />
-                        PDF
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-
-              {/* Pagination */}
-              {getYourInspections().length > 0 && totalPages > 1 && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '20px',
-                  borderTop: '1px solid #f3f4f6'
-                }}>
-                  <button
-                    onClick={() => fetchYourInspectionsData(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
-                      color: currentPage <= 1 ? '#9ca3af' : '#374151',
-                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Previous
-                  </button>
-
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                    Page {currentPage} of {totalPages}
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: activeScope === 'GPs'
+                ? '120px 120px 1.5fr 120px 120px 220px'
+                : '120px 1.5fr 1.5fr 120px 120px 220px',
+              gap: '16px',
+              padding: '12px 16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              marginBottom: '8px',
+              fontSize: '12px',
+              fontWeight: '600',
+              color: '#6b7280',
+              textTransform: 'uppercase'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Date
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('date')}>
+                  <SortIcon col="date" />
+                </span>
+              </div>
+              {activeScope === 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  Inspection by
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('inspector_role')}>
+                    <SortIcon col="inspector_role" />
                   </span>
-
-                  <button
-                    onClick={() => fetchYourInspectionsData(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
-                      color: currentPage >= totalPages ? '#9ca3af' : '#374151',
-                      cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    Next
-                  </button>
                 </div>
               )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Village Name
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('village_name')}>
+                  <SortIcon col="village_name" />
+                </span>
+              </div>
+              {activeScope !== 'GPs' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  GP Name
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('gp_name')}>
+                    <SortIcon col="gp_name" />
+                  </span>
+                </div>
+              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Cleaning Score
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('overall_score')}>
+                  <SortIcon col="overall_score" />
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                Visibly Clean
+                <span
+                  style={{ cursor: 'pointer', }}
+                  onClick={() => handleSort('visibly_clean')}>
+                  <SortIcon col="visibly_clean" />
+                </span>
+              </div>
+              <div>Action</div>
             </div>
-          )}
+
+            {/* Loading State */}
+            {loadingYourInspections && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '40px 20px',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                Loading your inspections...
+              </div>
+            )}
+
+            {/* Error State */}
+            {yourInspectionsError && !loadingYourInspections && (
+              <NoDataFound size="small" />
+            )}
+
+            {/* Data State */}
+            {!loadingYourInspections && !yourInspectionsError && (
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {sortedYourInspections.length === 0 ? (
+                  <NoDataFound size="small" />
+                ) : (
+                  sortedYourInspections.map((inspection, index) => (
+                    <div key={inspection.id || index} style={{
+                      display: 'grid',
+                      gridTemplateColumns: activeScope === 'GPs'
+                        ? '120px 120px 1.5fr 120px 120px 220px'
+                        : '120px 1.5fr 1.5fr 120px 120px 220px',
+                      gap: '16px',
+                      padding: '12px 16px',
+                      alignItems: 'center',
+                      borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
+                        {formatDate(inspection.date)}
+                      </div>
+                      {activeScope === 'GPs' && (
+                        <div style={{ fontSize: '14px', color: '#374151' }}>
+                          {inspection.inspector_role || 'CEO'}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '14px', color: '#374151' }}>
+                        {inspection.village_name || 'Village name'}
+                      </div>
+                      {activeScope !== 'GPs' && (
+                        <div style={{ fontSize: '14px', color: '#374151' }}>
+                          {inspection.gp_name || 'GP name'}
+                        </div>
+                      )}
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                        {inspection.overall_score || 0}%
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: inspection.visibly_clean ? '#10b981' : '#ef4444'
+                      }}>
+                        {inspection.visibly_clean ? 'Yes' : 'No'}
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+
+                        <button
+                          onClick={() => handleOpenNoticeModalFromInspection(inspection)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Send notice
+                        </button>
+                        <button
+                          onClick={() => handleDownloadPDF(inspection)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <Download style={{ width: '14px', height: '14px' }} />
+                          PDF
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDetailspage(inspection.id)}
+                          title="View Data"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '6px',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '6px',
+                            backgroundColor: 'white',
+                            cursor: 'pointer',
+                            color: '#374151'
+                          }}
+                        >
+                          <Eye style={{ width: '18px', height: '18px' }} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {/* Pagination */}
+                {getYourInspections().length > 0 && totalPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '20px',
+                    borderTop: '1px solid #f3f4f6'
+                  }}>
+                    <button
+                      onClick={() => fetchYourInspectionsData(currentPage - 1)}
+                      disabled={currentPage <= 1}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
+                        color: currentPage <= 1 ? '#9ca3af' : '#374151',
+                        cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Previous
+                    </button>
+
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                      Page {currentPage} of {totalPages}
+                    </span>
+
+                    <button
+                      onClick={() => fetchYourInspectionsData(currentPage + 1)}
+                      disabled={currentPage >= totalPages}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
+                        color: currentPage >= totalPages ? '#9ca3af' : '#374151',
+                        cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+
+
+      <InspectionDetailPage
+        inspectionId={selectedInspectionId}
+        isopen={opendetails}
+        onClose={() => setOpenDetails(false)} />
+
+
 
       {/* Send Notice Modal */}
       <SendNoticeModal

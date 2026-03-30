@@ -26,7 +26,7 @@ const RightDrawer = ({ clickFunction, trigger, title, children }) => {
             />
 
             {/* 3. The Drawer Panel */}
-            <aside className={`fixed top-0 right-0 h-full z-50 bg-white transition-transform duration-500 ease-out w-full p-4! md:w-2/3 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed top-0 right-0 h-full z-50 bg-white transition-transform duration-500 ease-out w-full p-4! md:w-3/4 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-4!">
