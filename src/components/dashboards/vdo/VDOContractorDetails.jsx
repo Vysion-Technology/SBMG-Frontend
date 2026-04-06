@@ -6,7 +6,6 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
-import EditGPMasterModal from '../EditGPMasterModal';
 import EditContractorDetails from './EditContractorDetails';
 
 

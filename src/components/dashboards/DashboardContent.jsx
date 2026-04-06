@@ -1,4 +1,4 @@
-import { List } from 'lucide-react';
+import { Calendar, List } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from '../../context/LocationContext';
 import apiClient, {
@@ -328,6 +328,15 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const totalCountInitializedRef = useRef(false);
 
   const [location, setLocation] = useState(null)
+
+  // card data store
+  const [apiDataCard, setApiDataCard] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [fyList, setFyList] = useState([]);
+  const [selectedFyId, setSelectedFyId] = useState(null);
+  const [loadingFy, setLoadingFy] = useState(false);
+
 
 
   // Analytics data state
@@ -2625,6 +2634,137 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     console.log('DashboardContent rendering...');
   }
 
+
+// cards data mapping function - maps API response to UI format with default values
+
+  const mapApiToUI = (res) => {
+    return {
+      // ODF
+      ihhl: res?.odf_sustainability?.ihhl || 0,
+      community_sanitary: res?.odf_sustainability?.csc || 0,
+      total_csc: res?.odf_sustainability?.csc_shala_darpan || 0,
+
+      // SWM
+      segregation_hh: res?.swm_assets?.bins_hh_level || 0,
+      segregation_public: res?.swm_assets?.bins_public_places || 0,
+      compost_pit: res?.swm_assets?.community_compost_pits || 0,
+      segregation_sheds: res?.swm_assets?.segregation_sheds || 0,
+      Tricycles_Manual: res?.swm_assets?.tricycles_manual || 0,
+      e_rickshaws_bettery: res?.swm_assets?.e_rickshaws || 0,
+      Motorized_Vehicles: res?.swm_assets?.motorized_vehicles || 0,
+
+      // LWM
+      Soak_Leach_Pits: res?.lwm_assets?.pits_hh_level || 0,
+      Community_Soak_Leach_Pits: res?.lwm_assets?.community_pits || 0,
+      WSP_Waste_Stabilization_Pond: res?.lwm_assets?.wsp || 0,
+      Dewats: res?.lwm_assets?.dewats || 0,
+      Wetland: res?.lwm_assets?.wetlands || 0,
+      Any_other_Trenching: res?.lwm_assets?.other_treatments || 0,
+      Drainage_channels: res?.lwm_assets?.drainage_channels || 0,
+
+      // PWMU
+      Total_no_established_pwmu: res?.pwmu?.established_pwmu || 0,
+      Total_no_Blocks_Covered_Under_PWMU: res?.pwmu?.blocks_covered_pwmu || 0,
+      Total_No_of_Urban_MRFs: res?.pwmu?.urban_mrfs || 0,
+      Total_No_Blocks_Covered_Under_Urban_MRFs: res?.pwmu?.blocks_covered_urban_mrf || 0,
+
+      // FSM
+      No_twin_pits_Toilets: res?.fsm?.twin_pit_toilets || 0,
+      Single_pits_Toilets: res?.fsm?.single_pit_toilets || 0,
+      Septic_bank_Toilets: res?.fsm?.septic_tank_toilets || 0,
+      Retrofitted_toilets: res?.fsm?.retrofitted_toilets || 0,
+      Mechanized_DeSludging: res?.fsm?.mechanized_desludging || 0,
+
+      FSTPs: {
+        rural: res?.fsm?.fstps_rural || 0,
+        urban: res?.fsm?.fstps_urban || 0,
+      },
+
+      GOBARDhan_Project: res?.gobardhan?.total_projects || 0,
+
+      // D2D
+      Total_gps: res?.d2d_activities?.gps_with_d2d_active || 0,
+
+      Total_Work_Sanctioned_Status: [
+        { label: "Tender", value: res?.d2d_activities?.sanctioned_tender || 0 },
+        { label: "Self GP", value: res?.d2d_activities?.sanctioned_self_gp || 0 },
+        { label: "CSR/NGO", value: res?.d2d_activities?.sanctioned_csr_ngo || 0 },
+        { label: "SHG", value: res?.d2d_activities?.sanctioned_shg || 0 },
+      ],
+
+      Total_Expenditure_Amt: res?.d2d_activities?.total_expenditure || 0,
+      Total_Vehicles_Collection_transportation_waste: res?.d2d_activities?.vehicles_deployed || 0,
+      Total_Persons_Deployed: res?.d2d_activities?.persons_deployed || 0,
+      Total_House_Hold_Covered: res?.d2d_activities?.households_covered || 0,
+
+      work_status: [
+        { label: "Start", value: res?.d2d_activities?.status_start || 0 },
+        { label: "Running", value: res?.d2d_activities?.status_running || 0 },
+        { label: "Completed", value: res?.d2d_activities?.status_completed || 0 },
+      ],
+    };
+  };
+
+  // Response: [{"id":1,"fy":"2025-26","active":true}, ...]
+  const fetchFyList = async () => {
+    try {
+      setLoadingFy(true);
+      const res = await apiClient.get('/annual-surveys/fy/active');
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.data || []);
+      const list = raw.filter((x) => x && (x.id != null) && (x.fy != null));
+      const sorted = [...list].sort((a, b) => String(b.fy || '').localeCompare(String(a.fy || '')));
+      setFyList(sorted);
+    } catch (error) {
+      console.error('❌ Error fetching FY list from /annual-surveys/fy/active:', error);
+      setFyList([]);
+    } finally {
+      setLoadingFy(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFyList();
+  }, []);
+
+  useEffect(() => {
+    if (fyList.length > 0 && !selectedFyId) {
+      setSelectedFyId(fyList[0].id); // 🔥 latest FY auto select
+    }
+  }, [fyList]);
+
+
+  useEffect(() => {
+    if (!selectedFyId) return; // 🔥 important
+
+    const fetchAssetsData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await apiClient.get(
+          'annual-surveys/analytics/assets',
+          {
+            params: { fy_id: selectedFyId },
+          }
+        );
+
+        const mapped = mapApiToUI(res?.data || {});
+        setApiDataCard(mapped);
+
+        console.log("✅ Assets API:", mapped);
+
+      } catch (err) {
+        console.error("❌ Assets API Error:", err);
+        setError(err?.message || "Something went wrong");
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetsData();
+  }, [selectedFyId]);
+
   const dashboardSections = [
     {
       title: "ODF Sustainability",
@@ -3031,23 +3171,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const districtTableData = (districts || []).map((d) => ({
     districtName: d.name,
     districtId: d.id,
-    // 👉 direct apiData se value daal
-    // ihhl: apiData.ihhl,
-    // retrofitting: apiData.retrofitting,
-    // community_sanitary: apiData.community_sanitary,
-    // total_csc: apiData.total_csc,
 
-    // segregation_hh: apiData.segregation_hh,
-    // segregation_public: apiData.segregation_public,
-    // compost_pit: apiData.compost_pit,
-    // segregation_sheds: apiData.segregation_sheds,
+    ...apiDataCard, // 🔥 IMPORTANT
 
-    // work_status: apiData.work_status,
-    // no_of_fstps: apiData.no_of_fstps,
-    // wokd_saction: apiData.wokd_saction,
-
-
-    blocks: [], // initially empty
+    blocks: [],
   }));
 
   const formatValue = (key, value) => {
@@ -3153,7 +3280,39 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           }}
         >
           <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
-          {/* <div>this year</div> */}
+          {/* Year dropdown - view previous years' master data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+            <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
+            <select
+              aria-label="Select year"
+              value={selectedFyId ?? ''}
+              onChange={(e) => setSelectedFyId(e.target.value ? Number(e.target.value) : null)}
+              disabled={loadingFy || fyList.length === 0}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '5px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                fontSize: '14px',
+                color: fyList.length === 0 ? '#9ca3af' : '#374151',
+                backgroundColor: loadingFy || fyList.length === 0 ? '#f9fafb' : 'white',
+                cursor: loadingFy || fyList.length === 0 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loadingFy ? (
+                <option value="">Loading...</option>
+              ) : fyList.length === 0 ? (
+                <option value="">No years</option>
+              ) : (
+                fyList.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.fy}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
         </div>
 
         {/* Sections */}
@@ -3191,7 +3350,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   trigger={
                     <Card
                       title={card.label}
-                      value={formatValue(card.key, apiData[card.key])}
+                      value={
+                        loading
+                          ? "..."
+                          : formatValue(card.key, apiDataCard?.[card.key] ?? '-')
+                      }
                       bgColorOverlay={card.bgColor}
                       textColor={card.textColor}
                       border={card.border}
@@ -3207,6 +3370,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                     apiData={districtTableData}
                     fetchBlocks={fetchBlocks}
                     fetchGramPanchayats={fetchGramPanchayats}
+                    AssetsTable={AssetsTable}
+                    mapApiToUI={mapApiToUI}
                   />
                 </SlideDrawer>
               ))}

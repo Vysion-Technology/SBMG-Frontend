@@ -3,6 +3,21 @@ import SideDrawer from "../../common/SideDrawer";
 import SlideDrawer from "../../common/SideDrawer";
 
 
+const formatCellValue = (value) => {
+    if (Array.isArray(value)) {
+        return value.map(v => `${v.label}: ${v.value}`).join(" | ");
+    }
+
+    if (typeof value === "object" && value !== null) {
+        return Object.entries(value)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" | ");
+    }
+
+    return value ?? "-";
+};
+
+
 const CommonTable = ({
     title,
     nameKey,
@@ -14,7 +29,7 @@ const CommonTable = ({
 
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, auto))`,
+        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, 300px))`,
     };
 
     return (
@@ -72,7 +87,7 @@ const CommonTable = ({
 
                                         {cards.map(card => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap">
-                                                {row[card.key] ?? "-"}
+                                                {formatCellValue(row[card.key])}
                                             </td>
                                         ))}
 
@@ -97,8 +112,7 @@ const CommonTable = ({
     );
 };
 
-const AssetsTable = ({ section, cards, apiData, fetchBlocks,
-    fetchGramPanchayats }) => {
+const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats,  mapApiToUI  }) => {
     const dataToRender = Array.isArray(apiData)
         ? apiData
         : apiData ? [apiData] : [];
@@ -106,7 +120,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
     // Grid configuration for table rows
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, auto))`,
+        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, 300px))`,
     };
 
 
@@ -138,6 +152,10 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
     };
 
 
+
+
+
+
     const handleRowClick = async (row) => {
 
         // 🟢 DISTRICT → BLOCK
@@ -152,7 +170,13 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
 
             try {
                 const res = await fetchBlocks(row.districtId);
-                setBlocksData(res || []);
+
+                const mappedBlocks = (res || []).map((item) => ({
+                    ...item,
+                    ...mapApiToUI(item) // 🔥 same mapper reuse
+                }));
+
+                setBlocksData(mappedBlocks);
             } catch (err) {
                 console.error("Blocks API error:", err);
                 setBlocksData([]);
@@ -174,7 +198,12 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                     row.district_id || row.districtId,
                     row.id || row.blockId
                 );
-                setGpsData(res || []);
+                const mappedGps = (res || []).map((item) => ({
+                    ...item,
+                    ...mapApiToUI(item)
+                }));
+
+                setGpsData(mappedGps);
             } catch (err) {
                 console.error("GP API error:", err);
                 setGpsData([]);
@@ -184,18 +213,6 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
         }
     };
 
-
-
-
-    const handleBack = () => {
-        if (level === "gp") {
-            setLevel("block");
-            setSelectedBlock(null);
-        } else if (level === "block") {
-            setLevel("district");
-            setSelectedDistrict(null);
-        }
-    };
 
     return (
         <>
@@ -249,8 +266,8 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                                         </td>
 
                                         {cards.map((card) => (
-                                            <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap">
-                                                {row[card.key] ?? "-"}
+                                            <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
+                                                {formatCellValue(row[card.key])}
                                             </td>
                                         ))}
                                     </tr>
@@ -297,7 +314,13 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks,
                             block.id
                         );
 
-                        setGpsData(res || []);
+                        const mapped = (res || []).map((item) => ({
+                            ...item,
+                            ...mapApiToUI(item)
+                        }));
+
+                        setGpsData(mapped);
+
                         setLoadingGps(false);
                     }}
                 />

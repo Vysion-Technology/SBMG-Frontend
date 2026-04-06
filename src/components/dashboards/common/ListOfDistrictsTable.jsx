@@ -1260,7 +1260,9 @@ const ListOfDistrictsTable = ({
         </button> */}
       </div>
 
-      <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <div className="table-scroll-container [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
             <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -1437,7 +1439,9 @@ const ListOfDistrictsTable = ({
                       <div className="blocksContentDrawer">
                         <div className={`p-4! border rounded-xl space-base mb-4! border-[#D1D5DB]`}>
                           <h3 className="text-lg font-semibold text-gray-800 mb-2">Block-wise Details</h3>
-                          <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                          <div className="table-scroll-container  [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                             <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
                               <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
                                 <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -1596,7 +1600,9 @@ const ListOfDistrictsTable = ({
                                             <div className="gpContentDrawer">
                                               <div className={`p-4! border rounded-xl space-base mb-4! border-[#D1D5DB]`}>
                                                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Gram Panchayats in {block.name}</h3>
-                                                <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 400, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                                                <div className="table-scroll-container  [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 400, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                                                   <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse' }}>
                                                     <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
                                                       <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
