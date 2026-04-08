@@ -17,11 +17,11 @@ const generateMockCoordinates = (vehicleId) => {
   // Base coordinates around Jodhpur, Rajasthan
   const baseLatitude = 26.2389;
   const baseLongitude = 73.0243;
-  
+
   // Add some randomness based on vehicle ID
   const latOffset = (vehicleId * 0.01) - 0.02;
   const lngOffset = (vehicleId * 0.015) - 0.03;
-  
+
   return {
     lat: baseLatitude + latOffset,
     lng: baseLongitude + lngOffset
@@ -46,36 +46,41 @@ export const useVehicles = (location = {}, options = {}) => {
         block_id: location.blockId,
         gp_id: location.gpId,
       });
-      
+
       // Backend now returns: {date_, location, summary, vehicles: [...]}
       // Extract vehicles array from response
       const responseData = response.data || {};
       const vehicles = responseData.vehicles || [];
-      
+
       // Transform vehicles to match frontend expectations
       return vehicles.map(vehicle => {
         // Transform coordinates: API uses {lat, long} but Google Maps needs {lat, lng}
-        const coordinates = vehicle.coordinates 
+        const coordinates = vehicle.coordinates
           ? {
-              lat: vehicle.coordinates.lat,
-              lng: vehicle.coordinates.long || vehicle.coordinates.lng
-            }
+            lat: vehicle.coordinates.lat,
+            lng: vehicle.coordinates.long || vehicle.coordinates.lng
+          }
           : null;
-        
+
         // Transform route array: API uses [{lat, long}, ...] but Google Maps needs [{lat, lng}, ...]
         const route = vehicle.route && Array.isArray(vehicle.route)
           ? vehicle.route.map(point => ({
-              lat: point.lat,
-              lng: point.long || point.lng
-            }))
+            lat: point.lat,
+            lng: point.long || point.lng
+          }))
           : [];
-        
+
+        const normalizedStatus = (vehicle.status || 'inactive').toString().trim().toLowerCase();
+        const status = ['active', 'running', 'stopped', 'inactive'].includes(normalizedStatus)
+          ? normalizedStatus
+          : 'inactive';
+
         return {
           ...vehicle,
           vehicle_id: vehicle.vehicle_id || vehicle.id,
           vehicle_name: vehicle.name || `Vehicle ${vehicle.vehicle_no}`,
           vehicle_no: vehicle.vehicle_no,
-          status: vehicle.status || 'inactive',
+          status,
           speed: vehicle.speed || 0,
           coordinates: coordinates,
           last_updated: vehicle.last_updated || new Date().toISOString(),
@@ -94,21 +99,17 @@ export const useVehicles = (location = {}, options = {}) => {
  * @param {Array} vehicles - Array of vehicles
  * @param {string} status - Status to filter by (all, active, running, stopped, inactive)
  */
-export const filterVehiclesByStatus = (vehicles, status) => {
-  if (!vehicles || !Array.isArray(vehicles)) return [];
-  
-  const statusLower = status.toLowerCase();
-  
-  if (statusLower === 'all' || statusLower.startsWith('all(')) {
-    return vehicles;
-  }
-  
-  // Extract status from tab format like "Active(01)"
-  const extractedStatus = statusLower.replace(/\(.*\)/, '').trim();
-  
-  return vehicles.filter(vehicle => {
-    const vehicleStatus = vehicle.status?.toLowerCase();
-    return vehicleStatus === extractedStatus;
+export const filterVehiclesByStatus = (vehicles, statusTab) => {
+  if (!vehicles || vehicles.length === 0) return [];
+
+  const statusStr = typeof statusTab === 'string' ? statusTab : 'All(00)';
+  const statusKey = statusStr.split('(')[0].toLowerCase();
+
+  if (statusKey === 'all') return vehicles;
+
+  return vehicles.filter(v => {
+    const vehicleStatus = (v.status || '').toString().toLowerCase(); // normalize
+    return vehicleStatus === statusKey;
   });
 };
 
@@ -120,9 +121,9 @@ export const filterVehiclesByStatus = (vehicles, status) => {
 export const searchVehicles = (vehicles, query) => {
   if (!vehicles || !Array.isArray(vehicles)) return [];
   if (!query || query.trim() === '') return vehicles;
-  
+
   const searchLower = query.toLowerCase().trim();
-  
+
   return vehicles.filter(vehicle => {
     return (
       vehicle.vehicle_no?.toLowerCase().includes(searchLower) ||

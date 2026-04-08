@@ -5,18 +5,18 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: "/",
-  // server: {
-  //   proxy: {
-  //     "/api/v1": {
-  //       // Replace this with your actual backend URL!
-  //       // If your backend is local, it might be http://localhost:8000
-  //       // If it's your remote server, it might be http://139.59.34.99:8000
-  //       target: "http://localhost:8000",
-  //       changeOrigin: true,
-  //       secure: false,
-  //     },
-  //   },
-  // },
+  server: {
+    proxy: {
+      "/api/v1": {
+        // Replace this with your actual backend URL!
+        // If your backend is local, it might be http://localhost:8000
+        // If it's your remote server, it might be http://139.59.34.99:8000
+        target: "https://sbmg.techvysion.com",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
   build: {
     sourcemap: false,
     minify: "terser",

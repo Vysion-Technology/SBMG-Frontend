@@ -197,9 +197,9 @@ const CEOVillageMasterContent = () => {
   }, [contextUpdateLocationSelection]);
 
   // Handler for downloading PDF with master data
-  const handleDownloadPDF = useCallback(async (surveyId = 1) => {
+  const handleDownloadPDF = useCallback(async (surveyId = 1, action = 'download') => {
     try {
-      console.log('📥 Downloading PDF for survey ID:', surveyId);
+      console.log(`📥 ${action === 'download' ? 'Downloading' : 'Viewing'} PDF for survey ID:`, surveyId);
 
       // Fetch annual survey data
       const response = await apiClient.get(`/annual-surveys/${surveyId}`);
@@ -208,16 +208,16 @@ const CEOVillageMasterContent = () => {
       console.log('✅ Survey data fetched:', surveyData);
 
       // Generate PDF
-      generatePDF(surveyData);
+      generatePDF(surveyData, action);
 
     } catch (error) {
-      console.error('❌ Error downloading PDF:', error);
-      alert('Failed to download PDF. Please try again.');
+      console.error(`❌ Error ${action === 'download' ? 'downloading' : 'viewing'} PDF:`, error);
+      alert(`Failed to ${action === 'download' ? 'download' : 'view'} PDF. Please try again.`);
     }
   }, []);
 
   // Function to generate PDF from survey data
-  const generatePDF = (data) => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -245,8 +245,13 @@ const CEOVillageMasterContent = () => {
       console.error("Font Load Error:", error);
     }
 
-    const formatCurrency = (amount) =>
-      "Rs. " + (amount || 0).toLocaleString("en-IN");
+    const formatCurrency = (amount) => {
+      if (amount === null || amount === undefined || isNaN(amount)) return '0';
+      if (amount >= 100000) {
+        return `₹${(amount / 100000).toFixed(1)} L`;
+      }
+      return `₹${amount.toLocaleString('en-IN')}`;
+    };
 
     const checkPageBreak = (neededHeight = 10) => {
       if (y + neededHeight > 275) {
@@ -455,11 +460,17 @@ const CEOVillageMasterContent = () => {
       doc.text(`Page ${i} of ${pageCount}`, 170, 285);
     }
 
-    doc.save(`Survey-${data.gp_name}.pdf`);
+    if (action === 'view') {
+      const blob = doc.output('blob');
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } else {
+      doc.save(`Survey-${data.gp_name}.pdf`);
+    }
   };
 
   // Handler for downloading annual surveys by district as PDF (District Wise Coverage table)
-  const handleDownloadAnnualSurveys = async (item) => {
+  const handleDownloadAnnualSurveys = async (item, action = 'download') => {
     try {
       if (!selectedFyId) {
         alert("Please select a Financial Year.");
@@ -500,15 +511,17 @@ const CEOVillageMasterContent = () => {
       // Case 2: Blocks Tab logic (as per your requirement)
       if (activeScope === "Blocks") {
         const gpId = item.geography_id;
-        const surveyListRes = await apiClient.get(`/annual-surveys?gp_id=${gpId}&fy_id=${selectedFyId}`);
+        console.log(`🔍 ${action === 'download' ? 'Fetching' : 'Viewing'} survey for GP ID: ${gpId}, FY ID: ${selectedFyId}`);
+        const surveyListRes = await apiClient.get(`/annual-surveys/?gp_id=${gpId}&fy_id=${selectedFyId}`);
         const surveyList = Array.isArray(surveyListRes.data) ? surveyListRes.data : (surveyListRes.data?.data || []);
 
         if (surveyList.length > 0) {
           const surveyId = surveyList[0].id;
+          console.log(`✅ Found survey ID: ${surveyId}, fetching full details...`);
           const surveyRes = await apiClient.get(`/annual-surveys/${surveyId}`);
-          generatePDF(surveyRes.data);
+          generatePDF(surveyRes.data, action);
         } else {
-          alert("No survey found");
+          alert("No survey found for this GP.");
         }
       }
 
@@ -1021,6 +1034,29 @@ const CEOVillageMasterContent = () => {
     setShowLocationDropdown(false);
   };
 
+  const handleRowClick = (item) => {
+    if (activeScope === 'Districts') {
+      // Navigate to Blocks scope
+      trackTabChange('Blocks');
+      setActiveScope('Blocks');
+      updateLocationSelection('Blocks', 'Select Block', null, ceoDistrictId, null, null, 'table_navigation');
+      fetchBlocks(ceoDistrictId);
+    } else if (activeScope === 'Blocks') {
+      // Navigate to GPs scope
+      const block = blocks.find(b => b.id === item.geography_id) || { id: item.geography_id, name: item.geography_name, district_id: ceoDistrictId };
+      trackTabChange('GPs');
+      setActiveScope('GPs');
+      setSelectedBlockForHierarchy(block);
+      trackDropdownChange(block.name);
+      updateLocationSelection('GPs', 'Select GP', null, ceoDistrictId, block.id, null, 'table_navigation');
+      fetchGramPanchayats(ceoDistrictId, block.id);
+    } else if (activeScope === 'GPs') {
+      // Already in GP view, select this GP
+      trackDropdownChange(item.geography_name);
+      updateLocationSelection('GPs', item.geography_name, item.geography_id, ceoDistrictId, selectedBlockId, item.geography_id, 'table_navigation');
+    }
+  };
+
 
 
 
@@ -1158,9 +1194,7 @@ const CEOVillageMasterContent = () => {
   // Helper function to format currency
   const formatCurrency = (amount) => {
     if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 10000000) {
-      return `₹${(amount / 10000000).toFixed(1)} Cr`;
-    } else if (amount >= 100000) {
+    if (amount >= 100000) {
       return `₹${(amount / 100000).toFixed(1)} L`;
     }
     return `₹${amount.toLocaleString('en-IN')}`;
@@ -1261,7 +1295,11 @@ const CEOVillageMasterContent = () => {
         padding: '5px 15px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: '53px',
+        zIndex: 999,
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
       }}>
         {/* Left side - Dashboard title */}
         <div>
@@ -1668,53 +1706,50 @@ const CEOVillageMasterContent = () => {
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
               </div>
             </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_funds_sanctioned', 0))}
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
-            </div>
-          </div>
-
-          {/* Total work order Amount */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                Total work order Amount
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-              </div>
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : formatCurrency(getAnalyticsValue('total_work_order_amount', 0))}
-              <span className='ms-1! font-semibold text-[14px]'>CR</span>
-            </div>
-          </div>
+                        <div style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: analyticsError ? '#ef4444' : '#111827',
+                          margin: 0
+                        }}>
+                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
+                        </div>
+                      </div>
+            
+                      {/* Total work order Amount */}
+                      <div style={{
+                        backgroundColor: 'white',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          marginBottom: '12px'
+                        }}>
+                          <h3 style={{
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            color: '#6b7280',
+                            margin: 0
+                          }}>
+                            Total work order Amount
+                          </h3>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
+                          </div>
+                        </div>
+                        <div style={{
+                          fontSize: '24px',
+                          fontWeight: '700',
+                          color: analyticsError ? '#ef4444' : '#111827',
+                          margin: 0
+                        }}>
+                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
+                        </div>          </div>
 
           {/* SBMG Target Achievement Rate */}
           <div style={{
@@ -2040,6 +2075,27 @@ const CEOVillageMasterContent = () => {
                     >
                       <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
                     </button>
+
+                    <button
+                      onClick={() => hasData && handleDownloadPDF(survey.id, 'view')}
+                      disabled={!hasData}
+                      title={hasData ? 'View PDF' : 'No data to view'}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        color: '#374151',
+                        cursor: hasData ? 'pointer' : 'not-allowed',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        opacity: hasData ? 1 : 0.6
+                      }}
+                    >
+                      View
+                    </button>
                   </div>
                 </div>
               );
@@ -2300,7 +2356,15 @@ const CEOVillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                      <div 
+                        onClick={() => handleRowClick(item)}
+                        style={{ 
+                          fontSize: '14px', 
+                          color: '#10b981', 
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}>
                         {item.geography_name}
                       </div>
 
@@ -2333,7 +2397,7 @@ const CEOVillageMasterContent = () => {
                           {item.master_data_status || 'Not Available'}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                         <button
                           type="button"
                           onClick={() => handleDownloadAnnualSurveys(item)}
@@ -2353,6 +2417,28 @@ const CEOVillageMasterContent = () => {
                         >
                           <Download style={{ width: '18px', height: '18px' }} />
                         </button>
+
+                        {activeScope === 'Blocks' && (
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadAnnualSurveys(item, 'view')}
+                            disabled={downloadingId === item.geography_id}
+                            title="View PDF"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              cursor: downloadingId === item.geography_id ? 'wait' : 'pointer',
+                              color: '#374151'
+                            }}
+                          >
+                            <Eye style={{ width: '18px', height: '18px' }} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

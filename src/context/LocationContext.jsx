@@ -16,16 +16,23 @@ export const LocationProvider = ({ children }) => {
   const [activeScope, setActiveScope] = useState('State');
   const [selectedLocation, setSelectedLocation] = useState('Rajasthan');
   const [selectedLocationId, setSelectedLocationId] = useState(null);
-  
+
   // Hierarchical selection state
   const [selectedDistrictId, setSelectedDistrictId] = useState(null);
   const [selectedBlockId, setSelectedBlockId] = useState(null);
   const [selectedGPId, setSelectedGPId] = useState(null);
-  
+
   // Hierarchical dropdown state
   const [dropdownLevel, setDropdownLevel] = useState('districts');
   const [selectedDistrictForHierarchy, setSelectedDistrictForHierarchy] = useState(null);
   const [selectedBlockForHierarchy, setSelectedBlockForHierarchy] = useState(null);
+
+  // Breadcrumb dropdown UI state - persists across module switches
+  const [openBreadcrumbDropdown, setOpenBreadcrumbDropdown] = useState(null);
+  const [breadcrumbDistricts, setBreadcrumbDistricts] = useState([]);
+  const [breadcrumbBlocks, setBreadcrumbBlocks] = useState([]);
+  const [breadcrumbGps, setBreadcrumbGps] = useState([]);
+  const [loadingBreadcrumb, setLoadingBreadcrumb] = useState(false);
 
   // Change tracking state
   const [changeHistory, setChangeHistory] = useState([]);
@@ -210,9 +217,15 @@ export const LocationProvider = ({ children }) => {
     dropdownLevel,
     selectedDistrictForHierarchy,
     selectedBlockForHierarchy,
+    // Breadcrumb dropdown state
+    openBreadcrumbDropdown,
+    breadcrumbDistricts,
+    breadcrumbBlocks,
+    breadcrumbGps,
+    loadingBreadcrumb,
     changeHistory,
     lastChange,
-    
+
     // Setters
     setActiveScope,
     setSelectedLocation,
@@ -223,12 +236,18 @@ export const LocationProvider = ({ children }) => {
     setDropdownLevel,
     setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
-    
+    // Breadcrumb dropdown setters
+    setOpenBreadcrumbDropdown,
+    setBreadcrumbDistricts,
+    setBreadcrumbBlocks,
+    setBreadcrumbGps,
+    setLoadingBreadcrumb,
+
     // Actions
     updateLocationSelection,
     resetLocationSelection,
     getCurrentLocationInfo,
-    
+
     // Change tracking
     trackTabChange,
     trackDropdownChange,

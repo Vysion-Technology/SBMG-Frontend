@@ -11,17 +11,18 @@ server {
 
     # Disable server version disclosure (Security Misconfiguration fix)
     server_tokens off;
+    client_max_body_size 20M;
     root /usr/share/nginx/html;
     index index.html;
 
     # Clickjacking protection
     add_header X-Frame-Options "DENY" always;
-    # Strict Content-Security-Policy (no unsafe-inline/unsafe-eval for scripts)
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' https://maps.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' data:; connect-src 'self' https://maps.googleapis.com https://*.googleapis.com; frame-src https://maps.googleapis.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'" always;
+    # Strict Content-Security-Policy - Updated for Google Maps support
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://maps.googleapis.com https://*.googleapis.com https://*.gstatic.com; frame-src https://maps.googleapis.com; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'" always;
 
     if ($request_method = TRACE) { return 405; }
 
-    location /api/ {
+    location ^~ /api/ {
         limit_except GET HEAD POST PUT PATCH OPTIONS DELETE { deny all; }
         if ($request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin $cors_allow_origin always;

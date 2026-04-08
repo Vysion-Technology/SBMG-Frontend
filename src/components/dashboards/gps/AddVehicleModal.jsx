@@ -253,9 +253,9 @@ const AddVehicleModal = ({
     });
     if (vehicleError || imeiError || !formData.vehicleNumber || !formData.imeiNumber) return;
     await onSubmit({
-      vehicleNumber: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
-      imeiNumber: formData.imeiNumber.replace(/\s+/g, ''),
-      vehicleName: formData.vehicleName || ''
+      vehicle_no: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
+      imei: formData.imeiNumber.replace(/\s+/g, ''),
+      name: formData.vehicleName || ''
     });
   };
 
@@ -278,9 +278,10 @@ const AddVehicleModal = ({
 
     // Format vehicle number and IMEI before submitting
     const submitData = {
-      ...formData,
-      vehicleNumber: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
-      imeiNumber: formData.imeiNumber.replace(/\s+/g, '')
+      gp_id: formData.gpId,
+      vehicle_no: formData.vehicleNumber.replace(/\s+/g, '').toUpperCase(),
+      imei: formData.imeiNumber.replace(/\s+/g, ''),
+      name: formData.vehicleName || ''
     };
 
     await onSubmit(submitData);

@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
+import { Calendar, CheckCircle, ChevronDown, Clock, Download, List, Search, Star, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../../services/api';
-import LocationDisplay from '../../common/LocationDisplay';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
 
 const VDOComplaintsContent = () => {
   // VDO Location context - fixed district, block, and GP
@@ -78,6 +78,10 @@ const VDOComplaintsContent = () => {
     }
   }, [contextUpdateLocationSelection]);
 
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
+
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -132,10 +136,11 @@ const VDOComplaintsContent = () => {
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
 
   // Date range state
-  const [selectedDateRange, setSelectedDateRange] = useState('Today');
+  const [selectedDateRange, setSelectedDateRange] = useState('Year');
   const [startDate, setStartDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    return startOfYear.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => {
     const today = new Date();
@@ -148,18 +153,27 @@ const VDOComplaintsContent = () => {
     }
   };
 
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
+
+  const handleOpenComplaintDetails = (id) => {
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
+  };
+
   // BDO can only view GPs
 
   const filterButtons = ['Open', 'Resolved', 'Verified', 'Closed'];
 
   // Predefined date ranges
   const dateRanges = [
-    { label: 'Today', value: 'today', days: 0 },
-    { label: 'Yesterday', value: 'yesterday', days: 1 },
-    { label: 'Last 7 Days', value: 'last7days', days: 7 },
-    { label: 'Last 30 Days', value: 'last30days', days: 30 },
-    { label: 'Last 60 Days', value: 'last60days', days: 60 },
-    { label: 'Custom', value: 'custom', days: null }
+    { label: 'Year', value: 'year' },
+    { label: 'Quarter', value: 'quarter' },
+    { label: 'Month', value: 'month' },
+    { label: 'Week', value: 'week' },
+    { label: 'Today', value: 'today' },
+    { label: 'Custom', value: 'custom' }
   ];
 
   // Months array
@@ -333,13 +347,7 @@ const VDOComplaintsContent = () => {
   // Get location options based on current scope and dropdown level
   const getLocationOptions = () => {
     if (false) {
-      return districts;
     } else if (false) {
-      if (dropdownLevel === 'districts') {
-        return districts;
-      } else if (dropdownLevel === 'blocks') {
-        return blocks.filter(block => block.district_id === selectedDistrictForHierarchy?.id);
-      }
     } else if (activeScope === 'GPs') {
       if (dropdownLevel === 'districts') {
         return districts;
@@ -362,20 +370,6 @@ const VDOComplaintsContent = () => {
   // Handle hierarchical selection for blocks and GPs
   const handleHierarchicalSelection = (location) => {
     if (false) {
-      if (dropdownLevel === 'districts') {
-        // District selected, now show blocks
-        setSelectedDistrictForHierarchy(location);
-        setDropdownLevel('blocks');
-        setSelectedLocation('Select Block');
-        fetchBlocks(location.id);
-      } else if (dropdownLevel === 'blocks') {
-        // Block selected
-        trackDropdownChange(location.name, location.id, selectedDistrictForHierarchy.id);
-        updateLocationSelection('Blocks', location.name, location.id, selectedDistrictForHierarchy.id, location.id, null, 'dropdown_change');
-        fetchGramPanchayats(selectedDistrictForHierarchy.id, location.id);
-        console.log('Selected block ID:', location.id, 'Name:', location.name, 'District ID:', selectedDistrictForHierarchy.id);
-        setShowLocationDropdown(false);
-      }
     } else if (activeScope === 'GPs') {
       if (dropdownLevel === 'districts') {
         // District selected, now show blocks
@@ -425,12 +419,6 @@ const VDOComplaintsContent = () => {
   // Fetch data immediately when complaints tab is selected
   useEffect(() => {
     console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
-    if (false) {
-      console.log('📡 Calling initial API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-    }
   }, []); // Empty dependency array means this runs only once when component mounts
 
   // Load additional data based on scope
@@ -693,13 +681,6 @@ const VDOComplaintsContent = () => {
       return;
     }
 
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (false) {
-      console.log('📡 Calling API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-      return;
-    }
 
     // For other scopes, check if we have the necessary location data loaded
     if (activeScope === 'Districts' && !vdoDistrictId) {
@@ -709,10 +690,6 @@ const VDOComplaintsContent = () => {
     if (activeScope === 'Blocks' && !vdoBlockId) {
       console.log('⏳ Waiting for block selection');
       return; // Wait for block selection
-    }
-    if (false) {
-      console.log('⏳ Waiting for GP selection');
-      return; // Wait for GP selection
     }
 
     console.log('📡 Calling API for other scopes');
@@ -818,28 +795,35 @@ const VDOComplaintsContent = () => {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
 
-      const today = new Date();
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
+      let start = new Date();
 
-      // For "Today" and "Yesterday", both start and end dates should be the same
-      if (range.value === 'today') {
-        // Today: start = today, end = today
-        setStartDate(today.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
-      } else if (range.value === 'yesterday') {
-        // Yesterday: start = yesterday, end = yesterday
-        const yesterday = new Date(today);
-        yesterday.setDate(today.getDate() - 1);
-        setStartDate(yesterday.toISOString().split('T')[0]);
-        setEndDate(yesterday.toISOString().split('T')[0]);
-      } else {
-        // For ranges like "Last 7 Days", "Last 30 Days"
-        // start = today - N days, end = today
-        const start = new Date(today);
-        start.setDate(today.getDate() - range.days);
-        setStartDate(start.toISOString().split('T')[0]);
-        setEndDate(today.toISOString().split('T')[0]);
+      switch (range.value) {
+        case 'year':
+          start = new Date(now.getFullYear(), 0, 1);
+          break;
+        case 'quarter':
+          const currentQuarter = Math.floor(now.getMonth() / 3);
+          start = new Date(now.getFullYear(), currentQuarter * 3, 1);
+          break;
+        case 'month':
+          start = new Date(now.getFullYear(), now.getMonth(), 1);
+          break;
+        case 'week':
+          const day = now.getDay();
+          const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+          start = new Date(now.setDate(diff));
+          break;
+        case 'today':
+          start = now;
+          break;
+        default:
+          start = now;
       }
 
+      setStartDate(start.toISOString().split('T')[0]);
+      setEndDate(todayStr);
       setShowDateDropdown(false);
     }
   };
@@ -1053,7 +1037,7 @@ const VDOComplaintsContent = () => {
           }
         }
       },
-      
+
       {
         title: 'Disposed',
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
@@ -1256,6 +1240,7 @@ const VDOComplaintsContent = () => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status: rawStatus,
@@ -1420,16 +1405,7 @@ const VDOComplaintsContent = () => {
 
   const handleDistrictClick = (district) => {
     if (false) {
-      trackDropdownChange(district.name, district.id, district.id);
-      updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
-      fetchBlocks(district.id);
-      setShowLocationDropdown(false);
     } else if (false) {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-      fetchBlocks(district.id);
     } else if (activeScope === 'GPs') {
       setSelectedDistrictForHierarchy(district);
       setSelectedBlockForHierarchy(null);
@@ -1451,16 +1427,6 @@ const VDOComplaintsContent = () => {
 
   const handleBlockClick = (block) => {
     if (false) {
-      const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
-      const districtId = district?.id || null;
-      trackDropdownChange(block.name, block.id, districtId);
-      updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'dropdown_change');
-      if (district) {
-        setSelectedDistrictForHierarchy(district);
-      }
-      setSelectedBlockForHierarchy(block);
-      fetchGramPanchayats(districtId, block.id);
-      setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
       setSelectedBlockForHierarchy(block);
       setSelectedLocation('Select GP');
@@ -1527,6 +1493,8 @@ const VDOComplaintsContent = () => {
       fetchGramPanchayats(vdoDistrictId, vdoBlockId);
     }
   }, [activeScope, vdoDistrictId, vdoBlockId, fetchGramPanchayats]);
+
+
 
   return (
     <div>
@@ -1956,7 +1924,7 @@ const VDOComplaintsContent = () => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div ref={complaintsTableRef} style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -2264,9 +2232,12 @@ const VDOComplaintsContent = () => {
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
                 return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50 cursor-pointer'
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -2377,6 +2348,12 @@ const VDOComplaintsContent = () => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (

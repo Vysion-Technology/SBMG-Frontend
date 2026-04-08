@@ -724,6 +724,20 @@ const BDOContractorDetails = () => {
         setShowLocationDropdown(false);
     };
 
+    const handleRowClick = (item) => {
+        if (activeScope === 'Blocks') {
+            // Navigate to GPs scope
+            trackTabChange('GPs');
+            setActiveScope('GPs');
+            updateLocationSelection('GPs', 'Select GP', null, bdoDistrictId, bdoBlockId, null, 'table_navigation');
+            fetchGramPanchayats(bdoDistrictId, bdoBlockId);
+        } else if (activeScope === 'GPs') {
+            // Already in GP view, select this GP
+            trackDropdownChange(item.geography_name, item.geography_id, bdoDistrictId, bdoBlockId, item.geography_id);
+            updateLocationSelection('GPs', item.geography_name, item.geography_id, bdoDistrictId, bdoBlockId, item.geography_id, 'table_navigation');
+        }
+    };
+
     useEffect(() => {
         if (!showLocationDropdown) {
             return;
@@ -852,9 +866,7 @@ const BDOContractorDetails = () => {
     // Helper function to format currency
     const formatCurrency = (amount) => {
         if (amount === null || amount === undefined || isNaN(amount)) return '0';
-        if (amount >= 10000000) {
-            return `₹${(amount / 10000000).toFixed(1)} Cr`;
-        } else if (amount >= 100000) {
+        if (amount >= 100000) {
             return `₹${(amount / 100000).toFixed(1)} L`;
         }
         return `₹${amount.toLocaleString('en-IN')}`;

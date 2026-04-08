@@ -761,6 +761,29 @@ const CEOContractorDetails = () => {
         setShowLocationDropdown(false);
     };
 
+    const handleRowClick = (item) => {
+        if (activeScope === 'Districts') {
+            // Navigate to Blocks scope
+            trackTabChange('Blocks');
+            setActiveScope('Blocks');
+            updateLocationSelection('Blocks', 'Select Block', null, ceoDistrictId, null, null, 'table_navigation');
+            fetchBlocks(ceoDistrictId);
+        } else if (activeScope === 'Blocks') {
+            // Navigate to GPs scope
+            const block = blocks.find(b => b.id === item.geography_id) || { id: item.geography_id, name: item.geography_name, district_id: ceoDistrictId };
+            trackTabChange('GPs');
+            setActiveScope('GPs');
+            setSelectedBlockForHierarchy(block);
+            trackDropdownChange(block.name);
+            updateLocationSelection('GPs', 'Select GP', null, ceoDistrictId, block.id, null, 'table_navigation');
+            fetchGramPanchayats(ceoDistrictId, block.id);
+        } else if (activeScope === 'GPs') {
+            // Already in GP view, select this GP
+            trackDropdownChange(item.geography_name);
+            updateLocationSelection('GPs', item.geography_name, item.geography_id, ceoDistrictId, selectedBlockId, item.geography_id, 'table_navigation');
+        }
+    };
+
     useEffect(() => {
         if (!showLocationDropdown) {
             return;
@@ -1776,7 +1799,15 @@ const CEOContractorDetails = () => {
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                                         >
-                                            <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>
+                                            <div 
+                                                onClick={() => handleRowClick(item)}
+                                                style={{ 
+                                                    fontSize: '14px', 
+                                                    color: activeScope === 'GPs' ? '#111827' : '#10b981', 
+                                                    fontWeight: '500',
+                                                    cursor: activeScope === 'GPs' ? 'default' : 'pointer',
+                                                    textDecoration: activeScope === 'GPs' ? 'none' : 'underline'
+                                                }}>
                                                 {item.geography_name}
                                             </div>
                                             <div style={{ fontSize: '14px', color: '#111827' }}>

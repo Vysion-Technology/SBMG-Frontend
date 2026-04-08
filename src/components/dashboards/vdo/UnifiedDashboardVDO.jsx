@@ -16,6 +16,7 @@ import {
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
 import Header from '../../common/Header';
+import TopHeaderBar from '../../common/TopHeaderBar';
 import VDODashboardContent from './VDODashboardContent';
 import VDOComplaintsContent from './VDOComplaintsContent';
 import VDOAttendanceContent from './VDOAttendanceContent';
@@ -30,11 +31,11 @@ import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import VDOContractorDetails from './VDOContractorDetails';
 
-const Sidebar = ({ activeItem, setActiveItem }) => {
+const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
-    { name: 'Attendance', icon: CheckCircle },
+    { name: 'CSC Cleaning', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
     { name: 'Contractor Details', icon: Building },
@@ -47,15 +48,16 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
   ];
 
  return (
-    <aside className="w-full md:w-64 lg:w-[272px] h-screen bg-green-50 border-r border-gray-200 flex flex-col m-0 p-0" style={{
-      width: '272px',
-      height: '100vh',
-      backgroundColor: '#F0FDF4',
+    <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
+      width: isSidebarOpen ? '272px' : '80px',
+      height: '100%',
+      backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
       flexDirection: 'column',
       margin: 0,
-      padding: 0
+      padding: 0,
+      transition: 'width 0.25s ease'
     }}>
       {/* Logo Section */}
       <div style={{
@@ -67,12 +69,13 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
          display: 'flex',
          alignItems: 'center',
          justifyContent: 'center',
-         gap: '12px',
+         gap: isSidebarOpen ? '12px' : '0',
          backgroundColor: 'white',
          border: '1px solid #d1d5db',
          borderRadius: '8px',
          margin: 10,
-         padding: '5px'
+         padding: '5px',
+         minHeight: '48px'
        }}>
           {/* Swach Logo */}
           <div style={{
@@ -80,7 +83,8 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
             height: '36px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            flexShrink: 0
           }}>
             <img 
               src={swachLogo} 
@@ -92,23 +96,27 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
               }}
             />
           </div>
-          <div>
-            <h2 style={{
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#059669',
-              margin: 0
-            }}>SBMG</h2>
-          </div>
+          {isSidebarOpen && (
+            <div>
+              <h2 style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#059669',
+                margin: 0,
+                whiteSpace: 'nowrap'
+              }}>SBMG</h2>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Navigation Menu */}
       <nav style={{
         flex: 1,
-        paddingLeft: '16px',
-        paddingRight: '16px',
+        paddingLeft: isSidebarOpen ? '16px' : '8px',
+        paddingRight: isSidebarOpen ? '16px' : '8px',
         overflowY: 'auto',
+        overflowX: 'hidden',
         margin: 0
       }}>
         <ul style={{
@@ -124,21 +132,24 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
               <li key={item.name} style={{marginTop: '10px'}}>
                 <button
                   onClick={() => setActiveItem(item.name)}
+                  title={!isSidebarOpen ? item.name : ''}
                   style={{
                     width: '100%',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    gap: '8px',
+                    justifyContent: isSidebarOpen ? 'flex-start' : 'center',
+                    gap: isSidebarOpen ? '12px' : '0',
                     borderRadius: '8px',
                     textAlign: 'left',
                     position: 'relative',
-                    backgroundColor: isActive ? '#009B56' : 'transparent',
-                    color: isActive ? 'white' : '#374151',
+                    borderLeft: isActive ? '4px solid #22c55e' : '4px solid transparent',
+                    backgroundColor: isActive ? '#f3f4f6' : 'transparent',
+                    color: '#374151',
                     border: 'none',
                     cursor: 'pointer',
                     padding: '12px 8px',
-                    paddingLeft: '30px'
+                    paddingLeft: isSidebarOpen ? '30px' : '8px',
+                    transition: 'all 0.25s ease'
                   }}
                 >
                   <Icon style={{
@@ -146,10 +157,13 @@ const Sidebar = ({ activeItem, setActiveItem }) => {
                     height: '20px',
                     flexShrink: 0
                   }} />
-                  <span style={{
-                    fontSize: '14px',
-                    fontWeight: '500'
-                  }}>{item.name}</span>
+                  {isSidebarOpen && (
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      whiteSpace: 'nowrap'
+                    }}>{item.name}</span>
+                  )}
                  
                 </button>
               </li>
@@ -198,7 +212,7 @@ const UnifiedDashboardVDO = () => {
         return <VDODashboardContent />;
       case 'Complaints':
         return <VDOComplaintsContent />;
-      case 'Attendance':
+      case 'CSC Cleaning':
         return <VDOAttendanceContent />;
       case 'Inspection':
         return <VDOInspectionContent />;
@@ -229,22 +243,35 @@ const UnifiedDashboardVDO = () => {
   };
 
   return (
-    <div className="flex h-screen bg-white m-0 p-0" style={{
+    <div style={{
       display: 'flex',
+      flexDirection: 'column',
       height: '100vh',
       backgroundColor: 'white',
       margin: 0,
-      padding: 0
+      padding: 0,
+      overflow: 'hidden'
     }}>
-      <div className={`transition-all duration-250 ease-in-out flex-shrink-0 ${isSidebarOpen ? 'w-64 md:w-64 lg:w-[272px]' : 'w-0'} overflow-hidden`} style={{
-        width: isSidebarOpen ? '272px' : '0px',
+      <TopHeaderBar />
+      <div className="flex flex-1 min-h-0" style={{
+        display: 'flex',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden'
+      }}>
+      <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
+        width: isSidebarOpen ? '272px' : '80px',
         transition: 'width 0.25s ease',
         overflow: 'hidden',
         flexShrink: 0
       }}>
-        <Sidebar activeItem={activeItem} setActiveItem={setActiveItem} />
+        <Sidebar 
+          activeItem={activeItem} 
+          setActiveItem={setActiveItem} 
+          isSidebarOpen={isSidebarOpen}
+        />
       </div>
-      <div className="flex-1 bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+      <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
         flex: 1,
         backgroundColor: '#F3F4F6',
         margin: 0,
@@ -254,11 +281,15 @@ const UnifiedDashboardVDO = () => {
         overflow: 'auto'
       }}>
         <Header
+          pageTitle={activeItem}
           onMenuClick={() => setIsSidebarOpen(prev => !prev)}
           onNotificationsClick={() => setActiveItem('Notices')}
           showLocationSearch={false}
         />
-        {renderContent()}
+        <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+          {renderContent()}
+        </div>
+      </div>
       </div>
     </div>
   );
