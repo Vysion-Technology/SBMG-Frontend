@@ -4,183 +4,23 @@ import { schemesAPI, MEDIA_BASE_URL } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 
 const SchemesContent = () => {
-    const [showModal, setShowModal] = useState(false);
-    const [showDetailsModal, setShowDetailsModal] = useState(false);
-    const [selectedScheme, setSelectedScheme] = useState(null);
-    const [activeTab, setActiveTab] = useState('Details');
-    const [schemes, setSchemes] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [schemeFilter, setSchemeFilter] = useState('active'); // 'active', 'inactive', 'all'
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        details: '',
-        benefits: ''
-    });
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitProgress, setSubmitProgress] = useState('');
-    
-    // Edit scheme state
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [editFormData, setEditFormData] = useState({
-        name: '',
-        description: '',
-        eligibility: '',
-        benefits: '',
-        start_time: '',
-        end_time: '',
-        active: true
-    });
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [isDeleting, setIsDeleting] = useState(false);
-
-    // Fetch schemes data on component mount and when filter changes
-    useEffect(() => {
-        fetchSchemes();
-    }, [schemeFilter]);
-
-    // Close modals if selected scheme is no longer in the filtered list
-    useEffect(() => {
-        if (selectedScheme && !loading) {
-            const schemeStillVisible = schemes.some(s => s.id === selectedScheme.id);
-            if (!schemeStillVisible) {
-                // Scheme is no longer visible (likely disabled and filtered out)
-                setShowEditModal(false);
-                setShowDetailsModal(false);
-                setSelectedScheme(null);
-            }
-        }
-    }, [schemes, selectedScheme, loading]);
-
-    const fetchSchemes = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            // Fetch schemes based on filter - use API filtering when possible, but always apply client-side filtering as backup
-            let schemesData = [];
-            
-            if (schemeFilter === 'all') {
-                // For 'all', fetch both active and inactive separately to ensure we get everything
-                const [activeResponse, inactiveResponse] = await Promise.all([
-                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: true }),
-                    schemesAPI.getSchemes({ skip: 0, limit: 100, active: false })
-                ]);
-                const activeSchemes = activeResponse.data || [];
-                const inactiveSchemes = inactiveResponse.data || [];
-                schemesData = [...activeSchemes, ...inactiveSchemes];
-            } else {
-                // For 'active' or 'inactive', fetch with the appropriate parameter
-                const activeParam = schemeFilter === 'active' ? true : false;
-                const response = await schemesAPI.getSchemes({ skip: 0, limit: 100, active: activeParam });
-                schemesData = response.data || [];
-            }
-            
-            // Deduplicate schemes by ID and name to prevent duplicate entries
-            const uniqueSchemes = schemesData.reduce((acc, scheme) => {
-                // First check if scheme with same ID already exists
-                const existingById = acc.find(s => s.id === scheme.id);
-                if (existingById) {
-                    console.warn('Duplicate scheme detected by ID:', scheme.name, 'ID:', scheme.id);
-                    return acc;
-                }
-                
-                // Then check if scheme with same name already exists (case-insensitive)
-                // Keep the first occurrence and skip duplicates
-                const existingByName = acc.find(s => 
-                    s.name && scheme.name && 
-                    s.name.toLowerCase().trim() === scheme.name.toLowerCase().trim()
-                );
-                if (existingByName) {
-                    console.warn('Duplicate scheme detected by name:', scheme.name, 'ID:', scheme.id, '- Keeping first occurrence');
-                    return acc;
-                }
-                
-                acc.push(scheme);
-                return acc;
-            }, []);
-            
-            // Apply client-side filtering to ensure correct display (backup safety check)
-            let filteredSchemes = uniqueSchemes;
-            if (schemeFilter === 'active') {
-                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === true);
-            } else if (schemeFilter === 'inactive') {
-                filteredSchemes = uniqueSchemes.filter(scheme => scheme.active === false);
-            }
-            // 'all' filter: show all schemes (no additional filtering needed)
-            
-            setSchemes(filteredSchemes);
-        } catch (err) {
-            console.error('Error fetching schemes:', err);
-            setError('Failed to load schemes. Please try again.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Helper function to format date
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        try {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-        } catch (error) {
-            return 'Invalid Date';
-        }
-    };
-
-    // Helper function to truncate text
-    const truncateText = (text, maxLength = 100) => {
-        if (!text) return '';
-        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
-
-    // Helper function to get scheme image
-    const getSchemeImage = (scheme) => {
-        if (scheme.media && scheme.media.length > 0) {
-            // Use the public media API endpoint
-            return `http://139.59.34.99:8000/api/v1/public/media/${encodeURIComponent(scheme.media[0].media_url)}`;
-        }
-        return '/background.png'; // Fallback to placeholder
-    };
-
-    // Handle file selection
-    // Strict File Selection Validation
-    const handleFileSelect = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            // 1. Check file size (max 5MB)
-            if (file.size > 5 * 1024 * 1024) {
-                alert("File size exceeds 5MB limit.");
-                event.target.value = ''; // Reset the input
-                return;
-            }
-
-            // 2. Check for double extensions / null bytes
-            const fileName = file.name;
-            const fileParts = fileName.split('.');
-            if (fileParts.length > 2 || fileName.includes('%00')) {
-                alert("Invalid file name. Double extensions and special characters are not allowed.");
-                event.target.value = ''; // Reset the input
-                return;
-            }
-
-            // 3. Check MIME type (whitelist)
-            const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-            if (!validMimeTypes.includes(file.type)) {
-                alert("Invalid file type. Only JPG, JPEG, and PNG are allowed.");
-                event.target.value = ''; // Reset the input
-                return;
-            }
-
-            setSelectedFile(file);
-        }
-    };
+  const [showModal, setShowModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedScheme, setSelectedScheme] = useState(null);
+  const [activeTab, setActiveTab] = useState('Details');
+  const [schemes, setSchemes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [schemeFilter, setSchemeFilter] = useState('active'); // 'active', 'inactive', 'all'
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    details: '',
+    benefits: ''
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitProgress, setSubmitProgress] = useState('');
 
   // Edit scheme state
   const [showEditModal, setShowEditModal] = useState(false);
@@ -304,15 +144,40 @@ const SchemesContent = () => {
   const getSchemeImage = (scheme) => {
     if (scheme.media && scheme.media.length > 0) {
       // Use the public media API endpoint
-      return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
+      return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media.media_url)}`;
     }
     return '/background.png'; // Fallback to placeholder
   };
 
   // Handle file selection
+  // Strict File Selection Validation
   const handleFileSelect = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files;
     if (file) {
+      // 1. Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File size exceeds 5MB limit.");
+        event.target.value = ''; // Reset the input
+        return;
+      }
+
+      // 2. Check for double extensions / null bytes
+      const fileName = file.name;
+      const fileParts = fileName.split('.');
+      if (fileParts.length > 2 || fileName.includes('%00')) {
+        alert("Invalid file name. Double extensions and special characters are not allowed.");
+        event.target.value = ''; // Reset the input
+        return;
+      }
+
+      // 3. Check MIME type (whitelist)
+      const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      if (!validMimeTypes.includes(file.type)) {
+        alert("Invalid file type. Only JPG, JPEG, and PNG are allowed.");
+        event.target.value = ''; // Reset the input
+        return;
+      }
+
       setSelectedFile(file);
     }
   };
@@ -444,7 +309,6 @@ const SchemesContent = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-
 
       {/* Overview Section */}
       <div style={{
@@ -602,7 +466,7 @@ const SchemesContent = () => {
                   setActiveTab('Details');
                 }}
                 style={{
-                  breakInside: 'avoid', // ⭐ important (card break na ho)
+                  breakInside: 'avoid',
                   marginBottom: '20px',
                   backgroundColor: 'white',
                   borderRadius: '12px',
@@ -646,11 +510,11 @@ const SchemesContent = () => {
                     }}
 
                     onError={(e) => {
-                      console.log('Image failed to load:', getEventImage(event));
+                      console.log('Image failed to load:', getSchemeImage(scheme));
                       e.target.src = '/background.png';
                     }}
                     onLoad={() => {
-                      console.log('Image loaded successfully:', getEventImage(event));
+                      console.log('Image loaded successfully:', getSchemeImage(scheme));
                     }}
                   />
                   <div style={{
@@ -1141,15 +1005,12 @@ const SchemesContent = () => {
                   </button>
                 ))}
               </div>
-              <divider />
               <div style={{
                 height: '1px',
                 backgroundColor: '#e5e7eb',
                 margin: '12px 0'
               }}></div>
 
-
-              <divider />
 
               {/* Tab Content */}
               <div style={{ padding: '24px' }}>
