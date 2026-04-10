@@ -1817,39 +1817,7 @@ const CEOVillageMasterContent = () => {
               {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
             </div>          </div>
 
-          {/* SBMG Target Achievement Rate */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                SBMG Target Achievement Rate
-              </h3>
-              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : `${getAnalyticsValue('sbmg_target_achievement_rate', 0)}%`}
-            </div>
-          </div>
+          
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}

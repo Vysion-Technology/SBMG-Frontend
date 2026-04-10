@@ -207,11 +207,15 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
 const formatNumber = (val) => {
   if (val === "" || val === null || val === undefined) return "-";
 
-  // number ya numeric string dono handle karega
-  const num = Number(val);
-  if (isNaN(num)) return val;
+  // 👉 agar string me unit hai (km, m, etc) → direct return
+  if (typeof val === "string" && isNaN(Number(val))) {
+    return val;
+  }
 
-  return num.toLocaleString("en-IN"); // Indian format
+  const num = Number(val);
+  if (isNaN(num)) return "-";
+
+  return num.toLocaleString("en-IN");
 };
 
 const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
@@ -2910,7 +2914,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         },
         {
           key: "Drainage_channels",
-          label: "Drainage channels (meters)",
+          label: "Drainage channels",
           bgColor: "#FEFCE8",
           textColor: "#364153",
           border: "#E5E7EB",
@@ -3177,12 +3181,14 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     blocks: [],
   }));
 
-  const formatValue = (key, value) => {
-    if (key === "Drainage_channels") {
-      return `${(parseFloat(value || 0) * 1000).toLocaleString('en-in')} m`;
-    }
-    return value;
-  };
+const formatValue = (key, value) => {
+  if (key === "Drainage_channels") {
+    const num = Number(value);
+    if (isNaN(num)) return "-";
+    return `${(num / 1000).toFixed(2)} kms`;
+  }
+  return value;
+};
 
   return (
     <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }} >
