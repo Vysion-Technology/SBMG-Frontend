@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../services/api';
 import { useLocation } from '../../context/LocationContext';
@@ -7,7 +7,7 @@ import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
 
-const SegmentedGauge = ({ percentage, label = "Present", absentDays = 0 }) => {
+const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
   const getArcPath = (startAngle, endAngle, radius, strokeWidth) => {
     const innerRadius = radius - strokeWidth;
@@ -191,6 +191,48 @@ const AttendanceContent = () => {
     kpiName: '',
     kpiFigure: ''
   });
+
+
+  // Sorting 
+  // const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
+
+
 
   const buildNoticeTarget = useCallback((item) => {
     if (!item) {
@@ -1448,6 +1490,84 @@ const AttendanceContent = () => {
     fetchTop3Data();
   }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, fetchTop3Data]);
 
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocksAttendance: selectedDistrictForBlocksAttendance?.id,
+      selectedBlockForGpsAttendance: selectedBlockForGpsAttendance?.id,
+      selectedGpForContractorAttendance: selectedGpForContractorAttendance?.id,
+      viewingBlocksAttendanceForDistrict,
+      viewingGpsAttendanceForBlock,
+      viewingContractorsForGp
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksAttendanceForDistrict(false);
+      setViewingGpsAttendanceForBlock(false);
+      setViewingContractorsForGp(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocksAttendance?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlockAttendanceSummary(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksAttendanceForDistrict) {
+      setViewingBlocksAttendanceForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGpsAttendance?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGpAttendanceSummary(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGpsAttendanceForBlock) {
+      setViewingGpsAttendanceForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show contractors for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show contractors for a different GP
+      if (selectedGP && selectedGpForContractorAttendance?.id !== selectedGPId) {
+        console.log('📊 GPs scope: Showing contractors for GP', selectedGP.name);
+
+        // Set the selected GP and flag to show contractors view
+        setSelectedGpForContractorAttendance(selectedGP);
+        setViewingContractorsForGp(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingContractorsForGp) {
+      setViewingContractorsForGp(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksAttendance, selectedBlockForGpsAttendance, selectedGpForContractorAttendance, viewingBlocksAttendanceForDistrict, viewingGpsAttendanceForBlock, viewingContractorsForGp, fetchBlockAttendanceSummary, fetchGpAttendanceSummary]);
+
   // Helper function to calculate attendance metrics from API data
   const calculateAttendanceMetrics = () => {
     if (!analyticsData) {
@@ -1816,7 +1936,7 @@ const AttendanceContent = () => {
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
       return responseData.map(item => {
-        const status = (item.present_count || 0) > 0 ? 'Present' : 'Absent';
+        const status = (item.present_count || 0) > 0 ? 'CSC Cleaned' : 'CSC Not Cleaned';
         return {
           id: `${item.geography_id}_${item.date}`,
           date: item.date,
@@ -1897,8 +2017,8 @@ const AttendanceContent = () => {
         headers = [
           'Date',
           'Status',
-          'Present Count',
-          'Absent Count',
+          'CSC Cleaned Count',
+          'CSC Not Cleaned Count',
           'Attendance Rate (%)',
           'Geography ID',
           'Geography Name'
@@ -1923,8 +2043,8 @@ const AttendanceContent = () => {
           scopeLabel,
           'Attendance Percentage (%)',
           'Total Contractors',
-          'Total Present',
-          'Total Absent',
+          'Total CSC Cleaned',
+          'Total CSC Not Cleaned',
           'Geography ID'
         ];
 
@@ -1972,50 +2092,53 @@ const AttendanceContent = () => {
   const getFilteredAndSortedHistoryData = () => {
     let filteredData = [...attendanceHistoryData];
 
-    // For GP view, filter and sort by date
-    if (activeScope === 'GPs') {
-      // Apply search filter (search in date or status)
-      if (historySearchTerm.trim()) {
-        const searchLower = historySearchTerm.toLowerCase();
-        filteredData = filteredData.filter(item =>
-          item.date?.toLowerCase().includes(searchLower) ||
-          item.status?.toLowerCase().includes(searchLower)
-        );
-      }
-
-      // Apply sorting by date
-      filteredData.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
-        if (historySortOrder === 'asc') {
-          return dateA - dateB;
-        } else {
-          return dateB - dateA;
-        }
-      });
-
-      return filteredData;
-    }
-
-    // For other views, filter and sort by name
-    // Apply search filter
+    // 🔍 SEARCH
     if (historySearchTerm.trim()) {
       const searchLower = historySearchTerm.toLowerCase();
-      filteredData = filteredData.filter(item =>
-        item.name?.toLowerCase().includes(searchLower)
-      );
+
+      filteredData = filteredData.filter(item => {
+        if (activeScope === 'GPs') {
+          return (
+            item.date?.toLowerCase().includes(searchLower) ||
+            item.status?.toLowerCase().includes(searchLower)
+          );
+        } else {
+          return item.name?.toLowerCase().includes(searchLower);
+        }
+      });
     }
 
-    // Apply sorting (with safety check for undefined names)
-    filteredData.sort((a, b) => {
-      const nameA = a.name || '';
-      const nameB = b.name || '';
-      if (historySortOrder === 'asc') {
-        return nameA.localeCompare(nameB);
-      } else {
-        return nameB.localeCompare(nameA);
-      }
-    });
+    // 🔥 SORT (COMMON)
+    if (sortConfig.key) {
+      filteredData.sort((a, b) => {
+
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+
+        // 📅 DATE SORT (GPs)
+        if (activeScope === 'GPs' && sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc'
+            ? new Date(valA) - new Date(valB)
+            : new Date(valB) - new Date(valA);
+        }
+
+        // 🔤 NAME SORT
+        if (sortConfig.key === 'name') {
+          return sortConfig.direction === 'asc'
+            ? (valA || '').localeCompare(valB || '')
+            : (valB || '').localeCompare(valA || '');
+        }
+
+        // 🔢 % SORT
+        if (sortConfig.key === 'attendancePercentage') {
+          return sortConfig.direction === 'asc'
+            ? (valA || 0) - (valB || 0)
+            : (valB || 0) - (valA || 0);
+        }
+
+        return 0;
+      });
+    }
 
     return filteredData;
   };
@@ -2343,22 +2466,22 @@ const AttendanceContent = () => {
     const metrics = calculateAttendanceMetrics();
 
     return [
+      // {
+      //   title: 'Total Vendor/Supervisor',
+      //   value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
+      //   icon: List,
+      //   color: '#3b82f6',
+      //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
+      // },
       {
-        title: 'Total Vendor/Supervisor',
-        value: loadingAnalytics ? '...' : formatNumber(metrics.total_contractors),
-        icon: List,
-        color: '#3b82f6',
-        tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
-      },
-      {
-        title: 'Vendor/Supervisor Present',
+        title: 'CSC Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
-        icon: UserCheck,
-        color: '#10b981',
+        icon: UserX,
+        color: '#ef4444',
         tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
       },
       {
-        title: 'Vendor/Supervisor Absent',
+        title: 'CSC Not Cleaned',
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
@@ -2533,6 +2656,40 @@ const AttendanceContent = () => {
     fetchDistrictAttendanceSummary();
   }, [fetchDistrictAttendanceSummary]);
 
+  // ✅ COMMON DATA
+  const attendanceData = viewingContractorsForGp
+    ? selectedGpForContractorAttendance?.contractors || []
+    : viewingGpsAttendanceForBlock
+      ? gpAttendanceSummaryData
+      : viewingBlocksAttendanceForDistrict
+        ? blockAttendanceSummaryData
+        : districtAttendanceSummaryData;
+
+  // ✅ SORT
+  const sortedAttendance = [...attendanceData].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    if (sortConfig.key === 'name') {
+      return sortConfig.direction === 'asc'
+        ? valA?.localeCompare(valB)
+        : valB?.localeCompare(valA);
+    }
+
+    if (sortConfig.key === 'attendancePercentage') {
+      return sortConfig.direction === 'asc'
+        ? valA - valB
+        : valB - valA;
+    }
+
+    return 0;
+  });
+
+
+
+
   return (
     <div>
       <style>{`
@@ -2566,7 +2723,7 @@ const AttendanceContent = () => {
           }
         }
       `}</style>
-     
+
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2878,9 +3035,8 @@ const AttendanceContent = () => {
           {/* Left Side - Three Cards */}
           <div style={{
             display: 'flex',
-            flexDirection: 'column',
             gap: '12px',
-            width: '75%'
+            width: '100%'
           }}>
             {/* Total Vendor/Supervisor - Full Width */}
             <div style={{
@@ -2889,7 +3045,8 @@ const AttendanceContent = () => {
               borderRadius: '8px',
               border: '1px solid #e5e7eb',
               position: 'relative',
-              minHeight: isMultiDayRange() ? '315px' : '140px'
+              minHeight: isMultiDayRange() ? '315px' : '140px',
+              width: '100%'
             }}>
               {/* Info icon */}
               <div style={{
@@ -2910,9 +3067,17 @@ const AttendanceContent = () => {
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px'
+                  gap: '6px',
+
                 }}>
-                  {React.createElement(attendanceMetrics[0].icon, { style: { width: '16px', height: '16px', color: '#6b7280' } })}
+
+                  {/* ascsacsacsacsacs */}
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: 'green'
+                  }}></div>
                   <span style={{
                     fontSize: '14px',
                     color: '#6b7280',
@@ -2972,7 +3137,7 @@ const AttendanceContent = () => {
                   borderRadius: '8px',
                   border: '1px solid #e5e7eb',
                   position: 'relative',
-                  width: '50%',
+                  width: '100%',
                   minHeight: '159px'
                 }}>
                   {/* Info icon */}
@@ -3085,7 +3250,7 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                Attendance
+                CSC Cleaning
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -3110,7 +3275,7 @@ const AttendanceContent = () => {
                   <div>
                     <SegmentedGauge
                       percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
-                      label={loadingAnalytics ? "Loading..." : "Present"}
+                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -3531,7 +3696,7 @@ const AttendanceContent = () => {
                       activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
                 </h2>
                 <InfoTooltip
-                  text="Performance score is calculated based on attendance percentage: (Present count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned / CSC Not Cleaned) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
                   size={16}
                   color="#9ca3af"
                 />
@@ -3843,7 +4008,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Attendance
+              CSC Cleaning
             </h2>
             {viewingContractorsForGp && (
               <span style={{
@@ -3875,6 +4040,8 @@ const AttendanceContent = () => {
               onClick={() => {
                 setSelectedGpForContractorAttendance(null);
                 setViewingContractorsForGp(false);
+                // Update breadcrumb - back to GPs list level
+                setActiveScope('GPs');
               }}
               style={{
                 padding: '8px 16px',
@@ -3899,6 +4066,13 @@ const AttendanceContent = () => {
                 setViewingGpsAttendanceForBlock(false);
                 setSelectedBlockForGpsAttendance(null);
                 setGpAttendanceSummaryData([]);
+                setViewingBlocksAttendanceForDistrict(true);
+                // Refetch blocks listing
+                if (selectedDistrictForBlocksAttendance) {
+                  fetchBlockAttendanceSummary(selectedDistrictForBlocksAttendance);
+                }
+                // Update breadcrumb - back to blocks level (keep block selected)
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
@@ -3923,6 +4097,10 @@ const AttendanceContent = () => {
                 setViewingBlocksAttendanceForDistrict(false);
                 setSelectedDistrictForBlocksAttendance(null);
                 setBlockAttendanceSummaryData([]);
+                // Update breadcrumb - back to state level (all selections cleared)
+                setActiveScope('State');
+                setSelectedDistrictForHierarchy(null);
+                setSelectedBlockForHierarchy(null);
               }}
               style={{
                 padding: '8px 16px',
@@ -3971,7 +4149,14 @@ const AttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
+                    {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('name')}>
+                      <SortIcon col="name" />
+                    </span>
+                  </div>
                 </th>
                 {viewingContractorsForGp && (
                   <>
@@ -3982,7 +4167,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Present
+                      CSC Cleaned
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3991,7 +4176,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Absent
+                      CSC Not Cleaned
                     </th>
                     <th style={{
                       padding: '12px',
@@ -4000,7 +4185,9 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Attendance %
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }} >
+                        CSC Cleaning %
+                      </div>
                     </th>
                   </>
                 )}
@@ -4012,7 +4199,17 @@ const AttendanceContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Attendance %
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                      CSC Cleaned %
+
+
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('attendancePercentage')}>
+                        <SortIcon col="attendancePercentage" />
+                      </span>
+
+                    </div>
                   </th>
                 )}
               </tr>
@@ -4028,7 +4225,7 @@ const AttendanceContent = () => {
                       <td style={{
                         padding: '12px',
                         fontSize: '14px',
-                        color: '#374151',
+                        color: '#10b981',
                         fontWeight: '500'
                       }}>
                         {contractor.total_contractors}
@@ -4117,7 +4314,9 @@ const AttendanceContent = () => {
                     </td>
                   </tr>
                 ) : (
-                  dataToDisplay.map((item) => (
+
+                  sortedAttendance.map((item) =>
+                  (
                     <tr key={item.id} style={{
                       borderBottom: '1px solid #f3f4f6'
                     }}>
@@ -4136,27 +4335,59 @@ const AttendanceContent = () => {
                                 enrichedGp.then((gp) => {
                                   setSelectedGpForContractorAttendance(gp);
                                   setViewingContractorsForGp(true);
+                                  // Sync header with table selection
+                                  setActiveScope('GPs');
+                                  setSelectedGPId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocksAttendance);
+                                  setSelectedBlockForHierarchy(selectedBlockForGpsAttendance);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocksAttendance?.id);
+                                  updateLocationSelection('GPs', item.name, item.id, selectedDistrictForBlocksAttendance?.id, selectedBlockForGpsAttendance?.id, item.id, 'table_click');
                                 });
                               } else if (viewingBlocksAttendanceForDistrict) {
                                 // Clicking on block to view GPs
                                 fetchGpAttendanceSummary(item);
+                                setSelectedBlockForGpsAttendance(item);
+                                // Sync header with table selection
+                                setActiveScope('Blocks');
+                                setSelectedBlockId(item.id);
+                                setSelectedLocation(item.name);
+                                setSelectedLocationId(item.id);
+                                // Update breadcrumb hierarchy
+                                setSelectedDistrictForHierarchy(selectedDistrictForBlocksAttendance);
+                                setSelectedBlockForHierarchy(item);
+                                trackDropdownChange(item.name, item.id, selectedDistrictForBlocksAttendance?.id);
+                                updateLocationSelection('Blocks', item.name, item.id, selectedDistrictForBlocksAttendance?.id, item.id, null, 'table_click');
                               } else {
                                 // Clicking on district to view blocks
                                 fetchBlockAttendanceSummary(item);
+                                setSelectedDistrictForBlocksAttendance(item);
+                                // Sync header with table selection
+                                setActiveScope('Districts');
+                                setSelectedDistrictId(item.id);
+                                setSelectedLocation(item.name);
+                                setSelectedLocationId(item.id);
+                                // Update breadcrumb hierarchy
+                                setSelectedDistrictForHierarchy(item);
+                                setSelectedBlockForHierarchy(null);
+                                trackDropdownChange(item.name, item.id, item.id);
+                                updateLocationSelection('Districts', item.name, item.id, item.id, null, null, 'table_click');
                               }
                             }}
                             style={{
                               cursor: 'pointer',
-                              color: '#0866c6',
+                              color: '#10b981',
                               textDecoration: 'none',
                               transition: 'color 0.2s ease'
                             }}
                             onMouseEnter={(e) => {
-                              e.target.style.color = '#0550a3';
+                              e.target.style.color = '#10b981';
                               e.target.style.textDecoration = 'underline';
                             }}
                             onMouseLeave={(e) => {
-                              e.target.style.color = '#0866c6';
+                              e.target.style.color = '#10b981';
                               e.target.style.textDecoration = 'none';
                             }}
                           >
@@ -4229,7 +4460,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Attendance History
+              CSC History
             </h2>
             <div
               onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
@@ -4354,7 +4585,7 @@ const AttendanceContent = () => {
             gap: '12px'
           }}>
             {/* Sort Button */}
-            <button
+            {/* <button
               onClick={toggleHistorySortOrder}
               style={{
                 display: 'flex',
@@ -4370,7 +4601,7 @@ const AttendanceContent = () => {
             >
               <Filter style={{ width: '16px', height: '16px' }} />
               {historySortOrder === 'asc' ? 'A-Z' : 'Z-A'}
-            </button>
+            </button> */}
 
             {/* Search Bar */}
             <div style={{
@@ -4460,7 +4691,11 @@ const AttendanceContent = () => {
                     fontSize: '12px',
                     color: '#9ca3af'
                   }}>
-                    ↕
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('name')}>
+                      <SortIcon col="name" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -4471,7 +4706,7 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : 'Attendance (%)'}
+                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaned (%)'}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -4480,7 +4715,11 @@ const AttendanceContent = () => {
                     fontSize: '12px',
                     color: '#9ca3af'
                   }}>
-                    ↕
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('attendancePercentage')}>
+                      <SortIcon col="attendancePercentage" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -4503,7 +4742,7 @@ const AttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading attendance history...
+                    Loading history...
                   </td>
                 </tr>
               ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
@@ -4520,7 +4759,7 @@ const AttendanceContent = () => {
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
-                      color: '#374151'
+                      color: '#10b981'
                     }}>
                       {activeScope === 'GPs' ? (
                         // Format date as DD/MM/YYYY
@@ -4533,7 +4772,7 @@ const AttendanceContent = () => {
                       padding: '12px',
                       fontSize: '14px',
                       color: activeScope === 'GPs'
-                        ? (item.status === 'Present' ? '#10b981' : '#ef4444')
+                        ? (item.status === 'CSC Cleaned' ? '#10b981' : '#ef4444')
                         : '#374151'
                     }}>
                       {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}

@@ -1,6 +1,9 @@
 import React from 'react';
 
 import headerLeft from '../../assets/header/image copy 3.png';
+import bharatlogo from '../../assets/header/bharatlogo.png';
+import swachhBharatLogo from '../../assets/header/swachh bharat.png';
+import swachhrajasthanLogo from '../../assets/logos/swach.png';
 import headerRight from '../../assets/header/image copy.png';
 import headerBg from '../../../assets/header/header-bg.png';
 
@@ -30,24 +33,42 @@ const TopHeaderBar = () => {
         flexWrap: 'wrap'
       }}
     >
-      <img
-        src={headerLeft}
-        alt="Government of India - Swachhata Hi Seva - Swachh Rajasthan"
-        style={{
-          maxHeight: 60,
-          height: 'auto',
-          objectFit: 'contain'
-        }}
-      />
-      <img
-        src={headerRight}
-        alt="Swachh Bharat Mission initiative logos"
-        style={{
-          maxHeight: 60,
-          height: 'auto',
-          objectFit: 'contain'
-        }}
-      />
+      <figure>
+        <img
+          src={headerLeft}
+          alt="Government of India - Swachhata Hi Seva - Swachh Rajasthan"
+          style={{
+            maxHeight: 60,
+            height: 'auto',
+            objectFit: 'contain'
+          }}
+        />
+      </figure>
+      <figure style={{
+        display: 'flex',
+        gap: '10px'
+      }}>
+        <img
+          src={swachhrajasthanLogo}
+          alt="Swachh Bharat Mission initiative logos"
+          style={{
+            maxHeight: 60,
+            height: 'auto',
+            objectFit: 'contain',
+          }}
+        />
+        <span style={{ borderRight: '2px solid #D1D5DB' }} />
+
+        <img
+          src={swachhBharatLogo}
+          alt="Swachh Bharat Mission initiative logos"
+          style={{
+            maxHeight: 60,
+            height: 'auto',
+            objectFit: 'contain'
+          }}
+        />
+      </figure>
     </nav>
   );
 };

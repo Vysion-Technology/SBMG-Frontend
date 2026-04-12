@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import visualsImg from '../../../assets/header/visuals.png';
 import LocationHierarchyPopup from './LocationHierarchyPopup';
 
@@ -90,8 +90,9 @@ const OverviewBanner = ({
 
               <span
                 style={{
-                  fontSize: 14,
-                  color: '#6b7280'
+                  fontSize: 15,
+                  color: 'black',
+                  fontWeight: 700
                 }}
               >
                 {m.label}
@@ -108,15 +109,11 @@ const OverviewBanner = ({
         <LocationHierarchyPopup
           onClose={() => setOpenPopup(false)}
           onSelect={(location) => {
-
-            // send location to dashboard
+            // send selection to dashboard
             if (onLocationChange) {
               onLocationChange(location);
             }
-
-            // close popup
-            setOpenPopup(false);
-
+            // Keep popup open for drill-down; LocationHierarchyPopup closes itself on GP selection.
           }}
         />
       )}

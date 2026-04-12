@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import apiClient, { noticesAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 import NoDataFound from '../common/NoDataFound';
+import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
 
 const CEOComplaintsContent = () => {
   // Shared location state via context
@@ -71,6 +72,10 @@ const CEOComplaintsContent = () => {
     }
   }, [contextUpdateLocationSelection]);
 
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
+
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -100,6 +105,10 @@ const CEOComplaintsContent = () => {
   const [noticeCategories, setNoticeCategories] = useState([]);
   const [loadingNoticeCategories, setLoadingNoticeCategories] = useState(false);
   const [sendingNotice, setSendingNotice] = useState(false);
+
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
 
   // Notice form state
   const [noticeForm, setNoticeForm] = useState({
@@ -1332,6 +1341,7 @@ const CEOComplaintsContent = () => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status: rawStatus,
@@ -1353,6 +1363,13 @@ const CEOComplaintsContent = () => {
     };
   });
 
+
+
+  // complain fun.
+  const handleOpenComplaintDetails = (id) => {
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
+  };
 
   const getStatusIcon = (status) => {
     // Handle both old format ("Open") and new API format ("OPEN", "VERIFIED")
@@ -2209,7 +2226,7 @@ const CEOComplaintsContent = () => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div ref={complaintsTableRef} style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -2517,9 +2534,12 @@ const CEOComplaintsContent = () => {
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
                 return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50 cursor-pointer'
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -2644,6 +2664,12 @@ const CEOComplaintsContent = () => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (

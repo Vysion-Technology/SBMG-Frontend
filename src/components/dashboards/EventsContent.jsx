@@ -21,7 +21,11 @@ const EventsContent = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitProgress, setSubmitProgress] = useState('');
-    
+
+    // Img ration Error state
+    const [imageError, setImageError] = useState('');
+
+
     // Edit event state
     const [showEditModal, setShowEditModal] = useState(false);
     const [editFormData, setEditFormData] = useState({
@@ -63,7 +67,7 @@ const EventsContent = () => {
             setError(null);
             // Fetch events based on filter - use API filtering when possible, but always apply client-side filtering as backup
             let eventsData = [];
-            
+
             if (eventFilter === 'all') {
                 // For 'all', fetch both active and inactive separately to ensure we get everything
                 const [activeResponse, inactiveResponse] = await Promise.all([
@@ -86,9 +90,9 @@ const EventsContent = () => {
                 const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
                 eventsData = response.data || [];
             }
-            
+
             console.log('Fetched events data:', eventsData);
-            
+
             // Apply client-side filtering to ensure correct display (backup safety check)
             let filteredEvents = eventsData;
             if (eventFilter === 'active') {
@@ -97,7 +101,7 @@ const EventsContent = () => {
                 filteredEvents = eventsData.filter(event => event.active === false);
             }
             // 'all' filter: show all events (no additional filtering needed)
-            
+
             setEvents(filteredEvents);
         } catch (err) {
             console.error('Error fetching events:', err);
@@ -142,7 +146,7 @@ const EventsContent = () => {
         if (event.media && event.media.length > 0) {
             const mediaUrl = `${MEDIA_BASE_URL}/${encodeURIComponent(event.media[0].media_url)}`;
             console.log('Generated media URL:', mediaUrl);
-            
+
             // Test if the URL is accessible
             fetch(mediaUrl, { method: 'HEAD' })
                 .then(response => {
@@ -151,7 +155,7 @@ const EventsContent = () => {
                 .catch(error => {
                     console.log('Media URL accessibility test failed:', error);
                 });
-            
+
             return mediaUrl;
         }
         console.log('No media found, using fallback');
@@ -160,14 +164,48 @@ const EventsContent = () => {
 
     // Handle file selection
     const handleFileSelect = (event) => {
+
+
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
         }
+        if (!file) return;
+
+        // 🔥 always reset FIRST
+        setImageError('');
+        setSelectedFile(null);
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const expected = 4 / 5;
+            const tolerance = 0.03;
+
+            if (Math.abs(ratio - expected) > tolerance) {
+                setImageError('Only 4:5 aspect ratio images are allowed');
+                setSelectedFile(null);
+                URL.revokeObjectURL(url);
+                return;
+            }
+
+            setSelectedFile(file);
+            setImageError('');
+            URL.revokeObjectURL(url);
+        };
+
+        img.src = url;
     };
 
     // Handle form submission with seamless two-step API flow
     const handleSubmit = async () => {
+        if (!selectedFile) {
+            setImageError('Please upload a 4:5 image');
+            return;
+        }
+
         if (!formData.title.trim() || !formData.description.trim()) {
             alert('Please fill in all required fields');
             return;
@@ -211,6 +249,7 @@ const EventsContent = () => {
             console.error('Error creating event:', error);
             setSubmitProgress('');
             setIsSubmitting(false);
+            setImageError('');
             alert('Failed to create event. Please try again.');
         }
     };
@@ -268,12 +307,12 @@ const EventsContent = () => {
             };
 
             await eventsAPI.updateEvent(selectedEvent.id, updatePayload);
-            
+
             // If event is set to inactive, switch filter to "All" so user can see it as inactive
             if (!editFormData.active && eventFilter === 'active') {
                 setEventFilter('all');
             }
-            
+
             // Close modal and refresh
             setShowEditModal(false);
             setIsUpdating(false);
@@ -285,18 +324,27 @@ const EventsContent = () => {
         }
     };
 
+    const resetModal = () => {
+        setShowModal(false);
+        setFormData({ name: '', description: '', details: '', benefits: '' });
+        setSelectedFile(null);
+        setImageError('');
+        setSubmitProgress('');
+        setIsSubmitting(false);
+    };
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
             {/* Overview Section */}
             <div style={{
-                 backgroundColor: 'white',
-                 padding: '24px',
-                 marginLeft: '16px',
-                 marginRight: '16px',
-                 marginTop: '16px',
-                 borderRadius: '8px',
-                 border: '1px solid lightgray'
+                backgroundColor: 'white',
+                padding: '24px',
+                marginLeft: '16px',
+                marginRight: '16px',
+                marginTop: '16px',
+                borderRadius: '8px',
+                border: '1px solid lightgray'
             }}>
 
                 {/* Overview Header */}
@@ -435,68 +483,30 @@ const EventsContent = () => {
 
                 {/* Event Cards Grid */}
                 {!loading && !error && (
-                <div style={{
-                    display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                    gap: '20px',
-                    marginTop: '24px'
-                }}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
                         {events.map((event) => (
-                    <div
+                            <div
                                 key={event.id}
-                        onClick={() => {
+                                className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
+                                onClick={() => {
                                     setSelectedEvent(event);
-                            setShowDetailsModal(true);
-                            setActiveTab('Details');
-                        }}
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '12px',
-                            border: '1px solid #e5e7eb',
-                            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                                    minHeight: '250px',
-                                    '&:hover': {
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        transform: 'translateY(-2px)'
-                                    }
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    setShowDetailsModal(true);
+                                    setActiveTab('Details');
                                 }}
                             >
-                        <div style={{
-                            height: '160px',
-                                    marginBottom: '8px',
-                            borderTopLeftRadius: '8px',
-                            borderTopRightRadius: '8px',
-                                    position: 'relative',
-                                    overflow: 'hidden'
-                                }}>
+                                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100" >
                                     <img
                                         src={getEventImage(event)}
                                         alt={event.name || 'Event image'}
-                                        style={{
-                                            width: '100%',
-                                            height: '100%',
-                                            objectFit: 'cover',
-                                            display: 'block'
-                                        }}
+                                        className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            console.log('Image failed to load:', getEventImage(event));
-                                            e.target.src = '/background.png';
+                                            e.currentTarget.src = "/background.png";
                                         }}
                                         onLoad={() => {
                                             console.log('Image loaded successfully:', getEventImage(event));
                                         }}
                                     />
-                                <div style={{
+                                    <div style={{
                                         position: 'absolute',
                                         top: '12px',
                                         right: '12px',
@@ -508,7 +518,7 @@ const EventsContent = () => {
                                         fontWeight: '500'
                                     }}>
                                         {event.active ? 'Active' : 'Inactive'}
-                                </div>
+                                    </div>
                                     {/* Media count indicator if multiple images */}
                                     {event.media && event.media.length > 1 && (
                                         <div style={{
@@ -520,67 +530,72 @@ const EventsContent = () => {
                                             padding: '4px 8px',
                                             borderRadius: '12px',
                                             fontSize: '12px',
-                                fontWeight: '500'
-                            }}>
+                                            fontWeight: '500'
+                                        }}>
                                             +{event.media.length - 1} more
-                        </div>
+                                        </div>
                                     )}
-                    </div>
+                                </div>
                                 <div style={{ padding: '16px' }}>
-                            {/* Title and Date Range in same row */}
-                            <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                marginBottom: '8px',
-                                minWidth: 0
-                            }}>
-                                <h3 style={{
-                                    fontSize: '16px',
-                                    fontWeight: '600',
-                                    color: '#111827',
-                                    margin: 0,
-                                    lineHeight: '1.4',
-                                    flex: 1,
-                                    minWidth: 0,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                }}>
-                                            {event.name || 'Untitled Event'}
-                                </h3>
-                                {/* Date Range Display */}
-                                <div style={{
-                                    backgroundColor: '#f9fafb',
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '6px',
-                                            padding: '6px 8px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                                    flexShrink: 0
-                                }}>
-                                    <Calendar style={{ width: '14px', height: '14px', color: '#6b7280' }} />
-                                    <span style={{
-                                        fontSize: '12px',
-                                        color: '#6b7280',
-                                        fontWeight: '500'
+                                    {/* Title and Date Range in same row */}
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '10px',
+                                        marginBottom: '8px',
+                                        minWidth: 0
                                     }}>
+                                        <h3 style={{
+                                            fontSize: '16px',
+                                            fontWeight: '600',
+                                            color: '#111827',
+                                            margin: 0,
+                                            lineHeight: '1.4',
+                                            flex: 1,
+                                            minWidth: 0,
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            {event.name || 'Untitled Event'}
+                                        </h3>
+                                        {/* Date Range Display */}
+                                        <div style={{
+                                            backgroundColor: '#f9fafb',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '6px',
+                                            padding: '6px 5px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px',
+                                            boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                                            flexShrink: 0
+
+                                        }}>
+                                            <Calendar style={{ width: '14px', height: '14px', color: '#6b7280' }} />
+                                            <span style={{
+                                                fontSize: '10px',
+                                                color: '#6b7280',
+                                                fontWeight: '400'
+                                            }}>
                                                 {formatDateRange(event.start_time, event.end_time)}
-                                    </span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <p style={{
+                                        fontSize: '14px',
+                                        color: '#6b7280',
+                                        margin: 0,
+                                        lineHeight: '1.4',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden'
+                                    }}>
+                                        {truncateText(event.description, 80)}
+                                    </p>
                                 </div>
                             </div>
-                            <p style={{
-                                fontSize: '14px',
-                                color: '#6b7280',
-                                margin: 0,
-                                        lineHeight: '1.5'
-                            }}>
-                                        {truncateText(event.description, 80)}
-                            </p>
-                        </div>
-                    </div>
                         ))}
                     </div>
                 )}
@@ -634,7 +649,7 @@ const EventsContent = () => {
                                     Add Event
                                 </h2>
                                 <button
-                                    onClick={() => setShowModal(false)}
+                                    onClick={resetModal}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -662,7 +677,7 @@ const EventsContent = () => {
                                     backgroundColor: selectedFile ? '#f0f9ff' : 'transparent',
                                     borderColor: selectedFile ? '#10b981' : '#d1d5db'
                                 }}
-                                onClick={() => document.getElementById('fileInput').click()}>
+                                    onClick={() => document.getElementById('fileInput').click()}>
                                     <input
                                         id="fileInput"
                                         type="file"
@@ -670,11 +685,11 @@ const EventsContent = () => {
                                         onChange={handleFileSelect}
                                         style={{ display: 'none' }}
                                     />
-                                    <Upload style={{ 
-                                        width: '32px', 
-                                        height: '32px', 
-                                        color: selectedFile ? '#10b981' : '#9ca3af', 
-                                        margin: '0 auto 12px' 
+                                    <Upload style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        color: selectedFile ? '#10b981' : '#9ca3af',
+                                        margin: '0 auto 12px'
                                     }} />
                                     <p style={{
                                         fontSize: '14px',
@@ -693,6 +708,18 @@ const EventsContent = () => {
                                         </p>
                                     )}
                                 </div>
+
+                                {/* 👇 ADD THIS ERROR MESSAGE HERE */}
+                                {imageError && (
+                                    <p style={{
+                                        color: '#ef4444',
+                                        fontSize: '12px',
+                                        marginTop: '-12px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {imageError}
+                                    </p>
+                                )}
 
                                 {/* Form Fields */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -779,7 +806,7 @@ const EventsContent = () => {
                                                         outline: 'none'
                                                     }}
                                                 />
-                                              
+
                                             </div>
                                         </div>
                                         <div style={{ flex: 1 }}>
@@ -809,7 +836,7 @@ const EventsContent = () => {
                                                         outline: 'none'
                                                     }}
                                                 />
-                                              
+
                                             </div>
                                         </div>
                                     </div>
@@ -843,10 +870,10 @@ const EventsContent = () => {
                                         {submitProgress}
                                     </div>
                                 )}
-                                
+
                                 {/* Buttons */}
                                 <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
-                                <button
+                                    <button
                                         onClick={() => {
                                             if (!isSubmitting) {
                                                 setShowModal(false);
@@ -855,40 +882,40 @@ const EventsContent = () => {
                                             }
                                         }}
                                         disabled={isSubmitting}
-                                    style={{
-                                        padding: '10px 20px',
-                                        border: '1px solid #d1d5db',
-                                        borderRadius: '8px',
-                                        backgroundColor: 'white',
-                                        color: '#374151',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
+                                        style={{
+                                            padding: '10px 20px',
+                                            border: '1px solid #d1d5db',
+                                            borderRadius: '8px',
+                                            backgroundColor: 'white',
+                                            color: '#374151',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
                                             cursor: isSubmitting ? 'not-allowed' : 'pointer',
                                             opacity: isSubmitting ? 0.6 : 1
-                                    }}
-                                >
-                                    Cancel
-                                </button>
-                                <button
+                                        }}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
                                         onClick={handleSubmit}
                                         disabled={isSubmitting}
-                                    style={{
-                                        padding: '10px 20px',
-                                        border: 'none',
-                                        borderRadius: '8px',
+                                        style={{
+                                            padding: '10px 20px',
+                                            border: 'none',
+                                            borderRadius: '8px',
                                             backgroundColor: isSubmitting ? '#9ca3af' : '#10b981',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        fontWeight: '500',
+                                            color: 'white',
+                                            fontSize: '14px',
+                                            fontWeight: '500',
                                             cursor: isSubmitting ? 'not-allowed' : 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '8px'
-                                    }}
-                                >
+                                        }}
+                                    >
                                         {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
                                         {isSubmitting ? 'Creating...' : 'Add Event'}
-                                </button>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1021,7 +1048,7 @@ const EventsContent = () => {
                                     </button>
                                 ))}
                             </div>
-                           
+
 
                             {/* Tab Content */}
                             <div style={{ padding: '24px' }}>
@@ -1041,14 +1068,14 @@ const EventsContent = () => {
                                             gap: '16px',
                                             marginTop: '20px'
                                         }}>
-                                           
-                                          
-                                          
+
+
+
                                         </div>
                                     </div>
                                 )}
 
-                               
+
                             </div>
                         </div>
                     </div>
@@ -1125,7 +1152,7 @@ const EventsContent = () => {
                                             type="text"
                                             placeholder="Enter event name"
                                             value={editFormData.name}
-                                            onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1151,7 +1178,7 @@ const EventsContent = () => {
                                         <textarea
                                             placeholder="Description"
                                             value={editFormData.description}
-                                            onChange={(e) => setEditFormData({...editFormData, description: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                                             rows={4}
                                             style={{
                                                 width: '100%',
@@ -1179,7 +1206,7 @@ const EventsContent = () => {
                                         <input
                                             type="datetime-local"
                                             value={editFormData.start_time ? new Date(editFormData.start_time).toISOString().slice(0, 16) : ''}
-                                            onChange={(e) => setEditFormData({...editFormData, start_time: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1205,7 +1232,7 @@ const EventsContent = () => {
                                         <input
                                             type="datetime-local"
                                             value={editFormData.end_time ? new Date(editFormData.end_time).toISOString().slice(0, 16) : ''}
-                                            onChange={(e) => setEditFormData({...editFormData, end_time: e.target.value})}
+                                            onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
                                             style={{
                                                 width: '100%',
                                                 padding: '12px',
@@ -1231,7 +1258,7 @@ const EventsContent = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={editFormData.active}
-                                                onChange={(e) => setEditFormData({...editFormData, active: e.target.checked})}
+                                                onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
                                                 style={{
                                                     width: '16px',
                                                     height: '16px',

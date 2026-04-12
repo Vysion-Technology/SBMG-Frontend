@@ -1,19 +1,18 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { Plus, MapPin, ChevronDown, ArrowUpDown } from 'lucide-react';
-import GoogleMapView from './gps/GoogleMapView';
-import FleetSidebar from './gps/FleetSidebar';
-import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
+import { ArrowUpDown, ChevronDown, ChevronsUpDown, ChevronUp, Plus } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../hooks/useAddVehicle';
+import { useVehicleDetails } from '../../hooks/useVehicleDetails';
+import { filterVehiclesByStatus, searchVehicles, useVehicles } from '../../hooks/useVehicles';
+import apiClient from '../../services/api';
 import AddVehicleModal from './gps/AddVehicleModal';
 import DeleteConfirmModal from './gps/DeleteConfirmModal';
-import { useVehicles, filterVehiclesByStatus, searchVehicles } from '../../hooks/useVehicles';
-import { useVehicleDetails } from '../../hooks/useVehicleDetails';
-import { useAddVehicle, useUpdateVehicle, useDeleteVehicle } from '../../hooks/useAddVehicle';
-import { InfoTooltip } from '../common/Tooltip';
-import apiClient from '../../services/api';
+import FleetSidebar from './gps/FleetSidebar';
+import GoogleMapView from './gps/GoogleMapView';
+import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
 
 const GpsTrackingContent = () => {
   const [activeScope, setActiveScope] = useState('All');
-  const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
+  const [activeFleetTab, setActiveFleetTab] = useState('All(00)');
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -39,6 +38,45 @@ const GpsTrackingContent = () => {
   const [loadingDistricts, setLoadingDistricts] = useState(false);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
   const [backButtonHover, setBackButtonHover] = useState(false);
+
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
 
   const scopeButtons = ['All', 'Districts', 'Blocks', 'GPs'];
 
@@ -190,16 +228,9 @@ const GpsTrackingContent = () => {
   const filteredVehicles = useMemo(() => {
     let result = vehiclesData;
 
-    // Filter by status tab
     result = filterVehiclesByStatus(result, activeFleetTab);
-
-    // Filter by search query
     result = searchVehicles(result, searchQuery);
-
-    // Filter by flagged status
-    if (showOnlyFlagged) {
-      result = result.filter(v => v.isFlagged);
-    }
+    if (showOnlyFlagged) result = result.filter(v => v.isFlagged);
 
     return result;
   }, [vehiclesData, activeFleetTab, searchQuery, showOnlyFlagged]);
@@ -207,9 +238,9 @@ const GpsTrackingContent = () => {
   // Calculate fleet stats
   const fleetStats = useMemo(() => {
     const all = vehiclesData.length;
-    const active = vehiclesData.filter(v => v.status === 'active').length;
-    const running = vehiclesData.filter(v => v.status === 'running').length;
-    const stopped = vehiclesData.filter(v => v.status === 'stopped').length;
+    const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+    const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+    const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
 
     return {
       all,
@@ -220,12 +251,38 @@ const GpsTrackingContent = () => {
   }, [vehiclesData]);
 
   // Update fleet tabs with real counts
-  const fleetTabs = useMemo(() => [
-    `All(${String(fleetStats.all).padStart(2, '0')})`,
-    `Active(${String(fleetStats.active).padStart(2, '0')})`,
-    `Running(${String(fleetStats.running).padStart(2, '0')})`,
-    `Stopped(${String(fleetStats.stopped).padStart(2, '0')})`,
-  ], [fleetStats]);
+  const [fleetTabsState, setFleetTabsState] = useState([
+    'All(00)',
+    'Active(00)',
+    'Running(00)',
+    'Stopped(00)'
+  ]);
+  // const [activeFleetTab, setActiveFleetTab] = useState(fleetTabsState[0]);
+
+  useEffect(() => {
+    const all = vehiclesData.length;
+    const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+    const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+    const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
+
+    const updatedTabs = [
+      `All(${String(all).padStart(2, '0')})`,
+      `Active(${String(active).padStart(2, '0')})`,
+      `Running(${String(running).padStart(2, '0')})`,
+      `Stopped(${String(stopped).padStart(2, '0')})`,
+    ];
+
+    setFleetTabsState(updatedTabs);
+
+    // Sync active tab
+    setActiveFleetTab(prev => {
+      const prevStr = typeof prev === 'string' ? prev : 'All(00)';
+      const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
+      const newTab = updatedTabs.find(t => t.startsWith(statusKey));
+      return newTab || updatedTabs[0];
+    });
+
+  }, [vehiclesData]);
 
   const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
@@ -273,6 +330,45 @@ const GpsTrackingContent = () => {
   const handleVehicleSelect = (vehicle) => {
     setSelectedVehicle(vehicle);
   };
+  console.log('🟢 fleetTabsState:', fleetTabsState);
+  console.log('🟢 activeFleetTab:', activeFleetTab);
+  console.log('🟢 filteredVehicles:', filteredVehicles);
+
+
+  // utils.js or inside your component
+  const getSortedData = (data = [], sortConfig = {}, filterId = null, idKey = 'geography_id') => {
+    // Copy data to avoid mutation
+    let sortedData = [...data];
+
+    // Optional filtering by selected ID (for GP view)
+    if (filterId) {
+      sortedData = sortedData.filter(item => item[idKey] === filterId || item.id === filterId);
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      sortedData.sort((a, b) => {
+        const key = sortConfig.key;
+        let valA = a[key] ?? 0;
+        let valB = b[key] ?? 0;
+
+        // String comparison for names
+        if (key === 'geography_name') {
+          valA = valA.toString().toLowerCase();
+          valB = valB.toString().toLowerCase();
+          if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+          if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+          return 0;
+        }
+
+        // Number comparison
+        return sortConfig.direction === 'asc' ? valA - valB : valB - valA;
+      });
+    }
+
+    return sortedData;
+  };
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
@@ -287,7 +383,7 @@ const GpsTrackingContent = () => {
         <FleetSidebar
           vehicles={filteredVehicles}
           activeFleetTab={activeFleetTab}
-          fleetTabs={fleetTabs}
+          fleetTabs={fleetTabsState}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onTabChange={setActiveFleetTab}
@@ -490,8 +586,14 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-                    <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
+                      <span
+                        style={{ cursor: 'pointer', }}
+                        onClick={() => handleSort('geography_name')}>
+                        <SortIcon col="geography_name" />
+                      </span>
+                    </div>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -502,6 +604,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Total Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('total_vehicles')}>
+                      <SortIcon col="total_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -512,6 +619,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Active Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('active_vehicles')}>
+                      <SortIcon col="active_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -522,6 +634,11 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Running Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('running_vehicles')}>
+                      <SortIcon col="running_vehicles" />
+                    </span>
                   </div>
                   <div style={{
                     display: 'flex',
@@ -532,14 +649,22 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     Stopped Vehicles
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('stopped_vehicles')}>
+                      <SortIcon col="stopped_vehicles" />
+                    </span>
                   </div>
                 </div>
 
                 {/* Table Rows */}
                 {(() => {
-                  const displayRows = activeScope === 'GPs' && selectedLocation.gpId
-                    ? coverageData.filter(item => item.geography_id === selectedLocation.gpId || item.id === selectedLocation.gpId)
-                    : coverageData;
+                  const displayRows = getSortedData(
+                    coverageData,
+                    sortConfig,
+                    activeScope === 'GPs' ? selectedLocation.gpId : null,
+                    'geography_id'
+                  );
 
                   return displayRows.map((item, index) => (
                     <div key={item.geography_id || item.id || index} style={{

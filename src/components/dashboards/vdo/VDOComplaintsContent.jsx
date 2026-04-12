@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
+import { Calendar, CheckCircle, ChevronDown, Clock, Download, List, Search, Star, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../../services/api';
-import LocationDisplay from '../../common/LocationDisplay';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
 
 const VDOComplaintsContent = () => {
   // VDO Location context - fixed district, block, and GP
@@ -78,6 +78,10 @@ const VDOComplaintsContent = () => {
     }
   }, [contextUpdateLocationSelection]);
 
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
+
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -147,6 +151,15 @@ const VDOComplaintsContent = () => {
     if (event.key !== 'Tab') {
       event.preventDefault();
     }
+  };
+
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
+
+  const handleOpenComplaintDetails = (id) => {
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
   };
 
   // BDO can only view GPs
@@ -334,13 +347,7 @@ const VDOComplaintsContent = () => {
   // Get location options based on current scope and dropdown level
   const getLocationOptions = () => {
     if (false) {
-      return districts;
     } else if (false) {
-      if (dropdownLevel === 'districts') {
-        return districts;
-      } else if (dropdownLevel === 'blocks') {
-        return blocks.filter(block => block.district_id === selectedDistrictForHierarchy?.id);
-      }
     } else if (activeScope === 'GPs') {
       if (dropdownLevel === 'districts') {
         return districts;
@@ -363,20 +370,6 @@ const VDOComplaintsContent = () => {
   // Handle hierarchical selection for blocks and GPs
   const handleHierarchicalSelection = (location) => {
     if (false) {
-      if (dropdownLevel === 'districts') {
-        // District selected, now show blocks
-        setSelectedDistrictForHierarchy(location);
-        setDropdownLevel('blocks');
-        setSelectedLocation('Select Block');
-        fetchBlocks(location.id);
-      } else if (dropdownLevel === 'blocks') {
-        // Block selected
-        trackDropdownChange(location.name, location.id, selectedDistrictForHierarchy.id);
-        updateLocationSelection('Blocks', location.name, location.id, selectedDistrictForHierarchy.id, location.id, null, 'dropdown_change');
-        fetchGramPanchayats(selectedDistrictForHierarchy.id, location.id);
-        console.log('Selected block ID:', location.id, 'Name:', location.name, 'District ID:', selectedDistrictForHierarchy.id);
-        setShowLocationDropdown(false);
-      }
     } else if (activeScope === 'GPs') {
       if (dropdownLevel === 'districts') {
         // District selected, now show blocks
@@ -426,12 +419,6 @@ const VDOComplaintsContent = () => {
   // Fetch data immediately when complaints tab is selected
   useEffect(() => {
     console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
-    if (false) {
-      console.log('📡 Calling initial API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-    }
   }, []); // Empty dependency array means this runs only once when component mounts
 
   // Load additional data based on scope
@@ -694,13 +681,6 @@ const VDOComplaintsContent = () => {
       return;
     }
 
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (false) {
-      console.log('📡 Calling API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-      return;
-    }
 
     // For other scopes, check if we have the necessary location data loaded
     if (activeScope === 'Districts' && !vdoDistrictId) {
@@ -710,10 +690,6 @@ const VDOComplaintsContent = () => {
     if (activeScope === 'Blocks' && !vdoBlockId) {
       console.log('⏳ Waiting for block selection');
       return; // Wait for block selection
-    }
-    if (false) {
-      console.log('⏳ Waiting for GP selection');
-      return; // Wait for GP selection
     }
 
     console.log('📡 Calling API for other scopes');
@@ -1061,7 +1037,7 @@ const VDOComplaintsContent = () => {
           }
         }
       },
-      
+
       {
         title: 'Disposed',
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
@@ -1264,6 +1240,7 @@ const VDOComplaintsContent = () => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status: rawStatus,
@@ -1428,16 +1405,7 @@ const VDOComplaintsContent = () => {
 
   const handleDistrictClick = (district) => {
     if (false) {
-      trackDropdownChange(district.name, district.id, district.id);
-      updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
-      fetchBlocks(district.id);
-      setShowLocationDropdown(false);
     } else if (false) {
-      setSelectedDistrictForHierarchy(district);
-      setSelectedBlockForHierarchy(null);
-      setSelectedLocation('Select Block');
-      setDropdownLevel('blocks');
-      fetchBlocks(district.id);
     } else if (activeScope === 'GPs') {
       setSelectedDistrictForHierarchy(district);
       setSelectedBlockForHierarchy(null);
@@ -1459,16 +1427,6 @@ const VDOComplaintsContent = () => {
 
   const handleBlockClick = (block) => {
     if (false) {
-      const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
-      const districtId = district?.id || null;
-      trackDropdownChange(block.name, block.id, districtId);
-      updateLocationSelection('Blocks', block.name, block.id, districtId, block.id, null, 'dropdown_change');
-      if (district) {
-        setSelectedDistrictForHierarchy(district);
-      }
-      setSelectedBlockForHierarchy(block);
-      fetchGramPanchayats(districtId, block.id);
-      setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
       setSelectedBlockForHierarchy(block);
       setSelectedLocation('Select GP');
@@ -1535,6 +1493,8 @@ const VDOComplaintsContent = () => {
       fetchGramPanchayats(vdoDistrictId, vdoBlockId);
     }
   }, [activeScope, vdoDistrictId, vdoBlockId, fetchGramPanchayats]);
+
+
 
   return (
     <div>
@@ -1964,7 +1924,7 @@ const VDOComplaintsContent = () => {
       </div>
 
       {/* Complaints Table Section */}
-      <div style={{
+      <div ref={complaintsTableRef} style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -2272,9 +2232,12 @@ const VDOComplaintsContent = () => {
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
                 return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50 cursor-pointer'
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -2385,6 +2348,12 @@ const VDOComplaintsContent = () => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (

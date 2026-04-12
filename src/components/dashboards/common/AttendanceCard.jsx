@@ -87,7 +87,7 @@ const AttendanceGauge = ({ presentPercent, absentPercent }) => {
         textAnchor="middle"
         style={{ fontSize: 12, fill: '#6b7280' }}
       >
-        Present
+        CSC Cleaned
       </text>
     </svg>
   );
@@ -132,7 +132,7 @@ const AttendanceCard = ({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>Attendance</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>CSC Cleaning</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         <div style={{ position: 'relative' }}>
@@ -177,19 +177,19 @@ const AttendanceCard = ({
             padding: '12px 0',
             borderBottom: '1px solid #f3f4f6'
           }}>
-            <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
+            {/* <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#3b82f6' }}>{formatCount(total)}</div>
               <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Total</div>
-            </div>
+            </div> */}
             <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
             <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{formatCount(present)}</div>
-              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Present</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>CSC Cleaned</div>
             </div>
             <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
             <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ef4444' }}>{formatCount(absentCount)}</div>
-              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Absent</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>CSC Not Cleaned</div>
             </div>
           </div>
 

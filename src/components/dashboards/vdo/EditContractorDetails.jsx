@@ -322,7 +322,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
 
 
     return (
-        <div className='fixed top-0 left-0 bg-black/50 w-full h-full '>
+        <div className='fixed top-0 left-0 bg-black/50 w-full h-full z-[9999] '>
 
             <div className="w-[700px] fixed top-1/2 left-1/2 -translate-x-1/2 z-10 -translate-y-1/2 h-[500px] bg-white p-9 rounded-2xl ">
                 {/* header */}

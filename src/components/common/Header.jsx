@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Bell, ChevronDown, LayoutDashboard, Loader2, User, LogOut, Menu } from 'lucide-react';
+import { Bell, ChevronDown, LayoutDashboard, Loader2, LogOut, Menu, Search, User } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../services/api';
-import { useLocation } from '../../context/LocationContext';
-import { useCEOLocation } from '../../context/CEOLocationContext';
-import { useBDOLocation } from '../../context/BDOLocationContext';
-import { useVDOLocation } from '../../context/VDOLocationContext';
 import { useAuth } from '../../context/AuthContext';
+import { useBDOLocation } from '../../context/BDOLocationContext';
+import { useCEOLocation } from '../../context/CEOLocationContext';
+import { useLocation } from '../../context/LocationContext';
+import { useVDOLocation } from '../../context/VDOLocationContext';
+import apiClient from '../../services/api';
 import { ROLES } from '../../utils/roleConfig';
 
 const buildSubtitle = (typeLabel, meta) => {
@@ -79,6 +79,8 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
     vdoGPName
   } = locationContext || {};
 
+  const gpName = activeScope === 'GPs' ? selectedLocation : null;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -93,11 +95,39 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   const breadcrumbDropdownRef = useRef(null);
   const suggestionCache = useRef(new Map());
   const userInteractedRef = useRef(false);
+  const districtCache = useRef(new Map());
+  const blockCache = useRef(new Map());
 
   const clearSearchTimeout = () => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = null;
+    }
+  };
+
+  const getDistrictName = async (id) => {
+    if (!id) return '';
+    if (districtCache.current.has(id)) return districtCache.current.get(id);
+    try {
+      const response = await apiClient.get('/geography/districts', { params: { skip: 0, limit: 100 } });
+      response.data.forEach(d => districtCache.current.set(d.id, d.name || 'Unnamed'));
+      return districtCache.current.get(id) || 'Unknown District';
+    } catch (error) {
+      console.error('Failed to fetch districts:', error);
+      return 'Unknown District';
+    }
+  };
+
+  const getBlockName = async (id) => {
+    if (!id) return '';
+    if (blockCache.current.has(id)) return blockCache.current.get(id);
+    try {
+      const response = await apiClient.get('/geography/blocks', { params: { skip: 0, limit: 100 } });
+      response.data.forEach(b => blockCache.current.set(b.id, b.name || 'Unnamed'));
+      return blockCache.current.get(id) || 'Unknown Block';
+    } catch (error) {
+      console.error('Failed to fetch blocks:', error);
+      return 'Unknown Block';
     }
   };
 
@@ -192,11 +222,11 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
 
       // Only process block results for non-BDO users
       if (!isBDO && blockResult.status === 'fulfilled' && Array.isArray(blockResult.value?.data)) {
-        blockResult.value.data.forEach((block) => {
-          if (!block) return;
+        for (const block of blockResult.value.data) {
+          if (!block) continue;
           const name = block.name || block.block_name || block.blockName || 'Unnamed Block';
-          const districtName = block.district?.name || block.district_name || block.districtName || '';
           const districtId = block.district_id ?? block.district?.id ?? null;
+          const districtName = await getDistrictName(districtId);
           nextSuggestions.push({
             id: block.id ?? block.block_id ?? name,
             name,
@@ -211,19 +241,19 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               districtName: districtName || undefined
             })
           });
-        });
+        }
       } else if (blockResult.status === 'rejected') {
         console.error('Failed to fetch blocks for search:', blockResult.reason);
       }
 
       if (gpResult.status === 'fulfilled' && Array.isArray(gpResult.value?.data)) {
-        gpResult.value.data.forEach((gp) => {
-          if (!gp) return;
+        for (const gp of gpResult.value.data) {
+          if (!gp) continue;
           const name = gp.name || gp.gp_name || gp.gpName || 'Unnamed GP';
-          const blockName = gp.block?.name || gp.block_name || gp.blockName || '';
-          const districtName = gp.district?.name || gp.district_name || gp.districtName || '';
-          const blockId = gp.block_id ?? gp.block?.id ?? null;
           const districtId = gp.district_id ?? gp.district?.id ?? null;
+          const blockId = gp.block_id ?? gp.block?.id ?? null;
+          const districtName = await getDistrictName(districtId);
+          const blockName = await getBlockName(blockId);
           nextSuggestions.push({
             id: gp.id ?? gp.gp_id ?? name,
             name,
@@ -241,7 +271,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               districtName: districtName || undefined
             })
           });
-        });
+        }
       } else if (gpResult.status === 'rejected') {
         console.error('Failed to fetch gram panchayats for search:', gpResult.reason);
       }
@@ -451,6 +481,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
       setDropdownLevel('blocks');
       setSelectedDistrictForHierarchy({ ...district, id: districtId, name });
       setSelectedBlockForHierarchy(null);
+      setSelectedGP(null);
       updateLocationSelection('Districts', name, districtId, districtId, null, null, 'global_search');
     } else if (suggestion.type === 'block') {
       const district = ensureDistrictObject(suggestion);
@@ -462,6 +493,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
       setDropdownLevel('gps');
       setSelectedDistrictForHierarchy(district || null);
       setSelectedBlockForHierarchy(block || null);
+      setSelectedGP(null);
       updateLocationSelection('Blocks', block.name || name, blockId, districtId, blockId, null, 'global_search');
     } else if (suggestion.type === 'gp') {
       const district = ensureDistrictObject(suggestion);
@@ -688,7 +720,8 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
           {isMobile ? (
             <Menu style={{ width: 22, height: 22, color: '#6b7280' }} />
           ) : (
-            <LayoutDashboard style={{ width: 22, height: 22, color: '#6b7280' }} />
+            // <LayoutDashboard style={{ width: 22, height: 22, color: '#6b7280' }} />
+            <Menu style={{ width: 22, height: 22, color: '#6b7280' }} />
           )}
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
@@ -718,7 +751,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                 background: 'none',
                 color: '#6b7280',
                 cursor: 'pointer',
-                padding: '2px 6px',
+                // padding: '2px 6px',
                 borderRadius: '4px',
                 fontSize: '14px',
                 fontWeight: 500,
@@ -892,12 +925,12 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                     style={{
                       border: 'none',
                       background: openBreadcrumbDropdown === 'gp' ? '#e5e7eb' : 'none',
-                      color: selectedLocation ? '#111827' : '#9ca3af',
+                      color: gpName ? '#111827' : '#9ca3af',
                       cursor: 'pointer',
                       padding: '2px 6px',
                       borderRadius: '4px',
                       fontSize: '14px',
-                      fontWeight: selectedLocation ? 600 : 500,
+                      fontWeight: gpName ? 600 : 500,
                       transition: 'background-color 0.2s',
                       display: 'flex',
                       alignItems: 'center',
@@ -906,7 +939,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                     onMouseEnter={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = '#f3f4f6')}
                     onMouseLeave={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = 'transparent')}
                   >
-                    {selectedLocation || 'All'}
+                    {gpName || 'All'}
                     <ChevronDown style={{ width: 16, height: 16 }} />
                   </button>
 
@@ -934,17 +967,17 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                             style={{
                               width: '100%',
                               border: 'none',
-                              backgroundColor: selectedLocation === gp.name ? '#dcfce7' : 'transparent',
+                              backgroundColor: gpName === gp.name ? '#dcfce7' : 'transparent',
                               textAlign: 'left',
                               padding: '10px 16px',
                               cursor: 'pointer',
                               fontSize: '14px',
                               color: '#111827',
-                              fontWeight: selectedLocation === gp.name ? 600 : 400,
+                              fontWeight: gpName === gp.name ? 600 : 400,
                               transition: 'background-color 0.2s'
                             }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedLocation === gp.name ? '#dcfce7' : '#f9fafb'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedLocation === gp.name ? '#dcfce7' : 'transparent'}
+                            onMouseEnter={(e) => e.target.style.backgroundColor = gpName === gp.name ? '#dcfce7' : '#f9fafb'}
+                            onMouseLeave={(e) => e.target.style.backgroundColor = gpName === gp.name ? '#dcfce7' : 'transparent'}
                           >
                             {gp.name}
                           </button>
@@ -1184,7 +1217,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
             }}>
               {/* Agar user photo available ho toh <img> lagayein, nahi toh initials */}
               <span style={{ fontSize: '14px', fontWeight: '600', color: '#4b5563', textAlign: 'center' }}>
-                U
+                <User style={{ width: '24px', height: '24px', color: '#6b7280' }} />
               </span>
             </div>
 

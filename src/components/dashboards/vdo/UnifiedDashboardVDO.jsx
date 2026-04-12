@@ -35,7 +35,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Complaints', icon: FileText },
-    { name: 'Attendance', icon: CheckCircle },
+    { name: 'CSC Cleaning', icon: CheckCircle },
     { name: 'Inspection', icon: ListChecks },
     { name: 'GP Master Data', icon: Database },
     { name: 'Contractor Details', icon: Building },
@@ -50,7 +50,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
  return (
     <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
-      height: '100vh',
+      height: '100%',
       backgroundColor: '#f9fafb',
       borderRight: '1px solid #e5e7eb',
       display: 'flex',
@@ -212,7 +212,7 @@ const UnifiedDashboardVDO = () => {
         return <VDODashboardContent />;
       case 'Complaints':
         return <VDOComplaintsContent />;
-      case 'Attendance':
+      case 'CSC Cleaning':
         return <VDOAttendanceContent />;
       case 'Inspection':
         return <VDOInspectionContent />;

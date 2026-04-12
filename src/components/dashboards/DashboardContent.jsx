@@ -1,27 +1,24 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, TrendingUp } from 'lucide-react';
-import Chart from 'react-apexcharts';
-import number1 from '../../assets/images/number1.png';
-import number2 from '../../assets/images/nnumber2.png';
-import number3 from '../../assets/images/number3.png';
+import { Calendar, List } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocation } from '../../context/LocationContext';
 import apiClient, {
+  annualSurveysAPI,
   attendanceAPI,
   contractorAnalyticsAPI,
-  vehiclesAPI,
+  eventsAPI,
   inspectionsAPI,
   schemesAPI,
-  eventsAPI,
-  annualSurveysAPI
+  vehiclesAPI
 } from '../../services/api';
-import { useLocation } from '../../context/LocationContext';
-import LocationDisplay from '../common/LocationDisplay';
-import SendNoticeModal from './common/SendNoticeModal';
-import NoDataFound from './common/NoDataFound';
-import OverviewBanner from './common/OverviewBanner';
-import ListOfDistrictsTable from './common/ListOfDistrictsTable';
-import DashboardCardsGrid from './common/DashboardCardsGrid';
-import ComplaintsDashboard from './common/ComplaintsDashboard';
 import { InfoTooltip } from '../common/Tooltip';
+import ComplaintsDashboard from './common/ComplaintsDashboard';
+import DashboardCardsGrid from './common/DashboardCardsGrid';
+import ListOfDistrictsTable from './common/ListOfDistrictsTable';
+import OverviewBanner from './common/OverviewBanner';
+import SendNoticeModal from './common/SendNoticeModal';
+import RightDrawer from '../common/rightDrawer';
+import AssetsTable from './common/AssetsTable';
+import SlideDrawer from '../common/SideDrawer';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -207,6 +204,91 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
   );
 };
 
+const formatNumber = (val) => {
+  if (val === "" || val === null || val === undefined) return "-";
+
+  // 👉 agar string me unit hai (km, m, etc) → direct return
+  if (typeof val === "string" && isNaN(Number(val))) {
+    return val;
+  }
+
+  const num = Number(val);
+  if (isNaN(num)) return "-";
+
+  return num.toLocaleString("en-IN");
+};
+
+const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
+
+  return (
+    <div onClick={onClick}
+      className={`relative rounded-xl    overflow-hidden p-4! border cursor-pointer flex flex-col justify-between`}
+      style={{ borderColor: border, width: width }}
+    >
+      {/* Background */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `url(${bgImg}) no-repeat`,
+          backgroundPosition: "right bottom",
+          backgroundSize: "contain",
+        }}
+      />
+
+      {/* Overlay */}
+      <div
+        className="absolute inset-0"
+        style={{ backgroundColor: bgColorOverlay, opacity: 0.7 }}
+      />
+
+      {/* Content */}
+      <div className="relative z-10 p-2!">
+        <p style={{ color: textColor }}>{title}</p>
+
+        {/* ✅ CASE 1: Single value */}
+        {typeof value === "string" || typeof value === "number" ? (
+          <h1 className="text-xl font-semibold text-gray-900">
+            {formatNumber(value)}
+          </h1>
+        ) : null}
+
+        {/* ✅ CASE 2: Multiple values (array) */}
+        {Array.isArray(value) && (
+          <div className="flex gap-8 mt-1">
+            {value.map((item, i) => (
+              <div key={i}>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {formatNumber(item.value)}
+                </h1>
+                <p className="text-xs text-gray-600">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ✅ CASE 3: Object values */}
+        {typeof value === "object" && !Array.isArray(value) && (
+          <div className="flex gap-8 mt-1">
+            {Object.entries(value).map(([key, val], i) => (
+              <div key={i}>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {formatNumber(val)}
+                </h1>
+                <p className="text-xs text-gray-600 capitalize">
+                  {key}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
+
+
 const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNavigateToGPMasterData, onNavigateToGPSTracking, onNavigateToContractorDetails, onNavigateToInspection, onNavigateToSchemes, onNavigateToEvents }) => {
   // Use LocationContext for global state management
   const {
@@ -247,8 +329,18 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
   const [totalCountOfGPs, setTotalCountOfGPs] = useState(0);
+  const totalCountInitializedRef = useRef(false);
 
   const [location, setLocation] = useState(null)
+
+  // card data store
+  const [apiDataCard, setApiDataCard] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [fyList, setFyList] = useState([]);
+  const [selectedFyId, setSelectedFyId] = useState(null);
+  const [loadingFy, setLoadingFy] = useState(false);
+
 
 
   // Analytics data state
@@ -383,6 +475,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
+
 
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Year');
@@ -782,6 +875,13 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         if (params.district_id) inspParams.district_id = params.district_id;
         if (params.block_id) inspParams.block_id = params.block_id;
         if (params.gp_id) inspParams.gp_id = params.gp_id;
+
+        // Always fetch DISTRICT-level data for GP count display
+        const districtLevelCountParams = { ...params, level: 'DISTRICT' };
+        delete districtLevelCountParams.district_id;
+        delete districtLevelCountParams.block_id;
+        delete districtLevelCountParams.gp_id;
+
         const [
           attRes,
           inspRes,
@@ -790,7 +890,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           eventsRes,
           gpMasterRes,
           gpsRes,
-          performersDataRes
+          performersDataRes,
+          districtCountRes
         ] = await Promise.allSettled([
           attendanceAPI.overview(params),
           inspectionsAPI.analytics(inspParams),
@@ -799,7 +900,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           eventsAPI.getEvents({ skip: 0, limit: 100, active: false }),
           gpMasterPromise,
           vehiclesAPI.getVehiclesByLocation(params),
-          inspectionsAPI.analytics(params)
+          inspectionsAPI.analytics(params),
+          inspectionsAPI.analytics(districtLevelCountParams)
         ]);
 
         // Attendance Data
@@ -834,11 +936,19 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           const totalGPs = d.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
           const covered = `${inspectedGPs.toLocaleString()}/${totalGPs.toLocaleString()}`;
 
-          !totalCountOfGPs ? setTotalCountOfGPs(totalGPs) : null;
-
           setInspectionCardData({ averageScore: avg, totalInspections: Number(total), villageCovered: String(covered || '0/0') });
         } else setInspectionCardData(null);
         if (inspRes.status === 'rejected') setInspectionCardError(inspRes.reason?.message || 'Failed to load');
+
+        // Get total GP count from DISTRICT-level data (always use DISTRICT level for village count)
+        if (!totalCountInitializedRef.current && districtCountRes.status === 'fulfilled' && districtCountRes.value?.data) {
+          const districtData = districtCountRes.value.data;
+          const districtTotalGPs = districtData.response.reduce((acc, item) => acc + (item.total_gps || 0), 0);
+          if (districtTotalGPs > 0) {
+            setTotalCountOfGPs(districtTotalGPs);
+            totalCountInitializedRef.current = true;
+          }
+        }
 
         // Contractor Data
         if (contrRes.status === 'fulfilled' && contrRes.value?.data) {
@@ -951,9 +1061,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         }
       });
       setBlocks(response.data);
+      return response.data || [];
     } catch (error) {
       console.error('Error fetching blocks:', error);
       setBlocks([]);
+      return []; // ✅ fallback
     } finally {
       setLoadingBlocks(false);
     }
@@ -977,9 +1089,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         }
       });
       setGramPanchayats(response.data);
+      return response.data;
     } catch (error) {
       console.error('Error fetching Gram Panchayats:', error);
       setGramPanchayats([]);
+      return [] || []; // ✅ fallback
     } finally {
       setLoadingGPs(false);
     }
@@ -2524,8 +2638,560 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     console.log('DashboardContent rendering...');
   }
 
+
+// cards data mapping function - maps API response to UI format with default values
+
+  const mapApiToUI = (res) => {
+    return {
+      // ODF
+      ihhl: res?.odf_sustainability?.ihhl || 0,
+      community_sanitary: res?.odf_sustainability?.csc || 0,
+      total_csc: res?.odf_sustainability?.csc_shala_darpan || 0,
+
+      // SWM
+      segregation_hh: res?.swm_assets?.bins_hh_level || 0,
+      segregation_public: res?.swm_assets?.bins_public_places || 0,
+      compost_pit: res?.swm_assets?.community_compost_pits || 0,
+      segregation_sheds: res?.swm_assets?.segregation_sheds || 0,
+      Tricycles_Manual: res?.swm_assets?.tricycles_manual || 0,
+      e_rickshaws_bettery: res?.swm_assets?.e_rickshaws || 0,
+      Motorized_Vehicles: res?.swm_assets?.motorized_vehicles || 0,
+
+      // LWM
+      Soak_Leach_Pits: res?.lwm_assets?.pits_hh_level || 0,
+      Community_Soak_Leach_Pits: res?.lwm_assets?.community_pits || 0,
+      WSP_Waste_Stabilization_Pond: res?.lwm_assets?.wsp || 0,
+      Dewats: res?.lwm_assets?.dewats || 0,
+      Wetland: res?.lwm_assets?.wetlands || 0,
+      Any_other_Trenching: res?.lwm_assets?.other_treatments || 0,
+      Drainage_channels: res?.lwm_assets?.drainage_channels || 0,
+
+      // PWMU
+      Total_no_established_pwmu: res?.pwmu?.established_pwmu || 0,
+      Total_no_Blocks_Covered_Under_PWMU: res?.pwmu?.blocks_covered_pwmu || 0,
+      Total_No_of_Urban_MRFs: res?.pwmu?.urban_mrfs || 0,
+      Total_No_Blocks_Covered_Under_Urban_MRFs: res?.pwmu?.blocks_covered_urban_mrf || 0,
+
+      // FSM
+      No_twin_pits_Toilets: res?.fsm?.twin_pit_toilets || 0,
+      Single_pits_Toilets: res?.fsm?.single_pit_toilets || 0,
+      Septic_bank_Toilets: res?.fsm?.septic_tank_toilets || 0,
+      Retrofitted_toilets: res?.fsm?.retrofitted_toilets || 0,
+      Mechanized_DeSludging: res?.fsm?.mechanized_desludging || 0,
+
+      FSTPs: {
+        rural: res?.fsm?.fstps_rural || 0,
+        urban: res?.fsm?.fstps_urban || 0,
+      },
+
+      GOBARDhan_Project: res?.gobardhan?.total_projects || 0,
+
+      // D2D
+      Total_gps: res?.d2d_activities?.gps_with_d2d_active || 0,
+
+      Total_Work_Sanctioned_Status: [
+        { label: "Tender", value: res?.d2d_activities?.sanctioned_tender || 0 },
+        { label: "Self GP", value: res?.d2d_activities?.sanctioned_self_gp || 0 },
+        { label: "CSR/NGO", value: res?.d2d_activities?.sanctioned_csr_ngo || 0 },
+        { label: "SHG", value: res?.d2d_activities?.sanctioned_shg || 0 },
+      ],
+
+      Total_Expenditure_Amt: res?.d2d_activities?.total_expenditure || 0,
+      Total_Vehicles_Collection_transportation_waste: res?.d2d_activities?.vehicles_deployed || 0,
+      Total_Persons_Deployed: res?.d2d_activities?.persons_deployed || 0,
+      Total_House_Hold_Covered: res?.d2d_activities?.households_covered || 0,
+
+      work_status: [
+        { label: "Start", value: res?.d2d_activities?.status_start || 0 },
+        { label: "Running", value: res?.d2d_activities?.status_running || 0 },
+        { label: "Completed", value: res?.d2d_activities?.status_completed || 0 },
+      ],
+    };
+  };
+
+  // Response: [{"id":1,"fy":"2025-26","active":true}, ...]
+  const fetchFyList = async () => {
+    try {
+      setLoadingFy(true);
+      const res = await apiClient.get('/annual-surveys/fy/active');
+      const raw = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.data || []);
+      const list = raw.filter((x) => x && (x.id != null) && (x.fy != null));
+      const sorted = [...list].sort((a, b) => String(b.fy || '').localeCompare(String(a.fy || '')));
+      setFyList(sorted);
+    } catch (error) {
+      console.error('❌ Error fetching FY list from /annual-surveys/fy/active:', error);
+      setFyList([]);
+    } finally {
+      setLoadingFy(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFyList();
+  }, []);
+
+  useEffect(() => {
+    if (fyList.length > 0 && !selectedFyId) {
+      setSelectedFyId(fyList[0].id); // 🔥 latest FY auto select
+    }
+  }, [fyList]);
+
+
+  useEffect(() => {
+    if (!selectedFyId) return; // 🔥 important
+
+    const fetchAssetsData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await apiClient.get(
+          'annual-surveys/analytics/assets',
+          {
+            params: { fy_id: selectedFyId },
+          }
+        );
+
+        const mapped = mapApiToUI(res?.data || {});
+        setApiDataCard(mapped);
+
+        console.log("✅ Assets API:", mapped);
+
+      } catch (err) {
+        console.error("❌ Assets API Error:", err);
+        setError(err?.message || "Something went wrong");
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetsData();
+  }, [selectedFyId]);
+
+  const dashboardSections = [
+    {
+      title: "ODF Sustainability",
+      cards: [
+        {
+          key: "ihhl",
+          label: "IHHL",
+          bgColor: "#ECFDF5",
+          textColor: "#065F46",
+          border: "#A7F3D0",
+          bgImg: "/ODF.png",
+        },
+        {
+          key: "community_sanitary",
+          label: "Community Sanitary Complex (CSC)",
+          bgColor: "#ECFDF5",
+          textColor: "#065F46",
+          border: "#A7F3D0",
+          bgImg: "/ODF.png",
+        },
+        {
+          key: "total_csc",
+          label: "Total No. of CSCs in Shala Darpan (Schools)",
+          bgColor: "#ECFDF5",
+          textColor: "#065F46",
+          border: "#A7F3D0",
+          bgImg: "/ODF.png",
+        },
+      ],
+    },
+
+    {
+      title: "Solid Waste Management",
+      cards: [
+        {
+          key: "segregation_hh",
+          label: "Segregation Bins at HH Level",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "segregation_public",
+          label: "Segregation Bins at Public Places",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "compost_pit",
+          label: "Community Compost Pit",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "segregation_sheds",
+          label: "Segregation Sheds(RRC)",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "Tricycles_Manual",
+          label: "Tricycles (Manual)",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "e_rickshaws_bettery",
+          label: "E-Rickshaws/Bettery operated Vehicles",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+        {
+          key: "Motorized_Vehicles",
+          label: "Motorized Vehicles",
+          bgColor: "#F0F9FF",
+          textColor: "#364153",
+          border: "#F0F9FF",
+          bgImg: "/solidWast.png",
+        },
+      ],
+    },
+    {
+      title: "Liquid Waste Management",
+      cards: [
+        {
+          key: "Soak_Leach_Pits",
+          label: "Soak/Magic/Leach pits at HH Level",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "Community_Soak_Leach_Pits",
+          label: "Community Soak/Magic/Leach pits",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "WSP_Waste_Stabilization_Pond",
+          label: "WSP (Waste Stabilization Pond)",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "Dewats",
+          label: "Dewats",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "Wetland",
+          label: "Wetland",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "Any_other_Trenching",
+          label: "Any Other (Trenching, Phytorids, etc.)",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+        {
+          key: "Drainage_channels",
+          label: "Drainage channels",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/liquidWast.png",
+        },
+      ],
+    },
+    {
+      title: "Plastic Waste Management Unit(PWMUs)",
+      cards: [
+        {
+          key: "Total_no_established_pwmu",
+          label: "Total No. of Established PWMU",
+          bgColor: "#EEEDFF",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/plasticWaste.png",
+        },
+        {
+          key: "Total_no_Blocks_Covered_Under_PWMU",
+          label: "Total No. of Blocks Covered Under PWMU",
+          bgColor: "#EEEDFF",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/plasticWaste.png",
+        },
+        {
+          key: "Total_No_of_Urban_MRFs",
+          label: "Total No. of Urban MRFs",
+          bgColor: "#EEEDFF",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/plasticWaste.png",
+        },
+        {
+          key: "Total_No_Blocks_Covered_Under_Urban_MRFs",
+          label: "Total No. of Blocks Covered Under Urban MRFs",
+          bgColor: "#EEEDFF",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/plasticWaste.png",
+        },
+      ],
+    },
+    {
+      title: "Faecal Sludge Management (FSM)",
+      cards: [
+        {
+          key: "No_twin_pits_Toilets",
+          label: "No. of twin pits Toilets",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "Single_pits_Toilets",
+          label: "No. of Single pits Toilets",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "Septic_bank_Toilets",
+          label: "No. of Septic tank Toilets",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "Retrofitted_toilets",
+          label: "No. of Retrofitted toilets",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "Mechanized_DeSludging",
+          label: "Mechanized De-Sludging",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "FSTPs",
+          label: "No. of FSTPs",
+          // width: "279px",
+          bgColor: "#FFEDF3",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/FSM.png",
+        },
+        {
+          key: "GOBARDhan_Project",
+          label: "GOBAR-dhan Project",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/gobar.png",
+          width: "558px",
+        },
+      ],
+    },
+    {
+      title: "Door to Door Waste Collection, Segregation & Disposal Activities",
+      cards: [
+        {
+          key: "Total_gps",
+          label: "Total No. GPs",
+          bgColor: "#FFEDD5",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorhouse.png",
+        },
+        {
+          key: "Total_Work_Sanctioned_Status",
+          label: "Total No. of Work Sanctioned",
+          width: "558px",
+          bgColor: "#FFEDD5",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorimg.png",
+        },
+        {
+          key: "Total_Expenditure_Amt",
+          label: "Total Expenditure Amt. (Rs in Lakhs)",
+          bgColor: "#FFEDD5",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorimg.png",
+        },
+        {
+          key: "Total_Vehicles_Collection_transportation_waste",
+          label: "Total No. of Vehicles for Collection and transportation of waste ",
+          bgColor: "#FFEDD5",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoortruck.png",
+        },
+        {
+          key: "Total_Persons_Deployed",
+          label: "Total No. of Persons Deployed (Sanitation Worker)",
+          bgColor: "#FFEDD5",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorman.png",
+        },
+        {
+          key: "Total_House_Hold_Covered",
+          label: "Total No. of House Hold Covered",
+          bgColor: "#FEFCE8",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorimg.png",
+        },
+        {
+          key: "work_status",
+          label: "Work Status",
+          bgColor: "#FEFCE8",
+          // width: "279px",
+          textColor: "#364153",
+          border: "#E5E7EB",
+          bgImg: "/doortodoorimg.png",
+        },
+      ],
+    },
+  ];
+
+
+  const apiData = {
+    // ODF
+    ihhl: "8602045",
+    community_sanitary: "28152",
+    total_csc: "",
+
+    // Solid waste
+    segregation_hh: "40102",
+    segregation_public: "48692",
+    compost_pit: "69523",
+    segregation_sheds: "38282",
+    Tricycles_Manual: '34732',
+    e_rickshaws_bettery: '6236',
+    Motorized_Vehicles: '3480',
+
+    // Liquid Waste
+    Soak_Leach_Pits: '47673',
+    Community_Soak_Leach_Pits: '237218',
+    WSP_Waste_Stabilization_Pond: '172',
+    Dewats: '0',
+    Wetland: '0',
+    Any_other_Trenching: '0',
+    Drainage_channels: '1746.47',
+
+    // Plastic Waste
+    Total_no_established_pwmu: '2',
+    Total_no_Blocks_Covered_Under_PWMU: '7',
+    Total_No_of_Urban_MRFs: '15',
+    Total_No_Blocks_Covered_Under_Urban_MRFs: '43',
+
+    // FSM
+    No_twin_pits_Toilets: '1921914',
+    Single_pits_Toilets: '1531901',
+    Septic_bank_Toilets: '311435',
+    Retrofitted_toilets: '684',
+    Mechanized_DeSludging: '0',
+    // multiple values (object)
+    FSTPs: {
+      rural: "0",
+      urban: "4",
+    },
+    GOBARDhan_Project: '21',
+
+    // Door to Door
+    Total_gps: '11214',
+    Total_Work_Sanctioned_Status: [
+      { label: "Through Tender", value: "8850" },
+      { label: "Self by GPs", value: "1611" },
+      { label: "Through CSR/NGOs", value: "21" },
+      { label: "Through SHGs", value: "537" },
+    ],
+    Total_Expenditure_Amt: "4738.51",
+    Total_Vehicles_Collection_transportation_waste: '44448',
+    Total_Persons_Deployed: '',
+    Total_House_Hold_Covered: '',
+    work_status: [
+      { label: "Work Start", value: "" },
+      { label: "Work Running", value: "" },
+      { label: "Work Completed", value: "" },
+    ],
+
+
+
+
+
+    // multiple values (object)
+    // work_status: {
+    //   start: "3,523",
+    //   running: "3,523",
+    //   completed: "3,523",
+    // },
+    // no_of_fstps: {
+    //   rural: "3,523",
+    //   urban: "3,523",
+    // },
+    // multiple values (array)
+    // wokd_saction: [
+    //   { label: "Rural", value: "2,395" },
+    //   { label: "Rural", value: "2,395" },
+    //   { label: "Urban", value: "2,395" },
+    //   { label: "Urban", value: "2,395" },
+    // ],
+  };
+
+  const districtTableData = (districts || []).map((d) => ({
+    districtName: d.name,
+    districtId: d.id,
+
+    ...apiDataCard, // 🔥 IMPORTANT
+
+    blocks: [],
+  }));
+
+const formatValue = (key, value) => {
+  if (key === "Drainage_channels") {
+    const num = Number(value);
+    if (isNaN(num)) return "-";
+    return `${(num / 1000).toFixed(2)} kms`;
+  }
+  return value;
+};
+
   return (
-    <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }}>
+    <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }} >
       <style>{`
         @media (max-width: 639px) {
           .desktop-text {
@@ -2564,12 +3230,160 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
-
             districtsCount={districts.length}
             blocksCount={allBlocksForDistricts.length}
             villagesCount={totalCountOfGPs}
+            selectedLocation={{
+              districtId: selectedDistrictId,
+              blockId: selectedBlockId,
+              gpId: selectedGPId
+            }}
+            onLocationChange={({ scope, location, locationId, districtId, blockId, gpId, districtName, blockName }) => {
+              updateLocationSelection(scope, location, locationId, districtId, blockId, gpId);
+
+              // Sync hierarchy state so breadcrumb and dropdown reflect the new selection
+              if (scope === 'Districts') {
+                setActiveScope('Districts');
+                setDropdownLevel('blocks');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || location });
+                setSelectedBlockForHierarchy(null);
+              } else if (scope === 'Blocks') {
+                setActiveScope('Blocks');
+                setDropdownLevel('gps');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || '' });
+                setSelectedBlockForHierarchy({ id: blockId, name: blockName || location });
+              } else if (scope === 'GPs') {
+                setActiveScope('GPs');
+                setDropdownLevel('gps');
+                setSelectedDistrictForHierarchy({ id: districtId, name: districtName || '' });
+                setSelectedBlockForHierarchy({ id: blockId, name: blockName || '' });
+              }
+            }}
           />
         </div>
+      </div>
+
+      {/* cards Assets */}
+      <div
+        style={{
+          margin: "16px",
+          background: "white",
+          borderRadius: "12px",
+          border: "1px solid #e5e7eb",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          padding: "20px",
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0
+        }}
+      >
+        {/* Top Heading */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+          {/* Year dropdown - view previous years' master data */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+            <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
+            <select
+              aria-label="Select year"
+              value={selectedFyId ?? ''}
+              onChange={(e) => setSelectedFyId(e.target.value ? Number(e.target.value) : null)}
+              disabled={loadingFy || fyList.length === 0}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: '5px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '10px',
+                fontSize: '14px',
+                color: fyList.length === 0 ? '#9ca3af' : '#374151',
+                backgroundColor: loadingFy || fyList.length === 0 ? '#f9fafb' : 'white',
+                cursor: loadingFy || fyList.length === 0 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {loadingFy ? (
+                <option value="">Loading...</option>
+              ) : fyList.length === 0 ? (
+                <option value="">No years</option>
+              ) : (
+                fyList.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.fy}
+                  </option>
+                ))
+              )}
+            </select>
+          </div>
+        </div>
+
+        {/* Sections */}
+        {dashboardSections.map((section, i) => (
+          <div key={i} style={{ marginBottom: "24px" }}>
+
+            {/* Section Heading */}
+            <h2
+              style={{
+                fontSize: "16px",
+                fontWeight: "600",
+                marginBottom: "12px",
+                color: "#374151",
+              }}
+            >
+              {section.title}
+            </h2>
+
+            {/* Cards */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                // gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "15px",
+              }}
+            >
+              {section.cards.map((card, j) => (
+                <SlideDrawer
+                  key={j}
+                  title={`${section.title} - ${card.label}`}
+                  clickFunction={() => {
+                    console.log("API call", card.key);
+                  }}
+                  trigger={
+                    <Card
+                      title={card.label}
+                      value={
+                        loading
+                          ? "..."
+                          : formatValue(card.key, apiDataCard?.[card.key] ?? '-')
+                      }
+                      bgColorOverlay={card.bgColor}
+                      textColor={card.textColor}
+                      border={card.border}
+                      bgImg={card.bgImg}
+                      width={card.width}
+
+                    />
+                  }
+                >
+                  <AssetsTable
+                    section={section.title}
+                    cards={section.cards}
+                    apiData={districtTableData}
+                    fetchBlocks={fetchBlocks}
+                    fetchGramPanchayats={fetchGramPanchayats}
+                    AssetsTable={AssetsTable}
+                    mapApiToUI={mapApiToUI}
+                  />
+                </SlideDrawer>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* List of Districts - always show on SMD dashboard (state-level overview) */}
@@ -2652,191 +3466,194 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       />
 
       {/* Conditional Section: Vendor Details (when GP selected) - Performance/Top 3 now in DashboardCardsGrid */}
-      {activeScope === 'GPs' && (
-        /* Vendor Details Section (shown when GP is selected) */
-        <div style={{
-          marginLeft: '16px',
-          marginRight: '16px',
-          marginTop: '16px'
-        }}>
+      {
+        activeScope === 'GPs' && (
+          /* Vendor Details Section (shown when GP is selected) */
           <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            marginLeft: '16px',
+            marginRight: '16px',
+            marginTop: '16px'
           }}>
-            {/* Header with Info Icon */}
+
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '24px'
+              backgroundColor: 'white',
+              padding: '24px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
             }}>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
+              {/* Header with Info Icon */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px'
               }}>
-                Contractor details
-              </h2>
-              <InfoTooltip
-                text="Shows the active vendor’s profile and contract details for this location."
-                size={20}
-                color="#9ca3af"
-              />
+                <h2 style={{
+                  fontSize: '18px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  Contractor details
+                </h2>
+                <InfoTooltip
+                  text="Shows the active vendor’s profile and contract details for this location."
+                  size={20}
+                  color="#9ca3af"
+                />
+              </div>
+
+              {/* Loading State */}
+              {loadingVendor && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  Loading Contractor details...
+                </div>
+              )}
+
+              {/* Error State */}
+              {vendorError && !loadingVendor && (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: '8px',
+                  color: '#991b1b',
+                  fontSize: '14px'
+                }}>
+                  {vendorError}
+                </div>
+              )}
+
+              {/* Vendor Details Content */}
+              {!loadingVendor && !vendorError && vendorData && (
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '32px'
+                }}>
+                  {/* Left Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Name */}
+                    <div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        Name
+                      </div>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {vendorData.person_name || 'N/A'}
+                      </div>
+                    </div>
+
+                    {/* Annual contract amount */}
+                    <div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        Annual contract amount
+                      </div>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {vendorData.contract_amount || 'N/A'}
+                      </div>
+                    </div>
+
+                    {/* Frequency of work */}
+                    <div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        Frequency of work
+                      </div>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {vendorData.contract_frequency || 'N/A'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Work order date */}
+                    <div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        Work order date
+                      </div>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {formatVendorDate(vendorData.contract_start_date)}
+                      </div>
+                    </div>
+
+                    {/* Duration of work */}
+                    <div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        marginBottom: '4px'
+                      }}>
+                        Duration of work
+                      </div>
+                      <div style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827'
+                      }}>
+                        {calculateContractDuration(vendorData.contract_start_date, vendorData.contract_end_date)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* No Data State */}
+              {!loadingVendor && !vendorError && !vendorData && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  No vendor details available for this Gram Panchayat
+                </div>
+              )}
             </div>
-
-            {/* Loading State */}
-            {loadingVendor && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading Contractor details...
-              </div>
-            )}
-
-            {/* Error State */}
-            {vendorError && !loadingVendor && (
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                color: '#991b1b',
-                fontSize: '14px'
-              }}>
-                {vendorError}
-              </div>
-            )}
-
-            {/* Vendor Details Content */}
-            {!loadingVendor && !vendorError && vendorData && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '32px'
-              }}>
-                {/* Left Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Name */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Name
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.person_name || 'N/A'}
-                    </div>
-                  </div>
-
-                  {/* Annual contract amount */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Annual contract amount
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.contract_amount || 'N/A'}
-                    </div>
-                  </div>
-
-                  {/* Frequency of work */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Frequency of work
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.contract_frequency || 'N/A'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Work order date */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Work order date
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {formatVendorDate(vendorData.contract_start_date)}
-                    </div>
-                  </div>
-
-                  {/* Duration of work */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Duration of work
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {calculateContractDuration(vendorData.contract_start_date, vendorData.contract_end_date)}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* No Data State */}
-            {!loadingVendor && !vendorError && !vendorData && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                No vendor details available for this Gram Panchayat
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        )
+      }
 
       <SendNoticeModal
         isOpen={showSendNoticeModal}
@@ -2847,8 +3664,16 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         kpiName={noticeModuleData.kpiName}
         kpiFigure={noticeModuleData.kpiFigure}
       />
-    </div>
+    </div >
   );
 };
 
+
+
+
 export default DashboardContent;
+
+
+
+
+

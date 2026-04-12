@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
+import { Calendar, CheckCircle, ChevronDown, ChevronsUpDown, ChevronUp, Clock, Download, List, Plus, Search, Star, User, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import Chart from 'react-apexcharts';
-import apiClient, { noticesAPI } from '../../services/api';
-import LocationDisplay from '../common/LocationDisplay';
 import { useLocation } from '../../context/LocationContext';
-import NoDataFound from './common/NoDataFound';
+import apiClient, { noticesAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
+import ComplaintDetailsPopup from './common/ComplaintDetailsPopup';
+import NoDataFound from './common/NoDataFound';
 
 const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Shared location state via context
@@ -164,6 +164,58 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
 
+  // Complaints Details page
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
+  const [showComplaintDetails, setShowComplaintDetails] = useState(false);
+
+  // Sorting 
+  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+  const SortIcon = ({ col }) => {
+
+    // agar ye column sort nahi hua hai
+    if (sortConfig.key !== col) {
+      return (
+        <ChevronsUpDown style={{ width: 14, height: 14, color: '#9ca3af' }} />
+      );
+    }
+
+    // agar sort hua hai
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: 14, height: 14, color: '#6b7280' }} />
+    ) : (
+      <ChevronDown style={{ width: 14, height: 14, color: '#6b7280' }} />
+    );
+  };
+
+  // Ref for auto-scrolling to complaints table when filter is applied
+  const complaintsTableRef = useRef(null);
+  const hasScrolledRef = useRef(false);
+
+  const handleOpenComplaintDetails = (id) => {
+    setSelectedComplaint(id);
+    setShowComplaintDetails(true);
+  };
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Year');
   const [startDate, setStartDate] = useState(() => {
@@ -192,7 +244,50 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     const valid = ['Open', 'Resolved', 'Verified', 'Closed'].includes(initialFilter);
     setActiveFilter(valid ? initialFilter : '');
     onFilterConsumed?.();
+    // Reset scroll flag when filter is applied
+    hasScrolledRef.current = false;
   }, [initialFilter]);
+
+  // Auto-scroll to complaints table after data loads following filter navigation (from dashboard cards)
+  useEffect(() => {
+    if (!initialFilter || !complaintsTableRef.current || hasScrolledRef.current) {
+      return;
+    }
+
+    // Only scroll once data is loaded and not loading
+    if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            hasScrolledRef.current = true;
+          }
+        }, 300);
+      });
+    }
+  }, [initialFilter, loadingAnalytics, loadingComplaints, complaintsListData]);
+
+  // Auto-scroll to complaints table after all APIs finish loading
+  useEffect(() => {
+    if (!complaintsTableRef.current) {
+      return;
+    }
+
+    // Only scroll when both APIs are no longer loading (initial load or when filters/dates change)
+    if (!loadingAnalytics && !loadingComplaints && complaintsListData.length >= 0) {
+      // Use requestAnimationFrame to wait for the browser to complete painting
+      // Then add additional timeout to ensure all React renders and CSS transitions are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (complaintsTableRef.current) {
+            complaintsTableRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      });
+    }
+  }, [loadingAnalytics, loadingComplaints, complaintsListData]);
 
   // Predefined date ranges
   const dateRanges = [
@@ -520,17 +615,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   useEffect(() => {
     fetchDistricts();
   }, []);
-
-  // Fetch data immediately when complaints tab is selected
-  useEffect(() => {
-    console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
-    if (activeScope === 'State') {
-      console.log('📡 Calling initial API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
-    }
-  }, []); // Empty dependency array means this runs only once when component mounts
 
   // Load additional data based on scope
   useEffect(() => {
@@ -1209,7 +1293,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     } finally {
       setLoadingAnalytics(false);
     }
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
@@ -1257,7 +1341,92 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
     fetchComplaintsData();
-  }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts, blocks, gramPanchayats, fetchComplaintsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchAnalyticsData, fetchComplaintsData]);
+
+  // Sync header selection with table view - when district/block/GP is selected in header, show corresponding data in table
+  useEffect(() => {
+    console.log('🔄 Syncing header selection with table:', {
+      activeScope,
+      selectedDistrictId,
+      selectedBlockId,
+      selectedGPId,
+      selectedDistrictForBlocks: selectedDistrictForBlocks?.id,
+      selectedBlockForGPs: selectedBlockForGPs?.id,
+      selectedGPForComplaints: selectedGPForComplaints?.id,
+      viewingBlocksForDistrict,
+      viewingGPsForBlock,
+      viewingGPComplaints
+    });
+
+    // Reset viewing flags when scope changes to State
+    if (activeScope === 'State') {
+      setViewingBlocksForDistrict(false);
+      setViewingGPsForBlock(false);
+      setViewingGPComplaints(false);
+      return;
+    }
+
+    // When District scope is active and a district is selected, show blocks for that district
+    if (activeScope === 'Districts' && selectedDistrictId) {
+      const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
+
+      // Check if we need to fetch blocks for a different district
+      if (selectedDistrict && selectedDistrictForBlocks?.id !== selectedDistrictId) {
+        console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
+        fetchBlocksSummaryData(selectedDistrict);
+      }
+      return;
+    }
+
+    // Reset viewing flags for districts/blocks when not in those scopes
+    if (activeScope !== 'Districts' && viewingBlocksForDistrict) {
+      setViewingBlocksForDistrict(false);
+    }
+
+    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (activeScope === 'Blocks' && selectedBlockId) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+
+      // Check if we need to fetch GPs for a different block
+      if (selectedBlock && selectedBlockForGPs?.id !== selectedBlockId) {
+        console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
+        fetchGPsSummaryData(selectedBlock);
+      }
+      return;
+    }
+
+    // Reset viewing flags for blocks when not in that scope
+    if (activeScope !== 'Blocks' && viewingGPsForBlock) {
+      setViewingGPsForBlock(false);
+    }
+
+    // When GPs scope is active and a GP is selected, show complaints for that GP
+    if (activeScope === 'GPs' && selectedGPId) {
+      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
+
+      // Check if we need to show complaints for a different GP
+      if (selectedGP && selectedGPForComplaints?.id !== selectedGPId && allComplaintsData.length > 0) {
+        console.log('📊 GPs scope: Showing complaints for GP', selectedGP.name);
+
+        // Create GP object with complaints data
+        const gpComplaints = allComplaintsData.filter(
+          complaint => complaint.village_name?.toLowerCase() === selectedGP.name?.toLowerCase()
+        );
+
+        setSelectedGPForComplaints({
+          ...selectedGP,
+          complaints: gpComplaints
+        });
+        setViewingGPComplaints(true);
+      }
+      return;
+    }
+
+    // Reset viewing flag for GPs when not in that scope
+    if (activeScope !== 'GPs' && viewingGPComplaints) {
+      setViewingGPComplaints(false);
+    }
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocks, selectedBlockForGPs, selectedGPForComplaints, viewingBlocksForDistrict, viewingGPsForBlock, viewingGPComplaints, fetchBlocksSummaryData, fetchGPsSummaryData, allComplaintsData]);
 
   // Date range functions
   const generateYears = () => {
@@ -1755,6 +1924,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     return {
       id: `COMP-${complaint.id}`,
+      ids: complaint.id,
       title: complaint.complaint_type || 'N/A',
       description: complaint.description || 'No description',
       status,
@@ -1832,6 +2002,47 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       (complaint.district || '').toLowerCase().includes(q);
 
     return matchesFilter && matchesSearch;
+  });
+
+  const sortedComplaints = [...filteredComplaints].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    // ✅ STATUS SORT FIXED
+    if (sortConfig.key === 'statusDisplay') {
+
+      valA = a.statusDisplay || a.status;
+      valB = b.statusDisplay || b.status;
+
+      const statusOrder = {
+        open: 1,
+        resolved: 2,
+        verified: 3,
+        closed: 4
+      };
+
+      return sortConfig.direction === 'asc'
+        ? (statusOrder[valA?.toLowerCase()] || 0) - (statusOrder[valB?.toLowerCase()] || 0)
+        : (statusOrder[valB?.toLowerCase()] || 0) - (statusOrder[valA?.toLowerCase()] || 0);
+    }
+
+    // ✅ DATE SORT
+    if (sortConfig.key === 'submittedDate') {
+      return sortConfig.direction === 'asc'
+        ? new Date(valA) - new Date(valB)
+        : new Date(valB) - new Date(valA);
+    }
+
+    // ✅ TEXT SORT
+    if (typeof valA === 'string') {
+      return sortConfig.direction === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    }
+
+    return 0;
   });
 
   // Debug logging with detailed filter analysis
@@ -2106,7 +2317,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
   return (
     <div>
-      
+
 
       {/* Overview Section */}
       <div style={{
@@ -2562,6 +2773,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               onClick={() => {
                 setSelectedGPForComplaints(null);
                 setViewingGPComplaints(false);
+                // Update breadcrumb - back to GPs list level
+                setActiveScope('GPs');
               }}
               style={{
                 padding: '8px 16px',
@@ -2586,6 +2799,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 setViewingGPsForBlock(false);
                 setSelectedBlockForGPs(null);
                 setGpsSummaryData([]);
+                setViewingBlocksForDistrict(true);
+                // Refetch blocks listing
+                if (selectedDistrictForBlocks) {
+                  fetchBlocksSummaryData(selectedDistrictForBlocks);
+                }
+                // Update breadcrumb - back to blocks level (keep block selected)
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
@@ -2610,6 +2830,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 setViewingBlocksForDistrict(false);
                 setSelectedDistrictForBlocks(null);
                 setBlocksSummaryData([]);
+                // Update breadcrumb - back to state level (all selections cleared)
+                setActiveScope('State');
+                setSelectedDistrictForHierarchy(null);
+                setSelectedBlockForHierarchy(null);
               }}
               style={{
                 padding: '8px 16px',
@@ -2706,9 +2930,70 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       textAlign: 'left',
                       fontSize: '14px',
                       fontWeight: '600',
+                      color: '#374151',
+
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+
+                      }}>
+                        {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('name')}>
+                          <SortIcon col="name" />
+                        </span>
+                      </div>
+                    </th>
+
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151',
+
+                    }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          justifyContent: 'center'
+                        }}>
+                        Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('openComplaints')}>
+                          <SortIcon col="openComplaints" />
+                        </span>
+                      </div>
+                    </th>
+
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Avg. Resolution (Days)
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('avgResolution')}>
+                          <SortIcon col="avgResolution" />
+                        </span>
+                      </div>
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2717,7 +3002,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Complaints Closed %
+
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('closedPercent')}>
+                          <SortIcon col="closedPercent" />
+                        </span>
+                      </div>
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2726,25 +3024,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Avg. Resolution (Days)
-                    </th>
-                    <th style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Complaints Closed %
-                    </th>
-                    <th style={{
-                      padding: '12px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151'
-                    }}>
-                      Status
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        Status
+                        <span
+                          style={{ cursor: 'pointer', }}
+                          onClick={() => handleSort('status')}>
+                          <SortIcon col="status" />
+                        </span>
+                      </div>
+
                     </th>
                   </>
                 )}
@@ -2755,15 +3048,30 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 // Individual complaints view for a GP
                 selectedGPForComplaints?.complaints && selectedGPForComplaints.complaints.length > 0 ? (
                   selectedGPForComplaints.complaints.map((complaint) => (
-                    <tr key={complaint.id} style={{
-                      borderBottom: '1px solid #f3f4f6'
-                    }}>
-                      <td style={{
-                        padding: '12px',
-                        fontSize: '14px',
-                        color: '#374151',
-                        fontWeight: '500'
+                    <tr
+                      className='hover:bg-gray-50'
+                      onClick={() => handleOpenComplaintDetails(complaint.id)}
+                      style={{
+                        borderBottom: '1px solid #f3f4f6', cursor: 'pointer'
                       }}>
+
+                      <td
+                        style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#10b981',
+                          fontWeight: '500'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.color = '#10b981';
+                          e.target.style.textDecoration = 'underline';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.color = '#10b981';
+                          e.target.style.textDecoration = 'none';
+                        }}
+                      >
+
                         {complaint.id}
                       </td>
                       <td style={{
@@ -2853,6 +3161,31 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   </tr>
                 ) : (() => {
                   const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
+                  const sortedData = [...dataToDisplay].sort((a, b) => {
+                    if (!sortConfig.key) return 0;
+
+                    let aVal = a[sortConfig.key];
+                    let bVal = b[sortConfig.key];
+
+                    // ✅ Handle N/A
+                    if (aVal === 'N/A') return 1;
+                    if (bVal === 'N/A') return -1;
+
+                    // ✅ Convert to number if possible
+                    const aNum = parseFloat(aVal);
+                    const bNum = parseFloat(bVal);
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                      return sortConfig.direction === 'asc'
+                        ? aNum - bNum
+                        : bNum - aNum;
+                    }
+
+                    // fallback string compare
+                    return sortConfig.direction === 'asc'
+                      ? String(aVal).localeCompare(String(bVal))
+                      : String(bVal).localeCompare(String(aVal));
+                  });
                   const isEmpty = dataToDisplay.length === 0;
 
                   return isEmpty ? (
@@ -2867,10 +3200,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       </td>
                     </tr>
                   ) : (
-                    dataToDisplay.map((item) => (
-                      <tr key={item.id} style={{
-                        borderBottom: '1px solid #f3f4f6'
-                      }}>
+                    sortedData.map((item) => (
+                      <tr className='hover:bg-gray-50'
+                        key={item.id} style={{
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
                         <td style={{
                           padding: '12px',
                           fontSize: '14px',
@@ -2884,26 +3218,58 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                                   // GPs are now clickable - show their individual complaints
                                   setSelectedGPForComplaints(item);
                                   setViewingGPComplaints(true);
+                                  // Sync header with table selection
+                                  setActiveScope('GPs');
+                                  setSelectedGPId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocks);
+                                  setSelectedBlockForHierarchy(selectedBlockForGPs);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocks?.id);
+                                  updateLocationSelection('GPs', item.name, item.id, selectedDistrictForBlocks?.id, selectedBlockForGPs?.id, item.id, 'table_click');
                                 } else if (viewingBlocksForDistrict) {
                                   // Clicking on block to view GPs
                                   fetchGPsSummaryData(item);
+                                  setSelectedBlockForGPs(item);
+                                  // Sync header with table selection
+                                  setActiveScope('Blocks');
+                                  setSelectedBlockId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(selectedDistrictForBlocks);
+                                  setSelectedBlockForHierarchy(item);
+                                  trackDropdownChange(item.name, item.id, selectedDistrictForBlocks?.id);
+                                  updateLocationSelection('Blocks', item.name, item.id, selectedDistrictForBlocks?.id, item.id, null, 'table_click');
                                 } else {
                                   // Clicking on district to view blocks
                                   fetchBlocksSummaryData(item);
+                                  setSelectedDistrictForBlocks(item);
+                                  // Sync header with table selection
+                                  setActiveScope('Districts');
+                                  setSelectedDistrictId(item.id);
+                                  setSelectedLocation(item.name);
+                                  setSelectedLocationId(item.id);
+                                  // Update breadcrumb hierarchy
+                                  setSelectedDistrictForHierarchy(item);
+                                  setSelectedBlockForHierarchy(null);
+                                  trackDropdownChange(item.name, item.id, item.id);
+                                  updateLocationSelection('Districts', item.name, item.id, item.id, null, null, 'table_click');
                                 }
                               }}
                               style={{
                                 cursor: 'pointer',
-                                color: '#0866c6',
+                                color: '#10b981',
                                 textDecoration: 'none',
                                 transition: 'color 0.2s ease'
                               }}
                               onMouseEnter={(e) => {
-                                e.target.style.color = '#0550a3';
+                                e.target.style.color = '#10b981';
                                 e.target.style.textDecoration = 'underline';
                               }}
                               onMouseLeave={(e) => {
-                                e.target.style.color = '#0866c6';
+                                e.target.style.color = '#10b981';
                                 e.target.style.textDecoration = 'none';
                               }}
                             >
@@ -3004,7 +3370,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       </div>
 
       {/* Complaints Table Section */}
-      <div data-complaints-list-table style={{
+      <div ref={complaintsTableRef} data-complaints-list-table style={{
         backgroundColor: 'white',
         padding: '24px',
         marginLeft: '16px',
@@ -3221,17 +3587,15 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  User
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    User
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('submittedBy')}>
+                      <SortIcon col="submittedBy" />
+                    </span>
                   </div>
+
                 </th>
                 <th style={{
                   padding: '12px',
@@ -3241,16 +3605,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  District
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    District
+
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('district')}>
+                      <SortIcon col="district" />
+                    </span>
+
                   </div>
                 </th>
                 <th style={{
@@ -3262,15 +3626,43 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   Address(GP)
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
+
+                    Type of complaint
+
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('title')}>
+                      <SortIcon col="title" />
+                    </span>
+
+                  </div>
+
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    Date of complaint
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('submittedDate')}>
+                      <SortIcon col="submittedDate" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -3281,16 +3673,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Type of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    Status
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('statusDisplay')}>
+                      <SortIcon col="statusDisplay" />
+                    </span>
                   </div>
                 </th>
                 <th style={{
@@ -3301,37 +3690,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Date of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  Status
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
+                  Action
+
                 </th>
               </tr>
             </thead>
@@ -3355,10 +3715,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 </tr>
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
-                return filteredComplaints.map((complaint, index) => (
-                  <tr key={complaint.id || `complaint-${index}`} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
+                return sortedComplaints.map((complaint, index) => (
+                  <tr
+                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                    className='hover:bg-gray-50'
+                    key={complaint.id || `complaint-${index}`} style={{
+                      borderBottom: '1px solid #f3f4f6', cursor: 'pointer'
+                    }}>
                     <td style={{
                       padding: '12px',
                       fontSize: '14px',
@@ -3430,21 +3793,28 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         }} title={complaint.status || 'N/A'}>
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
-                        <button
-                          onClick={() => handleOpenNoticeModal(complaint)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: 'transparent',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Send notice
-                        </button>
+
                       </div>
+
+                    </td>
+                    <td>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenNoticeModal(complaint);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Send notice
+                      </button>
                     </td>
                   </tr>
                 ));
@@ -3490,6 +3860,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
           </div>
         )}
       </div>
+
+      <ComplaintDetailsPopup
+        open={showComplaintDetails}
+        onClose={() => setShowComplaintDetails(false)}
+        complaintId={selectedComplaint}
+      />
 
       {/* Raise Complaint Modal */}
       {showComplaintModal && (

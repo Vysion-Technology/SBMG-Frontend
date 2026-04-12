@@ -4,7 +4,6 @@ import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
 import apiClient, { annualSurveysAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
-import EditGPMasterModal from './EditGPMasterModal';
 import { generateAnnualSurveysPDF } from '../../utils/annualSurveysPdf';
 import { Link } from 'react-router-dom';
 import * as XLSX from "xlsx";
@@ -12,6 +11,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { HINDI_FONT } from '../../utils/font';
 import SendNoticeModal from './common/SendNoticeModal';
+import EditGPMasterModal from './common/EditGPMasterModal';
 
 
 
@@ -127,27 +127,6 @@ const VillageMasterContent = () => {
     );
   };
 
-
-  // const sortedCoverageData = [...coverageData].sort((a, b) => {
-  //   const { key, direction } = sortConfig;
-
-  //   let valueA = a[key];
-  //   let valueB = b[key];
-
-  //   // Handle undefined/null
-  //   if (valueA === null || valueA === undefined) valueA = '';
-  //   if (valueB === null || valueB === undefined) valueB = '';
-
-  //   // String sorting
-  //   if (typeof valueA === 'string') {
-  //     const result = valueA.localeCompare(valueB);
-  //     return direction === 'asc' ? result : -result;
-  //   }
-
-  //   // Number sorting
-  //   const result = Number(valueA) - Number(valueB);
-  //   return direction === 'asc' ? result : -result;
-  // });
 
   const toggleHistorySortOrder = () => {
     setHistorySortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -276,20 +255,29 @@ const VillageMasterContent = () => {
       y += 8;
 
       fields.forEach(([label, value]) => {
-        checkPageBreak(8);
+        const labelMaxWidth = 45;   // label ke liye width
+        const valueMaxWidth = 90;   // value ke liye width
 
-        // Label English (Helvetica) mein hi rahega
+        const labelLines = doc.splitTextToSize(label, labelMaxWidth);
+        const valueLines = doc.splitTextToSize(secureString(value), valueMaxWidth);
+
+        const lineHeight = 6;
+        const blockHeight = Math.max(labelLines.length, valueLines.length) * lineHeight;
+
+        checkPageBreak(blockHeight);
+
+        // Label
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.setTextColor(107, 114, 128);
-        doc.text(label, 20, y);
+        doc.text(labelLines, 20, y);
 
-        // Value (HindiFont) use karega jo Hindi aur English dono dikhayega
+        // Value
         doc.setFont("HindiFont", "normal");
         doc.setTextColor(17, 24, 39);
-        doc.text(secureString(value), 70, y);
+        doc.text(valueLines, 70, y);
 
-        y += 7;
+        y += blockHeight + 2; // dynamic spacing
       });
 
       y += 5;
@@ -301,17 +289,24 @@ const VillageMasterContent = () => {
       ["GP Name:", data.gp_name],
       ["Block Name:", data.block_name],
       ["District Name:", data.district_name],
-      ["Sarpanch Name:", data.sarpanch_name],
-      ["Sarpanch Contact:", data.sarpanch_contact],
-      ["Number of Ward Panchs:", data.num_ward_panchs],
+
+      ["Agency Name:", data.agency_name],
     ]);
 
     if (data.vdo) {
       addSection("VDO Details", [
         ["Name:", data.vdo_name],
-        ["Username:", data.vdo.username]
+        ["Contact Number:", data.vdo_contact_number],
       ]);
     }
+    if (data.gp_name) {
+      addSection("Sarpanch Details", [
+        ["Name:", data.sarpanch_name],
+        ["Contact Number:", data.sarpanch_contact],
+        ["Number of Ward Panchs:", data.num_ward_panchs],
+      ]);
+    }
+
 
     if (data.work_order) {
       addSection("Work Order", [
@@ -359,31 +354,81 @@ const VillageMasterContent = () => {
       ]);
     }
 
-
-
+    if (data.odf_sustainability) {
+      addSection("ODF Sustainability", [
+        ["IHHL:", data.odf_sustainability.ihhl],
+        ["Community Sanitary Complex (CSC):", data.odf_sustainability.csc],
+        ["Total No. of CSCs in Shala Darpan (Schools):", data.odf_sustainability.csc_shala_darpan],
+      ]);
+    }
 
     if (data.swm_assets) {
       addSection("SLWM Assets", [
-        ["RRC:", data.swm_assets.rrc],
-        ["PWMU:", data.swm_assets.pwmu],
-        ["Compost Pit:", data.swm_assets.compost_pit],
-        ["Collection Vehicle:", data.swm_assets.collection_vehicle],
+        ["Segregation Bins at HH Level:", data.swm_assets.bins_hh_level],
+        ["Segregation Bins at Public Places:", data.swm_assets.bins_public_places],
+        ["Community Compost Pit:", data.swm_assets.community_compost_pits],
+        ["Segregation Sheds(RRC):", data.swm_assets.segregation_sheds],
+        ["Tricycles (Manual):", data.swm_assets.tricycles_manual],
+        ["E-Rickshaws/Battery operated Vehicles:", data.swm_assets.e_rickshaws],
+        ["Motorized Vehicles:", data.swm_assets.motorized_vehicles],
+      ]);
+    }
+    if (data.lwm_assets) {
+      addSection("Liquid Waste Management", [
+        ["Soak/Magic/Leach pits at HH Level:", data.lwm_assets.pits_hh_level],
+        ["Community Soak/Magic/Leach pits:", data.lwm_assets.community_pits],
+        ["WSP (Waste Stabilization Pond):", data.lwm_assets.wsp],
+        ["Dewats:", data.lwm_assets.dewats],
+        ["Wetland:", data.lwm_assets.wetlands],
+        ["Any Other (Trenching, Phytorids, etc.):", data.lwm_assets.other_treatments],
+        ["Drainage channels (meters):", data.lwm_assets.drainage_channels],
+      ]);
+    }
+    if (data.pwmu_details) {
+      addSection("Plastic Waste Management Unit(PWMUs)", [
+        ["Total No. of Established PWMU:", data.pwmu_details.established_pwmu],
+        ["Total No. of Blocks Covered Under PWMU:", data.pwmu_details.blocks_covered_pwmu],
+        ["Total No. of Urban MRFs:", data.pwmu_details.urban_mrfs],
+        ["Total No. of Blocks Covered Under Urban MRFs:", data.pwmu_details.blocks_covered_urban_mrf],
       ]);
     }
 
-    if (data.sbmg_targets) {
-      addSection("SBMG Targets", [
-        ["IHHL:", data.sbmg_targets.ihhl],
-        ["CSC:", data.sbmg_targets.csc],
-        ["Soak Pit:", data.sbmg_targets.soak_pit],
-        ["Magic Pit:", data.sbmg_targets.magic_pit],
-        ["RRC:", data.sbmg_targets.rrc],
-        ["PWMU:", data.sbmg_targets.pwmu],
-        ["Leach Pit:", data.sbmg_targets.leach_pit],
-        ["WSP:", data.sbmg_targets.wsp],
-        ["DEWATS:", data.sbmg_targets.dewats],
+    if (data.fsm_details) {
+      addSection("Faecal Sludge Management (FSM)", [
+        ["No. of twin pits Toilets:", data.fsm_details.twin_pit_toilets],
+        ["No. of Single pits Toilets:", data.fsm_details.single_pit_toilets],
+        ["No. of Septic tank Toilets:", data.fsm_details.septic_tank_toilets],
+        ["No. of Retrofitted toilets:", data.fsm_details.retrofitted_toilets],
+        ["Mechanized De-Sludging:", data.fsm_details.mechanized_desludging],
+        ["No. of FSTPs Rural:", data.fsm_details.fstps_rural],
+        ["No. of FSTPs Urban:", data.fsm_details.fstps_urban],
       ]);
     }
+    if (data.gobardhan_projects) {
+      addSection("GOBAR-dhan Project", [
+        ["GOBAR-dhan Project:", data.gobardhan_projects.total_projects],
+      ]);
+    }
+
+    if (data.d2d_activities) {
+      addSection("Door to Door Waste Collection, Segregation & Disposal Activities", [
+        ["Door to Door Service available in this gp:", data.d2d_activities.is_active ? "Yes" : "No"],
+        ["Total No. of Work Sanctioned Through Tender:", data.d2d_activities.sanctioned_tender],
+        ["Total No. of Work Sanctioned Self by GPs:", data.d2d_activities.sanctioned_self_gp],
+        ["Total No. of Work Sanctioned Through CSR/NGOs:", data.d2d_activities.sanctioned_csr_ngo],
+        ["Total No. of Work Sanctioned Through SHGs:", data.d2d_activities.sanctioned_shg],
+        ["Total Expenditure Amt. (Rs in Lakhs):", data.d2d_activities.total_expenditure],
+        ["Vehicles Deployed:", data.d2d_activities.vehicles_deployed],
+        ["Persons Deployed:", data.d2d_activities.persons_deployed],
+        ["Households Covered:", data.d2d_activities.households_covered],
+        ["Work Start:", data.d2d_activities.status_start],
+        ["Work Running:", data.d2d_activities.status_running],
+        ["Work Completed:", data.d2d_activities.status_completed],
+      ]);
+    }
+
+
+
 
     // ===== Village Table (Full Hindi Support) =====
     if (data.village_data?.length) {
@@ -1039,16 +1084,6 @@ const VillageMasterContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
-    if (activeScope === 'Blocks' || activeScope === 'GPs') {
-      if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
-        setSelectedDistrictForHierarchy(district);
-        setSelectedBlockForHierarchy(null);
-        setDropdownLevel('blocks');
-        fetchBlocks(district.id);
-      }
-    }
-  };
 
   const handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
@@ -1073,15 +1108,7 @@ const VillageMasterContent = () => {
     }
   };
 
-  const handleBlockHover = (block) => {
-    if (activeScope === 'GPs') {
-      if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
-        setSelectedBlockForHierarchy(block);
-        setDropdownLevel('gps');
-        fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
-      }
-    }
-  };
+
 
   const handleBlockClick = (block) => {
     if (activeScope === 'Blocks') {
@@ -1592,39 +1619,6 @@ const VillageMasterContent = () => {
               {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
             </div>
           </div>
-
-          {/* SBMG Target Achievement Rate */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                SBMG Target Achievement Rate
-              </h3>
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : `${getAnalyticsValue('sbmg_target_achievement_rate', 0)}%`}
-            </div>
-          </div>
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}
@@ -1633,65 +1627,113 @@ const VillageMasterContent = () => {
           gap: '10px',
           marginTop: '16px'
         }}>
-          {/* SBMG Target vs Achievement Chart - Hidden in GP view */}
+          {/* Coverage Overview Chart */}
+          {/* Coverage Overview Chart */}
           {activeScope !== 'GPs' && (
             <div style={{
               flex: 2,
+              minWidth: 0, // 🔥 VERY IMPORTANT (flex fix)
               backgroundColor: 'white',
               padding: '14px',
               borderRadius: '8px',
               border: '1px solid #e5e7eb'
             }}>
+
+              {/* Header */}
               <div style={{
                 display: 'flex',
-                alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: '24px'
+                marginBottom: '12px'
               }}>
                 <h3 style={{
                   fontSize: '18px',
                   fontWeight: '600',
-                  color: '#111827',
                   margin: 0
                 }}>
-                  SBMG Target vs. Achievement
+                  Coverage Overview
                 </h3>
-                {/* Legend */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#9ca3af', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Target</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <div style={{ width: '12px', height: '12px', backgroundColor: '#10b981', borderRadius: '2px' }}></div>
-                    <span style={{ fontSize: '12px', color: '#6b7280' }}>Achievement</span>
-                  </div>
-                </div>
               </div>
 
-              <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
+              <div style={{ height: '1px', background: '#e5e7eb', margin: '10px 0' }} />
 
-              <div style={{ height: '400px' }}>
-                <Chart
-                  // Yahan hum ensure kar rahe hain ki shared aur intersect properties apply ho rahi hain
-                  options={{
-                    ...chartOptions,
-                    tooltip: {
-                      ...chartOptions.tooltip,
-                      shared: true,
-                      intersect: false,
-                      followCursor: true
-                    }
-                  }}
-                  series={chartSeries}
-                  type="bar"
-                  height="100%"
-                />
-              </div>
+              {(() => {
+
+                const coverageData = activeScope === 'State'
+                  ? analyticsData?.district_wise_coverage || []
+                  : activeScope === 'Districts'
+                    ? analyticsData?.block_wise_coverage || []
+                    : analyticsData?.gp_wise_coverage || [];
+
+                if (!coverageData.length) {
+                  return <div style={{ padding: 40, textAlign: 'center' }}>No Data</div>;
+                }
+
+                return (
+                  <div style={{
+                    width: '100%',
+                    overflowX: 'auto',   // ✅ SCROLL HERE
+                  }}>
+                    <div style={{
+                      minWidth: `${coverageData.length * 100}px`, // 🔥 dynamic width
+                    }}>
+                      <Chart
+                        options={{
+                          chart: {
+                            type: 'bar',
+                            toolbar: { show: false }
+                          },
+                          plotOptions: {
+                            bar: {
+                              columnWidth: '40%',
+                              borderRadius: 4
+                            }
+                          },
+                          colors: coverageData.map(item => {
+                            const v = item.coverage_percentage || 0;
+                            if (v < 70) return '#ef4444';
+                            if (v < 90) return '#f59e0b';
+                            return '#10b981';
+                          }),
+                          dataLabels: {
+                            enabled: true,
+                            formatter: (val) => `${val}%`,
+                            style: { fontSize: '10px' }
+                          },
+                          xaxis: {
+                            categories: coverageData.map(i => i.geography_name),
+                            labels: {
+                              rotate: -60,
+                              trim: false,
+                              style: { fontSize: '8px' }
+                            }
+                          },
+                          yaxis: {
+                            max: 100,
+                            labels: {
+                              formatter: (val) => `${val}%`
+                            }
+                          },
+                          grid: {
+                            padding: {
+                              left: 10,
+                              right: 10,
+                              top: 10,
+                              bottom: 20
+                            }
+                          }
+                        }}
+                        series={[{
+                          name: 'Coverage %',
+                          data: coverageData.map(i => i.coverage_percentage || 0)
+                        }]}
+                        type="bar"
+                        height={300}
+                      />
+                    </div>
+                  </div>
+                );
+
+              })()}
             </div>
           )}
 
@@ -1942,14 +1984,14 @@ const VillageMasterContent = () => {
       )}
 
       {/* Edit GP Master Data modal */}
-      {/* <EditGPMasterModal
+      <EditGPMasterModal
         isOpen={showEditModal}
         onClose={() => { setShowEditModal(false); setEditSurveyId(null); }}
         surveyId={editSurveyId}
         gpName={selectedLocation}
         onSuccess={() => { fetchGpSurveys(); fetchAnalytics(); }}
         vdoGPId={selectedGPId}
-      /> */}
+      />
 
       {/* Coverage Table Section - Only for State, Districts, and Blocks */}
       {activeScope !== 'GPs' && (
