@@ -150,7 +150,6 @@ const SchemesContent = () => {
   };
 
   // Handle file selection
-  // Strict File Selection Validation
   const handleFileSelect = (event) => {
     const file = event.target.files;
     if (file) {
@@ -161,19 +160,17 @@ const SchemesContent = () => {
         return;
       }
 
-      // 2. Check for double extensions / null bytes
-      const fileName = file.name;
-      const fileParts = fileName.split('.');
-      if (fileParts.length > 2 || fileName.includes('%00')) {
-        alert("Invalid file name. Double extensions and special characters are not allowed.");
+      // 2. Check for null bytes (security check)
+      if (file.name.includes('%00')) {
+        alert("Invalid file name. Null bytes are not allowed.");
         event.target.value = ''; // Reset the input
         return;
       }
 
-      // 3. Check MIME type (whitelist)
-      const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+      // 3. Check MIME type (whitelist - made slightly more forgiving)
+      const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
       if (!validMimeTypes.includes(file.type)) {
-        alert("Invalid file type. Only JPG, JPEG, and PNG are allowed.");
+        alert("Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.");
         event.target.value = ''; // Reset the input
         return;
       }
