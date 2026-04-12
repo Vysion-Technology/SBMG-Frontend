@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
-import apiClient, { annualSurveysAPI, villagesAPI } from '../../services/api';
+import apiClient, { annualSurveysAPI, villagesAPI } from '../../../services/api';
 
 const FREQ_OPTIONS = ['DAILY',
   'ALTERNATE_DAYS',
@@ -9,6 +9,11 @@ const FREQ_OPTIONS = ['DAILY',
   'FORTNIGHTLY',
   'NONE'];
 const FUND_HEAD_OPTIONS = ['FFC', 'SFC', 'CSR', 'OWN_INCOME', 'OTHER'];
+
+const options = [
+  { label: 'YES', value: true },
+  { label: 'NO', value: false }
+];
 
 
 
@@ -31,6 +36,8 @@ const emptyVillage = () => ({
   gwm_assets: { soak_pit: '', magic_pit: '', leach_pit: '', wsp: '', dewats: '' }
 });
 
+
+
 function mapGetToForm(data) {
   const o = (x, d) => (x != null && typeof x === 'object' ? x : d);
   const n = (x, d = 0) => (typeof x === 'number' && !isNaN(x) ? x : (parseFloat(x) || d));
@@ -38,18 +45,22 @@ function mapGetToForm(data) {
 
   const wo = o(data.work_order, {});
   const fs = o(data.fund_sanctioned, {});
-  const d2d = o(data.door_to_door_collection, {});
   const rs = o(data.road_sweeping, {});
   const dc = o(data.drain_cleaning, {});
   const csc = o(data.csc_details, {});
-  const swm = o(data.swm_assets, {});
   const sbmg = o(data.sbmg_targets, {});
+  const swm = o(data.swm_assets, {});
+  const lwm = o(data.lwm_assets, {});
+  const pwmu = o(data.pwmu_details, {});
+  const fsm = o(data.fsm_details, {});
+  const gobardhan = o(data.gobardhan_projects, {});
+  const d2d = o(data.d2d_activities, {});
 
   const vlist = Array.isArray(data.village_data) ? data.village_data : [];
   const village_data = vlist.length > 0
     ? vlist.map((v) => ({
       village_id: n(v.village_id),
-      agency_id: o(data.agency_id || ''),
+      agency_id: data.agency_id ?? '',
       village_name: s(v.village_name),
       population: n(v.population),
       num_households: n(v.num_households),
@@ -63,14 +74,22 @@ function mapGetToForm(data) {
         leach_pit: n(o(v.gwm_assets, {}).leach_pit),
         wsp: n(o(v.gwm_assets, {}).wsp),
         dewats: n(o(v.gwm_assets, {}).dewats)
-      }
+      },
+      odf_sustainability: {
+        ihhl: n(o(data.odf_sustainability, {}).ihhl),
+        // retrofitting: n(o(data.odf_sustainability, {}).retrofitting),
+        csc: n(o(data.odf_sustainability, {}).csc),
+        csc_shala_darpan: n(o(data.odf_sustainability, {}).csc_shala_darpan)
+      },
     }))
     : [emptyVillage()];
 
   return {
     agency_id: data.agency_id ?? '',
+    agency_name: data.agency_name ?? '',
     sarpanch_name: s(data.sarpanch_name),
     vdo_name: s(data.vdo_name),
+    vdo_contact_number: s(data.vdo_contact_number),
     sarpanch_contact: s(data.sarpanch_contact),
     num_ward_panchs: n(data.num_ward_panchs),
     work_order: {
@@ -101,91 +120,239 @@ function mapGetToForm(data) {
       cleaning_frequency: FREQ_OPTIONS.includes(csc.cleaning_frequency) ? csc.cleaning_frequency : 'DAILY'
     },
     swm_assets: {
-      rrc: n(swm.rrc),
-      pwmu: n(swm.pwmu),
-      compost_pit: n(swm.compost_pit),
-      collection_vehicle: n(swm.collection_vehicle)
+      bins_hh_level: n(swm.bins_hh_level),
+      bins_public_places: n(swm.bins_public_places),
+      community_compost_pits: n(swm.community_compost_pits),
+      segregation_sheds: n(swm.segregation_sheds),
+      tricycles_manual: n(swm.tricycles_manual),
+      e_rickshaws: n(swm.e_rickshaws),
+      motorized_vehicles: n(swm.motorized_vehicles)
     },
-    sbmg_targets: {
-      ihhl: n(sbmg.ihhl),
-      csc: n(sbmg.csc),
-      rrc: n(sbmg.rrc),
-      pwmu: n(sbmg.pwmu),
-      soak_pit: n(sbmg.soak_pit),
-      magic_pit: n(sbmg.magic_pit),
-      leach_pit: n(sbmg.leach_pit),
-      wsp: n(sbmg.wsp),
-      dewats: n(sbmg.dewats)
+    odf_sustainability: {
+      ihhl: n(o(data.odf_sustainability, {}).ihhl),
+      // retrofitting: n(o(data.odf_sustainability, {}).retrofitting),
+      csc: n(o(data.odf_sustainability, {}).csc),
+      csc_shala_darpan: n(o(data.odf_sustainability, {}).csc_shala_darpan)
     },
+    lwm_assets: {
+      pits_hh_level: n(lwm.pits_hh_level),
+      community_pits: n(lwm.community_pits),
+      wsp: n(lwm.wsp),
+      dewats: n(lwm.dewats),
+      wetlands: n(lwm.wetlands),
+      other_treatments: n(lwm.other_treatments),
+      drainage_channels: n(lwm.drainage_channels)
+    },
+
+    pwmu_details: {
+      established_pwmu: n(pwmu.established_pwmu),
+      blocks_covered_pwmu: n(pwmu.blocks_covered_pwmu),
+      urban_mrfs: n(pwmu.urban_mrfs),
+      blocks_covered_urban_mrf: n(pwmu.blocks_covered_urban_mrf)
+    },
+
+    fsm_details: {
+      twin_pit_toilets: n(fsm.twin_pit_toilets),
+      single_pit_toilets: n(fsm.single_pit_toilets),
+      septic_tank_toilets: n(fsm.septic_tank_toilets),
+      retrofitted_toilets: n(fsm.retrofitted_toilets),
+      mechanized_desludging: n(fsm.mechanized_desludging),
+      fstps_rural: n(fsm.fstps_rural),
+      fstps_urban: n(fsm.fstps_urban)
+    },
+
+    gobardhan_projects: {
+      total_projects: n(gobardhan.total_projects)
+    },
+
+    d2d_activities: {
+      is_active: d2d.is_active ?? false,
+      sanctioned_tender: n(d2d.sanctioned_tender),
+      sanctioned_self_gp: n(d2d.sanctioned_self_gp),
+      sanctioned_csr_ngo: n(d2d.sanctioned_csr_ngo),
+      sanctioned_shg: n(d2d.sanctioned_shg),
+      total_expenditure: n(d2d.total_expenditure),
+      vehicles_deployed: n(d2d.vehicles_deployed),
+      persons_deployed: n(d2d.persons_deployed),
+      households_covered: n(d2d.households_covered),
+      status_start: n(d2d.status_start),
+      status_running: n(d2d.status_running),
+      status_completed: n(d2d.status_completed)
+    },
+    // sbmg_targets: {
+    //   ihhl: n(sbmg.ihhl),
+    //   csc: n(sbmg.csc),
+    //   rrc: n(sbmg.rrc),
+    //   pwmu: n(sbmg.pwmu),
+    //   soak_pit: n(sbmg.soak_pit),
+    //   magic_pit: n(sbmg.magic_pit),
+    //   leach_pit: n(sbmg.leach_pit),
+    //   wsp: n(sbmg.wsp),
+    //   dewats: n(sbmg.dewats)
+    // },
     village_data
   };
 }
 
 function formToPayload(form) {
-  // const n = (x) => (typeof x === 'number' && !isNaN(x) ? x : (parseFloat(x) || 0));
   const n = (x) => {
     if (x === "" || x === null || x === undefined) return 0;
     const num = Number(x);
     return Number.isInteger(num) ? num : Math.floor(num || 0);
   };
+
   const s = (x) => (x != null ? String(x) : '');
 
   return {
+    fy_id: Number(form.fy_id) || 0, // optional (add case me override ho raha h)
+    gp_id: Number(form.gp_id) || 0,
+
+    survey_date: s(form.survey_date) || new Date().toISOString().split('T')[0],
+
+    vdo_id: Number(form.vdo_id) || 0,
     vdo_name: s(form.vdo_name),
-    agency_id: form.agency_id ? Number(form.agency_id) : null,  // ✅ ADD THIS
+    vdo_contact_number: s(form.vdo_contact_number),
+
     sarpanch_name: s(form.sarpanch_name),
     sarpanch_contact: s(form.sarpanch_contact),
+
     num_ward_panchs: n(form.num_ward_panchs),
+
+    agency_id: Number(form.agency_id) || null,
+
     work_order: {
-      work_order_no: s(form.work_order.work_order_no),
-      work_order_date: s(form.work_order.work_order_date) || new Date().toISOString().split('T')[0],
-      work_order_amount: n(form.work_order.work_order_amount)
+      work_order_no: s(form.work_order?.work_order_no),
+      work_order_date:
+        s(form.work_order?.work_order_date) ||
+        new Date().toISOString().split('T')[0],
+      work_order_amount: n(form.work_order?.work_order_amount)
     },
+
     fund_sanctioned: {
-      amount: n(form.fund_sanctioned.amount),
-      head: s(form.fund_sanctioned.head) || 'FFC'
+      amount: n(form.fund_sanctioned?.amount),
+      head: s(form.fund_sanctioned?.head) || 'FFC'
     },
+
     door_to_door_collection: {
-      num_households: n(form.door_to_door_collection.num_households),
-      num_shops: n(form.door_to_door_collection.num_shops),
-      collection_frequency: form.door_to_door_collection.collection_frequency || 'DAILY'
+      num_households: n(form.door_to_door_collection?.num_households),
+      num_shops: n(form.door_to_door_collection?.num_shops),
+      collection_frequency:
+        form.door_to_door_collection?.collection_frequency || 'DAILY'
     },
+
     road_sweeping: {
-      width: n(form.road_sweeping.width),
-      length: n(form.road_sweeping.length),
-      cleaning_frequency: form.road_sweeping.cleaning_frequency || 'DAILY'
+      width: n(form.road_sweeping?.width),
+      length: n(form.road_sweeping?.length),
+      cleaning_frequency:
+        form.road_sweeping?.cleaning_frequency || 'DAILY'
     },
+
     drain_cleaning: {
-      length: n(form.drain_cleaning.length),
-      cleaning_frequency: form.drain_cleaning.cleaning_frequency || 'DAILY'
+      length: n(form.drain_cleaning?.length),
+      cleaning_frequency:
+        form.drain_cleaning?.cleaning_frequency || 'DAILY'
     },
+
     csc_details: {
-      numbers: n(form.csc_details.numbers),
-      cleaning_frequency: form.csc_details.cleaning_frequency || 'DAILY'
+      numbers: n(form.csc_details?.numbers),
+      cleaning_frequency:
+        form.csc_details?.cleaning_frequency || 'DAILY'
     },
+
+    // ✅ NEW
+    odf_sustainability: {
+      ihhl: n(form.odf_sustainability?.ihhl),
+      retrofitting: n(form.odf_sustainability?.retrofitting),
+      csc: n(form.odf_sustainability?.csc),
+      csc_shala_darpan: n(form.odf_sustainability?.csc_shala_darpan)
+    },
+
+    // ✅ UPDATED SWM (new structure)
     swm_assets: {
-      rrc: n(form.swm_assets.rrc),
-      pwmu: n(form.swm_assets.pwmu),
-      compost_pit: n(form.swm_assets.compost_pit),
-      collection_vehicle: n(form.swm_assets.collection_vehicle)
+      bins_hh_level: n(form.swm_assets?.bins_hh_level),
+      bins_public_places: n(form.swm_assets?.bins_public_places),
+      community_compost_pits: n(form.swm_assets?.community_compost_pits),
+      segregation_sheds: n(form.swm_assets?.segregation_sheds),
+      tricycles_manual: n(form.swm_assets?.tricycles_manual),
+      e_rickshaws: n(form.swm_assets?.e_rickshaws),
+      motorized_vehicles: n(form.swm_assets?.motorized_vehicles)
     },
-    sbmg_targets: {
-      ihhl: n(form.sbmg_targets.ihhl),
-      csc: n(form.sbmg_targets.csc),
-      rrc: n(form.sbmg_targets.rrc),
-      pwmu: n(form.sbmg_targets.pwmu),
-      soak_pit: n(form.sbmg_targets.soak_pit),
-      magic_pit: n(form.sbmg_targets.magic_pit),
-      leach_pit: n(form.sbmg_targets.leach_pit),
-      wsp: n(form.sbmg_targets.wsp),
-      dewats: n(form.sbmg_targets.dewats)
+
+    // ✅ NEW
+    lwm_assets: {
+      pits_hh_level: n(form.lwm_assets?.pits_hh_level),
+      community_pits: n(form.lwm_assets?.community_pits),
+      wsp: n(form.lwm_assets?.wsp),
+      dewats: n(form.lwm_assets?.dewats),
+      wetlands: n(form.lwm_assets?.wetlands),
+      other_treatments: n(form.lwm_assets?.other_treatments),
+      drainage_channels: n(form.lwm_assets?.drainage_channels)
     },
+
+    // ✅ NEW
+    pwmu_details: {
+      established_pwmu: n(form.pwmu_details?.established_pwmu),
+      blocks_covered_pwmu: n(form.pwmu_details?.blocks_covered_pwmu),
+      urban_mrfs: n(form.pwmu_details?.urban_mrfs),
+      blocks_covered_urban_mrf: n(form.pwmu_details?.blocks_covered_urban_mrf)
+    },
+
+    // ✅ NEW
+    fsm_details: {
+      twin_pit_toilets: n(form.fsm_details?.twin_pit_toilets),
+      single_pit_toilets: n(form.fsm_details?.single_pit_toilets),
+      septic_tank_toilets: n(form.fsm_details?.septic_tank_toilets),
+      retrofitted_toilets: n(form.fsm_details?.retrofitted_toilets),
+      mechanized_desludging: n(form.fsm_details?.mechanized_desludging),
+      fstps_rural: n(form.fsm_details?.fstps_rural),
+      fstps_urban: n(form.fsm_details?.fstps_urban)
+    },
+
+    // ✅ NEW
+    gobardhan_projects: {
+      total_projects: n(form.gobardhan_projects?.total_projects)
+    },
+
+    // ✅ NEW
+    d2d_activities: {
+      is_active: form.d2d_activities?.is_active ?? false,
+      sanctioned_tender: n(form.d2d_activities?.sanctioned_tender),
+      sanctioned_self_gp: n(form.d2d_activities?.sanctioned_self_gp),
+      sanctioned_csr_ngo: n(form.d2d_activities?.sanctioned_csr_ngo),
+      sanctioned_shg: n(form.d2d_activities?.sanctioned_shg),
+      total_expenditure: n(form.d2d_activities?.total_expenditure),
+      vehicles_deployed: n(form.d2d_activities?.vehicles_deployed),
+      persons_deployed: n(form.d2d_activities?.persons_deployed),
+      households_covered: n(form.d2d_activities?.households_covered),
+      status_start: n(form.d2d_activities?.status_start),
+      status_running: n(form.d2d_activities?.status_running),
+      status_completed: n(form.d2d_activities?.status_completed)
+    },
+
+
+    // sbmg_targets: {
+    //   ihhl: n(form.sbmg_targets?.ihhl),
+    //   csc: n(form.sbmg_targets?.csc),
+    //   rrc: n(form.sbmg_targets?.rrc),
+    //   pwmu: n(form.sbmg_targets?.pwmu),
+    //   soak_pit: n(form.sbmg_targets?.soak_pit),
+    //   magic_pit: n(form.sbmg_targets?.magic_pit),
+    //   leach_pit: n(form.sbmg_targets?.leach_pit),
+    //   wsp: n(form.sbmg_targets?.wsp),
+    //   dewats: n(form.sbmg_targets?.dewats)
+    // },
+
     village_data: (form.village_data || []).map((v) => ({
       village_id: n(v.village_id),
       village_name: s(v.village_name),
       population: n(v.population),
       num_households: n(v.num_households),
-      sbmg_assets: { ihhl: n(v.sbmg_assets?.ihhl), csc: n(v.sbmg_assets?.csc) },
+
+      sbmg_assets: {
+        ihhl: n(v.sbmg_assets?.ihhl),
+        csc: n(v.sbmg_assets?.csc)
+      },
+
       gwm_assets: {
         soak_pit: n(v.gwm_assets?.soak_pit),
         magic_pit: n(v.gwm_assets?.magic_pit),
@@ -197,9 +364,36 @@ function formToPayload(form) {
   };
 }
 
-const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min }) => (
+// const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min }) => (
+//   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+//     <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{label}</label>
+//     <input
+//       type={type}
+//       value={value ?? ''}
+//       onChange={(e) => onChange(e.target.value)}
+//       placeholder={placeholder}
+//       disabled={disabled}
+//       min={min}
+//       max={max}
+//       required
+//       style={{
+//         padding: '8px 10px',
+//         border: '1px solid #d1d5db',
+//         borderRadius: '6px',
+//         fontSize: '14px',
+//         outline: 'none'
+//       }}
+//     />
+//   </div>
+// );
+
+const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min, max, error }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>{label}</label>
+
+    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+      {label}
+    </label>
+
     <input
       type={type}
       value={value ?? ''}
@@ -207,15 +401,22 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabl
       placeholder={placeholder}
       disabled={disabled}
       min={min}
-      required
+      max={max}
       style={{
         padding: '8px 10px',
-        border: '1px solid #d1d5db',
+        border: error ? '1px solid red' : '1px solid #d1d5db',
         borderRadius: '6px',
         fontSize: '14px',
         outline: 'none'
       }}
     />
+
+    {/* ✅ Error Show */}
+    {error && (
+      <span style={{ color: 'red', fontSize: '12px' }}>
+        {error}
+      </span>
+    )}
   </div>
 );
 
@@ -242,6 +443,62 @@ const Select = ({ label, value, onChange, options, disabled }) => (
   </div>
 );
 
+const BooleanSelect = ({ label, value, onChange, disabled }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+      {label}
+    </label>
+
+    <select
+      value={value === true ? 'true' : value === false ? 'false' : ''}
+      onChange={(e) => onChange(e.target.value === 'true')}
+      disabled={disabled}
+      style={{
+        padding: '8px 10px',
+        border: '1px solid #d1d5db',
+        borderRadius: '6px',
+        fontSize: '14px',
+        outline: 'none',
+        backgroundColor: 'white'
+      }}
+    >
+      <option value="">Select</option>
+      <option value="true">YES</option>
+      <option value="false">NO</option>
+    </select>
+  </div>
+);
+
+const BooleanRadio = ({ label, value, onChange, disabled }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', padding: '10px', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+    <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
+      {label}
+    </label>
+
+    <div style={{ display: 'flex', gap: '60px' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <input
+          type="radio"
+          value="true"
+          checked={value === true}
+          onChange={() => onChange(true)}
+          disabled={disabled}
+        /> <span>YES</span>
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <input
+          type="radio"
+          value="false"
+          checked={value === false}
+          onChange={() => onChange(false)}
+          disabled={disabled}
+        /> NO
+      </label>
+    </div>
+  </div>
+);
+
 const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess, vdoGPId, fy_id }) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -250,6 +507,10 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   const [form, setForm] = useState(null);
   const [agencyesData, setAgencyesData] = useState([])
   const [moduleAgency, SetModuleAgency] = useState(false)
+  const [phoneErrors, setPhoneErrors] = useState({
+    sarpanch_contact: "",
+    vdo_contact_number: ""
+  });
   const [agencyForm, setAgencyForm] = useState({
     name: "",
     email: "",
@@ -258,6 +519,10 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
   const [agencySearch, setAgencySearch] = useState("");
   const [agencyDropdownOpen, setAgencyDropdownOpen] = useState(false);
+
+  // console.log(vdoGPId)
+  // console.log(surveyId)
+
 
   useEffect(() => {
     const fetchAgencies = async () => {
@@ -275,7 +540,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   }, [isOpen]);
 
   const isEdit = !!surveyId;
-  console.log('id->', fy_id)
+  // console.log('id->', fy_id)
 
 
 
@@ -286,6 +551,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       setError(null);
       const res = await annualSurveysAPI.getSurvey(surveyId);
       setForm(mapGetToForm(res.data));
+
+      setAgencySearch(res.data.agency_name || "");
       // view gps dataaa
       console.log(res.data)
     } catch (e) {
@@ -307,23 +574,89 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       setForm({
         agency_id: '',
         vdo_name: '',
+        vdo_contact_number: '',
         sarpanch_name: '',
         sarpanch_contact: '',
         num_ward_panchs: '',
+
         work_order: emptyWorkOrder(),
         fund_sanctioned: emptyFundSanctioned(),
         door_to_door_collection: emptyDoorToDoor(),
         road_sweeping: emptyRoadSweeping(),
         drain_cleaning: emptyDrainCleaning(),
         csc_details: emptyCscDetails(),
-        swm_assets: emptySwmAssets(),
-        sbmg_targets: emptySbmgTargets(),
-        village_data: [emptyVillage()]
+
+        // ✅ ADD THESE
+        odf_sustainability: {
+          ihhl: '',
+          retrofitting: '',
+          csc: '',
+          csc_shala_darpan: ''
+        },
+
+        swm_assets: {
+          bins_hh_level: '',
+          bins_public_places: '',
+          community_compost_pits: '',
+          segregation_sheds: '',
+          tricycles_manual: '',
+          e_rickshaws: '',
+          motorized_vehicles: ''
+        },
+
+        lwm_assets: {
+          pits_hh_level: '',
+          community_pits: '',
+          wsp: '',
+          dewats: '',
+          wetlands: '',
+          other_treatments: '',
+          drainage_channels: ''
+        },
+
+        pwmu_details: {
+          established_pwmu: '',
+          blocks_covered_pwmu: '',
+          urban_mrfs: '',
+          blocks_covered_urban_mrf: ''
+        },
+
+        fsm_details: {
+          twin_pit_toilets: '',
+          single_pit_toilets: '',
+          septic_tank_toilets: '',
+          retrofitted_toilets: '',
+          mechanized_desludging: '',
+          fstps_rural: '',
+          fstps_urban: ''
+        },
+
+        gobardhan_projects: {
+          total_projects: ''
+        },
+
+        d2d_activities: {
+          is_active: false,
+          sanctioned_tender: '',
+          sanctioned_self_gp: '',
+          sanctioned_csr_ngo: '',
+          sanctioned_shg: '',
+          total_expenditure: '',
+          vehicles_deployed: '',
+          persons_deployed: '',
+          households_covered: '',
+          status_start: '',
+          status_running: '',
+          status_completed: ''
+        },
+
+        village_data: [emptyVillage()],
       });
 
       setError(null);
     }
   }, [isOpen, surveyId, loadSurvey]);
+
   useEffect(() => {
     if (!isOpen) {
       SetModuleAgency(false);   // 🔥 Reset agency modal
@@ -380,9 +713,23 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     });
   }, []);
 
-  const handlePhoneChange = (value) => {
+  const handlePhoneChange = (field, value) => {
     const cleaned = value.replace(/[^0-9]/g, "").slice(0, 10);
-    update('sarpanch_contact', cleaned);
+
+    update(field, cleaned);
+
+    let errorMsg = "";
+
+    if (cleaned.length > 0 && cleaned.length < 10) {
+      errorMsg = "Phone number must be 10 digits";
+    } else if (cleaned.length === 10 && !/^[6-9]\d{9}$/.test(cleaned)) {
+      errorMsg = "Enter valid Indian mobile number (starts with 6-9)";
+    }
+
+    setPhoneErrors(prev => ({
+      ...prev,
+      [field]: errorMsg
+    }));
   };
 
   const addVillage = useCallback(() => {
@@ -509,11 +856,28 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       setSaving(true);
       setError(null);
 
-      if (!form.sarpanch_contact || form.sarpanch_contact.length !== 10) {
-        setError("Phone number must be exactly 10 digits ❌");
+      if (!form.vdo_contact_number || form.vdo_contact_number.length !== 10) {
+        setPhoneErrors(prev => ({
+          ...prev,
+          vdo_contact_number: "Phone number must be 10 digits"
+        }));
+
+        setError("Please fix phone number ❌");
         setSaving(false);
         return;
       }
+
+      if (!form.sarpanch_contact || form.sarpanch_contact.length !== 10) {
+        setPhoneErrors(prev => ({
+          ...prev,
+          sarpanch_contact: "Phone number must be 10 digits"
+        }));
+        setError("Please fix phone number ❌");
+        setSaving(false);
+        return;
+      }
+
+
 
       const fundAmount = Number(form.fund_sanctioned?.amount || 0);
       const workOrderAmount = Number(form.work_order?.work_order_amount || 0);
@@ -577,6 +941,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       if (isEdit) {
         // 🔥 4️⃣ Survey update
         await annualSurveysAPI.updateSurvey(surveyId, payload);
+
       } else {
         const basePayload = formToPayload(updatedForm);
 
@@ -622,9 +987,26 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     }
   }, [form, saving, surveyId, onSuccess, onClose, vdoGPId]);
 
+
   const handleOverlayClick = useCallback(() => {
     if (!saving) onClose?.();
   }, [saving, onClose]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setPhoneErrors({
+        sarpanch_contact: "",
+        vdo_contact_number: ""
+      });
+      setError(null);
+    }
+  }, [isOpen]);
+
+  // useEffect(() => {
+  //   if (form) {
+  //     console.log("FORM DATA:", form);
+  //   }
+  // }, [form]);
 
   if (!isOpen) return null;
 
@@ -643,6 +1025,30 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   );
 
 
+  const handleD2DChange = (value) => {
+    update('d2d_activities.is_active', value);
+
+    if (!value) {
+      update('d2d_activities', {
+        is_active: false,
+        sanctioned_tender: 0,
+        sanctioned_self_gp: 0,
+        sanctioned_csr_ngo: 0,
+        sanctioned_shg: 0,
+        total_expenditure: 0,
+        vehicles_deployed: 0,
+        persons_deployed: 0,
+        households_covered: 0,
+        status_start: 0,
+        status_running: 0,
+        status_completed: 0
+      });
+    }
+  };
+
+
+
+
   return (
     <div
       style={{
@@ -650,9 +1056,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.5)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        zIndex: 1000
+        zIndex: 99999
       }}
-      onClick={handleOverlayClick}
     >
       <div
         style={{
@@ -690,12 +1095,25 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               {section('VDO Details', grid2(
                 <>
                   <Input label="VDO name" value={form.vdo_name} onChange={(v) => update('vdo_name', v)} disabled={saving} />
+                  <Input
+                    label="VDO contact number"
+                    value={form.vdo_contact_number}
+                    onChange={(v) => handlePhoneChange('vdo_contact_number', v)}
+                    error={phoneErrors.vdo_contact_number}
+                  />
                 </>
               ))}
               {section('Basic information', grid2(
                 <>
                   <Input label="Sarpanch name" value={form.sarpanch_name} onChange={(v) => update('sarpanch_name', v)} disabled={saving} />
-                  <Input label="Sarpanch contact" value={form.sarpanch_contact} onChange={handlePhoneChange} disabled={saving} />
+
+                  <Input
+                    label="Sarpanch contact"
+                    value={form.sarpanch_contact}
+                    onChange={(v) => handlePhoneChange('sarpanch_contact', v)}
+                    error={phoneErrors.sarpanch_contact}
+                  />
+
                   <Input label="Number of ward panchs" type="number" min={0} value={form.num_ward_panchs} onChange={(v) => update('num_ward_panchs', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
@@ -791,10 +1209,19 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Input label="Work order amount" type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
-              {section('Fund sanctioned', grid2(
+              {section('Fund sanctioned', grid3(
                 <>
                   <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label="Head" value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
+                  {form.fund_sanctioned?.head === 'OTHER' && (
+                    <Input
+                      label="Specify Other Head"
+                      value={form.fund_sanctioned?.other_head}
+                      onChange={(v) => update('fund_sanctioned.other_head', v)}
+                      placeholder="Enter fund head..."
+                      disabled={saving}
+                    />
+                  )}
                 </>
               ))}
               {section('Door to door collection', (
@@ -827,21 +1254,162 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Select label="Cleaning frequency" value={form.csc_details?.cleaning_frequency} onChange={(v) => update('csc_details.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
-              {section('SWM assets', grid3(
+
+              {section('ODF Sustainability', grid2(
                 <>
-                  <Input label="RRC" type="number" min={0} value={form.swm_assets?.rrc} onChange={(v) => update('swm_assets.rrc', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='PWMU' type="number" min={0} value={form.swm_assets?.pwmu} onChange={(v) => update('swm_assets.pwmu', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Compost pit" type="number" min={0} value={form.swm_assets?.compost_pit} onChange={(v) => update('swm_assets.compost_pit', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Collection vehicle" type="number" min={0} value={form.swm_assets?.collection_vehicle} onChange={(v) => update('swm_assets.collection_vehicle', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="IHHL" type="number" min={0} value={form.odf_sustainability?.ihhl} onChange={(v) => update('odf_sustainability.ihhl', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='Community Sanitary Complex (CSC)' type="number" min={0} value={form.odf_sustainability?.csc} onChange={(v) => update('odf_sustainability.csc', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Total No. of CSCs in Shala Darpan (Schools)" type="number" min={0} value={form.odf_sustainability?.csc_shala_darpan} onChange={(v) => update('odf_sustainability.csc_shala_darpan', v === '' ? '' : Number(v))} disabled={saving} />
+                  {/* <Input label="retrofitting" type="number" min={0} value={form.odf_sustainability?.retrofitting} onChange={(v) => update('odf_sustainability.csc_shala_darpan', v === '' ? '' : Number(v))} disabled={saving} /> */}
                 </>
               ))}
-              {section('SBMG targets', (
+              {section('SWM assets', grid2(
+                <>
+                  <Input label="Segregation Bins at HH Level" type="number" min={0} value={form.swm_assets?.bins_hh_level} onChange={(v) => update('swm_assets.bins_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='Segregation Bins at Public Places' type="number" min={0} value={form.swm_assets?.bins_public_places} onChange={(v) => update('swm_assets.bins_public_places', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Community Compost Pit" type="number" min={0} value={form.swm_assets?.community_compost_pits} onChange={(v) => update('swm_assets.community_compost_pits', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Segregation Sheds(RRC)" type="number" min={0} value={form.swm_assets?.segregation_sheds} onChange={(v) => update('swm_assets.segregation_sheds', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Tricycles (Manual)" type="number" min={0} value={form.swm_assets?.tricycles_manual} onChange={(v) => update('swm_assets.tricycles_manual', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="E-Rickshaws/Battery operated Vehicles" type="number" min={0} value={form.swm_assets?.e_rickshaws} onChange={(v) => update('swm_assets.e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Motorized Vehicles" type="number" min={0} value={form.swm_assets?.motorized_vehicles} onChange={(v) => update('swm_assets.motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+
+              {section('Liquid Waste Management', grid2(
+                <>
+                  <Input label="Soak/Magic/Leach pits at HH Level" type="number" min={0} value={form.lwm_assets?.pits_hh_level} onChange={(v) => update('lwm_assets.pits_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='Community Soak/Magic/Leach pits' type="number" min={0} value={form.lwm_assets?.community_pits} onChange={(v) => update('lwm_assets.community_pits', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="WSP (Waste Stabilization Pond)" type="number" min={0} value={form.lwm_assets?.wsp} onChange={(v) => update('lwm_assets.wsp', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Dewats" type="number" min={0} value={form.lwm_assets?.dewats} onChange={(v) => update('lwm_assets.dewats', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Wetland" type="number" min={0} value={form.lwm_assets?.wetlands} onChange={(v) => update('lwm_assets.wetlands', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Any Other (Trenching, Phytorids, etc.)" type="number" min={0} value={form.lwm_assets?.other_treatments} onChange={(v) => update('lwm_assets.other_treatments', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Drainage channels (meters)" type="number" min={0} value={form.lwm_assets?.drainage_channels} onChange={(v) => update('lwm_assets.drainage_channels', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+              {section('Plastic Waste Management Unit(PWMUs)', grid2(
+                <>
+                  <Input label="Total No. of Established PWMU" type="number" min={0} value={form.pwmu_details?.established_pwmu} onChange={(v) => update('pwmu_details.established_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='Total No. of Blocks Covered Under PWMU' type="number" min={0} value={form.pwmu_details?.blocks_covered_pwmu} onChange={(v) => update('pwmu_details.blocks_covered_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Total No. of Urban MRFs" type="number" min={0} value={form.pwmu_details?.urban_mrfs} onChange={(v) => update('pwmu_details.urban_mrfs', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Total No. of Blocks Covered Under Urban MRFs" type="number" min={0} value={form.pwmu_details?.blocks_covered_urban_mrf} onChange={(v) => update('pwmu_details.blocks_covered_urban_mrf', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+              {section('Faecal Sludge Management (FSM)', grid2(
+                <>
+                  <Input label="No. of twin pits Toilets" type="number" min={0} value={form.fsm_details?.twin_pit_toilets} onChange={(v) => update('fsm_details.twin_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label='No. of Single pits Toilets' type="number" min={0} value={form.fsm_details?.single_pit_toilets} onChange={(v) => update('fsm_details.single_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="No. of Septic tank Toilets" type="number" min={0} value={form.fsm_details?.septic_tank_toilets} onChange={(v) => update('fsm_details.septic_tank_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="No. of Retrofitted toilets" type="number" min={0} value={form.fsm_details?.retrofitted_toilets} onChange={(v) => update('fsm_details.retrofitted_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Mechanized De-Sludging" type="number" min={0} value={form.fsm_details?.mechanized_desludging} onChange={(v) => update('fsm_details.mechanized_desludging', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="No. of FSTPs Rural" type="number" min={0} value={form.fsm_details?.fstps_rural} onChange={(v) => update('fsm_details.fstps_rural', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="No. of FSTPs Urban" type="number" min={0} value={form.fsm_details?.fstps_urban} onChange={(v) => update('fsm_details.fstps_urban', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+
+              {section('GOBAR-dhan Project', grid2(
+                <>
+                  <Input label="GOBAR-dhan Project" type="number" min={0} value={form.gobardhan_projects?.total_projects} onChange={(v) => update('gobardhan_projects.total_projects', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+              {section('Door to Door Waste Collection, Segregation & Disposal Activities', (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+                  {/* Always visible */}
+                  <BooleanRadio
+                    label="Door to Door Service available in this gp"
+                    value={form.d2d_activities?.is_active}
+                    onChange={handleD2DChange}
+                  />
+
+                  {/* ✅ SHOW ONLY WHEN TRUE */}
+                  {form.d2d_activities?.is_active === true && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+
+                      <Input label='Total No. of Work Sanctioned Through Tender'
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_tender}
+                        onChange={(v) => update('d2d_activities.sanctioned_tender', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label='Total No. of Work Sanctioned Self by GPs'
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_self_gp}
+                        onChange={(v) => update('d2d_activities.sanctioned_self_gp', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label='Total No. of Work Sanctioned Through CSR/NGOs'
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_csr_ngo}
+                        onChange={(v) => update('d2d_activities.sanctioned_csr_ngo', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label='Total No. of Work Sanctioned Through SHGs'
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_shg}
+                        onChange={(v) => update('d2d_activities.sanctioned_shg', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Total Expenditure Amt. (Rs in Lakhs)"
+                        type="number" min={0}
+                        value={form.d2d_activities?.total_expenditure}
+                        onChange={(v) => update('d2d_activities.total_expenditure', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Vehicles Deployed"
+                        type="number" min={0}
+                        value={form.d2d_activities?.vehicles_deployed}
+                        onChange={(v) => update('d2d_activities.vehicles_deployed', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Persons Deployed"
+                        type="number" min={0}
+                        value={form.d2d_activities?.persons_deployed}
+                        onChange={(v) => update('d2d_activities.persons_deployed', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Households Covered"
+                        type="number" min={0}
+                        value={form.d2d_activities?.households_covered}
+                        onChange={(v) => update('d2d_activities.households_covered', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Work Start"
+                        type="number" min={0}
+                        value={form.d2d_activities?.status_start}
+                        onChange={(v) => update('d2d_activities.status_start', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Work Running"
+                        type="number" min={0}
+                        value={form.d2d_activities?.status_running}
+                        onChange={(v) => update('d2d_activities.status_running', v === '' ? '' : Number(v))}
+                      />
+
+                      <Input label="Work Completed"
+                        type="number" min={0}
+                        value={form.d2d_activities?.status_completed}
+                        onChange={(v) => update('d2d_activities.status_completed', v === '' ? '' : Number(v))}
+                      />
+
+                    </div>
+                  )}
+                </div>
+              ))}
+
+
+              {/* {section('SBMG targets', (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                   {['ihhl', 'csc', 'rrc', 'pwmu', 'soak_pit', 'magic_pit', 'leach_pit', 'wsp', 'dewats'].map((k) => (
                     <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`, v === '' ? '' : Number(v))} disabled={saving} />
                   ))}
                 </div>
-              ))}
+              ))} */}
+
               {section('Village data', (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {(form.village_data || []).map((v, i) => (

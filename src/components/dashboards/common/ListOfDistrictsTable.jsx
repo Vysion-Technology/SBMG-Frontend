@@ -150,8 +150,8 @@ const AttendanceBar = ({ present = 0, absent = 0, onClick }) => {
   const absentPct = (absent / total) * 100;
 
   const tooltipItems = [
-    { color: '#10b981', label: 'Present', value: present },
-    { color: '#ef4444', label: 'Absent', value: absent }
+    { color: '#10b981', label: 'CSC Cleaned', value: present },
+    { color: '#ef4444', label: 'CSC Not Cleaned', value: absent }
   ];
 
 
@@ -853,7 +853,7 @@ const ListOfDistrictsTable = ({
           va = (Number(a.complaints.open) || 0) + (Number(a.complaints.verified) || 0) + (Number(a.complaints.resolved) || 0) + (Number(a.complaints.disposed) || 0);
           vb = (Number(b.complaints.open) || 0) + (Number(b.complaints.verified) || 0) + (Number(b.complaints.resolved) || 0) + (Number(b.complaints.disposed) || 0);
           break;
-        case 'attendance':
+        case 'CSC Cleaning':
           va = a.attendance.present + a.attendance.absent;
           vb = b.attendance.present + b.attendance.absent;
           break;
@@ -1260,7 +1260,9 @@ const ListOfDistrictsTable = ({
         </button> */}
       </div>
 
-      <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+      <div className="table-scroll-container [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
         <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
           <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
             <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -1330,9 +1332,9 @@ const ListOfDistrictsTable = ({
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
-                onClick={() => handleSort('attendance')}
+                onClick={() => handleSort('CSC Cleaning')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance <SortIcon col="attendance" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning <SortIcon col="attendance" /></span>
               </th>
               <th
                 style={{
@@ -1437,7 +1439,9 @@ const ListOfDistrictsTable = ({
                       <div className="blocksContentDrawer">
                         <div className={`p-4! border rounded-xl space-base mb-4! border-[#D1D5DB]`}>
                           <h3 className="text-lg font-semibold text-gray-800 mb-2">Block-wise Details</h3>
-                          <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                          <div className="table-scroll-container  [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                             <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
                               <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
                                 <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -1491,7 +1495,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
                                   </th>
                                   <th
                                     style={{
@@ -1596,7 +1600,9 @@ const ListOfDistrictsTable = ({
                                             <div className="gpContentDrawer">
                                               <div className={`p-4! border rounded-xl space-base mb-4! border-[#D1D5DB]`}>
                                                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Gram Panchayats in {block.name}</h3>
-                                                <div className="table-scroll-container [&::-webkit-scrollbar]:hidden" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 400, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
+                                                <div className="table-scroll-container  [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
+  [&::-webkit-scrollbar-thumb]:bg-gray-300 
+  [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 400, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
                                                   <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse' }}>
                                                     <thead style={{ position: 'sticky', top: 0, zIndex: 1, backgroundColor: '#f9fafb' }}>
                                                       <tr style={{ borderBottom: '2px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -1634,7 +1640,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Attendance</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
                                                         </th>
                                                         <th
                                                           style={{

@@ -7,7 +7,7 @@ import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
-import EditGPMasterModal from '../EditGPMasterModal';
+import EditGPMasterModal from '../common/EditGPMasterModal';
 
 
 const CEOContractorDetails = () => {

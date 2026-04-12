@@ -6,10 +6,10 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
-import EditGPMasterModal from '../EditGPMasterModal';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { HINDI_FONT } from '../../../utils/font';
+import EditGPMasterModal from '../common/EditGPMasterModal';
 
 const VDOVillageMasterContent = () => {
   // Refs to prevent duplicate API calls
@@ -214,20 +214,29 @@ const VDOVillageMasterContent = () => {
       y += 8;
 
       fields.forEach(([label, value]) => {
-        checkPageBreak(8);
+        const labelMaxWidth = 45;   // label ke liye width
+        const valueMaxWidth = 90;   // value ke liye width
 
-        // Label English (Helvetica) mein hi rahega
+        const labelLines = doc.splitTextToSize(label, labelMaxWidth);
+        const valueLines = doc.splitTextToSize(secureString(value), valueMaxWidth);
+
+        const lineHeight = 6;
+        const blockHeight = Math.max(labelLines.length, valueLines.length) * lineHeight;
+
+        checkPageBreak(blockHeight);
+
+        // Label
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.setTextColor(107, 114, 128);
-        doc.text(label, 20, y);
+        doc.text(labelLines, 20, y);
 
-        // Value (HindiFont) use karega jo Hindi aur English dono dikhayega
+        // Value
         doc.setFont("HindiFont", "normal");
         doc.setTextColor(17, 24, 39);
-        doc.text(secureString(value), 70, y);
+        doc.text(valueLines, 70, y);
 
-        y += 7;
+        y += blockHeight + 2; // dynamic spacing
       });
 
       y += 5;
@@ -239,17 +248,24 @@ const VDOVillageMasterContent = () => {
       ["GP Name:", data.gp_name],
       ["Block Name:", data.block_name],
       ["District Name:", data.district_name],
-      ["Sarpanch Name:", data.sarpanch_name],
-      ["Sarpanch Contact:", data.sarpanch_contact],
-      ["Number of Ward Panchs:", data.num_ward_panchs],
+
+      ["Agency Name:", data.agency_name],
     ]);
 
     if (data.vdo) {
       addSection("VDO Details", [
         ["Name:", data.vdo_name],
-        ["Username:", data.vdo.username],
+        ["Contact Number:", data.vdo_contact_number],
       ]);
     }
+    if (data.gp_name) {
+      addSection("Sarpanch Details", [
+        ["Name:", data.sarpanch_name],
+        ["Contact Number:", data.sarpanch_contact],
+        ["Number of Ward Panchs:", data.num_ward_panchs],
+      ]);
+    }
+
 
     if (data.work_order) {
       addSection("Work Order", [
@@ -297,31 +313,81 @@ const VDOVillageMasterContent = () => {
       ]);
     }
 
-
-
+    if (data.odf_sustainability) {
+      addSection("ODF Sustainability", [
+        ["IHHL:", data.odf_sustainability.ihhl],
+        ["Community Sanitary Complex (CSC):", data.odf_sustainability.csc],
+        ["Total No. of CSCs in Shala Darpan (Schools):", data.odf_sustainability.csc_shala_darpan],
+      ]);
+    }
 
     if (data.swm_assets) {
       addSection("SLWM Assets", [
-        ["RRC:", data.swm_assets.rrc],
-        ["PWMU:", data.swm_assets.pwmu],
-        ["Compost Pit:", data.swm_assets.compost_pit],
-        ["Collection Vehicle:", data.swm_assets.collection_vehicle],
+        ["Segregation Bins at HH Level:", data.swm_assets.bins_hh_level],
+        ["Segregation Bins at Public Places:", data.swm_assets.bins_public_places],
+        ["Community Compost Pit:", data.swm_assets.community_compost_pits],
+        ["Segregation Sheds(RRC):", data.swm_assets.segregation_sheds],
+        ["Tricycles (Manual):", data.swm_assets.tricycles_manual],
+        ["E-Rickshaws/Battery operated Vehicles:", data.swm_assets.e_rickshaws],
+        ["Motorized Vehicles:", data.swm_assets.motorized_vehicles],
+      ]);
+    }
+    if (data.lwm_assets) {
+      addSection("Liquid Waste Management", [
+        ["Soak/Magic/Leach pits at HH Level:", data.lwm_assets.pits_hh_level],
+        ["Community Soak/Magic/Leach pits:", data.lwm_assets.community_pits],
+        ["WSP (Waste Stabilization Pond):", data.lwm_assets.wsp],
+        ["Dewats:", data.lwm_assets.dewats],
+        ["Wetland:", data.lwm_assets.wetlands],
+        ["Any Other (Trenching, Phytorids, etc.):", data.lwm_assets.other_treatments],
+        ["Drainage channels (meters):", data.lwm_assets.drainage_channels],
+      ]);
+    }
+    if (data.pwmu_details) {
+      addSection("Plastic Waste Management Unit(PWMUs)", [
+        ["Total No. of Established PWMU:", data.pwmu_details.established_pwmu],
+        ["Total No. of Blocks Covered Under PWMU:", data.pwmu_details.blocks_covered_pwmu],
+        ["Total No. of Urban MRFs:", data.pwmu_details.urban_mrfs],
+        ["Total No. of Blocks Covered Under Urban MRFs:", data.pwmu_details.blocks_covered_urban_mrf],
       ]);
     }
 
-    if (data.sbmg_targets) {
-      addSection("SBMG Targets", [
-        ["IHHL:", data.sbmg_targets.ihhl],
-        ["CSC:", data.sbmg_targets.csc],
-        ["Soak Pit:", data.sbmg_targets.soak_pit],
-        ["Magic Pit:", data.sbmg_targets.magic_pit],
-        ["RRC:", data.sbmg_targets.rrc],
-        ["PWMU:", data.sbmg_targets.pwmu],
-        ["Leach Pit:", data.sbmg_targets.leach_pit],
-        ["WSP:", data.sbmg_targets.wsp],
-        ["DEWATS:", data.sbmg_targets.dewats],
+    if (data.fsm_details) {
+      addSection("Faecal Sludge Management (FSM)", [
+        ["No. of twin pits Toilets:", data.fsm_details.twin_pit_toilets],
+        ["No. of Single pits Toilets:", data.fsm_details.single_pit_toilets],
+        ["No. of Septic tank Toilets:", data.fsm_details.septic_tank_toilets],
+        ["No. of Retrofitted toilets:", data.fsm_details.retrofitted_toilets],
+        ["Mechanized De-Sludging:", data.fsm_details.mechanized_desludging],
+        ["No. of FSTPs Rural:", data.fsm_details.fstps_rural],
+        ["No. of FSTPs Urban:", data.fsm_details.fstps_urban],
       ]);
     }
+    if (data.gobardhan_projects) {
+      addSection("GOBAR-dhan Project", [
+        ["GOBAR-dhan Project:", data.gobardhan_projects.total_projects],
+      ]);
+    }
+
+    if (data.d2d_activities) {
+      addSection("Door to Door Waste Collection, Segregation & Disposal Activities", [
+        ["Door to Door Service available in this gp:", data.d2d_activities.is_active ? "Yes" : "No"],
+        ["Total No. of Work Sanctioned Through Tender:", data.d2d_activities.sanctioned_tender],
+        ["Total No. of Work Sanctioned Self by GPs:", data.d2d_activities.sanctioned_self_gp],
+        ["Total No. of Work Sanctioned Through CSR/NGOs:", data.d2d_activities.sanctioned_csr_ngo],
+        ["Total No. of Work Sanctioned Through SHGs:", data.d2d_activities.sanctioned_shg],
+        ["Total Expenditure Amt. (Rs in Lakhs):", data.d2d_activities.total_expenditure],
+        ["Vehicles Deployed:", data.d2d_activities.vehicles_deployed],
+        ["Persons Deployed:", data.d2d_activities.persons_deployed],
+        ["Households Covered:", data.d2d_activities.households_covered],
+        ["Work Start:", data.d2d_activities.status_start],
+        ["Work Running:", data.d2d_activities.status_running],
+        ["Work Completed:", data.d2d_activities.status_completed],
+      ]);
+    }
+
+
+
 
     // ===== Village Table (Full Hindi Support) =====
     if (data.village_data?.length) {
@@ -862,7 +928,6 @@ const VDOVillageMasterContent = () => {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -899,7 +964,6 @@ const VDOVillageMasterContent = () => {
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -912,39 +976,7 @@ const VDOVillageMasterContent = () => {
             </div>
           </div>
 
-          {/* SBMG Target Achievement Rate */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                SBMG Target Achievement Rate
-              </h3>
-              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : `${getAnalyticsValue('sbmg_target_achievement_rate', 0)}%`}
-            </div>
-          </div>
+         
         </div>
 
         {/* SBMG Target vs Achievement and Annual Overview Section */}

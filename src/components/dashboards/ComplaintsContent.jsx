@@ -289,6 +289,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     }
   }, [loadingAnalytics, loadingComplaints, complaintsListData]);
 
+  // Predefined date ranges
+  const dateRanges = [
+    { label: 'Year', value: 'year' },
+    { label: 'Quarter', value: 'quarter' },
+    { label: 'Month', value: 'month' },
+    { label: 'Week', value: 'week' },
+    { label: 'Today', value: 'today' },
+    { label: 'Custom', value: 'custom' }
+  ];
+
   // Months array
   const months = [
     { value: 1, name: 'January' },
