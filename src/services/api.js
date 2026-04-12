@@ -19,6 +19,84 @@ const apiClient = axios.create({
   },
 });
 
+// ============================================================================
+// GLOBAL SECURITY INTERCEPTOR (XSS & File Upload Protection)
+// ============================================================================
+const validatePayload = (data) => {
+  if (!data) return;
+
+  const containsHTML = (str) => typeof str === 'string' && /[<>]/.test(str);
+
+  // Scenario A: Handle FormData (File Uploads & Mixed Forms)
+  if (data instanceof FormData) {
+    for (let [key, value] of data.entries()) {
+      // 1. Check Text Fields for XSS
+      if (typeof value === 'string' && containsHTML(value)) {
+        alert(`Security Alert: HTML tags (<, >) and scripts are not allowed`)
+        throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+      }
+      
+      // 2. Check File Uploads (Size, Type, Double-Extensions)
+      if (value instanceof File) {
+        // Size Check (5MB)
+        if (value.size > 5 * 1024 * 1024) {
+          alert(`Security Alert: File "${value.name}" exceeds the 5MB limit.`)
+          throw new Error(`Security Alert: File "${value.name}" exceeds the 5MB limit.`);
+        }
+        
+        // Double-Extension & Null Byte Check
+        const fileName = value.name;
+        const fileParts = fileName.split('.');
+        if (fileParts.length > 2 || fileName.includes('%00')) {
+          alert(`Security Alert: File "${fileName}" has an invalid format or double extension.`)
+          throw new Error(`Security Alert: File "${fileName}" has an invalid format or double extension.`);
+        }
+        
+        // MIME Type Check (Whitelist)
+        const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (!validMimeTypes.includes(value.type)) {
+          alert(`Security Alert: File type "${value.type}" is not allowed.`)
+          throw new Error(`Security Alert: File type "${value.type}" is not allowed.`);
+        }
+      }
+    }
+  } 
+  // Scenario B: Handle Standard JSON Objects
+  else if (typeof data === 'object') {
+    const checkObject = (obj) => {
+      for (let key in obj) {
+        if (typeof obj[key] === 'string' && containsHTML(obj[key])) {
+          alert("Security Alert: HTML tags (<, >) and scripts are not allowed")
+          throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          checkObject(obj[key]); // Recursive check for nested JSON
+        }
+      }
+    };
+    checkObject(data);
+  }
+};
+
+apiClient.interceptors.request.use(
+  (config) => {
+    // Only intercept data-mutating requests for security validation
+    if (['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+      try {
+        validatePayload(config.data);
+      } catch (error) {
+        // Reject the request BEFORE it leaves the browser
+        return Promise.reject(error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+// ============================================================================
+
+
 // Add request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
@@ -45,20 +123,32 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for handling 401 errors
+// Add response interceptor for handling token refresh and 401 errors
 apiClient.interceptors.response.use(
   (response) => {
+    // Check for X-Refresh-Token in the response headers
+    const refreshToken = response.headers['x-refresh-token'];
+    if (refreshToken) {
+      console.log('🔄 Received new access token via X-Refresh-Token header');
+      localStorage.setItem('access_token', refreshToken);
+      // The next request will pick up the new token from localStorage via the request interceptor
+    }
     return response;
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear stored tokens and user data
+      console.warn('⚠️ Session expired or unauthorized (401). Clearing session...');
+      // Clear all stored auth data
       localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
-
-      // Redirect to login page
-      // window.location.href = '/login';
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('rememberMe');
+      
+      // Force redirect to login page if not already there
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+        window.alert("session expired!")
+      }
     }
     return Promise.reject(error);
   }
@@ -224,7 +314,7 @@ export const feedbackAPI = {
     const queryParams = new URLSearchParams();
     if (params.feedback_source) queryParams.append('feedback_source', params.feedback_source);
     if (params.skip !== undefined) queryParams.append('skip', params.skip);
-    if (params.limit !== undefined) queryParams.append('limit', params.limit);
+    if (params.limit !== undefined) queryParams.append('limit', 100);
     return apiClient.get(`/feedback/?${queryParams.toString()}`);
   },
 
@@ -232,7 +322,7 @@ export const feedbackAPI = {
   getFeedbackById: (feedbackId) => apiClient.get(`/feedback/${feedbackId}`),
 
   // Get authenticated user's own feedback
-  getMyFeedback: () => apiClient.get('/feedback/my/'),
+  getMyFeedback: () => apiClient.get('/feedback/my'),
 
   // Create new feedback
   createFeedback: (feedbackData) => {
@@ -244,7 +334,7 @@ export const feedbackAPI = {
 
   // Update authenticated user's own feedback
   updateMyFeedback: (feedbackData) => {
-    return apiClient.put('/feedback/my/', {
+    return apiClient.put('/feedback/my', {
       comment: feedbackData.comment,
       rating: feedbackData.rating
     });
@@ -291,4 +381,3 @@ export const contractorAnalyticsAPI = {
 };
 
 export default apiClient;
-
