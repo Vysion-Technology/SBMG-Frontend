@@ -151,7 +151,7 @@ const SchemesContent = () => {
 
  // Handle file selection
   const handleFileSelect = (event) => {
-    const file = event.target.files; // <--- ADD RIGHT HERE
+    const file = event.target.files[0]; // <--- ADD RIGHT HERE
     if (file) {
       // 1. Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
