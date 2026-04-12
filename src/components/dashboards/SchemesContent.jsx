@@ -159,14 +159,6 @@ const SchemesContent = () => {
         event.target.value = ''; // Reset the input
         return;
       }
-      // 3. Check MIME type (whitelist - made slightly more forgiving)
-      const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
-      if (!validMimeTypes.includes(file.type)) {
-        alert("Invalid file type. Only JPG, PNG, WEBP, and GIF are allowed.");
-        event.target.value = ''; // Reset the input
-        return;
-      }
-
       setSelectedFile(file);
     }
   };
