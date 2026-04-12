@@ -149,9 +149,9 @@ const SchemesContent = () => {
     return '/background.png'; // Fallback to placeholder
   };
 
-  // Handle file selection
+ // Handle file selection
   const handleFileSelect = (event) => {
-    const file = event.target.files;
+    const file = event.target.files; // <--- ADD RIGHT HERE
     if (file) {
       // 1. Check file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
@@ -159,14 +159,6 @@ const SchemesContent = () => {
         event.target.value = ''; // Reset the input
         return;
       }
-
-      // 2. Check for null bytes (security check)
-      if (file.name.includes('%00')) {
-        alert("Invalid file name. Null bytes are not allowed.");
-        event.target.value = ''; // Reset the input
-        return;
-      }
-
       // 3. Check MIME type (whitelist - made slightly more forgiving)
       const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'image/gif'];
       if (!validMimeTypes.includes(file.type)) {
