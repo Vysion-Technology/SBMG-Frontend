@@ -662,6 +662,7 @@ const SchemesContent = () => {
                     accept="image/*"
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <Upload style={{
                     width: '32px',
