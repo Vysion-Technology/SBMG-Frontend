@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
@@ -7,6 +7,7 @@ import ResolutionPopup from "./ResolutionPopup";
 
 
 const styles = {
+
     overlay: {
         position: "fixed",
         top: 0,
@@ -141,7 +142,17 @@ const styles = {
         borderRadius: "6px",
         background: "#16a34a",
         color: "#fff"
+    },
+    printBtn: {
+        padding: "5px",
+        border: "none",
+        borderRadius: "6px",
+        background: "#009B56",
+        color: "#fff",
+        cursor: "pointer",
     }
+
+
 
 };
 
@@ -313,6 +324,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                         <div style={styles.overlay}>
 
                             <motion.div
+                                className="print-section"
                                 style={styles.modal}
                                 initial={{ x: "100%" }}
                                 animate={{ x: 0 }}
@@ -347,7 +359,22 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                         {/* complaint id */}
                                         <div style={styles.header}>
                                             <h2>Complaint ID: {complaint?.id}</h2>
-                                            <span style={{ cursor: "pointer" }} onClick={onClose}>✕</span>
+                                            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+
+                                                <button
+                                                    onClick={() => window.print()}
+                                                    style={styles.printBtn}
+                                                >
+                                                    <Printer size={18} />
+                                                </button>
+
+                                                <span
+                                                    style={{ cursor: "pointer" }}
+                                                    onClick={onClose}
+                                                >
+                                                    ✕
+                                                </span>
+                                            </div>
                                         </div>
 
                                         {/* location dis block gps.. */}
