@@ -232,7 +232,10 @@ const CommonTable = ({
     );
 };
 
-const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats, mapApiToUI, closeParentDrawer }) => {
+const AssetsTable = ({ loadingDis, section, cards, apiData, fetchBlocks, fetchGramPanchayats, mapApiToUI, closeParentDrawer, fetchBlocksData, fetchGPData }) => {
+
+
+
     const dataToRender = Array.isArray(apiData)
         ? apiData
         : apiData ? [apiData] : [];
@@ -321,11 +324,25 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             setLoadingBlocks(true);
 
             try {
-                const res = await fetchBlocks(row.districtId);
+                const res = await fetchBlocksData(row.districtId);
 
                 const mappedBlocks = (res || []).map((item) => ({
                     ...item,
-                    ...mapApiToUI(item) // 🔥 same mapper reuse
+
+                    blockName:
+                        item.blockName ||
+                        item.block_name ||
+                        item.geography_name ||
+                        item.name,
+
+                    districtId:
+                        item.districtId || item.district_id,
+
+                    blockId:
+                        item.blockId ||
+                        item.id ||
+                        item.block_id ||
+                        item.geography_id,
                 }));
 
                 setBlocksData(mappedBlocks);
@@ -346,13 +363,13 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             setLoadingGps(true);
 
             try {
-                const res = await fetchGramPanchayats(
+                const res = await fetchGPData(
                     row.district_id || row.districtId,
                     row.id || row.blockId
                 );
                 const mappedGps = (res || []).map((item) => ({
                     ...item,
-                    ...mapApiToUI(item)
+                    ...mapApiToUI(item.assets)
                 }));
 
                 setGpsData(mappedGps);
@@ -422,56 +439,65 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
 
                         {/* BODY */}
                         <tbody>
-                            {getTableData()?.length > 0 ? (
-                                getTableData().map((row, rowIndex) => (
-                                    <tr key={rowIndex} style={gridStyle} className="border-b border-gray-50 hover:bg-gray-50">
-
-                                        {/* ✅ STICKY FIRST COLUMN */}
-                                        <td
-                                            onClick={() => handleRowClick(row)}
-                                            className="!p-4 cursor-pointer font-bold text-emerald-600 sticky left-0 bg-white z-10 hover:bg-gray-50 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]"
-                                        >
-                                            {getName(row) || "-"}
+                            {
+                                loadingDis ? (
+                                    <tr>
+                                        <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
+                                            Loading...
                                         </td>
-
-                                        {cards.map((card) => (
-                                            <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
-                                                {Array.isArray(row[card.key]) ? (
-                                                    <div className="flex">
-                                                        {row[card.key].map((item, index) => (
-                                                            <div
-                                                                key={index}
-                                                                className="min-w-[70px] text-left"
-                                                            >
-                                                                {item.value}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : typeof row[card.key] === "object" && row[card.key] !== null ? (
-                                                    <div className="flex">
-                                                        {Object.values(row[card.key]).map((value, index) => (
-                                                            <div
-                                                                key={index}
-                                                                className="min-w-[70px] text-left"
-                                                            >
-                                                                {value}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                ) : (
-                                                    formatCellValue(row[card.key])
-                                                )}
-                                            </td>
-                                        ))}
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
-                                        No Data Available
-                                    </td>
-                                </tr>
-                            )}
+                                ) : getTableData()?.length > 0 ?
+
+                                    (
+                                        getTableData().map((row, rowIndex) => (
+                                            <tr key={rowIndex} style={gridStyle} className="border-b border-gray-50 hover:bg-gray-50">
+
+                                                {/* ✅ STICKY FIRST COLUMN */}
+                                                <td
+                                                    onClick={() => handleRowClick(row)}
+                                                    className="!p-4 cursor-pointer font-bold text-emerald-600 sticky left-0 bg-white z-10 hover:bg-gray-50 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]"
+                                                >
+                                                    {getName(row) || "-"}
+                                                </td>
+
+                                                {cards.map((card) => (
+                                                    <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
+                                                        {Array.isArray(row[card.key]) ? (
+                                                            <div className="flex">
+                                                                {row[card.key].map((item, index) => (
+                                                                    <div
+                                                                        key={index}
+                                                                        className="min-w-[70px] text-left"
+                                                                    >
+                                                                        {item.value}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : typeof row[card.key] === "object" && row[card.key] !== null ? (
+                                                            <div className="flex">
+                                                                {Object.values(row[card.key]).map((value, index) => (
+                                                                    <div
+                                                                        key={index}
+                                                                        className="min-w-[70px] text-left"
+                                                                    >
+                                                                        {value}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            formatCellValue(row[card.key])
+                                                        )}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={cards.length + 1} className="!p-6 text-center text-gray-400">
+                                                No Data Available
+                                            </td>
+                                        </tr>
+                                    )}
                         </tbody>
 
                     </table>
@@ -496,7 +522,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             >
                 <CommonTable
                     title="BLOCK"
-                    nameKey="name"
+                    nameKey="blockName"
                     data={blocksData}
                     cards={cards}
                     loading={loadingBlocks}
@@ -506,21 +532,28 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
                         setIsBlockDrawerOpen(false);
                     }}
 
+
                     onRowClick={async (block) => {
                         setIsGpDrawerOpen(true);
-
 
                         setLoadingGps(true);
                         setGpsData([]);
 
-                        const res = await fetchGramPanchayats(
-                            block.district_id,
-                            block.id
+
+                        const res = await fetchGPData(
+                            block.districtId,
+                            block.blockId
                         );
+
 
                         const mapped = (res || []).map((item) => ({
                             ...item,
-                            ...mapApiToUI(item)
+
+                            gpName:
+                                item.gpName ||
+                                item.gp_name ||
+                                item.geography_name ||
+                                item.name,
                         }));
 
                         setGpsData(mapped);
@@ -543,7 +576,7 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             >
                 <CommonTable
                     title="GRAM PANCHAYAT"
-                    nameKey="name"
+                    nameKey="gpName"
                     data={gpsData}
                     cards={cards}
                     showBack={true}

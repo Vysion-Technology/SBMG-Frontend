@@ -19,6 +19,7 @@ import SendNoticeModal from './common/SendNoticeModal';
 import RightDrawer from '../common/rightDrawer';
 import AssetsTable from './common/AssetsTable';
 import SlideDrawer from '../common/SideDrawer';
+import { tr } from 'framer-motion/client';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -336,6 +337,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   // card data store
   const [apiDataCard, setApiDataCard] = useState({});
   const [loading, setLoading] = useState(false);
+  const [loadingDis, setLoadingDis] = useState(false);
   const [error, setError] = useState(null);
   const [fyList, setFyList] = useState([]);
   const [selectedFyId, setSelectedFyId] = useState(null);
@@ -353,6 +355,9 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [allGPsForDistricts, setAllGPsForDistricts] = useState([]);
   const [districtStats, setDistrictStats] = useState(null); // { [districtId]: { attendance, contractorPct, gpsVehicles } }
   const [loadingDistrictStats, setLoadingDistrictStats] = useState(false);
+
+  // Assets table data state
+  const [districtTableData, setDistrictTableData] = useState([]);
 
   // Utility helpers
   const formatNumber = (num) => (typeof num === 'number' ? num.toLocaleString() : '0');
@@ -2709,47 +2714,19 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     };
   };
 
-  // Response: [{"id":1,"fy":"2025-26","active":true}, ...]
-  const fetchFyList = async () => {
-    try {
-      setLoadingFy(true);
-      const res = await apiClient.get('/annual-surveys/fy/active');
-      const raw = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.data || []);
-      const list = raw.filter((x) => x && (x.id != null) && (x.fy != null));
-      const sorted = [...list].sort((a, b) => String(b.fy || '').localeCompare(String(a.fy || '')));
-      setFyList(sorted);
-    } catch (error) {
-      console.error('❌ Error fetching FY list from /annual-surveys/fy/active:', error);
-      setFyList([]);
-    } finally {
-      setLoadingFy(false);
-    }
-  };
+  
 
-  useEffect(() => {
-    fetchFyList();
-  }, []);
-
-  useEffect(() => {
-    if (fyList.length > 0 && !selectedFyId) {
-      setSelectedFyId(fyList[0].id); // 🔥 latest FY auto select
-    }
-  }, [fyList]);
+ 
 
 
   useEffect(() => {
-    if (!selectedFyId) return; // 🔥 important
-
     const fetchAssetsData = async () => {
       setLoading(true);
       setError(null);
 
       try {
         const res = await apiClient.get(
-          'annual-surveys/analytics/assets',
-          {
-            params: { fy_id: selectedFyId },
-          }
+          'annual-surveys/analytics/assets'
         );
 
         const mapped = mapApiToUI(res?.data || {});
@@ -2767,7 +2744,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     };
 
     fetchAssetsData();
-  }, [selectedFyId]);
+  }, []);
 
   const dashboardSections = [
     {
@@ -3187,14 +3164,90 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     // ],
   };
 
-  const districtTableData = (districts || []).map((d) => ({
-    districtName: d.name,
-    districtId: d.id,
+  // const districtTableData = (districts || []).map((d) => ({
+  //   districtName: d.name,
+  //   districtId: d.id,
 
-    ...apiDataCard, // 🔥 IMPORTANT
+  //   ...apiDataCard, // 🔥 IMPORTANT
 
-    blocks: [],
-  }));
+  //   blocks: [],
+  // }));
+
+  const fetchDistrictsAssets = async () => {
+    setLoadingDis(true);
+    try {
+      const res = await apiClient.get(
+        "annual-surveys/analytics/assets/drill-down"
+      );
+
+      return (res.data?.items || []).map(item => ({
+        districtName: item.geography_name,
+        districtId: item.geography_id,
+
+        ...mapApiToUI(item.assets)
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching districts assets:", error);
+      return [];
+    } finally {
+      setLoadingDis(false);
+    }
+
+  };
+
+  const fetchBlocksDataAssets = async (districtId) => {
+    const res = await apiClient.get(
+      "annual-surveys/analytics/assets/drill-down",
+      {
+        params: {
+          district_id: districtId,
+        }
+      }
+    );
+
+    return (res.data?.items || []).map(item => ({
+      ...item,
+
+      blockName: item.geography_name,
+      blockId: item.geography_id,
+
+      districtId: districtId,
+
+      ...mapApiToUI(item.assets)
+    }));
+  };
+
+  const fetchGPDataAssets = async (districtId, blockId) => {
+
+    const res = await apiClient.get(
+      "annual-surveys/analytics/assets/drill-down",
+      {
+        params: {
+          district_id: districtId,
+          block_id: blockId,
+        }
+      }
+    );
+    return (res.data?.items || []).map(item => ({
+      gpName: item.geography_name,
+      gpId: item.geography_id,
+
+      ...mapApiToUI(item.assets)
+    }));
+  };
+
+  useEffect(() => {
+    const loadDistricts = async () => {
+      try {
+        const data = await fetchDistrictsAssets();
+        setDistrictTableData(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadDistricts();
+  }, []);
 
   const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
@@ -3356,6 +3409,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       section={section.title}
                       cards={section.cards}
                       apiData={districtTableData}
+                      loadingDis={loadingDis}
+                      fetchBlocksData={fetchBlocksDataAssets}
+                      fetchGPData={fetchGPDataAssets}
+
                       fetchBlocks={fetchBlocks}
                       fetchGramPanchayats={fetchGramPanchayats}
                       AssetsTable={AssetsTable}
