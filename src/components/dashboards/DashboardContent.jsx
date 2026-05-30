@@ -2639,7 +2639,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   }
 
 
-// cards data mapping function - maps API response to UI format with default values
+  // cards data mapping function - maps API response to UI format with default values
 
   const mapApiToUI = (res) => {
     return {
@@ -3005,6 +3005,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "FSTPs",
           label: "No. of FSTPs",
+          subLabels: [
+            "rural",
+            "urban"
+          ],
           // width: "279px",
           bgColor: "#FFEDF3",
           textColor: "#364153",
@@ -3036,6 +3040,12 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "Total_Work_Sanctioned_Status",
           label: "Total No. of Work Sanctioned",
+          subLabels: [
+            "Tender",
+            "Self GP",
+            "CSR/NGO",
+            "SHG"
+          ],
           width: "558px",
           bgColor: "#FFEDD5",
           textColor: "#364153",
@@ -3077,6 +3087,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         {
           key: "work_status",
           label: "Work Status",
+          subLabels: [
+            "Start",
+            "Running",
+            "Completed"
+          ],
           bgColor: "#FEFCE8",
           // width: "279px",
           textColor: "#364153",
@@ -3181,14 +3196,14 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     blocks: [],
   }));
 
-const formatValue = (key, value) => {
-  if (key === "Drainage_channels") {
-    const num = Number(value);
-    if (isNaN(num)) return "-";
-    return `${(num / 1000).toFixed(2)} kms`;
-  }
-  return value;
-};
+  const formatValue = (key, value) => {
+    if (key === "Drainage_channels") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 1000).toFixed(2)} kms`;
+    }
+    return value;
+  };
 
   return (
     <div style={{ width: '100%', minWidth: 0, maxWidth: '100%' }} >
@@ -3286,39 +3301,6 @@ const formatValue = (key, value) => {
           }}
         >
           <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
-          {/* Year dropdown - view previous years' master data */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
-            <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
-            <select
-              aria-label="Select year"
-              value={selectedFyId ?? ''}
-              onChange={(e) => setSelectedFyId(e.target.value ? Number(e.target.value) : null)}
-              disabled={loadingFy || fyList.length === 0}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                fontSize: '14px',
-                color: fyList.length === 0 ? '#9ca3af' : '#374151',
-                backgroundColor: loadingFy || fyList.length === 0 ? '#f9fafb' : 'white',
-                cursor: loadingFy || fyList.length === 0 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {loadingFy ? (
-                <option value="">Loading...</option>
-              ) : fyList.length === 0 ? (
-                <option value="">No years</option>
-              ) : (
-                fyList.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.fy}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
         </div>
 
         {/* Sections */}
@@ -3366,19 +3348,21 @@ const formatValue = (key, value) => {
                       border={card.border}
                       bgImg={card.bgImg}
                       width={card.width}
-
                     />
                   }
                 >
-                  <AssetsTable
-                    section={section.title}
-                    cards={section.cards}
-                    apiData={districtTableData}
-                    fetchBlocks={fetchBlocks}
-                    fetchGramPanchayats={fetchGramPanchayats}
-                    AssetsTable={AssetsTable}
-                    mapApiToUI={mapApiToUI}
-                  />
+                  {({ closeDrawer }) => (
+                    <AssetsTable
+                      section={section.title}
+                      cards={section.cards}
+                      apiData={districtTableData}
+                      fetchBlocks={fetchBlocks}
+                      fetchGramPanchayats={fetchGramPanchayats}
+                      AssetsTable={AssetsTable}
+                      mapApiToUI={mapApiToUI}
+                      closeParentDrawer={closeDrawer}
+                    />
+                  )}
                 </SlideDrawer>
               ))}
             </div>

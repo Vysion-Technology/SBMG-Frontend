@@ -556,7 +556,7 @@ const VDOContractorDetails = () => {
                           Annual Contract Amount :
                         </div>
                         <div>
-                         <span className='font-semibold'>₹</span> {item.contract_amount}
+                         <span className='font-semibold'>₹</span> {(item.contract_amount / 100000).toFixed(2)} L
                         </div>
                       </div>
 

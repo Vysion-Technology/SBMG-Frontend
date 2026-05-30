@@ -4,16 +4,66 @@ import SlideDrawer from "../../common/SideDrawer";
 
 
 const formatCellValue = (value) => {
+
     if (Array.isArray(value)) {
-        return value.map(v => `${v.label}: ${v.value}`).join(" | ");
+        return value.map(v => v.value).join(" | ");
     }
 
     if (typeof value === "object" && value !== null) {
-        return Object.entries(value)
-            .map(([k, v]) => `${k}: ${v}`)
-            .join(" | ");
+        return Object.values(value).join(" | ");
     }
 
+    return value ?? "-";
+};
+
+
+const renderCellContent = (value, subLabels = []) => {
+
+    // ARRAY VALUES
+    if (Array.isArray(value)) {
+        return (
+            <div className="flex gap-4">
+                {value.map((item, index) => (
+                    <div
+                        key={index}
+                        className="flex flex-col items-center min-w-[50px]"
+                    >
+                        <span className="text-[11px] text-gray-400 font-medium">
+                            {subLabels[index] || "-"}
+                        </span>
+
+                        <span className="font-semibold text-gray-700">
+                            {item.value}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    // OBJECT VALUES
+    if (typeof value === "object" && value !== null) {
+        return (
+            <div className="flex gap-4">
+                {Object.entries(value).map(([key, val], index) => (
+                    <div
+                        key={index}
+                        className="flex flex-col items-center min-w-[50px]"
+                    >
+                        <span className="text-[11px] text-gray-400 font-medium">
+                            {subLabels[index] || key}
+                        </span>
+
+                        <span className="font-semibold text-gray-700">
+                            {val}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    // NORMAL VALUE
     return value ?? "-";
 };
 
@@ -24,20 +74,46 @@ const CommonTable = ({
     data = [],
     cards = [],
     loading,
-    onRowClick
+    onRowClick,
+    onBack,
+    showBack = false
 }) => {
+
+    // Grid configuration for table rows
+    const getColumnWidth = (card) => {
+        // large content column
+        if (card.key === "Total_Work_Sanctioned_Status") {
+            return "minmax(350px, 3fr)";
+        }
+
+        // medium column
+        if (card.key === "FSTPs") {
+            return "minmax(300px, 2fr)";
+        }
+
+        // small columns
+        return "minmax(120px, 200px)";
+    };
 
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, 300px))`,
+        gridTemplateColumns: `
+        200px
+        ${cards.map(card => getColumnWidth(card)).join(" ")}
+    `,
     };
+
+    // const gridStyle = {
+    //     display: "grid",
+    //     gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, 250px))`,
+    // };
 
     return (
         <>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
 
                 {/* HEADER TITLE */}
-                <div className="!p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-30">
+                <div className="items-center gap-3 !p-3">
                     <h3 className="text-md font-bold text-gray-800 uppercase">
                         {title}
                     </h3>
@@ -57,9 +133,29 @@ const CommonTable = ({
                                     {nameKey.toUpperCase()}
                                 </th>
 
-                                {cards.map(card => (
-                                    <th key={card.key} className="!p-4 font-bold text-gray-600 text-left">
-                                        {card.label.toUpperCase()}
+                                {cards.map((card) => (
+                                    <th
+                                        key={card.key}
+                                        className="!p-4 font-bold text-gray-600 text-left"
+                                    >
+                                        <div>
+                                            <p className="font-bold uppercase">
+                                                {card.label}
+                                            </p>
+
+                                            {card.subLabels && (
+                                                <div className="flex !mt-1">
+                                                    {card.subLabels.map((label, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="min-w-[70px] text-[11px] font-medium text-gray-400"
+                                                        >
+                                                            {label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </th>
                                 ))}
                             </tr>
@@ -87,7 +183,31 @@ const CommonTable = ({
 
                                         {cards.map(card => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap">
-                                                {formatCellValue(row[card.key])}
+                                                {Array.isArray(row[card.key]) ? (
+                                                    <div className="flex">
+                                                        {row[card.key].map((item, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="min-w-[70px] text-left"
+                                                            >
+                                                                {item.value}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : typeof row[card.key] === "object" && row[card.key] !== null ? (
+                                                    <div className="flex">
+                                                        {Object.values(row[card.key]).map((value, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="min-w-[70px] text-left"
+                                                            >
+                                                                {value}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    formatCellValue(row[card.key])
+                                                )}
                                             </td>
                                         ))}
 
@@ -112,15 +232,33 @@ const CommonTable = ({
     );
 };
 
-const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats,  mapApiToUI  }) => {
+const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats, mapApiToUI, closeParentDrawer }) => {
     const dataToRender = Array.isArray(apiData)
         ? apiData
         : apiData ? [apiData] : [];
 
     // Grid configuration for table rows
+    const getColumnWidth = (card) => {
+        // large content column
+        if (card.key === "Total_Work_Sanctioned_Status") {
+            return "minmax(350px, 3fr)";
+        }
+
+        // medium column
+        if (card.key === "FSTPs") {
+            return "minmax(300px, 2fr)";
+        }
+
+        // small columns
+        return "minmax(120px, 200px)";
+    };
+
     const gridStyle = {
         display: "grid",
-        gridTemplateColumns: `200px repeat(${cards.length}, minmax(100px, 300px))`,
+        gridTemplateColumns: `
+        200px
+        ${cards.map(card => getColumnWidth(card)).join(" ")}
+    `,
     };
 
 
@@ -137,6 +275,20 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
 
     const [isBlockDrawerOpen, setIsBlockDrawerOpen] = useState(false);
     const [isGpDrawerOpen, setIsGpDrawerOpen] = useState(false);
+
+    const handleCloseAll = () => {
+        setIsBlockDrawerOpen(false);
+        setIsGpDrawerOpen(false);
+
+        setBlocksData([]);
+        setGpsData([]);
+
+        setLevel("district");
+        setSelectedDistrict(null);
+        setSelectedBlock(null);
+
+        closeParentDrawer?.(); // 🔥 district drawer bhi close
+    };
 
     const getTableData = () => {
         if (level === "district") return dataToRender;
@@ -219,13 +371,11 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
 
                 {/* HEADER TITLE */}
-                <div className="!p-4 border-b border-gray-200 bg-gray-50 sticky top-0 z-30">
-                    <h3 className="text-md font-bold text-gray-800 uppercase">
-                        {level === "district" && "DISTRICT"}
-                        {level === "block" && "BLOCK"}
-                        {level === "gp" && "GRAM PANCHAYAT"} {section}
-                    </h3>
-                </div>
+                <h3 className="text-md font-bold text-gray-800 uppercase !p-3">
+                    {level === "district" && "DISTRICT"}
+                    {level === "block" && "BLOCK"}
+                    {level === "gp" && "GRAM PANCHAYAT"} {section}
+                </h3>
 
                 {/* TABLE SCROLL CONTAINER */}
                 <div className="max-h-[350px] overflow-auto">
@@ -244,8 +394,27 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
                                 </th>
 
                                 {cards.map((card) => (
-                                    <th key={card.key} className="!p-4 font-bold text-gray-600 text-left">
-                                        {card.label.toUpperCase()}
+                                    <th
+                                        key={card.key}
+                                        className="!p-4 font-bold text-gray-600 text-left"
+                                    >
+                                        <div>
+                                            <p className="font-bold uppercase">
+                                                {card.label}
+                                            </p>
+                                            {card.subLabels && (
+                                                <div className="flex !mt-1">
+                                                    {card.subLabels.map((label, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="min-w-[70px] text-[11px] font-medium text-gray-400"
+                                                        >
+                                                            {label}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </th>
                                 ))}
                             </tr>
@@ -267,7 +436,31 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
 
                                         {cards.map((card) => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
-                                                {formatCellValue(row[card.key])}
+                                                {Array.isArray(row[card.key]) ? (
+                                                    <div className="flex">
+                                                        {row[card.key].map((item, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="min-w-[70px] text-left"
+                                                            >
+                                                                {item.value}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : typeof row[card.key] === "object" && row[card.key] !== null ? (
+                                                    <div className="flex">
+                                                        {Object.values(row[card.key]).map((value, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="min-w-[70px] text-left"
+                                                            >
+                                                                {value}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    formatCellValue(row[card.key])
+                                                )}
                                             </td>
                                         ))}
                                     </tr>
@@ -292,9 +485,13 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             {/* 🔵 BLOCK DRAWER */}
             <SlideDrawer
                 open={isBlockDrawerOpen}
-                onClose={() => setIsBlockDrawerOpen(false)}
-                title="Blocks"
+                onClose={handleCloseAll}
+                title={section}
                 width="md:w-[90%] w-full"
+                showBack={true}
+                onBack={() => {
+                    setIsBlockDrawerOpen(false);
+                }}
 
             >
                 <CommonTable
@@ -303,8 +500,15 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
                     data={blocksData}
                     cards={cards}
                     loading={loadingBlocks}
+                    showBack={true}
+
+                    onBack={() => {
+                        setIsBlockDrawerOpen(false);
+                    }}
+
                     onRowClick={async (block) => {
                         setIsGpDrawerOpen(true);
+
 
                         setLoadingGps(true);
                         setGpsData([]);
@@ -329,15 +533,24 @@ const AssetsTable = ({ section, cards, apiData, fetchBlocks, fetchGramPanchayats
             {/* 🟣 GP DRAWER */}
             <SlideDrawer
                 open={isGpDrawerOpen}
-                onClose={() => setIsGpDrawerOpen(false)}
-                title="Gram Panchayat"
+                onClose={handleCloseAll}
+                title={section}
                 width="md:w-[80%] w-full"
+                showBack={true}
+                onBack={() => {
+                    setIsGpDrawerOpen(false);
+                }}
             >
                 <CommonTable
                     title="GRAM PANCHAYAT"
                     nameKey="name"
                     data={gpsData}
                     cards={cards}
+                    showBack={true}
+
+                    onBack={() => {
+                        setIsGpDrawerOpen(false);
+                    }}
                     loading={loadingGps}
                 />
             </SlideDrawer>
