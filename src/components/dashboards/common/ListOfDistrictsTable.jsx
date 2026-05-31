@@ -1425,6 +1425,7 @@ const ListOfDistrictsTable = ({
                     <RightDrawer
                       title={`${row.name} - Blocks`}
                       clickFunction={() => filterBlocksByDistrict(row.id)}
+                      showBack
                       trigger={
                         <button
                           className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-4 py-2 rounded flex gap-2"
@@ -1587,6 +1588,7 @@ const ListOfDistrictsTable = ({
                                           <RightDrawer
                                             title={`${block.name} - GPs`}
                                             clickFunction={() => filterGPsByBlock(block.id, block.name)}
+                                            showBack
                                             trigger={
                                               <button
                                                 className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-2 py-1 rounded text-sm"

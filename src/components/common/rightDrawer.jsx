@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ChevronLeft } from 'lucide-react';
 
-const RightDrawer = ({ clickFunction, trigger, title, children }) => {
+const RightDrawer = ({ clickFunction, trigger, title, children, showBack = false, backLabel = 'Back', backFunction }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     // Prevent scrolling when drawer is open
@@ -26,17 +26,37 @@ const RightDrawer = ({ clickFunction, trigger, title, children }) => {
             />
 
             {/* 3. The Drawer Panel */}
-            <aside className={`fixed top-0 right-0 h-full z-50 bg-white transition-transform duration-500 ease-out w-full p-4! md:w-[85%] ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+            <aside className={`fixed top-0 right-0 h-full z-50 bg-white transition-transform duration-500 ease-out w-full p-4! md:w-[85%] cursor-default ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
 
                 {/* Header */}
-                <div className="flex items-center justify-between p-4!">
+                <div className="flex items-center justify-between p-4! border-b border-slate-200">
                     <h2 className="text-lg font-bold text-gray-800">{title}</h2>
-                    <button
-                        onClick={() => setIsOpen(false)}
-                        className="p-2 cursor-pointer"
-                    >
-                        <X size={26} className="text-black" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        {showBack && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (typeof backFunction === 'function') {
+                                        backFunction();
+                                    } else {
+                                        setIsOpen(false);
+                                    }
+                                }}
+                                className="inline-flex items-center gap-2 rounded border border-slate-300 px-3! py-2! text-sm font-medium text-slate-700 ease-in-out duration-300 hover:bg-slate-100 focus:outline-none cursor-pointer"
+                            >
+                                <ChevronLeft size={18} />
+                                <span>{backLabel}</span>
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => setIsOpen(false)}
+                            className="p-2 rounded hover:bg-slate-100 cursor-pointer"
+                            aria-label="Close drawer"
+                        >
+                            <X size={26} className="text-black" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Scrollable Content Area */}
