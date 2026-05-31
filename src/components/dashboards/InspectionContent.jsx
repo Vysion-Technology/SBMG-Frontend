@@ -2841,6 +2841,7 @@ const InspectionContent = () => {
               <button
                 onClick={() => {
                   setSelectedGpForInspections(null);
+                  setSelectedGPId(null);
                   setViewingInspectionsForGp(false);
                   // Update breadcrumb - back to GPs list level
                   setActiveScope('GPs');
@@ -2867,6 +2868,7 @@ const InspectionContent = () => {
                 onClick={() => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
+                  setSelectedGPId(null);
                   setGpInspectionSummaryData([]);
                   setViewingBlocksInspectionForDistrict(true);
                   // Refetch blocks listing
@@ -2874,7 +2876,7 @@ const InspectionContent = () => {
                     fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
                   }
                   // Update breadcrumb - back to blocks level (keep block selected)
-                  setActiveScope('Blocks');
+                  setActiveScope('Districts');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2903,6 +2905,9 @@ const InspectionContent = () => {
                   setActiveScope('State');
                   setSelectedDistrictForHierarchy(null);
                   setSelectedBlockForHierarchy(null);
+                  setSelectedDistrictId(null);
+                  setSelectedBlockId(null);
+                  setSelectedGPId(null);
                 }}
                 style={{
                   padding: '8px 16px',
