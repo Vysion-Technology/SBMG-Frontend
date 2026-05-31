@@ -772,7 +772,9 @@ const ListOfDistrictsTable = ({
   };
 
   // Placeholder values when API data is missing (for visual display)
-  const PLACEHOLDER_COMPLAINTS = { open: 3, verified: 2, resolved: 5, disposed: 8 };
+  // Placeholder values when API data is missing (for visual display)
+  // For complaints we prefer showing zeros when no data is present
+  const PLACEHOLDER_COMPLAINTS = { open: 0, verified: 0, resolved: 0, disposed: 0 };
 
   const rows = useMemo(() => {
     return districts.map((d, idx) => {
