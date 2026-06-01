@@ -290,5 +290,7 @@ export const contractorAnalyticsAPI = {
   getGP: (gpId) => apiClient.get(`/contractor-analytics/analytics/gp/${gpId}`),
 };
 
+
+
 export default apiClient;
 

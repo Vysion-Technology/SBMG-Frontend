@@ -398,7 +398,7 @@ const ListOfDistrictsTable = ({
     setDropdownLevel
   } = locationContext || {};
 
-  const [sortBy, setSortBy] = useState(null);
+  const [sortBy, setSortBy] = useState('district');
   const [sortDir, setSortDir] = useState('asc');
   const [blocksForDistrict, setBlocksForDistrict] = useState([]);
   const [blockStatsForDistrict, setBlockStatsForDistrict] = useState({});

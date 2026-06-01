@@ -9,6 +9,9 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import LocationDisplay from '../../common/LocationDisplay';
 import { InfoTooltip } from '../../common/Tooltip';
 import OverviewBanner from '../common/OverviewBanner';
+import DashBoardCards from '../common/DashBoardCards';
+import { assetsSections } from '../../../config/assetsConfig';
+import { mapAssetsApiToUI } from '../../../utils/assetsMapper';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -18,13 +21,13 @@ const MONTH_NAMES = [
 const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed" }) => {
   // Calculate total complaints for percentage calculation
   const total = complaintData.open + complaintData.verified + complaintData.resolved + complaintData.disposed;
-  
+
   // Calculate percentages for each status
   const openPercent = total > 0 ? (complaintData.open / total) * 100 : 0;
   const verifiedPercent = total > 0 ? (complaintData.verified / total) * 100 : 0;
   const resolvedPercent = total > 0 ? (complaintData.resolved / total) * 100 : 0;
   const disposedPercent = total > 0 ? (complaintData.disposed / total) * 100 : 0;
-  
+
   // Define colors for each status
   const statusColors = {
     open: '#ef4444',      // Red
@@ -38,15 +41,15 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const innerRadius = radius - strokeWidth;
     const centerX = 100;
     const centerY = 100;
-    
+
     // Calculate the main arc points
     const start = polarToCartesian(centerX, centerY, radius, endAngle);
     const end = polarToCartesian(centerX, centerY, radius, startAngle);
     const innerStart = polarToCartesian(centerX, centerY, innerRadius, endAngle);
     const innerEnd = polarToCartesian(centerX, centerY, innerRadius, startAngle);
-    
+
     const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-    
+
     return `M ${start.x} ${start.y} 
             A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}
             L ${innerEnd.x} ${innerEnd.y}
@@ -68,7 +71,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
     const totalAngle = 180; // strict half-circle
     const gapSize = 20; // degrees between adjacent segments; large enough for rounded caps
     // availableAngle will be computed dynamically after we know how many segments we have
-    
+
     // Only create segments for statuses that have complaints
     const statuses = [
       { name: 'open', percent: openPercent, color: statusColors.open },
@@ -76,51 +79,51 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
       { name: 'verified', percent: verifiedPercent, color: statusColors.verified },
       { name: 'disposed', percent: disposedPercent, color: statusColors.disposed }
     ].filter(status => status.percent > 0);
-    
+
     // If no complaints, return empty array
     if (statuses.length === 0) {
       return [];
     }
-    
+
     // Calculate total percentage of active statuses
     const totalActivePercent = statuses.reduce((sum, status) => sum + status.percent, 0);
-    
+
     // Distribute segments proportionally within 180° minus dynamic gaps
     let currentAngle = -90; // center the 180° sweep from -90° to +90°
     const segmentCount = statuses.length; // show all active statuses
     const gapsCount = Math.max(segmentCount - 1, 0);
     const availableAngle = totalAngle - (gapsCount * gapSize);
-    
+
     for (let i = 0; i < segmentCount; i++) {
       const status = statuses[i];
       const segmentAngle = totalActivePercent > 0 ? (status.percent / totalActivePercent) * availableAngle : 0;
       const endAngle = currentAngle + segmentAngle;
-      
+
       segments.push({
         start: currentAngle,
         end: endAngle,
         color: status.color,
         name: status.name
       });
-      
+
       if (i < segmentCount - 1) {
         currentAngle = endAngle + gapSize; // add gap after this segment
       } else {
         currentAngle = endAngle; // no gap after the last segment
       }
     }
-    
+
     // Don't add gray filler - only show actual data segments
-    
+
     return segments;
   };
-  
+
   const segments = createSegments();
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       width: '100%'
     }}>
@@ -132,11 +135,11 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           const radius = 80;
           const strokeWidth = 20;
           const innerRadius = radius - strokeWidth;
-          
+
           // Calculate circular end cap positions
-          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, endAngle);
-          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth/2, startAngle);
-          
+          const startCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, endAngle);
+          const endCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, startAngle);
+
           return (
             <g key={index}>
               <path
@@ -150,19 +153,19 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
               <circle
                 cx={startCapPos.x}
                 cy={startCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
               <circle
                 cx={endCapPos.x}
                 cy={endCapPos.y}
-                r={strokeWidth/2}
+                r={strokeWidth / 2}
                 fill={segment.color}
               />
             </g>
           );
         })}
-        
+
         {/* Center text - percentage */}
         <text
           x="100"
@@ -175,7 +178,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {percentage == null || isNaN(percentage) ? 'NaN' : `${percentage}%`}
         </text>
-        
+
         {/* Center text - label */}
         <text
           x="100"
@@ -188,7 +191,7 @@ const SegmentedGauge = ({ complaintData, percentage, label = "Complaints closed"
           }}>
           {label}
         </text>
-        
+
       </svg>
     </div>
   );
@@ -214,11 +217,11 @@ const VDODashboardContent = () => {
   const selectedBlockForHierarchy = vdoBlockId ? { id: vdoBlockId, name: vdoBlockName } : null;
   const selectedGPForHierarchy = vdoGPId ? { id: vdoGPId, name: vdoGPName } : null;
   const getCurrentLocationInfo = () => ({ vdoDistrictId, vdoBlockId, vdoGPId, vdoDistrictName, vdoBlockName, vdoGPName });
-  const trackDropdownChange = () => {}; // No-op for VDO
-  const updateLocationSelection = () => {}; // No-op for VDO
-  const setSelectedDistrictForHierarchy = () => {}; // No-op for VDO
-  const setSelectedBlockForHierarchy = () => {}; // No-op for VDO
-  const setSelectedGPForHierarchy = () => {}; // No-op for VDO
+  const trackDropdownChange = () => { }; // No-op for VDO
+  const updateLocationSelection = () => { }; // No-op for VDO
+  const setSelectedDistrictForHierarchy = () => { }; // No-op for VDO
+  const setSelectedBlockForHierarchy = () => { }; // No-op for VDO
+  const setSelectedGPForHierarchy = () => { }; // No-op for VDO
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -233,6 +236,17 @@ const VDODashboardContent = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
+
+  // card data store
+  const [apiDataCard, setApiDataCard] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [loadingDis, setLoadingDis] = useState(false);
+  const [error, setError] = useState(null);
+  const [fyList, setFyList] = useState([]);
+  const [selectedFyId, setSelectedFyId] = useState(null);
+  const [loadingFy, setLoadingFy] = useState(false);
+  // Assets table data state
+  const [districtTableData, setDistrictTableData] = useState([]);
 
   // Utility helpers
   const formatDate = (date) => {
@@ -296,7 +310,7 @@ const VDODashboardContent = () => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const top3MonthRef = useRef(null);
-  
+
   const performanceRangeRef = useRef(null);
 
   // Vendor data state (for GP level)
@@ -310,14 +324,14 @@ const VDODashboardContent = () => {
     const locationInfo = getCurrentLocationInfo();
     console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, vdoDistrictId, vdoBlockId, vdoGPId, getCurrentLocationInfo]);
-  
+
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(null); // null means not selected
   const [selectedDay, setSelectedDay] = useState(null); // null means not selected
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [selectionStep, setSelectionStep] = useState('year'); // 'year', 'month', 'day'
-  
+
   // Date range state
   const [selectedDateRange, setSelectedDateRange] = useState('Today');
   const [startDate, setStartDate] = useState(() => {
@@ -376,17 +390,17 @@ const VDODashboardContent = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showTop3MonthPicker]);
-  
+
   // Complaints year selection state
   const [selectedComplaintsYear, setSelectedComplaintsYear] = useState(() => {
     return new Date().getFullYear();
   });
   const [showComplaintsYearDropdown, setShowComplaintsYearDropdown] = useState(false);
-  
+
   // Complaints filter tabs state
   const [activeComplaintsFilter, setActiveComplaintsFilter] = useState('Time');
 
-// BDO can only view GPs
+  // BDO can only view GPs
 
   // Predefined date ranges
   const dateRanges = [
@@ -482,30 +496,30 @@ const VDODashboardContent = () => {
       const url = `/complaints/analytics/geo?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
       console.log('🔗 Complete URL:', `${apiClient.defaults.baseURL}${url}`);
-      
+
       // Check if token exists
       const token = localStorage.getItem('access_token');
       console.log('🔑 Token Status:', token ? 'Present' : 'Missing');
       if (token) {
         console.log('🔑 Token Preview:', token.substring(0, 20) + '...');
       }
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Analytics API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       console.log('📦 Response Data Structure:', {
         geo_type: response.data?.geo_type,
         response_count: response.data?.response?.length,
         sample_data: response.data?.response?.slice(0, 2)
       });
-      
+
       setAnalyticsData(response.data);
-      
+
       // Calculate and log aggregated counts
       const aggregated = {
         total: 0,
@@ -514,12 +528,12 @@ const VDODashboardContent = () => {
         resolved: 0,
         disposed: 0
       };
-      
+
       response.data?.response?.forEach(item => {
         const status = item.status?.toUpperCase();
         const count = item.count || 0;
         aggregated.total += count;
-        
+
         switch (status) {
           case 'OPEN':
             aggregated.open += count;
@@ -536,10 +550,10 @@ const VDODashboardContent = () => {
             break;
         }
       });
-      
+
       console.log('📈 Aggregated Counts:', aggregated);
       console.log('🔄 ===== END ANALYTICS API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== ANALYTICS API ERROR =====');
       console.error('Error Type:', error.name);
@@ -547,7 +561,7 @@ const VDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END ANALYTICS API ERROR =====\n');
-      
+
       setAnalyticsError(error.message || 'Failed to fetch analytics data');
       setAnalyticsData(null);
     } finally {
@@ -593,18 +607,18 @@ const VDODashboardContent = () => {
 
       const url = `/complaints/analytics/geo?${params.toString()}`;
       console.log('🌐 Full API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Complaints Chart API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setComplaintsChartData(response.data);
       console.log('🔄 ===== END COMPLAINTS CHART API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== COMPLAINTS CHART API ERROR =====');
       console.error('Error Type:', error.name);
@@ -612,7 +626,7 @@ const VDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END COMPLAINTS CHART API ERROR =====\n');
-      
+
       setComplaintsChartError(error.message || 'Failed to fetch complaints chart data');
       setComplaintsChartData(null);
     } finally {
@@ -686,10 +700,10 @@ const VDODashboardContent = () => {
   const handleScopeChange = (scope) => {
     // Track tab change first
     trackTabChange(scope);
-    
+
     // Close dropdown immediately to prevent showing stale options
     setShowLocationDropdown(false);
-    
+
     if (scope === 'State') {
       // For State scope, set Rajasthan as default and disable dropdown
       updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'tab_change');
@@ -880,9 +894,9 @@ const VDODashboardContent = () => {
     } else {
       setIsCustomRange(false);
       setSelectedDateRange(range.label);
-      
+
       const today = new Date();
-      
+
       // For "Today" and "Yesterday", both start and end dates should be the same
       if (range.value === 'today') {
         // Today: start = today, end = today
@@ -902,7 +916,7 @@ const VDODashboardContent = () => {
         setStartDate(start.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
       }
-      
+
       setShowDateDropdown(false);
     }
   };
@@ -1093,16 +1107,16 @@ const VDODashboardContent = () => {
       const currentParams = new URLSearchParams(params);
       currentParams.append('start_date', currentStartDate);
       currentParams.append('end_date', currentEndDate);
-      
+
       const currentUrl = `/complaints/analytics/geo?${currentParams.toString()}`;
       console.log('🌐 Current Month API URL:', currentUrl);
-      
+
       const currentResponse = await apiClient.get(currentUrl);
       console.log('✅ Current Month API Response:', currentResponse.data);
-      
+
       setPerformanceApiData(currentResponse.data);
       console.log('🔄 ===== END PERFORMANCE API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== PERFORMANCE API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1110,7 +1124,7 @@ const VDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END PERFORMANCE API ERROR =====\n');
-      
+
       setPerformanceError(error.message || 'Failed to fetch performance data');
       setPerformanceApiData(null);
     } finally {
@@ -1137,10 +1151,10 @@ const VDODashboardContent = () => {
       const target = new Date(now.getFullYear(), top3Month, 1);
       const startDate = formatDate(new Date(target.getFullYear(), target.getMonth(), 1));
       const endDate = formatDate(new Date(target.getFullYear(), target.getMonth() + 1, 0));
-      
+
       // CEO: Always use VILLAGE level for analytics
       const level = 'VILLAGE';
-      
+
       console.log('📅 Date Range:', startDate, 'to', endDate);
       console.log('📊 Level:', level);
 
@@ -1159,18 +1173,18 @@ const VDODashboardContent = () => {
 
       const url = `/complaints/analytics/top-n?${params.toString()}`;
       console.log('🌐 Top 3 API URL:', url);
-      
+
       const response = await apiClient.get(url);
-      
+
       console.log('✅ Top 3 API Response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
-      
+
       setTop3ApiData(response.data);
       console.log('🔄 ===== END TOP 3 API CALL =====\n');
-      
+
     } catch (error) {
       console.error('❌ ===== TOP 3 API ERROR =====');
       console.error('Error Type:', error.name);
@@ -1178,7 +1192,7 @@ const VDODashboardContent = () => {
       console.error('Error Details:', error.response?.data || error);
       console.error('Status Code:', error.response?.status);
       console.error('🔄 ===== END TOP 3 API ERROR =====\n');
-      
+
       setTop3Error(error.message || 'Failed to fetch top 3 data');
       setTop3ApiData(null);
     } finally {
@@ -1203,7 +1217,7 @@ const VDODashboardContent = () => {
       startDate,
       endDate
     });
-    
+
     // VDO only has Blocks and GPs scopes
     if (false) {
       // For Blocks scope, call API immediately (shows district-level data)
@@ -1211,12 +1225,12 @@ const VDODashboardContent = () => {
       fetchAnalyticsData();
       return;
     }
-    
+
     if (false) {
       console.log('⏳ VDO: Waiting for GP selection');
       return; // Wait for GP selection
     }
-    
+
     console.log('📡 VDO: Calling analytics API');
     fetchAnalyticsData();
   }, [activeScope, vdoBlockId, vdoGPId, startDate, endDate, isCustomRange, vdoDistrictId, fetchAnalyticsData]);
@@ -1232,7 +1246,7 @@ const VDODashboardContent = () => {
     if (false) {
       return; // Wait for GP selection
     }
-    
+
     fetchComplaintsChartData();
   }, [activeComplaintsFilter, activeScope, vdoDistrictId, vdoBlockId, vdoGPId, selectedComplaintsYear]);
 
@@ -1248,7 +1262,7 @@ const VDODashboardContent = () => {
     if (false) {
       return; // Wait for GP selection
     }
-    
+
     fetchPerformanceData();
   }, [activeScope, vdoDistrictId, vdoBlockId, vdoGPId, performanceMonth]);
 
@@ -1258,7 +1272,7 @@ const VDODashboardContent = () => {
       top3Scope,
       top3Month
     });
-    
+
     fetchTop3Data();
   }, [top3Scope, top3Month, fetchTop3Data]);
 
@@ -1274,11 +1288,11 @@ const VDODashboardContent = () => {
       try {
         setLoadingVendor(true);
         setVendorError(null);
-        
+
         console.log('🔄 VDO: Fetching vendor data for Village/GP ID:', vdoGPId);
         const response = await apiClient.get(`/geography/grampanchayats/${vdoGPId}/contractor`);
         console.log('✅ VDO: Vendor API Response:', response.data);
-        
+
         setVendorData(response.data);
       } catch (error) {
         console.error('❌ VDO: Error fetching vendor data:', error);
@@ -1342,7 +1356,7 @@ const VDODashboardContent = () => {
   // Get complaint data with real API values
   const getComplaintData = () => {
     const counts = calculateComplaintCounts();
-    
+
     // Format numbers with commas
     const formatNumber = (num) => {
       return num.toLocaleString();
@@ -1507,7 +1521,7 @@ const VDODashboardContent = () => {
   // Calculate percentage of complaints closed/resolved
   const calculateClosedPercentage = () => {
     const counts = calculateComplaintCounts();
-    
+
     // console.log('📊 Percentage Calculation Debug:', {
     //   total: counts.total,
     //   open: counts.open,
@@ -1515,22 +1529,22 @@ const VDODashboardContent = () => {
     //   resolved: counts.resolved,
     //   disposed: counts.disposed
     // });
-    
+
     if (counts.total === 0) {
       return null; // Return null instead of 0 when no data
     }
-    
+
     // Calculate percentage: (resolved + disposed / total) * 100
     const closedCount = counts.resolved + counts.disposed;
     const percentage = Math.round((closedCount / counts.total) * 100);
-    
+
     // console.log('📊 Percentage Calculation:', {
     //   closedCount,
     //   total: counts.total,
     //   percentage: `${percentage}%`,
     //   calculation: `(${closedCount} / ${counts.total}) * 100 = ${percentage}%`
     // });
-    
+
     return percentage;
   };
 
@@ -1555,7 +1569,7 @@ const VDODashboardContent = () => {
             blocks: blocks.slice(0, 3), // Show first 3 blocks for debugging
             filteredBlocks: blocks.filter(block => block.district_id === vdoDistrictId)
           });
-          
+
           if (vdoDistrictId) {
             const filteredBlocks = blocks.filter(block => block.district_id === vdoDistrictId);
             console.log('📊 Filtered blocks for district:', vdoDistrictId, filteredBlocks);
@@ -1566,7 +1580,7 @@ const VDODashboardContent = () => {
           // Block -> show all GPs under that block
           if (vdoBlockId) {
             return gramPanchayats.filter(gp => gp.block_id === vdoBlockId)
-                                .map(gp => gp.name);
+              .map(gp => gp.name);
           }
           return [];
         case 'GPs':
@@ -1584,7 +1598,7 @@ const VDODashboardContent = () => {
   };
 
   const xAxisCategories = getXAxisCategories();
-  
+
   console.log('📊 X-axis Categories Debug:', {
     activeComplaintsFilter,
     activeScope,
@@ -1596,12 +1610,12 @@ const VDODashboardContent = () => {
   // Generate dynamic chart data based on x-axis categories and API response
   const getChartData = () => {
     const categoryCount = xAxisCategories.length;
-    
+
     // Initialize data arrays
     const openData = Array(categoryCount).fill(0);
     const closedData = Array(categoryCount).fill(0);
     const totalData = Array(categoryCount).fill(0);
-    
+
     if (!complaintsChartData || !complaintsChartData.response) {
       return { open: openData, closed: closedData, total: totalData };
     }
@@ -1626,7 +1640,7 @@ const VDODashboardContent = () => {
     } else if (activeComplaintsFilter === 'Location') {
       // For Location tab: Group data by geography_name
       const locationMap = new Map();
-      
+
       complaintsChartData.response.forEach(item => {
         const geoName = item.geography_name || item.geo_name || 'Unknown';
         const status = item.status?.toUpperCase();
@@ -1649,7 +1663,7 @@ const VDODashboardContent = () => {
       // Debug logging
       console.log('Location Map:', locationMap);
       console.log('X-axis Categories:', xAxisCategories);
-      
+
       // Map location data to x-axis categories
       xAxisCategories.forEach((category, index) => {
         const data = locationMap.get(category);
@@ -1663,7 +1677,7 @@ const VDODashboardContent = () => {
         }
       });
     }
-    
+
     return {
       open: openData,
       closed: closedData,
@@ -1730,24 +1744,24 @@ const VDODashboardContent = () => {
     // Calculate metrics for each geography
     geographyMap.forEach((geo, name) => {
       // Calculate average resolution time in days
-      const avgResolutionTimeDays = geo.totalResolutionTime > 0 
+      const avgResolutionTimeDays = geo.totalResolutionTime > 0
         ? (geo.totalResolutionTime / 86400) // Convert seconds to days
         : 0;
-      
+
       geo.avgResolutionTimeDays = Math.round(avgResolutionTimeDays * 10) / 10; // Round to 1 decimal
-      
+
       // Calculate completion percentage
       // Formula: (RESOLVED complaints) / (OPEN + RESOLVED + VERIFIED + CLOSED) * 100
       const resolvedCount = geo.statusCounts.RESOLVED || 0;
-      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) + 
-                                    (geo.statusCounts.RESOLVED || 0) + 
-                                    (geo.statusCounts.VERIFIED || 0) + 
-                                    (geo.statusCounts.CLOSED || 0);
-      
-      geo.completionPercentage = totalRelevantComplaints > 0 
+      const totalRelevantComplaints = (geo.statusCounts.OPEN || 0) +
+        (geo.statusCounts.RESOLVED || 0) +
+        (geo.statusCounts.VERIFIED || 0) +
+        (geo.statusCounts.CLOSED || 0);
+
+      geo.completionPercentage = totalRelevantComplaints > 0
         ? Math.round((resolvedCount / totalRelevantComplaints) * 100)
         : 0;
-      
+
       // Debug logging for completion calculation
       console.log(`📊 Completion Calculation for ${geo.name}:`, {
         resolved: resolvedCount,
@@ -1765,7 +1779,7 @@ const VDODashboardContent = () => {
   // Filter performance data based on active tab
   const getFilteredPerformanceData = (data) => {
     let filteredData = [];
-    
+
     if (activePerformanceTab === 'starPerformers') {
       filteredData = data.filter(item => item.completion >= 50);
     } else if (activePerformanceTab === 'underperformers') {
@@ -1773,22 +1787,22 @@ const VDODashboardContent = () => {
     } else {
       filteredData = data;
     }
-    
+
     console.log(`📊 Performance Filter (${activePerformanceTab}):`, {
       totalItems: data.length,
       filteredItems: filteredData.length,
       threshold: activePerformanceTab === 'starPerformers' ? '>= 50%' : '< 50%'
     });
-    
+
     return filteredData;
   };
 
   // Get performance data based on current scope
   const getPerformanceData = () => {
     const processedData = processPerformanceData();
-    
+
     let performanceData = [];
-    
+
     switch (activeScope) {
       case 'State':
         // State -> show all districts
@@ -1807,32 +1821,32 @@ const VDODashboardContent = () => {
         // District -> show all blocks under that district
         if (vdoDistrictId) {
           performanceData = blocks.filter(block => block.district_id === vdoDistrictId)
-                      .map(block => {
-                        const apiData = processedData.get(block.name);
-                        return {
-                          name: block.name,
-                          id: block.id,
-                          type: 'Block',
-                          avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                          completion: apiData?.completionPercentage || 0
-                        };
-                      });
+            .map(block => {
+              const apiData = processedData.get(block.name);
+              return {
+                name: block.name,
+                id: block.id,
+                type: 'Block',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'Blocks':
         // Block -> show all GPs under that block
         if (vdoBlockId) {
           performanceData = gramPanchayats.filter(gp => gp.block_id === vdoBlockId)
-                              .map(gp => {
-                                const apiData = processedData.get(gp.name);
-                                return {
-                                  name: gp.name,
-                                  id: gp.id,
-                                  type: 'GP',
-                                  avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
-                                  completion: apiData?.completionPercentage || 0
-                                };
-                              });
+            .map(gp => {
+              const apiData = processedData.get(gp.name);
+              return {
+                name: gp.name,
+                id: gp.id,
+                type: 'GP',
+                avgResolutionTime: apiData?.avgResolutionTimeDays || 0,
+                completion: apiData?.completionPercentage || 0
+              };
+            });
         }
         break;
       case 'GPs':
@@ -1854,7 +1868,7 @@ const VDODashboardContent = () => {
       default:
         performanceData = [];
     }
-    
+
     return getFilteredPerformanceData(performanceData);
   };
 
@@ -1865,7 +1879,7 @@ const VDODashboardContent = () => {
     if (!top3ApiData || !Array.isArray(top3ApiData)) {
       return [];
     }
-    
+
     // API already returns data sorted by score (descending)
     // Take only top 3 and map to our format
     return top3ApiData.slice(0, 3).map((item, index) => ({
@@ -1904,6 +1918,43 @@ const VDODashboardContent = () => {
     console.log('DashboardContent rendering...');
   }
 
+  useEffect(() => {
+    const fetchAssetsData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await apiClient.get(
+          'annual-surveys/analytics/assets'
+        );
+
+        const mapped = mapAssetsApiToUI(res?.data || {});
+        setApiDataCard(mapped);
+
+        console.log("✅ Assets API:", mapped);
+
+      } catch (err) {
+        console.error("❌ Assets API Error:", err);
+        setError(err?.message || "Something went wrong");
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetsData();
+  }, []);
+
+
+  const formatValue = (key, value) => {
+    if (key === "Drainage_channels") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 1000).toFixed(2)} kms`;
+    }
+    return value;
+  };
+
   return (
     <div>
       {/* Overview Section */}
@@ -1929,192 +1980,263 @@ const VDODashboardContent = () => {
         </div>
       </div>
 
+      {/* cards Assets */}
+      <div
+        style={{
+          margin: "16px",
+          background: "white",
+          borderRadius: "12px",
+          border: "1px solid #e5e7eb",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          padding: "20px",
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0
+        }}
+      >
+        {/* Top Heading */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+        </div>
+
+        {/* Sections */}
+        {assetsSections.map((section, i) => (
+          <div key={i} style={{ marginBottom: "24px" }}>
+
+            {/* Section Heading */}
+            <h2
+              style={{
+                fontSize: "16px",
+                fontWeight: "600",
+                marginBottom: "12px",
+                color: "#374151",
+              }}
+            >
+              {section.title}
+            </h2>
+
+            {/* Cards */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                // gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "15px",
+              }}
+            >
+
+              {section.cards.map((card, j) => (
+                <DashBoardCards
+                  title={card.label}
+                  value={
+                    loading
+                      ? "..."
+                      : formatValue(card.key, apiDataCard?.[card.key] ?? '-')
+                  }
+                  bgColorOverlay={card.bgColor}
+                  textColor={card.textColor}
+                  border={card.border}
+                  bgImg={card.bgImg}
+                  width={card.width}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
 
       {/* VDO: Always show Vendor Details (GP is fixed) */}
       {/* Vendor Details Section */}
+      <div style={{
+        marginLeft: '16px',
+        marginRight: '16px',
+        marginTop: '16px'
+      }}>
         <div style={{
-          marginLeft: '16px',
-          marginRight: '16px',
-          marginTop: '16px'
+          backgroundColor: 'white',
+          padding: '24px',
+          borderRadius: '12px',
+          border: '1px solid #e5e7eb',
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
         }}>
+          {/* Header with Info Icon */}
           <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            {/* Header with Info Icon */}
+            <h2 style={{
+              fontSize: '18px',
+              fontWeight: '600',
+              color: '#111827',
+              margin: 0
+            }}>
+              Contractor details
+            </h2>
+            <InfoTooltip
+              text="Shows the active vendor’s profile and contract details for this location."
+              size={20}
+              color="#9ca3af"
+              style={{ cursor: 'pointer' }}
+            />
+          </div>
+
+          {/* Loading State */}
+          {loadingVendor && (
             <div style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               alignItems: 'center',
-              marginBottom: '24px'
+              padding: '40px',
+              color: '#6b7280',
+              fontSize: '14px'
             }}>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Contractor details
-              </h2>
-              <InfoTooltip
-                text="Shows the active vendor’s profile and contract details for this location."
-                size={20}
-                color="#9ca3af"
-                style={{ cursor: 'pointer' }}
-              />
+              Loading Contractor details...
             </div>
+          )}
 
-            {/* Loading State */}
-            {loadingVendor && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                Loading Contractor details...
-              </div>
-            )}
+          {/* Error State */}
+          {vendorError && !loadingVendor && (
+            <div style={{
+              padding: '16px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              color: '#991b1b',
+              fontSize: '14px'
+            }}>
+              {vendorError}
+            </div>
+          )}
 
-            {/* Error State */}
-            {vendorError && !loadingVendor && (
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                color: '#991b1b',
-                fontSize: '14px'
-              }}>
-                {vendorError}
-              </div>
-            )}
-
-            {/* Vendor Details Content */}
-            {!loadingVendor && !vendorError && vendorData && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '32px'
-              }}>
-                {/* Left Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Name */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Name
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.person_name || 'N/A'}
-                    </div>
+          {/* Vendor Details Content */}
+          {!loadingVendor && !vendorError && vendorData && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '32px'
+            }}>
+              {/* Left Column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Name */}
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Name
                   </div>
-
-                  {/* Annual contract amount */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Annual contract amount
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.contract_amount || 'N/A'}
-                    </div>
-                  </div>
-
-                  {/* Frequency of work */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Frequency of work
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {vendorData.contract_frequency || 'N/A'}
-                    </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    {vendorData.person_name || 'N/A'}
                   </div>
                 </div>
 
-                {/* Right Column */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Work order date */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Work order date
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {formatVendorDate(vendorData.contract_start_date)}
-                    </div>
+                {/* Annual contract amount */}
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Annual contract amount
                   </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    {vendorData.contract_amount || 'N/A'}
+                  </div>
+                </div>
 
-                  {/* Duration of work */}
-                  <div>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#6b7280',
-                      marginBottom: '4px'
-                    }}>
-                      Duration of work
-                    </div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {calculateContractDuration(vendorData.contract_start_date, vendorData.contract_end_date)}
-                    </div>
+                {/* Frequency of work */}
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Frequency of work
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    {vendorData.contract_frequency || 'N/A'}
                   </div>
                 </div>
               </div>
-            )}
 
-            {/* No Data State */}
-            {!loadingVendor && !vendorError && !vendorData && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '40px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                No vendor details available for this Gram Panchayat
+              {/* Right Column */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Work order date */}
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Work order date
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    {formatVendorDate(vendorData.contract_start_date)}
+                  </div>
+                </div>
+
+                {/* Duration of work */}
+                <div>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    marginBottom: '4px'
+                  }}>
+                    Duration of work
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    {calculateContractDuration(vendorData.contract_start_date, vendorData.contract_end_date)}
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* No Data State */}
+          {!loadingVendor && !vendorError && !vendorData && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '40px',
+              color: '#6b7280',
+              fontSize: '14px'
+            }}>
+              No vendor details available for this Gram Panchayat
+            </div>
+          )}
         </div>
+      </div>
     </div>
   );
 };
