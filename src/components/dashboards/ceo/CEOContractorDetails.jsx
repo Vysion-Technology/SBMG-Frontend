@@ -1603,7 +1603,7 @@ const CEOContractorDetails = () => {
                                                     Annual Contract Amount :
                                                 </div>
                                                 <div>
-                                                   ₹ {item.contract_amount}
+                                                  ₹ {(item.contract_amount / 100000).toFixed(2)} L
                                                 </div>
                                             </div>
 

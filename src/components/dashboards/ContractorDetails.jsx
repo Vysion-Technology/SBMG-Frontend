@@ -1256,9 +1256,12 @@ const ContractorDetails = () => {
                             {/* {getVillageCoverage()} */}
                             {loadingAnalytics
                                 ? '...'
-                                : `₹${new Intl.NumberFormat('en-IN', {
-                                    maximumFractionDigits: 0
-                                }).format(getAnalyticsValue('total_contract_amount', 0))}`
+                                : `₹${(
+                                    getAnalyticsValue('total_contract_amount', 0) / 100000
+                                ).toLocaleString('en-IN', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                })} L`
                             }
                         </div>
                     </div>
@@ -1864,12 +1867,13 @@ const ContractorDetails = () => {
                                                         {item.agency_name || '-'}
                                                     </div>
                                                 </div>
-                                                <div className='flex justify-between '>
+                                                <div className='flex justify-between'>
                                                     <div>
                                                         Annual Contract Amount :
                                                     </div>
+
                                                     <div>
-                                                        ₹ {item.contract_amount}
+                                                        ₹ {(item.contract_amount / 100000).toFixed(2)} L
                                                     </div>
                                                 </div>
 

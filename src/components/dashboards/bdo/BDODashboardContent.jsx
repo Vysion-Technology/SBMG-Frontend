@@ -1,12 +1,16 @@
-import { Calendar, ChevronDown, List, MapPin } from 'lucide-react';
+import { ChevronDown, List } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Chart from 'react-apexcharts';
 import number2 from '../../../assets/images/nnumber2.png';
 import number1 from '../../../assets/images/number1.png';
 import number3 from '../../../assets/images/number3.png';
+import { assetsSections } from '../../../config/assetsConfig';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import apiClient from '../../../services/api';
+import { mapAssetsApiToUI } from '../../../utils/assetsMapper';
+import SlideDrawer from '../../common/SideDrawer';
 import { InfoTooltip } from '../../common/Tooltip';
+import AssetsTable from '../common/AssetsTable';
+import DashBoardCards from '../common/DashBoardCards';
 import NoDataFound from '../common/NoDataFound';
 import OverviewBanner from '../common/OverviewBanner';
 import SendNoticeModal from '../common/SendNoticeModal';
@@ -247,6 +251,18 @@ const BDODashboardContent = () => {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
+
+
+  // card data store
+  const [apiDataCard, setApiDataCard] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [loadingDis, setLoadingDis] = useState(false);
+  const [error, setError] = useState(null);
+  const [fyList, setFyList] = useState([]);
+  const [selectedFyId, setSelectedFyId] = useState(null);
+  const [loadingFy, setLoadingFy] = useState(false);
+  // Assets table data state
+  const [districtTableData, setDistrictTableData] = useState([]);
 
   // Utility helpers
   const formatDate = (date) => {
@@ -495,16 +511,35 @@ const BDODashboardContent = () => {
 
 
 
-  // BDO: Blocks are not fetched - block is fixed from /me API
+  // BDO: Blocks are not fetched from API - block is fixed from /me API
   const fetchBlocks = useCallback(async (districtId) => {
-    // No-op for BDO - block ID comes from /me API (bdoBlockId)
-    console.log('BDO: Skipping fetchBlocks - using bdoBlockId:', bdoBlockId);
-    setBlocks([]);
-  }, [bdoBlockId]);
+    if (!bdoDistrictId || !bdoBlockId) {
+      console.log('BDO: No block IDs available yet, clearing blocks.');
+      setBlocks([]);
+      return;
+    }
+
+    console.log('BDO: Populating block from /me API:', bdoBlockId, 'for district:', bdoDistrictId);
+    const blockEntry = {
+      id: bdoBlockId,
+      blockId: bdoBlockId,
+      block_id: bdoBlockId,
+      name: bdoBlockName || 'BDO Block',
+      blockName: bdoBlockName || 'BDO Block',
+      district_id: bdoDistrictId,
+      districtId: bdoDistrictId,
+    };
+    setBlocks([blockEntry]);
+    return [blockEntry];
+  }, [bdoBlockId, bdoBlockName, bdoDistrictId]);
 
   // Fetch Gram Panchayats from API for BDO's block
-  const fetchGramPanchayats = useCallback(async () => {
-    if (!bdoDistrictId || !bdoBlockId) {
+  const fetchGramPanchayats = useCallback(async (districtIdParam = bdoDistrictId, blockIdParam = bdoBlockId) => {
+    const districtId = districtIdParam || bdoDistrictId;
+    const blockId = blockIdParam || bdoBlockId;
+
+    if (!districtId || !blockId) {
+      console.log('BDO: Missing district/block ID for GP fetch.', { districtId, blockId });
       setGramPanchayats([]);
       return;
     }
@@ -513,14 +548,14 @@ const BDODashboardContent = () => {
       setLoadingGPs(true);
       const response = await apiClient.get('/geography/grampanchayats', {
         params: {
-          district_id: bdoDistrictId,
-          block_id: bdoBlockId,
+          district_id: districtId,
+          block_id: blockId,
           skip: 0,
           limit: 100
         }
       });
       setGramPanchayats(response.data);
-      console.log('Gram Panchayats fetched for BDO:', bdoDistrictId, bdoBlockId, response.data);
+      console.log('Gram Panchayats fetched for BDO:', districtId, blockId, response.data);
     } catch (error) {
       console.error('Error fetching Gram Panchayats:', error);
       setGramPanchayats([]);
@@ -1976,6 +2011,121 @@ const BDODashboardContent = () => {
     console.log('DashboardContent rendering...');
   }
 
+
+  useEffect(() => {
+    const fetchAssetsData = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await apiClient.get(
+          'annual-surveys/analytics/assets'
+        );
+
+        const mapped = mapAssetsApiToUI(res?.data || {});
+        setApiDataCard(mapped);
+
+        console.log("✅ Assets API:", mapped);
+
+      } catch (err) {
+        console.error("❌ Assets API Error:", err);
+        setError(err?.message || "Something went wrong");
+
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssetsData();
+  }, []);
+
+  const fetchDistrictsAssets = async () => {
+    setLoadingDis(true);
+    try {
+      const res = await apiClient.get(
+        "annual-surveys/analytics/assets/drill-down"
+      );
+
+      return (res.data?.items || []).map(item => ({
+        districtName: item.geography_name,
+        districtId: item.geography_id,
+
+        ...mapAssetsApiToUI(item.assets)
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching districts assets:", error);
+      return [];
+    } finally {
+      setLoadingDis(false);
+    }
+
+  };
+
+  const fetchBlocksDataAssets = async (districtId) => {
+    const res = await apiClient.get(
+      "annual-surveys/analytics/assets/drill-down",
+      {
+        params: {
+          district_id: districtId,
+        }
+      }
+    );
+
+    return (res.data?.items || []).map(item => ({
+      ...item,
+
+      blockName: item.geography_name,
+      blockId: item.geography_id,
+
+      districtId: districtId,
+
+      ...mapAssetsApiToUI(item.assets)
+    }));
+  };
+
+  const fetchGPDataAssets = async (districtId, blockId) => {
+
+    const res = await apiClient.get(
+      "annual-surveys/analytics/assets/drill-down",
+      {
+        params: {
+          district_id: districtId,
+          block_id: blockId,
+        }
+      }
+    );
+    return (res.data?.items || []).map(item => ({
+      gpName: item.geography_name,
+      gpId: item.geography_id,
+
+      ...mapAssetsApiToUI(item.assets)
+    }));
+  };
+
+
+  useEffect(() => {
+    const loadDistricts = async () => {
+      try {
+        const data = await fetchDistrictsAssets();
+        setDistrictTableData(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadDistricts();
+  }, []);
+
+
+  const formatValue = (key, value) => {
+    if (key === "Drainage_channels") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 1000).toFixed(2)} kms`;
+    }
+    return value;
+  };
+
   return (
     <div>
       <style>{`
@@ -1996,7 +2146,7 @@ const BDODashboardContent = () => {
           }
         }
       `}</style>
-     
+
       {/* Overview Section */}
       <div style={{
         marginLeft: '16px',
@@ -2019,7 +2169,105 @@ const BDODashboardContent = () => {
           />
         </div>
       </div>
+      {/* cards Assets */}
+      <div
+        style={{
+          margin: "16px",
+          background: "white",
+          borderRadius: "12px",
+          border: "1px solid #e5e7eb",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          padding: "20px",
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0
+        }}
+      >
+        {/* Top Heading */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "16px",
+          }}
+        >
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+        </div>
 
+        {/* Sections */}
+        {assetsSections.map((section, i) => (
+          <div key={i} style={{ marginBottom: "24px" }}>
+
+            {/* Section Heading */}
+            <h2
+              style={{
+                fontSize: "16px",
+                fontWeight: "600",
+                marginBottom: "12px",
+                color: "#374151",
+              }}
+            >
+              {section.title}
+            </h2>
+
+            {/* Cards */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                // gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+                gap: "15px",
+              }}
+            >
+              {section.cards.map((card, j) => (
+                <SlideDrawer
+                  key={j}
+                  title={`${section.title} - ${card.label}`}
+                  clickFunction={() => {
+                    console.log("API call", card.key);
+                  }}
+                  trigger={
+                    <DashBoardCards
+                      title={card.label}
+                      value={
+                        loading
+                          ? "..."
+                          : formatValue(card.key, apiDataCard?.[card.key] ?? '-')
+                      }
+                      bgColorOverlay={card.bgColor}
+                      textColor={card.textColor}
+                      border={card.border}
+                      bgImg={card.bgImg}
+                      width={card.width}
+                    />
+                  }
+                >
+                  {({ closeDrawer }) => (
+                    <AssetsTable
+                      section={section.title}
+                      cards={section.cards}
+                      apiData={districtTableData}
+                      loadingDis={loadingDis}
+                      fetchBlocksData={fetchBlocksDataAssets}
+                      fetchGPData={fetchGPDataAssets}
+                      initialLevel="gp"
+                      selectedDistrict={selectedDistrictForHierarchy}
+                      selectedDistrictId={selectedDistrictId}
+                      selectedBlock={selectedBlockForHierarchy}
+                      selectedBlockId={selectedBlockId}
+                      fetchBlocks={fetchBlocks}
+                      fetchGramPanchayats={fetchGramPanchayats}
+                      AssetsTable={AssetsTable}
+                      mapApiToUI={mapAssetsApiToUI}
+                      closeParentDrawer={closeDrawer}
+                    />
+                  )}
+                </SlideDrawer>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* Conditional Section: Performance and Top 3 OR Vendor Details */}
       {activeScope === 'GPs' ? (

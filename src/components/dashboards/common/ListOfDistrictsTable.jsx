@@ -398,7 +398,7 @@ const ListOfDistrictsTable = ({
     setDropdownLevel
   } = locationContext || {};
 
-  const [sortBy, setSortBy] = useState(null);
+  const [sortBy, setSortBy] = useState('district');
   const [sortDir, setSortDir] = useState('asc');
   const [blocksForDistrict, setBlocksForDistrict] = useState([]);
   const [blockStatsForDistrict, setBlockStatsForDistrict] = useState({});
@@ -772,7 +772,9 @@ const ListOfDistrictsTable = ({
   };
 
   // Placeholder values when API data is missing (for visual display)
-  const PLACEHOLDER_COMPLAINTS = { open: 3, verified: 2, resolved: 5, disposed: 8 };
+  // Placeholder values when API data is missing (for visual display)
+  // For complaints we prefer showing zeros when no data is present
+  const PLACEHOLDER_COMPLAINTS = { open: 0, verified: 0, resolved: 0, disposed: 0 };
 
   const rows = useMemo(() => {
     return districts.map((d, idx) => {
@@ -1423,6 +1425,7 @@ const ListOfDistrictsTable = ({
                     <RightDrawer
                       title={`${row.name} - Blocks`}
                       clickFunction={() => filterBlocksByDistrict(row.id)}
+                      showBack
                       trigger={
                         <button
                           className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-4 py-2 rounded flex gap-2"
@@ -1585,6 +1588,7 @@ const ListOfDistrictsTable = ({
                                           <RightDrawer
                                             title={`${block.name} - GPs`}
                                             clickFunction={() => filterGPsByBlock(block.id, block.name)}
+                                            showBack
                                             trigger={
                                               <button
                                                 className="underline text-indigo-600 hover:text-indigo-800 cursor-pointer px-2 py-1 rounded text-sm"

@@ -353,7 +353,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                 />
                             </div>
                             <div className='flex flex-col gap-1 '>
-                                <label htmlFor="">Work order amount   </label>
+                                <label htmlFor="">Work order amount</label>
 
                                 <input
                                     type="text"
