@@ -176,7 +176,7 @@ const InspectionContent = () => {
     }
   };
 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
