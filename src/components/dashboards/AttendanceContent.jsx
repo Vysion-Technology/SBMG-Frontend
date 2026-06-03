@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, ChevronsUpDown, ChevronUp } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient from '../../services/api';
@@ -78,7 +78,7 @@ const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) =
           const endAngle = segment.end;
           const radius = 80;
           const strokeWidth = 20;
-          const innerRadius = radius - strokeWidth;
+          const _innerRadius = radius - strokeWidth;
 
           // Calculate circular end cap positions
           const startCapPos = polarToCartesian(100, 100, radius - strokeWidth / 2, endAngle);
@@ -170,15 +170,15 @@ const AttendanceContent = () => {
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [districts, setDistricts] = useState([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
+  const [_loadingDistricts, setLoadingDistricts] = useState(false);
   const [blocks, setBlocks] = useState([]);
-  const [loadingBlocks, setLoadingBlocks] = useState(false);
+  const [_loadingBlocks, setLoadingBlocks] = useState(false);
   const [gramPanchayats, setGramPanchayats] = useState([]);
-  const [loadingGPs, setLoadingGPs] = useState(false);
+  const [_loadingGPs, setLoadingGPs] = useState(false);
 
   // Attendance specific state
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [_activeFilter, _setActiveFilter] = useState('All');
+  const [_searchTerm, _setSearchTerm] = useState('');
   const [activePerformance, setActivePerformance] = useState('Time');
   const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
   const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
@@ -335,19 +335,19 @@ const AttendanceContent = () => {
   // Attendance Summary table state - Districts level
   const [districtAttendanceSummaryData, setDistrictAttendanceSummaryData] = useState([]);
   const [loadingDistrictAttendanceSummary, setLoadingDistrictAttendanceSummary] = useState(false);
-  const [districtAttendanceSummaryError, setDistrictAttendanceSummaryError] = useState(null);
+  const [_districtAttendanceSummaryError, setDistrictAttendanceSummaryError] = useState(null);
 
   // Attendance Summary table state - Blocks level
   const [blockAttendanceSummaryData, setBlockAttendanceSummaryData] = useState([]);
   const [loadingBlockAttendanceSummary, setLoadingBlockAttendanceSummary] = useState(false);
-  const [blockAttendanceSummaryError, setBlockAttendanceSummaryError] = useState(null);
+  const [_blockAttendanceSummaryError, setBlockAttendanceSummaryError] = useState(null);
   const [selectedDistrictForBlocksAttendance, setSelectedDistrictForBlocksAttendance] = useState(null);
   const [viewingBlocksAttendanceForDistrict, setViewingBlocksAttendanceForDistrict] = useState(false);
 
   // Attendance Summary table state - GPs level
   const [gpAttendanceSummaryData, setGpAttendanceSummaryData] = useState([]);
   const [loadingGpAttendanceSummary, setLoadingGpAttendanceSummary] = useState(false);
-  const [gpAttendanceSummaryError, setGpAttendanceSummaryError] = useState(null);
+  const [_gpAttendanceSummaryError, setGpAttendanceSummaryError] = useState(null);
   const [selectedBlockForGpsAttendance, setSelectedBlockForGpsAttendance] = useState(null);
   const [viewingGpsAttendanceForBlock, setViewingGpsAttendanceForBlock] = useState(false);
 
@@ -386,9 +386,9 @@ const AttendanceContent = () => {
     }
   };
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const _scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
   const performanceButtons = ['Time', 'Location'];
-  const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
+  const _filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
   const top3ScopeOptions = ['District', 'Block', 'GP'];
   const top3PeriodButtons = ['Month', 'Year'];
 
@@ -532,7 +532,7 @@ const AttendanceContent = () => {
   }, []);
 
   // Handle scope change
-  const handleScopeChange = async (scope) => {
+  const _handleScopeChange = async (scope) => {
     console.log('Scope changed to:', scope);
     trackTabChange(scope);
     setActiveScope(scope);
@@ -587,7 +587,7 @@ const AttendanceContent = () => {
   };
 
   // Get location options based on current scope and dropdown level
-  const getLocationOptions = () => {
+  const _getLocationOptions = () => {
     if (activeScope === 'Districts') {
       return districts;
     } else if (activeScope === 'Blocks') {
@@ -616,7 +616,7 @@ const AttendanceContent = () => {
   };
 
   // Handle hierarchical selection for blocks and GPs
-  const handleHierarchicalSelection = (location) => {
+  const _handleHierarchicalSelection = (location) => {
     if (activeScope === 'Blocks') {
       if (dropdownLevel === 'districts') {
         // District selected, now show blocks
@@ -1213,12 +1213,12 @@ const AttendanceContent = () => {
   }, []);
 
   // Date range functions
-  const generateYears = () => {
+  const _generateYears = () => {
     const currentYear = new Date().getFullYear();
     return Array.from({ length: 6 }, (_, i) => currentYear - i);
   };
 
-  const generateDays = () => {
+  const _generateDays = () => {
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
     return Array.from({ length: daysInMonth }, (_, i) => i + 1);
   };
@@ -1249,27 +1249,27 @@ const AttendanceContent = () => {
   };
 
   // Handle year selection
-  const handleYearSelect = (year) => {
+  const _handleYearSelect = (year) => {
     setSelectedYear(year);
     setSelectionStep('month');
     console.log(`Year selected: ${year}`);
   };
 
   // Handle month selection
-  const handleMonthSelect = (month) => {
+  const _handleMonthSelect = (month) => {
     setSelectedMonth(month);
     setSelectionStep('day');
     console.log(`Month selected: ${months[month - 1].name} ${selectedYear}`);
   };
 
   // Handle day selection
-  const handleDaySelect = (day) => {
+  const _handleDaySelect = (day) => {
     setSelectedDay(day);
     console.log(`Day selected: ${months[selectedMonth - 1].name} ${day}, ${selectedYear}`);
   };
 
   // Skip to next step or finish
-  const handleSkip = () => {
+  const _handleSkip = () => {
     if (selectionStep === 'month') {
       setSelectionStep('day');
     } else if (selectionStep === 'day') {
@@ -1278,13 +1278,13 @@ const AttendanceContent = () => {
   };
 
   // Finish selection
-  const handleFinish = () => {
+  const _handleFinish = () => {
     setShowDateDropdown(false);
     console.log(`Final selection: ${getCurrentFilterType()} - ${getDateDisplayText()}`);
   };
 
   // Reset selection
-  const handleReset = () => {
+  const _handleReset = () => {
     setSelectedMonth(null);
     setSelectedDay(null);
     setSelectionStep('year');
@@ -1339,7 +1339,7 @@ const AttendanceContent = () => {
   };
 
   // Handle custom date selection
-  const handleCustomDateSelection = (date) => {
+  const _handleCustomDateSelection = (date) => {
     if (!startDate) {
       setStartDate(date);
     } else if (!endDate) {
@@ -1368,6 +1368,7 @@ const AttendanceContent = () => {
   // Log date changes for debugging
   useEffect(() => {
     console.log(`Selected date: ${getCurrentFilterType()} - ${getDateDisplayText()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, selectedMonth, selectedDay]);
 
   // Click outside handler
@@ -1410,6 +1411,7 @@ const AttendanceContent = () => {
   useEffect(() => {
     const locationInfo = getCurrentLocationInfo();
     console.log('Current Location Info:', locationInfo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
@@ -1476,6 +1478,7 @@ const AttendanceContent = () => {
 
     console.log('📡 Calling API for other scopes');
     fetchAnalyticsData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, districts.length]);
 
   // Fetch Top 3 data when scope, period, or date selection changes
@@ -1594,12 +1597,12 @@ const AttendanceContent = () => {
   };
 
   // Helper function to calculate total days in a month minus Sundays
-  const calculateTotalWorkingDays = (date) => {
+  const _calculateTotalWorkingDays = (date) => {
     const year = new Date(date).getFullYear();
     const month = new Date(date).getMonth();
 
     // Get the first and last day of the month
-    const firstDay = new Date(year, month, 1);
+    const _firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
 
     let totalDays = lastDay.getDate();
@@ -1617,7 +1620,7 @@ const AttendanceContent = () => {
   };
 
   // Helper function to calculate working days for a specific date range
-  const calculateWorkingDaysForRange = (startDate, endDate) => {
+  const _calculateWorkingDaysForRange = (startDate, endDate) => {
     if (!startDate || !endDate) return 0;
 
     const start = new Date(startDate);
@@ -1701,7 +1704,7 @@ const AttendanceContent = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState(null);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
-  const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
+  const [_historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
 
   // Fetch chart data from analytics API
   const fetchChartData = useCallback(async () => {
@@ -1818,6 +1821,7 @@ const AttendanceContent = () => {
     } finally {
       setLoadingChartData(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePerformance, performanceSelectedYear, activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   // Fetch chart data when performance tab, year, or scope changes
@@ -1919,6 +1923,7 @@ const AttendanceContent = () => {
     } finally {
       setLoadingHistory(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, historyStartDate, historyEndDate]);
 
   // Process attendance history data from API response
@@ -2144,7 +2149,7 @@ const AttendanceContent = () => {
   };
 
   // Toggle sort order
-  const toggleHistorySortOrder = () => {
+  const _toggleHistorySortOrder = () => {
     setHistorySortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
   };
 
@@ -2220,7 +2225,7 @@ const AttendanceContent = () => {
 
     if (activePerformance === 'Time') {
       // Time tab - check if data has month field (new APIs) or date field (old API)
-      const hasMonthField = safeArray.length > 0 && safeArray[0].hasOwnProperty('month');
+      const hasMonthField = safeArray.length > 0 && Object.prototype.hasOwnProperty.call(safeArray[0], 'month');
 
       // Create map of API data by month
       const monthMap = new Map();
@@ -2445,7 +2450,7 @@ const AttendanceContent = () => {
   };
 
   // Handle custom date selection for history
-  const handleHistoryCustomDateSelection = (date) => {
+  const _handleHistoryCustomDateSelection = (date) => {
     if (!historyStartDate) {
       setHistoryStartDate(date);
     } else if (!historyEndDate) {
@@ -2495,18 +2500,18 @@ const AttendanceContent = () => {
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
 
-  const blocksForActiveDistrict = activeHierarchyDistrict
+  const _blocksForActiveDistrict = activeHierarchyDistrict
     ? blocks.filter(block => block.district_id === activeHierarchyDistrict.id)
     : [];
 
   const activeHierarchyBlock = selectedBlockForHierarchy ||
     (selectedBlockId ? blocks.find(block => block.id === selectedBlockId) : null);
 
-  const gpsForActiveBlock = activeHierarchyBlock
+  const _gpsForActiveBlock = activeHierarchyBlock
     ? gramPanchayats.filter(gp => gp.block_id === activeHierarchyBlock.id)
     : [];
 
-  const getMenuItemStyles = (isActive) => ({
+  const _getMenuItemStyles = (isActive) => ({
     padding: '8px 12px',
     cursor: 'pointer',
     fontSize: '14px',
@@ -2519,7 +2524,7 @@ const AttendanceContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
+  const _handleDistrictHover = (district) => {
     if (activeScope === 'Blocks' || activeScope === 'GPs') {
       if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
         setSelectedDistrictForHierarchy(district);
@@ -2530,7 +2535,7 @@ const AttendanceContent = () => {
     }
   };
 
-  const handleDistrictClick = (district) => {
+  const _handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
       trackDropdownChange(district.name, district.id, district.id);
       updateLocationSelection('Districts', district.name, district.id, district.id, null, null, 'dropdown_change');
@@ -2551,7 +2556,7 @@ const AttendanceContent = () => {
     }
   };
 
-  const handleBlockHover = (block) => {
+  const _handleBlockHover = (block) => {
     if (activeScope === 'GPs') {
       if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
         setSelectedBlockForHierarchy(block);
@@ -2561,7 +2566,7 @@ const AttendanceContent = () => {
     }
   };
 
-  const handleBlockClick = (block) => {
+  const _handleBlockClick = (block) => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       const districtId = district?.id || null;
@@ -2581,7 +2586,7 @@ const AttendanceContent = () => {
     }
   };
 
-  const handleGPClick = (gp) => {
+  const _handleGPClick = (gp) => {
     const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
     const blockId = block?.id || gp.block_id || null;
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
@@ -2626,6 +2631,7 @@ const AttendanceContent = () => {
         }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     showLocationDropdown,
     activeScope,
@@ -2643,13 +2649,15 @@ const AttendanceContent = () => {
     if ((activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId) {
       fetchBlocks(selectedDistrictId);
     }
-  }, [activeScope, selectedDistrictId, fetchBlocks]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScope, selectedDistrictId]);
 
   useEffect(() => {
     if ((activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId && selectedBlockId) {
       fetchGramPanchayats(selectedDistrictId, selectedBlockId);
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, fetchGramPanchayats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScope, selectedDistrictId, selectedBlockId]);
 
   // Fetch attendance summary table data on mount
   useEffect(() => {
@@ -2822,7 +2830,7 @@ const AttendanceContent = () => {
                     </h3>
                   </div>
 
-                  {dateRanges.map((range, index) => (
+                  {dateRanges.map((range) => (
                     <div
                       key={range.value}
                       onClick={() => handleDateRangeSelection(range)}
@@ -4071,8 +4079,9 @@ const AttendanceContent = () => {
                 if (selectedDistrictForBlocksAttendance) {
                   fetchBlockAttendanceSummary(selectedDistrictForBlocksAttendance);
                 }
-                // Update breadcrumb - back to blocks level (keep block selected)
-                setActiveScope('Blocks');
+                // Update breadcrumb - back to districts level to show blocks listing
+                setActiveScope('Districts');
+                setSelectedBlockId(null);
               }}
               style={{
                 padding: '8px 16px',
