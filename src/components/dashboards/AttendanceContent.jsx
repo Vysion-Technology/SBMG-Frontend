@@ -4048,8 +4048,9 @@ const AttendanceContent = () => {
               onClick={() => {
                 setSelectedGpForContractorAttendance(null);
                 setViewingContractorsForGp(false);
+                setViewingGpsAttendanceForBlock(true);
                 // Update breadcrumb - back to GPs list level
-                setActiveScope('GPs');
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
