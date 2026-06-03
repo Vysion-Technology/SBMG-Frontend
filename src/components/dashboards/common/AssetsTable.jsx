@@ -38,9 +38,6 @@ const renderCellContent = (value, subLabels = []) => {
             <div className="flex gap-4">
                 {value.map((item, index) => (
                     <div key={index} className="flex flex-col items-center min-w-[50px]">
-                        <span className="text-[11px] text-gray-400 font-medium">
-                            {subLabels[index] || "-"}
-                        </span>
                         <span className="font-semibold text-gray-700">{item.value}</span>
                     </div>
                 ))}
@@ -53,9 +50,6 @@ const renderCellContent = (value, subLabels = []) => {
             <div className="flex gap-4">
                 {Object.entries(value).map(([key, val], index) => (
                     <div key={index} className="flex flex-col items-center min-w-[50px]">
-                        <span className="text-[11px] text-gray-400 font-medium">
-                            {subLabels[index] || key}
-                        </span>
                         <span className="font-semibold text-gray-700">{val}</span>
                     </div>
                 ))}
