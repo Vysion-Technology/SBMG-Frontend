@@ -1,4 +1,4 @@
-import { Calendar, List } from 'lucide-react';
+import { List } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation } from '../../context/LocationContext';
 import apiClient, {
@@ -10,16 +10,14 @@ import apiClient, {
   schemesAPI,
   vehiclesAPI
 } from '../../services/api';
+import SlideDrawer from '../common/SideDrawer';
 import { InfoTooltip } from '../common/Tooltip';
+import AssetsTable from './common/AssetsTable';
 import ComplaintsDashboard from './common/ComplaintsDashboard';
 import DashboardCardsGrid from './common/DashboardCardsGrid';
 import ListOfDistrictsTable from './common/ListOfDistrictsTable';
 import OverviewBanner from './common/OverviewBanner';
 import SendNoticeModal from './common/SendNoticeModal';
-import RightDrawer from '../common/rightDrawer';
-import AssetsTable from './common/AssetsTable';
-import SlideDrawer from '../common/SideDrawer';
-import { tr } from 'framer-motion/client';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -342,6 +340,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [fyList, setFyList] = useState([]);
   const [selectedFyId, setSelectedFyId] = useState(null);
   const [loadingFy, setLoadingFy] = useState(false);
+  // Assets table data state
+  const [districtTableData, setDistrictTableData] = useState([]);
 
 
 
@@ -356,8 +356,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [districtStats, setDistrictStats] = useState(null); // { [districtId]: { attendance, contractorPct, gpsVehicles } }
   const [loadingDistrictStats, setLoadingDistrictStats] = useState(false);
 
-  // Assets table data state
-  const [districtTableData, setDistrictTableData] = useState([]);
+  
 
   // Utility helpers
   const formatNumber = (num) => (typeof num === 'number' ? num.toLocaleString() : '0');
@@ -3412,7 +3411,13 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       loadingDis={loadingDis}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
-
+                      initialLevel={
+                        activeScope === 'Blocks' ? 'block' :
+                        activeScope === 'GPs' ? 'gp' :
+                        'district'
+                      }
+                      selectedDistrict={selectedDistrictForHierarchy}
+                      selectedBlock={selectedBlockForHierarchy}
                       fetchBlocks={fetchBlocks}
                       fetchGramPanchayats={fetchGramPanchayats}
                       AssetsTable={AssetsTable}

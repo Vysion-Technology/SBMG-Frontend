@@ -137,6 +137,9 @@ const VDONoticeContent = () => {
       category: notice.type?.name || notice.category || notice.notice_type?.name || 'N/A',
       subject: notice.title || notice.subject || 'N/A',
       text: notice.text || '',
+      rolename: notice.receiver.first_name,
+      districtname: notice.receiver.last_name,
+      gpsname: notice.receiver.middle_name,
       sender,
       receiver,
       status: statusText,
@@ -1059,7 +1062,9 @@ const VDONoticeContent = () => {
                 <X style={{ width: '22px', height: '22px' }} />
               </button>
             </div>
-
+            <div>
+              <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>{viewNoticeModal.notice.rolename || 'N/A'}- {viewNoticeModal.notice.gpsname || 'N/A'}/ {viewNoticeModal.notice.districtname || 'N/A'}</span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Category</span>

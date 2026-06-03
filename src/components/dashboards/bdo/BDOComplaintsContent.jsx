@@ -1350,6 +1350,9 @@ const BDOComplaintsContent = () => {
       village: complaint.village_name,
       block: complaint.block_name,
       district: complaint.district_name,
+      district_id: complaint.district_id,
+      block_id: complaint.block_id,
+      village_id: complaint.village_id,
       lat: complaint.lat,
       long: complaint.long,
       media: complaint.media_urls || [],
@@ -3502,6 +3505,9 @@ const BDOComplaintsContent = () => {
                       complaint_id: selectedComplaintForNotice?.id,
                       sender_name: senderName,
                       recipient_name: noticeForm.to,
+                      district_id: selectedComplaintForNotice?.district_id,
+                      block_id: selectedComplaintForNotice?.block_id,
+                      gp_id: selectedComplaintForNotice?.village_id,
                       date: new Date().toISOString().split('T')[0],
                       time: new Date().toTimeString().split(' ')[0]
                     };
