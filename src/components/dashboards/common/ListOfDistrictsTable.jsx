@@ -431,10 +431,8 @@ const ListOfDistrictsTable = ({
         setLoadingComplaints(true);
         const response = await apiClient.get('/complaints', {
           params: {
-            limit: 500,
-            order_by: 'newest',
-            start_date: '2025-12-31',
-            end_date: '2026-03-13'
+            limit: 1000,
+            order_by: 'newest'
           }
         });
 
