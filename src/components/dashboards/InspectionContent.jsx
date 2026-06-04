@@ -21,7 +21,7 @@ const InspectionContent = () => {
   const {
     activeScope,
     selectedLocation,
-    selectedLocationId,
+    selectedLocationId: _selectedLocationId,
     selectedDistrictId,
     selectedBlockId,
     selectedGPId,
@@ -38,9 +38,9 @@ const InspectionContent = () => {
     setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
     updateLocationSelection: contextUpdateLocationSelection,
-    trackTabChange: contextTrackTabChange,
-    trackDropdownChange: contextTrackDropdownChange,
-    getCurrentLocationInfo: contextGetCurrentLocationInfo
+    trackTabChange: _trackTabChange,
+    trackDropdownChange: _trackDropdownChange,
+    getCurrentLocationInfo: _getCurrentLocationInfo
   } = useLocation();
 
   // UI controls state
@@ -52,9 +52,9 @@ const InspectionContent = () => {
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
 
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activePerformance, setActivePerformance] = useState('Time');
+  const [_activeFilter, _setActiveFilter] = useState('All');
+  const [_searchTerm, _setSearchTerm] = useState('');
+  const [_activePerformance, _setActivePerformance] = useState('Time');
 
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -99,19 +99,19 @@ const InspectionContent = () => {
   // Inspection Summary table state - Districts level
   const [districtInspectionSummaryData, setDistrictInspectionSummaryData] = useState([]);
   const [loadingDistrictInspectionSummary, setLoadingDistrictInspectionSummary] = useState(false);
-  const [districtInspectionSummaryError, setDistrictInspectionSummaryError] = useState(null);
+  const [_districtInspectionSummaryError, setDistrictInspectionSummaryError] = useState(null);
 
   // Inspection Summary table state - Blocks level
   const [blockInspectionSummaryData, setBlockInspectionSummaryData] = useState([]);
   const [loadingBlockInspectionSummary, setLoadingBlockInspectionSummary] = useState(false);
-  const [blockInspectionSummaryError, setBlockInspectionSummaryError] = useState(null);
+  const [_blockInspectionSummaryError, setBlockInspectionSummaryError] = useState(null);
   const [selectedDistrictForBlocksInspection, setSelectedDistrictForBlocksInspection] = useState(null);
   const [viewingBlocksInspectionForDistrict, setViewingBlocksInspectionForDistrict] = useState(false);
 
   // Inspection Summary table state - GPs level
   const [gpInspectionSummaryData, setGpInspectionSummaryData] = useState([]);
   const [loadingGpInspectionSummary, setLoadingGpInspectionSummary] = useState(false);
-  const [gpInspectionSummaryError, setGpInspectionSummaryError] = useState(null);
+  const [_gpInspectionSummaryError, setGpInspectionSummaryError] = useState(null);
   const [selectedBlockForGpsInspection, setSelectedBlockForGpsInspection] = useState(null);
   const [viewingGpsInspectionForBlock, setViewingGpsInspectionForBlock] = useState(false);
 
@@ -136,11 +136,11 @@ const InspectionContent = () => {
   const prevPerformersLocationParams = useRef(null);
 
   // Date selection state
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [_selectedYear, _setSelectedYear] = useState(new Date().getFullYear());
+  const [_selectedMonth, _setSelectedMonth] = useState(null);
+  const [_selectedDay, _setSelectedDay] = useState(null);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
-  const [selectionStep, setSelectionStep] = useState('year');
+  const [_selectionStep, _setSelectionStep] = useState('year');
 
   const [opendetails, setOpenDetails] = useState(false);
   const [selectedInspectionId, setSelectedInspectionId] = useState(null);
@@ -199,8 +199,8 @@ const InspectionContent = () => {
 
 
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
-  const performanceButtons = ['Time', 'Location'];
+  const _scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const _performanceButtons = ['Time', 'Location'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -315,7 +315,7 @@ const InspectionContent = () => {
   }, [activeScope, selectedDistrictId, selectedBlockId]);
 
   // Helper functions
-  const getLocationOptions = () => {
+  const _getLocationOptions = () => {
     if (activeScope === 'Districts') {
       return districts;
     } else if (activeScope === 'Blocks') {
@@ -346,18 +346,18 @@ const InspectionContent = () => {
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
 
-  const blocksForActiveDistrict = activeHierarchyDistrict
+  const _blocksForActiveDistrict = activeHierarchyDistrict
     ? blocks.filter(block => block.district_id === activeHierarchyDistrict.id)
     : [];
 
   const activeHierarchyBlock = selectedBlockForHierarchy ||
     (selectedBlockId ? blocks.find(block => block.id === selectedBlockId) : null);
 
-  const gpsForActiveBlock = activeHierarchyBlock
+  const _gpsForActiveBlock = activeHierarchyBlock
     ? gramPanchayats.filter(gp => gp.block_id === activeHierarchyBlock.id)
     : [];
 
-  const getMenuItemStyles = (isActive) => ({
+  const _getMenuItemStyles = (isActive) => ({
     padding: '8px 12px',
     cursor: 'pointer',
     fontSize: '14px',
@@ -370,7 +370,7 @@ const InspectionContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
+  const _handleDistrictHover = (district) => {
     if (activeScope === 'Blocks' || activeScope === 'GPs') {
       if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
         setSelectedDistrictForHierarchy(district);
@@ -381,7 +381,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleDistrictClick = (district) => {
+  const _handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
       setSelectedDistrictId(district.id);
       setSelectedLocation(district.name);
@@ -403,7 +403,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleBlockHover = (block) => {
+  const _handleBlockHover = (block) => {
     if (activeScope === 'GPs') {
       if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
         setSelectedBlockForHierarchy(block);
@@ -413,7 +413,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleBlockClick = (block) => {
+  const _handleBlockClick = (block) => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
@@ -434,7 +434,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleGPClick = (gp) => {
+  const _handleGPClick = (gp) => {
     const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
@@ -491,7 +491,10 @@ const InspectionContent = () => {
     selectedDistrictId,
     selectedBlockId,
     fetchBlocks,
-    fetchGramPanchayats
+    fetchGramPanchayats,
+    setDropdownLevel,
+    setSelectedBlockForHierarchy,
+    setSelectedDistrictForHierarchy
   ]);
 
   // Date helper functions
@@ -1021,7 +1024,7 @@ const InspectionContent = () => {
       setLoadingPerformanceReport(false);
       performanceReportCallInProgress.current = false;
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedLocation, startDate, endDate]);
 
   // Calculate date range: current date to same date previous year (for inspection summary)
   const getInspectionSummaryDateRange = () => {
@@ -1179,7 +1182,7 @@ const InspectionContent = () => {
   // Fetch individual inspection issues for a specific GP
   const fetchInspectionsForGp = useCallback(async (gp) => {
     try {
-      const { startDate, endDate } = getInspectionSummaryDateRange();
+      const { startDate: _startDate, endDate: _endDate } = getInspectionSummaryDateRange();
 
       console.log('🔄 Fetching inspection issues for GP:', gp.name);
 
@@ -1195,7 +1198,7 @@ const InspectionContent = () => {
       console.log('✅ Inspection issues data fetched:', inspectionData.length, 'issues');
 
       // Map inspection issues to a format suitable for display
-      const inspectionIssues = inspectionData.map((item, index) => ({
+      const inspectionIssues = inspectionData.map((item) => ({
         id: item.id,
         name: item.village_name,
         remarks: item.remarks,
@@ -1226,6 +1229,43 @@ const InspectionContent = () => {
       return enrichedGp;
     }
   }, []);
+
+  // Memoized handler for table row clicks to prevent stale closures
+  const handleTableRowClick = useCallback((item) => {
+    if (viewingGpsInspectionForBlock) {
+      // GPs are now clickable - fetch inspection issues
+      fetchInspectionsForGp(item);
+      setActiveScope('GPs');
+      setSelectedGPId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+      setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
+      updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
+    } else if (viewingBlocksInspectionForDistrict) {
+      // Clicking on block to view GPs
+      fetchGpInspectionSummary(item);
+      setSelectedBlockForGpsInspection(item);
+      setActiveScope('Blocks');
+      setSelectedBlockId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+      setSelectedBlockForHierarchy(item);
+      updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
+    } else {
+      // Clicking on district to view blocks
+      fetchBlockInspectionSummary(item);
+      setSelectedDistrictForBlocksInspection(item);
+      setActiveScope('Districts');
+      setSelectedDistrictId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(item);
+      setSelectedBlockForHierarchy(null);
+      updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
+    }
+  }, [viewingGpsInspectionForBlock, viewingBlocksInspectionForDistrict, fetchInspectionsForGp, fetchGpInspectionSummary, fetchBlockInspectionSummary, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, updateLocationSelection, setActiveScope, setSelectedBlockForHierarchy, setSelectedBlockId, setSelectedDistrictForHierarchy, setSelectedDistrictId, setSelectedGPId, setSelectedLocation, setSelectedLocationId]);
 
   // Effect to fetch analytics when scope or location changes
   // Use refs to track previous values and only call API when relevant values actually change
@@ -1434,11 +1474,6 @@ const InspectionContent = () => {
       return;
     }
 
-    // Reset viewing flags for blocks when not in that scope
-    if (activeScope !== 'Blocks' && viewingGpsInspectionForBlock) {
-      setViewingGpsInspectionForBlock(false);
-    }
-
     // When GPs scope is active and a GP is selected, show inspections for that GP
     if (activeScope === 'GPs' && selectedGPId) {
       const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
@@ -1452,11 +1487,6 @@ const InspectionContent = () => {
         setViewingInspectionsForGp(true);
       }
       return;
-    }
-
-    // Reset viewing flag for GPs when not in that scope
-    if (activeScope !== 'GPs' && viewingInspectionsForGp) {
-      setViewingInspectionsForGp(false);
     }
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, selectedGpForInspections, viewingBlocksInspectionForDistrict, viewingGpsInspectionForBlock, viewingInspectionsForGp, fetchBlockInspectionSummary, fetchGpInspectionSummary]);
 
@@ -2143,7 +2173,7 @@ const InspectionContent = () => {
     }
   ];
 
-  const sortValueMap = {
+  const _sortValueMap = {
     name: (item) => item.name || item.geo_name || '',
 
     total_inspections: (item) => item.total_inspections || 0,
@@ -2340,7 +2370,7 @@ const InspectionContent = () => {
                         </h3>
                       </div>
 
-                      {dateRanges.map((range, index) => (
+                      {dateRanges.map((range) => (
                         <div
                           key={range.value}
                           onClick={() => handleDateRangeSelection(range)}
@@ -2840,11 +2870,14 @@ const InspectionContent = () => {
             {viewingInspectionsForGp && (
               <button
                 onClick={() => {
+                  // Simple fix: Only toggle visibility flags
+                  // Do NOT change activeScope or selectedBlockId as it triggers useEffect cascade
+                  
                   setSelectedGpForInspections(null);
-                  setSelectedGPId(null);
                   setViewingInspectionsForGp(false);
-                  // Update breadcrumb - back to GPs list level
-                  setActiveScope('GPs');
+                  setViewingGpsInspectionForBlock(true);
+                  setSelectedGPId(null);
+                  setViewingBlocksInspectionForDistrict(false);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2875,7 +2908,7 @@ const InspectionContent = () => {
                   if (selectedDistrictForBlocksInspection) {
                     fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
                   }
-                  // Update breadcrumb - back to blocks level (keep block selected)
+                  // Update breadcrumb - back to districts level to show blocks listing
                   setActiveScope('Districts');
                 }}
                 style={{
@@ -3219,51 +3252,7 @@ const InspectionContent = () => {
                         fontWeight: '500'
                       }}>
                         <div
-                          onClick={() => {
-                            if (viewingGpsInspectionForBlock) {
-                              // GPs are now clickable - fetch inspection issues
-                              fetchInspectionsForGp(item);
-                              // setSelectedGpInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('GPs');
-                              setSelectedGPId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
-                              setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
-                              updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
-                            } else if (viewingBlocksInspectionForDistrict) {
-                              // Clicking on block to view GPs
-                              fetchGpInspectionSummary(item);
-                              setSelectedBlockForGpsInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('Blocks');
-                              setSelectedBlockId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
-                              setSelectedBlockForHierarchy(item);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
-                              updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
-                            } else {
-                              // Clicking on district to view blocks
-                              fetchBlockInspectionSummary(item);
-                              setSelectedDistrictForBlocksInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('Districts');
-                              setSelectedDistrictId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(item);
-                              setSelectedBlockForHierarchy(null);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, item.id);
-                              updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
-                            }
-                          }}
+                          onClick={() => handleTableRowClick(item)}
                           style={{
                             cursor: 'pointer',
                             color: '#10b981',

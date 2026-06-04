@@ -2777,8 +2777,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               onClick={() => {
                 setSelectedGPForComplaints(null);
                 setViewingGPComplaints(false);
+                setViewingGPsForBlock(true);
                 // Update breadcrumb - back to GPs list level
-                setActiveScope('GPs');
+                setActiveScope('Blocks');
               }}
               style={{
                 padding: '8px 16px',
@@ -2808,8 +2809,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 if (selectedDistrictForBlocks) {
                   fetchBlocksSummaryData(selectedDistrictForBlocks);
                 }
-                // Update breadcrumb - back to blocks level (keep block selected)
-                setActiveScope('Blocks');
+                // Update breadcrumb - back to districts level to show blocks listing
+                setActiveScope('Districts');
+                setSelectedBlockId(null);
               }}
               style={{
                 padding: '8px 16px',
