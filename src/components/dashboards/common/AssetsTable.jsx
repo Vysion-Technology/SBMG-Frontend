@@ -32,16 +32,25 @@ const formatCellValue = (value) => {
     return value ?? "-";
 };
 
-const renderCellContent = (value, subLabels = []) => {
+const formatValue = (key, value) => {
+    if (key === "Drainage_channels") {
+        const num = Number(value);
+        if (isNaN(num)) return "-";
+        return `${(num / 1000).toFixed(2)} kms`;
+    }
+
+    return value ?? "-";
+};
+
+const renderCellContent = (key, value, subLabels = []) => {
     if (Array.isArray(value)) {
         return (
             <div className="flex gap-4">
                 {value.map((item, index) => (
                     <div key={index} className="flex flex-col items-center min-w-[50px]">
-                        <span className="text-[11px] text-gray-400 font-medium">
-                            {subLabels[index] || "-"}
+                        <span className="font-semibold text-gray-700">
+                            {formatValue(key, item.value)}
                         </span>
-                        <span className="font-semibold text-gray-700">{item.value}</span>
                     </div>
                 ))}
             </div>
@@ -51,19 +60,18 @@ const renderCellContent = (value, subLabels = []) => {
     if (typeof value === "object" && value !== null) {
         return (
             <div className="flex gap-4">
-                {Object.entries(value).map(([key, val], index) => (
+                {Object.entries(value).map(([objKey, val], index) => (
                     <div key={index} className="flex flex-col items-center min-w-[50px]">
-                        <span className="text-[11px] text-gray-400 font-medium">
-                            {subLabels[index] || key}
+                        <span className="font-semibold text-gray-700">
+                            {formatValue(key, val)}
                         </span>
-                        <span className="font-semibold text-gray-700">{val}</span>
                     </div>
                 ))}
             </div>
         );
     }
 
-    return value ?? "-";
+    return formatValue(key, value);
 };
 
 const CommonTable = ({
@@ -147,7 +155,7 @@ const CommonTable = ({
                                         </td>
                                         {cards.map((card) => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
-                                                {renderCellContent(row[card.key], card.subLabels)}
+                                               {renderCellContent(card.key, row[card.key], card.subLabels)}
                                             </td>
                                         ))}
                                     </tr>
