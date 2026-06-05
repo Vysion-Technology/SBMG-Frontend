@@ -196,7 +196,7 @@ const AttendanceContent = () => {
   // Sorting 
   // const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
   const [sortConfig, setSortConfig] = useState({
-    key: null,
+    key: "name",
     direction: 'asc'
   });
 

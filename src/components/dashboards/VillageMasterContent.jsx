@@ -91,7 +91,7 @@ const VillageMasterContent = () => {
   // Sorting 
   const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
   const [sortConfig, setSortConfig] = useState({
-    key: null,
+    key: "geography_name",
     direction: 'asc'
   });
 
