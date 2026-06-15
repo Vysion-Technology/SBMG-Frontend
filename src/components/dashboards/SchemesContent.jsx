@@ -2,8 +2,12 @@ import { Edit, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
 import { useEffect, useState } from "react";
 import { MEDIA_BASE_URL, schemesAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
+import { useTranslation } from 'react-i18next';
 
 const SchemesContent = () => {
+
+  const { t } = useTranslation(['common', 'table']);
+
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedScheme, setSelectedScheme] = useState(null);
@@ -171,7 +175,7 @@ const SchemesContent = () => {
       const tolerance = 0.03;
 
       if (Math.abs(ratio - expected) > tolerance) {
-        setImageError('Only 4:5 aspect ratio images are allowed');
+        setImageError(t('schemeevent:only45AspectRatioAllowed'));
         setSelectedFile(null);
         URL.revokeObjectURL(url);
         return;
@@ -189,19 +193,19 @@ const SchemesContent = () => {
   const handleSubmit = async () => {
 
     if (!selectedFile) {
-      setImageError('Please upload a 4:5 image');
+      setImageError(t('schemeevent:upload45Image'));
       return;
     }
 
     if (!formData.name.trim() || !formData.description.trim()) {
-      alert('Please fill in all required fields');
+      alert(t('schemeevent:fillRequiredFields'));
       return;
     }
 
 
 
     setIsSubmitting(true);
-    setSubmitProgress('Creating scheme...');
+    setSubmitProgress(t('schemeevent:creatingScheme'));
 
     try {
       // Step 1: Create the scheme
@@ -219,14 +223,14 @@ const SchemesContent = () => {
 
       // Step 2: Upload media if file is selected
       if (selectedFile) {
-        setSubmitProgress('Uploading media...');
+        setSubmitProgress(t('schemeevent:uploadingMedia'));
         console.log('Uploading media for scheme ID:', createdScheme.id, 'File:', selectedFile);
         const uploadResponse = await schemesAPI.uploadSchemeMedia(createdScheme.id, selectedFile);
         console.log('Media upload response:', uploadResponse.data);
       }
 
       // Success - close modal and refresh schemes
-      setSubmitProgress('Scheme created successfully!');
+      setSubmitProgress(t('schemeevent:schemeCreatedSuccessfully'));
       setTimeout(() => {
         setShowModal(false);
         setFormData({ name: '', description: '', details: '', benefits: '' });
@@ -241,7 +245,7 @@ const SchemesContent = () => {
       setSubmitProgress('');
       setIsSubmitting(false);
       setImageError('');
-      alert('Failed to create scheme. Please try again.');
+      alert(t('schemeevent:failedToCreateScheme'));
     }
   };
 
@@ -262,7 +266,7 @@ const SchemesContent = () => {
 
   const handleDeleteScheme = async (schemeId) => {
     if (!schemeId || isDeleting) return;
-    const confirmDelete = window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.');
+    const confirmDelete = window.confirm(t('schemeevent:confirmDeleteScheme'));
     if (!confirmDelete) {
       return;
     }
@@ -275,7 +279,7 @@ const SchemesContent = () => {
       await fetchSchemes();
     } catch (error) {
       console.error('Error deleting scheme:', error);
-      alert('Failed to delete scheme. Please try again.');
+      alert(t('schemeevent:failedToDeleteScheme'));
     } finally {
       setIsDeleting(false);
     }
@@ -284,7 +288,7 @@ const SchemesContent = () => {
   // Handle scheme update
   const handleUpdateScheme = async () => {
     if (!editFormData.name.trim() || !editFormData.description.trim()) {
-      alert('Please fill in all required fields');
+      alert(t('schemeevent:fillRequiredFields'));
       return;
     }
 
@@ -315,7 +319,7 @@ const SchemesContent = () => {
     } catch (error) {
       console.error('Error updating scheme:', error);
       setIsUpdating(false);
-      alert('Failed to update scheme. Please try again.');
+      alert(t('schemeevent:failedToUpdateScheme'));
     }
   };
 
@@ -363,7 +367,7 @@ const SchemesContent = () => {
               alignItems: 'center',
               gap: '8px'
             }}>
-              Overview
+              {t('common:overview')}
               <span style={{
                 fontSize: '16px',
                 fontWeight: '400',
@@ -398,7 +402,7 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Active
+                {t('schemeevent:active')}
               </button>
               <button
                 onClick={() => setSchemeFilter('inactive')}
@@ -414,7 +418,7 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Inactive
+                {t('schemeevent:inactive')}
               </button>
               <button
                 onClick={() => setSchemeFilter('all')}
@@ -430,7 +434,7 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                All
+                {t('schemeevent:all')}
               </button>
             </div>
             <button
@@ -450,7 +454,7 @@ const SchemesContent = () => {
                 transition: 'all 0.2s'
               }}>
               <Plus style={{ width: '16px', height: '16px' }} />
-              Add Scheme
+              {t('schemeevent:addScheme')}
             </button>
           </div>
         </div>
@@ -465,7 +469,7 @@ const SchemesContent = () => {
             marginTop: '24px'
           }}>
             <Loader2 style={{ width: '32px', height: '32px', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-            <span style={{ marginLeft: '12px', color: '#6b7280' }}>Loading schemes...</span>
+            <span style={{ marginLeft: '12px', color: '#6b7280' }}>{t('table:loading')}</span>
           </div>
         )}
 
@@ -486,7 +490,7 @@ const SchemesContent = () => {
                 onClick={() => {
                   setSelectedScheme(scheme);
                   setShowDetailsModal(true);
-                  setActiveTab('Details');
+                  setActiveTab('details');
                 }}
               >
                 <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
@@ -608,7 +612,7 @@ const SchemesContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Add scheme
+                  {t('schemeevent:addScheme')}
                 </h2>
                 <button
                   onClick={resetModal}
@@ -658,7 +662,7 @@ const SchemesContent = () => {
                     color: selectedFile ? '#10b981' : '#6b7280',
                     margin: 0
                   }}>
-                    {selectedFile ? selectedFile.name : 'Drag and drop your image or click to upload'}
+                    {selectedFile ? selectedFile.name : t('schemeevent:dragAndDropImage')}
                   </p>
                   {selectedFile && (
                     <p style={{
@@ -666,7 +670,7 @@ const SchemesContent = () => {
                       color: '#10b981',
                       margin: '8px 0 0 0'
                     }}>
-                      ✓ File selected
+                      ✓  {t('schemeevent:fileSelected')}
                     </p>
                   )}
                 </div>
@@ -695,11 +699,11 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Name
+                      {t('schemeevent:name')}
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter scheme"
+                      placeholder={t('schemeevent:name')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       style={{
@@ -722,11 +726,11 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Description
+                      {t('schemeevent:description')}
                     </label>
                     <input
                       type="text"
-                      placeholder="Description"
+                      placeholder={t('schemeevent:description')}
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       style={{
@@ -749,10 +753,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Eligibility
+                      {t('schemeevent:eligibility')}
                     </label>
                     <textarea
-                      placeholder="Enter eligibility criteria"
+                      placeholder={t('schemeevent:eligibility')}
                       value={formData.details}
                       onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                       rows={4}
@@ -777,10 +781,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Benefits
+                      {t('schemeevent:benefits')}
                     </label>
                     <textarea
-                      placeholder="Benefits"
+                      placeholder={t('schemeevent:benefits')}
                       value={formData.benefits}
                       onChange={(e) => setFormData({ ...formData, benefits: e.target.value })}
                       rows={3}
@@ -843,7 +847,7 @@ const SchemesContent = () => {
                       opacity: isSubmitting ? 0.6 : 1
                     }}
                   >
-                    Cancel
+                    {t('schemeevent:cancel')}
                   </button>
                   <button
                     onClick={handleSubmit}
@@ -863,7 +867,7 @@ const SchemesContent = () => {
                     }}
                   >
                     {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                    {isSubmitting ? 'Creating...' : 'Add Scheme'}
+                    {isSubmitting ? t('schemeevent:creatingScheme') : t('schemeevent:addScheme')}
                   </button>
                 </div>
               </div>
@@ -932,7 +936,7 @@ const SchemesContent = () => {
                     }}
                   >
                     <Edit style={{ width: '16px', height: '16px' }} />
-                    Edit Scheme
+                    {t('schemeevent:editScheme')}
                   </button>
                   <button
                     onClick={() => handleDeleteScheme(selectedScheme?.id)}
@@ -957,7 +961,7 @@ const SchemesContent = () => {
                     ) : (
                       <Trash2 style={{ width: '16px', height: '16px' }} />
                     )}
-                    {isDeleting ? 'Deleting...' : 'Delete Scheme'}
+                    {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteScheme')}
                   </button>
                   <button
                     onClick={() => setShowDetailsModal(false)}
@@ -979,7 +983,7 @@ const SchemesContent = () => {
               <div style={{
                 display: 'flex',
               }}>
-                {['Details', 'Benefits', 'Eligibility'].map((tab) => (
+                {['details', 'benefits', 'eligibility'].map((tab) => (
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
@@ -995,7 +999,7 @@ const SchemesContent = () => {
                       transition: 'all 0.2s'
                     }}
                   >
-                    {tab}
+                    {t(`schemeevent:${tab}`)}
                   </button>
                 ))}
               </div>
@@ -1011,7 +1015,7 @@ const SchemesContent = () => {
 
               {/* Tab Content */}
               <div style={{ padding: '24px' }}>
-                {activeTab === 'Details' && (
+                {activeTab === 'details' && (
                   <div>
                     <p style={{
                       fontSize: '14px',
@@ -1032,7 +1036,7 @@ const SchemesContent = () => {
                   </div>
                 )}
 
-                {activeTab === 'Benefits' && (
+                {activeTab === 'benefits' && (
                   <div style={{
                     fontSize: '14px',
                     lineHeight: '1.6',
@@ -1043,7 +1047,7 @@ const SchemesContent = () => {
                   </div>
                 )}
 
-                {activeTab === 'Eligibility' && (
+                {activeTab === 'eligibility' && (
                   <div style={{
                     fontSize: '14px',
                     lineHeight: '1.6',
@@ -1161,7 +1165,7 @@ const SchemesContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Edit Scheme
+                  {t('schemeevent:editScheme')}
                 </h2>
                 <button
                   onClick={() => setShowEditModal(false)}
@@ -1190,11 +1194,11 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Name
+                      {t('schemeevent:name')}
                     </label>
                     <input
                       type="text"
-                      placeholder="Enter scheme name"
+                      placeholder={t('schemeevent:name')}
                       value={editFormData.name}
                       onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                       style={{
@@ -1217,10 +1221,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Description
+                      {t('schemeevent:description')}
                     </label>
                     <textarea
-                      placeholder="Description"
+                      placeholder={t('schemeevent:description')}
                       value={editFormData.description}
                       onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                       rows={4}
@@ -1245,10 +1249,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Eligibility
+                      {t('schemeevent:eligibility')}
                     </label>
                     <textarea
-                      placeholder="Eligibility criteria"
+                      placeholder={t('schemeevent:eligibility')}
                       value={editFormData.eligibility}
                       onChange={(e) => setEditFormData({ ...editFormData, eligibility: e.target.value })}
                       rows={3}
@@ -1273,10 +1277,10 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Benefits
+                      {t('schemeevent:benefits')}
                     </label>
                     <textarea
-                      placeholder="Benefits"
+                      placeholder={t('schemeevent:benefits')}
                       value={editFormData.benefits}
                       onChange={(e) => setEditFormData({ ...editFormData, benefits: e.target.value })}
                       rows={3}
@@ -1301,7 +1305,7 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      Start Time
+                      {t('schemeevent:startTime')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1327,7 +1331,7 @@ const SchemesContent = () => {
                       color: '#374151',
                       marginBottom: '8px'
                     }}>
-                      End Time
+                      {t('schemeevent:endTime')}
                     </label>
                     <input
                       type="datetime-local"
@@ -1365,7 +1369,7 @@ const SchemesContent = () => {
                           cursor: 'pointer'
                         }}
                       />
-                      Active
+                      {t('schemeevent:active')}
                     </label>
                   </div>
                 </div>
@@ -1394,7 +1398,7 @@ const SchemesContent = () => {
                     opacity: isUpdating ? 0.6 : 1
                   }}
                 >
-                  Cancel
+                  {t('schemeevent:cancel')}
                 </button>
                 <button
                   onClick={handleUpdateScheme}
@@ -1414,7 +1418,7 @@ const SchemesContent = () => {
                   }}
                 >
                   {isUpdating && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                  {isUpdating ? 'Updating...' : 'Update Scheme'}
+                  {isUpdating ? t('schemeevent:updating') : t('schemeevent:updateScheme')}
                 </button>
               </div>
             </div>

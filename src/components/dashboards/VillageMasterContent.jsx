@@ -12,6 +12,7 @@ import autoTable from "jspdf-autotable";
 import { HINDI_FONT } from '../../utils/font';
 import SendNoticeModal from './common/SendNoticeModal';
 import EditGPMasterModal from './common/EditGPMasterModal';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -45,6 +46,7 @@ const VillageMasterContent = () => {
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useLocation();
 
+  const { t } = useTranslation(["common", "table", "gpMaster"])
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -1433,7 +1435,7 @@ const VillageMasterContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
           </div>
           {/* Year dropdown - view previous years' master data */}
@@ -1496,7 +1498,7 @@ const VillageMasterContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Total GP Master Data
+                  {t('gpmaster:totalGPMasterData')}
                 </h3>
               </div>
               <div style={{
@@ -1540,7 +1542,7 @@ const VillageMasterContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Village GP Data Coverage
+                  {t('gpmaster:villageGPDataCoverage')}
                 </h3>
               </div>
               <div style={{
@@ -1574,7 +1576,7 @@ const VillageMasterContent = () => {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Total funds sanctioned
+                {t('gpmaster:totalFundsSanctioned')}
               </h3>
             </div>
             <div style={{
@@ -1607,7 +1609,7 @@ const VillageMasterContent = () => {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Total work order Amount
+                {t('gpmaster:totalWorkOrderAmount')}
               </h3>
             </div>
             <div style={{
@@ -1650,7 +1652,7 @@ const VillageMasterContent = () => {
                   fontWeight: '600',
                   margin: 0
                 }}>
-                  Coverage Overview
+                  {t('gpmaster:coverageOverview')}
                 </h3>
               </div>
 
@@ -1738,84 +1740,6 @@ const VillageMasterContent = () => {
           )}
 
           {/* Annual Overview */}
-          <div style={{
-            flex: activeScope === 'GPs' ? 'none' : 1,
-            width: activeScope === 'GPs' ? '100%' : 'auto',
-            backgroundColor: 'white',
-            padding: '14px',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '2px'
-            }}>
-              Annual Overview
-            </h3>
-            <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
-
-            {/* Metrics List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Fund Utilization rate */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate ?? analyticsData?.fund_utilization_rate ?? '0')}%
-                </span>
-              </div>
-
-              {/* Average Cost Per Household */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : `₹${formatNumber(analyticsData?.annual_overview?.average_cost_per_household_d2d || 0)}`}
-                </span>
-              </div>
-
-              {/* Household covered - Hidden in GP view */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.households_covered_d2d ?? analyticsData?.households_covered_d2d ?? 0)}
-                  </span>
-                </div>
-              )}
-
-              {/* GPs with Identified Asset Gaps */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.gps_with_asset_gaps || 0)}
-                  </span>
-                </div>
-              )}
-
-              {/* Active Sanitation Bidders */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.active_sanitation_bidders || 0)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
 
@@ -1838,7 +1762,7 @@ const VillageMasterContent = () => {
             color: '#111827',
             margin: '0 0 16px 0'
           }}>
-            Report
+            {t('table:report')}
           </h3>
 
           {/* Table */}
@@ -1860,21 +1784,21 @@ const VillageMasterContent = () => {
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Year
+                {t('table:year')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Master Data
+                {t('table:masterData')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Action
+                {t('table:action')}
               </div>
             </div>
 
@@ -1883,7 +1807,7 @@ const VillageMasterContent = () => {
               const survey = gpSurveyList[0];
               const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
               const hasData = !!survey;
-              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? 'Available' : 'Not Available');
+              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? t('table:available') : t('table:notAvailable'));
               return (
                 <div style={{
                   display: 'grid',
@@ -1915,7 +1839,7 @@ const VillageMasterContent = () => {
                         cursor: 'pointer'
                       }}
                     >
-                      Send notice
+                       {t('table:sendNotice')}
                     </button>
                     {/* <button
                       onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
@@ -1973,7 +1897,7 @@ const VillageMasterContent = () => {
                         opacity: hasData ? 1 : 0.6
                       }}
                     >
-                      View
+                       {t('table:view')}
                     </button>
                   </div>
                 </div>
@@ -2023,7 +1947,8 @@ const VillageMasterContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  GP Master Data
+
+                  {t('common:gpMasterData')}
                 </h2>
               </div>
               <span style={{
@@ -2055,7 +1980,7 @@ const VillageMasterContent = () => {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                ← Back to Districts
+                ←  {t('table:gpMasterData')}
               </button>
             )}
             {activeScope === 'Districts' && (
@@ -2075,7 +2000,7 @@ const VillageMasterContent = () => {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                ← Back to State
+                ← {t('table:backToState')}
               </button>
             )}
           </div>
@@ -2167,10 +2092,10 @@ const VillageMasterContent = () => {
                       }}
                     >
                       {activeScope === 'State'
-                        ? 'District'
+                        ? t('table:districtName')
                         : activeScope === 'Districts'
-                          ? 'Block'
-                          : 'GP'} Name
+                          ? t('table:blockName')
+                          : t('table:gpName')}
                       <span
                         style={{ cursor: 'pointer', }}
                         onClick={() => handleSort('geography_name')}>
@@ -2189,7 +2114,7 @@ const VillageMasterContent = () => {
                           fontWeight: '600',
                           color: '#374151',
                         }}>
-                        Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Gps'}
+                        {t('table:total')} {activeScope === 'State' || activeScope === 'Districts' ? t('table:gps') : t('table:gps')}
                         ({totalGpsSum})
 
                         <span
@@ -2208,7 +2133,7 @@ const VillageMasterContent = () => {
                           fontWeight: '600',
                           color: '#374151'
                         }}>
-                        {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Data
+                        {activeScope === 'State' || activeScope === 'Districts' ? t('table:gps') : t('table:villages')} {t('table:withData')}
                         ({loadingAnalytics ? '...' : formatNumber(getAnalyticsValue('total_village_master_data', 0))})
 
                         <span
@@ -2229,7 +2154,7 @@ const VillageMasterContent = () => {
                           fontWeight: '600',
                           color: '#374151'
                         }}>
-                        Coverage   ({loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`})
+                        {t('table:coverage')}   ({loadingAnalytics ? '...' : `${getAnalyticsValue('village_master_data_coverage_percentage', 0)}%`})
 
                         <span
                           style={{ cursor: 'pointer', }}
@@ -2249,7 +2174,7 @@ const VillageMasterContent = () => {
                         fontWeight: '600',
                         color: '#374151'
                       }}>
-                      Status
+                       {t('table:status')}
                     </div>
                     <div style={{
                       display: 'flex',
@@ -2258,7 +2183,7 @@ const VillageMasterContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Action
+                       {t('table:action')}
                     </div>
                   </div>
 

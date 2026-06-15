@@ -1,0 +1,49 @@
+{
+  "coveragePercentageTooltip": "Shows what percentage of Gram Panchayats (GPs) have data available. Formula: (GPs with Data / Total GPs) × 100. Example: If 800 out of 1000 GPs have data, coverage = 80%.",
+  "totalGpMasterDataTooltip": "Total count of Gram Panchayats that have master data records available in the system.",
+  "villageGpDataCoverageTooltip": "Percentage of GPs with available master data. Formula: (GPs with Data / Total GPs) × 100.",
+  "totalFundsSanctionedTooltip": "Total amount of funds sanctioned across all GPs for SBMG schemes and sanitation projects.",
+  "totalWorkOrderAmountTooltip": "Total monetary value of all work orders issued for sanitation and waste management projects.",
+  "sbmgTargetAchievementRateTooltip": "Overall achievement rate for SBMG schemes. Formula: (Total Achievement / Total Target) × 100. Example: 8,500 achieved out of 10,000 = 85%.",
+  "schemeAchievementPercentageTooltip": "Achievement percentage for individual SBMG schemes. Formula: (Scheme Achievement / Scheme Target) × 100.",
+  "fundUtilizationRateTooltip": "Percentage of sanctioned funds utilized through work orders. Formula: (Total Work Order Amount / Total Funds Sanctioned) × 100.",
+  "averageCostPerHouseholdD2DTooltip": "Average cost per household for door-to-door waste collection services.",
+  "householdsCoveredD2DTooltip": "Total number of households covered under door-to-door waste collection services.",
+  "gpsWithAssetGapsTooltip": "Number of Gram Panchayats where asset gaps have been identified.",
+  "activeSanitationBiddersTooltip": "Number of active bidders/contractors participating in sanitation and waste management tenders.",
+  "amountInLakhsConversionTooltip": "Converts monetary amounts from Rupees to Lakhs for better readability.",
+  "totalSchemeTargetTooltip": "Sum of all individual SBMG scheme targets.",
+  "totalSchemeAchievementTooltip": "Sum of all individual SBMG scheme achievements.",
+
+  "totalGpsTooltip": "At State/District level: Total count of Gram Panchayats (GPs). At Block level: Total count of Villages.",
+  "gpsWithDataTooltip": "Number of GPs/Villages that have master data available.",
+
+  "inspectionOverallScoreTooltip": "Overall inspection performance score (0-100%). Formula: (Total Points Earned / 180) × 100.",
+  "inspectionHouseholdWasteScoreTooltip": "Score for household waste management (out of 50 points).",
+  "inspectionRoadCleaningScoreTooltip": "Score for road cleaning frequency (out of 10 points).",
+  "inspectionDrainCleaningScoreTooltip": "Score for drain cleaning and maintenance (out of 30 points).",
+  "inspectionCommunitySanitationScoreTooltip": "Score for community sanitation complex management (out of 40 points).",
+  "inspectionOtherScoreTooltip": "Score for other inspection factors (out of 50 points).",
+  "inspectionCoveragePercentageTooltip": "Percentage of entities inspected.",
+  "totalInspectionsTooltip": "Total number of inspections conducted.",
+  "averageInspectionScoreTooltip": "Average score across all inspections conducted.",
+  "criticalIssuesTooltip": "Number of critical issues identified during inspections.",
+
+  "complaintScoreTooltip": "Performance score for complaint management.",
+  "averageResolutionTimeTooltip": "Average time taken to resolve complaints.",
+  "totalComplaintsTooltip": "Total number of complaints registered in the system.",
+  "resolvedComplaintsTooltip": "Number of complaints that have been successfully resolved.",
+  "pendingComplaintsTooltip": "Number of complaints that are still pending.",
+
+  "totalNoticesSentTooltip": "Total count of notices sent.",
+  "totalNoticesReceivedTooltip": "Total count of notices received.",
+
+  "averageRatingTooltip": "Average rating given by users.",
+  "totalRatingsTooltip": "Total number of feedback ratings submitted.",
+  "performanceTrendTooltip": "Shows the trend in performance metrics over time.",
+  "defaultTooltip": "Hover for more information about this metric.",
+
+  "contractorWithDataFilledTooltip": "Contractors with data filled.",
+  "contractorCoveragePercentageTooltip": "Coverage percentage.",
+  "totalAmountTooltip": "Total amount."
+}

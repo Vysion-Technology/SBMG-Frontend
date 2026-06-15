@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { use } from 'react';
 import {
   LayoutDashboard,
   FileText,
@@ -30,21 +30,29 @@ import PaymentsContent from '../PaymentsContent';
 import BDOFeedbackContent from './BDOFeedback';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import BDOContractorDetails from './BDOContractorDetails';
+import { useTranslation } from 'react-i18next';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
+
+  const handleItemClick = (key) => {
+    setActiveItem(key);
+  };
+
+  const { t } = useTranslation(['dashboard', 'common'])
+
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Complaints', icon: FileText },
-    { name: 'CSC Cleaning', icon: CheckCircle },
-    { name: 'Inspection', icon: ListChecks },
-    { name: 'GP Master Data', icon: Database },
-    { name: 'Contractor Details', icon: Building },
-    { name: 'Schemes', icon: Briefcase },
-    { name: 'Events', icon: Calendar },
-    { name: 'GPS Tracking', icon: Truck },
-    { name: 'Payments', icon: CreditCard },
-    { name: 'Notices', icon: Bell },
-    { name: 'Feedbacks', icon: MessageSquare }
+    { key: 'dashboard', label: t('common:dashboard'), icon: LayoutDashboard },
+    { key: 'complaints', label: t('common:complaints'), icon: FileText },
+    { key: 'cscCleaning', label: t('common:cscCleaning'), icon: CheckCircle },
+    { key: 'inspection', label: t('common:inspection'), icon: ListChecks },
+    { key: 'gpMasterData', label: t('common:gpMasterData'), icon: Database },
+    { key: 'contractorDetails', label: t('common:contractorDetails'), icon: Building },
+    { key: 'schemes', label: t('common:schemes'), icon: Briefcase },
+    { key: 'events', label: t('common:events'), icon: Calendar },
+    { key: 'gpsTracking', label: t('common:gpsTracking'), icon: Truck },
+    { key: 'payments', label: t('common:payments'), icon: CreditCard },
+    { key: 'notices', label: t('common:notices'), icon: Bell },
+    { key: 'feedbacks', label: t('common:feedbacks'), icon: MessageSquare }
   ];
 
   return (
@@ -126,13 +134,13 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
         }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.name === activeItem;
+            const isActive = item.key === activeItem;
 
             return (
-              <li key={item.name} style={{ marginTop: '10px' }}>
+              <li key={item.key} style={{ marginTop: '10px' }}>
                 <button
-                  onClick={() => setActiveItem(item.name)}
-                  title={!isSidebarOpen ? item.name : ''}
+                  onClick={() => handleItemClick(item.key)}
+                  title={!isSidebarOpen ? item.label : ''}
                   style={{
                     width: '100%',
                     display: 'flex',
@@ -162,7 +170,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                       fontSize: '14px',
                       fontWeight: '500',
                       whiteSpace: 'nowrap'
-                    }}>{item.name}</span>
+                    }}>{item.label}</span>
                   )}
 
                 </button>
@@ -176,9 +184,12 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 };
 
 const UnifiedDashboardBDO = () => {
-  const [activeItem, setActiveItem] = useState('Dashboard');
+  const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const bdoLocation = useBDOLocation();
+
+  const { t } = useTranslation(['common','dashboard']);
+
 
   // Show loading screen while BDO data is being fetched
   if (!bdoLocation || bdoLocation.loadingBDOData || !bdoLocation.bdoDistrictId || !bdoLocation.bdoBlockId) {
@@ -208,29 +219,29 @@ const UnifiedDashboardBDO = () => {
 
   const renderContent = () => {
     switch (activeItem) {
-      case 'Dashboard':
+      case 'dashboard':
         return <BDODashboardContent />;
-      case 'Complaints':
+      case 'complaints':
         return <BDOComplaintsContent />;
-      case 'CSC Cleaning':
+      case 'cscCleaning':
         return <BDOAttendanceContent />;
-      case 'Inspection':
+      case 'inspection':
         return <BDOInspectionContent />;
-      case 'GP Master Data':
+      case 'gpMasterData':
         return <BDOVillageMasterContent />;
-      case 'Contractor Details':
+      case 'contractorDetails':
         return <BDOContractorDetails />;
-      case 'Schemes':
+      case 'schemes':
         return <BDOSchemesContent />;
-      case 'Events':
+      case 'events':
         return <BDOEventsContent />;
-      case 'GPS Tracking':
+      case 'gpsTracking':
         return <BDOGpsTrackingContent />;
-      case 'Payments':
+      case 'payments':
         return <PaymentsContent />;
-      case 'Notices':
+      case 'notices':
         return <BDONoticeContent />;
-      case 'Feedbacks':
+      case 'feedbacks':
         return <BDOFeedbackContent />;
       default:
         return (
@@ -281,9 +292,9 @@ const UnifiedDashboardBDO = () => {
           overflow: 'auto'
         }}>
           <Header
-            pageTitle={activeItem}
+            pageTitle={t(activeItem)}
             onMenuClick={() => setIsSidebarOpen(prev => !prev)}
-            onNotificationsClick={() => setActiveItem('Notices')}
+            onNotificationsClick={() => setActiveItem('notices')}
           />
           <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
             {renderContent()}

@@ -55,6 +55,7 @@ function mapGetToForm(data) {
   const fsm = o(data.fsm_details, {});
   const gobardhan = o(data.gobardhan_projects, {});
   const d2d = o(data.d2d_activities, {});
+  const vehicle_assets = o(data.vehicle_assets, {});
 
   const vlist = Array.isArray(data.village_data) ? data.village_data : [];
   const village_data = vlist.length > 0
@@ -123,6 +124,7 @@ function mapGetToForm(data) {
       bins_hh_level: n(swm.bins_hh_level),
       bins_public_places: n(swm.bins_public_places),
       community_compost_pits: n(swm.community_compost_pits),
+      hh_compost_pit: n(swm.hh_compost_pit),
       segregation_sheds: n(swm.segregation_sheds),
       tricycles_manual: n(swm.tricycles_manual),
       e_rickshaws: n(swm.e_rickshaws),
@@ -162,7 +164,22 @@ function mapGetToForm(data) {
     },
 
     gobardhan_projects: {
-      total_projects: n(gobardhan.total_projects)
+      total_sanctioned: n(gobardhan.total_sanctioned),
+      total_functional: n(gobardhan.total_functional),
+      gas_production: n(gobardhan.gas_production)
+    },
+
+    bartan_bank: {
+      established_banks: n(o(data.bartan_bank, {}).established_banks)
+    },
+
+    vehicle_assets: {
+      owned_tricycles: n(vehicle_assets?.owned_tricycles),
+      owned_e_rickshaws: n(vehicle_assets?.owned_e_rickshaws),
+      owned_motorized_vehicles: n(vehicle_assets?.owned_motorized_vehicles),
+      contractor_tricycles: n(vehicle_assets?.contractor_tricycles),
+      contractor_e_rickshaws: n(vehicle_assets?.contractor_e_rickshaws),
+      contractor_motorized_vehicles: n(vehicle_assets?.contractor_motorized_vehicles),
     },
 
     d2d_activities: {
@@ -171,6 +188,7 @@ function mapGetToForm(data) {
       sanctioned_self_gp: n(d2d.sanctioned_self_gp),
       sanctioned_csr_ngo: n(d2d.sanctioned_csr_ngo),
       sanctioned_shg: n(d2d.sanctioned_shg),
+      sanctioned_mixed_model: n(d2d.sanctioned_mixed_model),
       total_expenditure: n(d2d.total_expenditure),
       vehicles_deployed: n(d2d.vehicles_deployed),
       persons_deployed: n(d2d.persons_deployed),
@@ -272,6 +290,7 @@ function formToPayload(form) {
       bins_hh_level: n(form.swm_assets?.bins_hh_level),
       bins_public_places: n(form.swm_assets?.bins_public_places),
       community_compost_pits: n(form.swm_assets?.community_compost_pits),
+      hh_compost_pit: n(form.swm_assets?.hh_compost_pit),
       segregation_sheds: n(form.swm_assets?.segregation_sheds),
       tricycles_manual: n(form.swm_assets?.tricycles_manual),
       e_rickshaws: n(form.swm_assets?.e_rickshaws),
@@ -310,7 +329,22 @@ function formToPayload(form) {
 
     // ✅ NEW
     gobardhan_projects: {
-      total_projects: n(form.gobardhan_projects?.total_projects)
+      total_sanctioned: n(form.gobardhan_projects?.total_sanctioned),
+      total_functional: n(form.gobardhan_projects?.total_functional),
+      gas_production: n(form.gobardhan_projects?.gas_production)
+    },
+
+    bartan_bank: {
+      established_banks: n(form.bartan_bank?.established_banks)
+    },
+
+    vehicle_assets: {
+      owned_tricycles: n(form.vehicle_assets?.owned_tricycles),
+      owned_e_rickshaws: n(form.vehicle_assets?.owned_e_rickshaws),
+      owned_motorized_vehicles: n(form.vehicle_assets?.owned_motorized_vehicles),
+      contractor_tricycles: n(form.vehicle_assets?.contractor_tricycles),
+      contractor_e_rickshaws: n(form.vehicle_assets?.contractor_e_rickshaws),
+      contractor_motorized_vehicles: n(form.vehicle_assets?.contractor_motorized_vehicles),
     },
 
     // ✅ NEW
@@ -320,6 +354,7 @@ function formToPayload(form) {
       sanctioned_self_gp: n(form.d2d_activities?.sanctioned_self_gp),
       sanctioned_csr_ngo: n(form.d2d_activities?.sanctioned_csr_ngo),
       sanctioned_shg: n(form.d2d_activities?.sanctioned_shg),
+      sanctioned_mixed_model: n(form.d2d_activities?.sanctioned_mixed_model),
       total_expenditure: n(form.d2d_activities?.total_expenditure),
       vehicles_deployed: n(form.d2d_activities?.vehicles_deployed),
       persons_deployed: n(form.d2d_activities?.persons_deployed),
@@ -601,7 +636,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           segregation_sheds: '',
           tricycles_manual: '',
           e_rickshaws: '',
-          motorized_vehicles: ''
+          motorized_vehicles: '',
+          hh_compost_pit: ''
         },
 
         lwm_assets: {
@@ -631,8 +667,10 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           fstps_urban: ''
         },
 
-        gobardhan_projects: {
-          total_projects: ''
+        gobardhan: {
+          total_sanctioned: '',
+          total_functional: '',
+          gas_production: '',
         },
 
         d2d_activities: {
@@ -640,6 +678,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           sanctioned_tender: '',
           sanctioned_self_gp: '',
           sanctioned_csr_ngo: '',
+          sanctioned_mixed_model: '',
           sanctioned_shg: '',
           total_expenditure: '',
           vehicles_deployed: '',
@@ -648,6 +687,19 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           status_start: '',
           status_running: '',
           status_completed: ''
+        },
+
+        bartan_bank: {
+          established_banks: '',
+        },
+
+        vehicle_assets: {
+          owned_tricycles: 0,
+          owned_e_rickshaws: 0,
+          owned_motorized_vehicles: 0,
+          contractor_tricycles: 0,
+          contractor_e_rickshaws: 0,
+          contractor_motorized_vehicles: 0
         },
 
         village_data: [emptyVillage()],
@@ -1272,6 +1324,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Input label="Tricycles (Manual)" type="number" min={0} value={form.swm_assets?.tricycles_manual} onChange={(v) => update('swm_assets.tricycles_manual', v === '' ? '' : Number(v))} disabled={saving} />
                   <Input label="E-Rickshaws/Battery operated Vehicles" type="number" min={0} value={form.swm_assets?.e_rickshaws} onChange={(v) => update('swm_assets.e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
                   <Input label="Motorized Vehicles" type="number" min={0} value={form.swm_assets?.motorized_vehicles} onChange={(v) => update('swm_assets.motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Household Compost Pit (HH Compost Pit)" type="number" min={0} value={form.swm_assets?.hh_compost_pit} onChange={(v) => update('swm_assets.hh_compost_pit', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
@@ -1312,7 +1365,25 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
               {section('GOBAR-dhan Project', grid2(
                 <>
-                  <Input label="GOBAR-dhan Project" type="number" min={0} value={form.gobardhan_projects?.total_projects} onChange={(v) => update('gobardhan_projects.total_projects', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Total Sanctioned" type="number" min={0} value={form.gobardhan_projects?.total_sanctioned} onChange={(v) => update('gobardhan_projects.total_sanctioned', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Total Functional" type="number" min={0} value={form.gobardhan_projects?.total_functional} onChange={(v) => update('gobardhan_projects.total_functional', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Gas Production" type="number" min={0} value={form.gobardhan_projects?.gas_production} onChange={(v) => update('gobardhan_projects.gas_production', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+
+              {section('Bartan Bank', grid2(
+                <>
+                  <Input label="Bartan Bank Information" type="number" min={0} value={form.bartan_bank?.established_banks} onChange={(v) => update('bartan_bank.established_banks', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+              {section('Vehicle Assets', grid3(
+                <>
+                  <Input label="Owned Tricycles" type="number" min={0} value={form.vehicle_assets?.owned_tricycles} onChange={(v) => update('vehicle_assets.owned_tricycles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Owned E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.owned_e_rickshaws} onChange={(v) => update('vehicle_assets.owned_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Owned Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.owned_motorized_vehicles} onChange={(v) => update('vehicle_assets.owned_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor Tricycles" type="number" min={0} value={form.vehicle_assets?.contractor_tricycles} onChange={(v) => update('vehicle_assets.contractor_tricycles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.contractor_e_rickshaws} onChange={(v) => update('vehicle_assets.contractor_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.contractor_motorized_vehicles} onChange={(v) => update('vehicle_assets.contractor_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
@@ -1330,28 +1401,33 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   {form.d2d_activities?.is_active === true && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
 
-                      <Input label='Total No. of Work Sanctioned Through Tender'
+                      <Input label='Contractors through Tender'
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_tender}
                         onChange={(v) => update('d2d_activities.sanctioned_tender', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Self by GPs'
+                      <Input label='GP through Placement Agency'
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_self_gp}
                         onChange={(v) => update('d2d_activities.sanctioned_self_gp', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Through CSR/NGOs'
+                      <Input label='GP through CSR'
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_csr_ngo}
                         onChange={(v) => update('d2d_activities.sanctioned_csr_ngo', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Through SHGs'
+                      <Input label='GP through SHG'
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_shg}
                         onChange={(v) => update('d2d_activities.sanctioned_shg', v === '' ? '' : Number(v))}
+                      />
+                      <Input label='Mixed Model'
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_mixed_model}
+                        onChange={(v) => update('d2d_activities.sanctioned_mixed_model', v === '' ? '' : Number(v))}
                       />
 
                       <Input label="Total Expenditure Amt. (Rs in Lakhs)"

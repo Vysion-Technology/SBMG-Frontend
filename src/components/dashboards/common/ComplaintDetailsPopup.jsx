@@ -239,6 +239,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                 const res = await apiClient.get(`/public/${complaintId}/details`);
 
                 setComplaint(res.data);
+                console.log(res.data);
 
             } catch (err) {
 
@@ -480,6 +481,8 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                             ))}
                                         </div>
 
+
+
                                         {/* Headin & Date */}
                                         <div style={{ display: "flex", justifyContent: 'space-between', marginTop: '10px' }}>
                                             <h3 style={{ fontSize: '16px', fontWeight: 500 }}>
@@ -489,6 +492,14 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                 style={{ fontSize: '11px', padding: '5px 8px', background: '#F3F4F6', borderRadius: '8px' }}
                                             >
                                                 {formatDate(complaint?.created_at)}
+                                            </h4>
+                                        </div>
+
+                                        <div style={{ display: "flex", justifyContent: 'space-between', margin: '5px 0px' }}>
+                                            <h4
+                                                style={{ fontSize: '11px', padding: '5px 5px', background: '#F3F4F6', borderRadius: '8px' }}
+                                            >
+                                                +91{(complaint?.mobile_number)}
                                             </h4>
                                         </div>
 

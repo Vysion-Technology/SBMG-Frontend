@@ -18,6 +18,10 @@ import DashboardCardsGrid from './common/DashboardCardsGrid';
 import ListOfDistrictsTable from './common/ListOfDistrictsTable';
 import OverviewBanner from './common/OverviewBanner';
 import SendNoticeModal from './common/SendNoticeModal';
+import { useTranslation } from 'react-i18next';
+import { assetsSections } from '../../config/assetsConfig';
+import DashBoardCards from './common/DashBoardCards';
+import { mapAssetsApiToUI } from '../../utils/assetsMapper';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -217,75 +221,6 @@ const formatNumber = (val) => {
   return num.toLocaleString("en-IN");
 };
 
-const Card = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
-
-  return (
-    <div onClick={onClick}
-      className={`relative rounded-xl    overflow-hidden p-4! border cursor-pointer flex flex-col justify-between`}
-      style={{ borderColor: border, width: width }}
-    >
-      {/* Background */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `url(${bgImg}) no-repeat`,
-          backgroundPosition: "right bottom",
-          backgroundSize: "contain",
-        }}
-      />
-
-      {/* Overlay */}
-      <div
-        className="absolute inset-0"
-        style={{ backgroundColor: bgColorOverlay, opacity: 0.7 }}
-      />
-
-      {/* Content */}
-      <div className="relative z-10 p-2!">
-        <p style={{ color: textColor }}>{title}</p>
-
-        {/* ✅ CASE 1: Single value */}
-        {typeof value === "string" || typeof value === "number" ? (
-          <h1 className="text-xl font-semibold text-gray-900">
-            {formatNumber(value)}
-          </h1>
-        ) : null}
-
-        {/* ✅ CASE 2: Multiple values (array) */}
-        {Array.isArray(value) && (
-          <div className="flex gap-8 mt-1">
-            {value.map((item, i) => (
-              <div key={i}>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  {formatNumber(item.value)}
-                </h1>
-                <p className="text-xs text-gray-600">{item.label}</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ✅ CASE 3: Object values */}
-        {typeof value === "object" && !Array.isArray(value) && (
-          <div className="flex gap-8 mt-1">
-            {Object.entries(value).map(([key, val], i) => (
-              <div key={i}>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  {formatNumber(val)}
-                </h1>
-                <p className="text-xs text-gray-600 capitalize">
-                  {key}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-
 
 
 const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNavigateToGPMasterData, onNavigateToGPSTracking, onNavigateToContractorDetails, onNavigateToInspection, onNavigateToSchemes, onNavigateToEvents }) => {
@@ -318,6 +253,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     getChangeHistory,
     getLastChange
   } = useLocation();
+
+  // Language translation
+  const { t } = useTranslation('dashboard');
+
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -356,7 +295,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   const [districtStats, setDistrictStats] = useState(null); // { [districtId]: { attendance, contractorPct, gpsVehicles } }
   const [loadingDistrictStats, setLoadingDistrictStats] = useState(false);
 
-  
+
 
   // Utility helpers
   const formatNumber = (num) => (typeof num === 'number' ? num.toLocaleString() : '0');
@@ -2075,7 +2014,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
 
     return [
       {
-        title: 'Total complaints',
+        title: t('totalComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
         icon: List,
         color: '#9ca3af',
@@ -2105,7 +2044,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         }
       },
       {
-        title: 'Open complaints',
+        title: t('openComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.open),
         icon: List,
         color: '#ef4444',
@@ -2195,7 +2134,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         }
       },
       {
-        title: 'Disposed complaints',
+        title: t('disposedComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
         icon: List,
         color: '#14b8a6',
@@ -2642,82 +2581,6 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     console.log('DashboardContent rendering...');
   }
 
-
-  // cards data mapping function - maps API response to UI format with default values
-
-  const mapApiToUI = (res) => {
-    return {
-      // ODF
-      ihhl: res?.odf_sustainability?.ihhl || 0,
-      community_sanitary: res?.odf_sustainability?.csc || 0,
-      total_csc: res?.odf_sustainability?.csc_shala_darpan || 0,
-
-      // SWM
-      segregation_hh: res?.swm_assets?.bins_hh_level || 0,
-      segregation_public: res?.swm_assets?.bins_public_places || 0,
-      compost_pit: res?.swm_assets?.community_compost_pits || 0,
-      segregation_sheds: res?.swm_assets?.segregation_sheds || 0,
-      Tricycles_Manual: res?.swm_assets?.tricycles_manual || 0,
-      e_rickshaws_bettery: res?.swm_assets?.e_rickshaws || 0,
-      Motorized_Vehicles: res?.swm_assets?.motorized_vehicles || 0,
-
-      // LWM
-      Soak_Leach_Pits: res?.lwm_assets?.pits_hh_level || 0,
-      Community_Soak_Leach_Pits: res?.lwm_assets?.community_pits || 0,
-      WSP_Waste_Stabilization_Pond: res?.lwm_assets?.wsp || 0,
-      Dewats: res?.lwm_assets?.dewats || 0,
-      Wetland: res?.lwm_assets?.wetlands || 0,
-      Any_other_Trenching: res?.lwm_assets?.other_treatments || 0,
-      Drainage_channels: res?.lwm_assets?.drainage_channels || 0,
-
-      // PWMU
-      Total_no_established_pwmu: res?.pwmu?.established_pwmu || 0,
-      Total_no_Blocks_Covered_Under_PWMU: res?.pwmu?.blocks_covered_pwmu || 0,
-      Total_No_of_Urban_MRFs: res?.pwmu?.urban_mrfs || 0,
-      Total_No_Blocks_Covered_Under_Urban_MRFs: res?.pwmu?.blocks_covered_urban_mrf || 0,
-
-      // FSM
-      No_twin_pits_Toilets: res?.fsm?.twin_pit_toilets || 0,
-      Single_pits_Toilets: res?.fsm?.single_pit_toilets || 0,
-      Septic_bank_Toilets: res?.fsm?.septic_tank_toilets || 0,
-      Retrofitted_toilets: res?.fsm?.retrofitted_toilets || 0,
-      Mechanized_DeSludging: res?.fsm?.mechanized_desludging || 0,
-
-      FSTPs: {
-        rural: res?.fsm?.fstps_rural || 0,
-        urban: res?.fsm?.fstps_urban || 0,
-      },
-
-      GOBARDhan_Project: res?.gobardhan?.total_projects || 0,
-
-      // D2D
-      Total_gps: res?.d2d_activities?.gps_with_d2d_active || 0,
-
-      Total_Work_Sanctioned_Status: [
-        { label: "Tender", value: res?.d2d_activities?.sanctioned_tender || 0 },
-        { label: "Self GP", value: res?.d2d_activities?.sanctioned_self_gp || 0 },
-        { label: "CSR/NGO", value: res?.d2d_activities?.sanctioned_csr_ngo || 0 },
-        { label: "SHG", value: res?.d2d_activities?.sanctioned_shg || 0 },
-      ],
-
-      Total_Expenditure_Amt: res?.d2d_activities?.total_expenditure || 0,
-      Total_Vehicles_Collection_transportation_waste: res?.d2d_activities?.vehicles_deployed || 0,
-      Total_Persons_Deployed: res?.d2d_activities?.persons_deployed || 0,
-      Total_House_Hold_Covered: res?.d2d_activities?.households_covered || 0,
-
-      work_status: [
-        { label: "Start", value: res?.d2d_activities?.status_start || 0 },
-        { label: "Running", value: res?.d2d_activities?.status_running || 0 },
-        { label: "Completed", value: res?.d2d_activities?.status_completed || 0 },
-      ],
-    };
-  };
-
-  
-
- 
-
-
   useEffect(() => {
     const fetchAssetsData = async () => {
       setLoading(true);
@@ -2728,7 +2591,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           'annual-surveys/analytics/assets'
         );
 
-        const mapped = mapApiToUI(res?.data || {});
+        const mapped = mapAssetsApiToUI(res?.data || {});
         setApiDataCard(mapped);
 
         console.log("✅ Assets API:", mapped);
@@ -2745,432 +2608,6 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     fetchAssetsData();
   }, []);
 
-  const dashboardSections = [
-    {
-      title: "ODF Sustainability",
-      cards: [
-        {
-          key: "ihhl",
-          label: "IHHL",
-          bgColor: "#ECFDF5",
-          textColor: "#065F46",
-          border: "#A7F3D0",
-          bgImg: "/ODF.png",
-        },
-        {
-          key: "community_sanitary",
-          label: "Community Sanitary Complex (CSC)",
-          bgColor: "#ECFDF5",
-          textColor: "#065F46",
-          border: "#A7F3D0",
-          bgImg: "/ODF.png",
-        },
-        {
-          key: "total_csc",
-          label: "Total No. of CSCs in Shala Darpan (Schools)",
-          bgColor: "#ECFDF5",
-          textColor: "#065F46",
-          border: "#A7F3D0",
-          bgImg: "/ODF.png",
-        },
-      ],
-    },
-
-    {
-      title: "Solid Waste Management",
-      cards: [
-        {
-          key: "segregation_hh",
-          label: "Segregation Bins at HH Level",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "segregation_public",
-          label: "Segregation Bins at Public Places",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "compost_pit",
-          label: "Community Compost Pit",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "segregation_sheds",
-          label: "Segregation Sheds(RRC)",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "Tricycles_Manual",
-          label: "Tricycles (Manual)",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "e_rickshaws_bettery",
-          label: "E-Rickshaws/Bettery operated Vehicles",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-        {
-          key: "Motorized_Vehicles",
-          label: "Motorized Vehicles",
-          bgColor: "#F0F9FF",
-          textColor: "#364153",
-          border: "#F0F9FF",
-          bgImg: "/solidWast.png",
-        },
-      ],
-    },
-    {
-      title: "Liquid Waste Management",
-      cards: [
-        {
-          key: "Soak_Leach_Pits",
-          label: "Soak/Magic/Leach pits at HH Level",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "Community_Soak_Leach_Pits",
-          label: "Community Soak/Magic/Leach pits",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "WSP_Waste_Stabilization_Pond",
-          label: "WSP (Waste Stabilization Pond)",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "Dewats",
-          label: "Dewats",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "Wetland",
-          label: "Wetland",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "Any_other_Trenching",
-          label: "Any Other (Trenching, Phytorids, etc.)",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-        {
-          key: "Drainage_channels",
-          label: "Drainage channels",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/liquidWast.png",
-        },
-      ],
-    },
-    {
-      title: "Plastic Waste Management Unit(PWMUs)",
-      cards: [
-        {
-          key: "Total_no_established_pwmu",
-          label: "Total No. of Established PWMU",
-          bgColor: "#EEEDFF",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/plasticWaste.png",
-        },
-        {
-          key: "Total_no_Blocks_Covered_Under_PWMU",
-          label: "Total No. of Blocks Covered Under PWMU",
-          bgColor: "#EEEDFF",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/plasticWaste.png",
-        },
-        {
-          key: "Total_No_of_Urban_MRFs",
-          label: "Total No. of Urban MRFs",
-          bgColor: "#EEEDFF",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/plasticWaste.png",
-        },
-        {
-          key: "Total_No_Blocks_Covered_Under_Urban_MRFs",
-          label: "Total No. of Blocks Covered Under Urban MRFs",
-          bgColor: "#EEEDFF",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/plasticWaste.png",
-        },
-      ],
-    },
-    {
-      title: "Faecal Sludge Management (FSM)",
-      cards: [
-        {
-          key: "No_twin_pits_Toilets",
-          label: "No. of twin pits Toilets",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "Single_pits_Toilets",
-          label: "No. of Single pits Toilets",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "Septic_bank_Toilets",
-          label: "No. of Septic tank Toilets",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "Retrofitted_toilets",
-          label: "No. of Retrofitted toilets",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "Mechanized_DeSludging",
-          label: "Mechanized De-Sludging",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "FSTPs",
-          label: "No. of FSTPs",
-          subLabels: [
-            "rural",
-            "urban"
-          ],
-          // width: "279px",
-          bgColor: "#FFEDF3",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/FSM.png",
-        },
-        {
-          key: "GOBARDhan_Project",
-          label: "GOBAR-dhan Project",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/gobar.png",
-          width: "558px",
-        },
-      ],
-    },
-    {
-      title: "Door to Door Waste Collection, Segregation & Disposal Activities",
-      cards: [
-        {
-          key: "Total_gps",
-          label: "Total No. GPs",
-          bgColor: "#FFEDD5",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorhouse.png",
-        },
-        {
-          key: "Total_Work_Sanctioned_Status",
-          label: "Total No. of Work Sanctioned",
-          subLabels: [
-            "Tender",
-            "Self GP",
-            "CSR/NGO",
-            "SHG"
-          ],
-          width: "558px",
-          bgColor: "#FFEDD5",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorimg.png",
-        },
-        {
-          key: "Total_Expenditure_Amt",
-          label: "Total Expenditure Amt. (Rs in Lakhs)",
-          bgColor: "#FFEDD5",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorimg.png",
-        },
-        {
-          key: "Total_Vehicles_Collection_transportation_waste",
-          label: "Total No. of Vehicles for Collection and transportation of waste ",
-          bgColor: "#FFEDD5",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoortruck.png",
-        },
-        {
-          key: "Total_Persons_Deployed",
-          label: "Total No. of Persons Deployed (Sanitation Worker)",
-          bgColor: "#FFEDD5",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorman.png",
-        },
-        {
-          key: "Total_House_Hold_Covered",
-          label: "Total No. of House Hold Covered",
-          bgColor: "#FEFCE8",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorimg.png",
-        },
-        {
-          key: "work_status",
-          label: "Work Status",
-          subLabels: [
-            "Start",
-            "Running",
-            "Completed"
-          ],
-          bgColor: "#FEFCE8",
-          // width: "279px",
-          textColor: "#364153",
-          border: "#E5E7EB",
-          bgImg: "/doortodoorimg.png",
-        },
-      ],
-    },
-  ];
-
-
-  const apiData = {
-    // ODF
-    ihhl: "8602045",
-    community_sanitary: "28152",
-    total_csc: "",
-
-    // Solid waste
-    segregation_hh: "40102",
-    segregation_public: "48692",
-    compost_pit: "69523",
-    segregation_sheds: "38282",
-    Tricycles_Manual: '34732',
-    e_rickshaws_bettery: '6236',
-    Motorized_Vehicles: '3480',
-
-    // Liquid Waste
-    Soak_Leach_Pits: '47673',
-    Community_Soak_Leach_Pits: '237218',
-    WSP_Waste_Stabilization_Pond: '172',
-    Dewats: '0',
-    Wetland: '0',
-    Any_other_Trenching: '0',
-    Drainage_channels: '1746.47',
-
-    // Plastic Waste
-    Total_no_established_pwmu: '2',
-    Total_no_Blocks_Covered_Under_PWMU: '7',
-    Total_No_of_Urban_MRFs: '15',
-    Total_No_Blocks_Covered_Under_Urban_MRFs: '43',
-
-    // FSM
-    No_twin_pits_Toilets: '1921914',
-    Single_pits_Toilets: '1531901',
-    Septic_bank_Toilets: '311435',
-    Retrofitted_toilets: '684',
-    Mechanized_DeSludging: '0',
-    // multiple values (object)
-    FSTPs: {
-      rural: "0",
-      urban: "4",
-    },
-    GOBARDhan_Project: '21',
-
-    // Door to Door
-    Total_gps: '11214',
-    Total_Work_Sanctioned_Status: [
-      { label: "Through Tender", value: "8850" },
-      { label: "Self by GPs", value: "1611" },
-      { label: "Through CSR/NGOs", value: "21" },
-      { label: "Through SHGs", value: "537" },
-    ],
-    Total_Expenditure_Amt: "4738.51",
-    Total_Vehicles_Collection_transportation_waste: '44448',
-    Total_Persons_Deployed: '',
-    Total_House_Hold_Covered: '',
-    work_status: [
-      { label: "Work Start", value: "" },
-      { label: "Work Running", value: "" },
-      { label: "Work Completed", value: "" },
-    ],
-
-
-
-
-
-    // multiple values (object)
-    // work_status: {
-    //   start: "3,523",
-    //   running: "3,523",
-    //   completed: "3,523",
-    // },
-    // no_of_fstps: {
-    //   rural: "3,523",
-    //   urban: "3,523",
-    // },
-    // multiple values (array)
-    // wokd_saction: [
-    //   { label: "Rural", value: "2,395" },
-    //   { label: "Rural", value: "2,395" },
-    //   { label: "Urban", value: "2,395" },
-    //   { label: "Urban", value: "2,395" },
-    // ],
-  };
-
-  // const districtTableData = (districts || []).map((d) => ({
-  //   districtName: d.name,
-  //   districtId: d.id,
-
-  //   ...apiDataCard, // 🔥 IMPORTANT
-
-  //   blocks: [],
-  // }));
 
   const fetchDistrictsAssets = async () => {
     setLoadingDis(true);
@@ -3183,7 +2620,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         districtName: item.geography_name,
         districtId: item.geography_id,
 
-        ...mapApiToUI(item.assets)
+        ...mapAssetsApiToUI(item.assets)
       }));
     } catch (error) {
       console.error("❌ Error fetching districts assets:", error);
@@ -3195,44 +2632,59 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   };
 
   const fetchBlocksDataAssets = async (districtId) => {
-    const res = await apiClient.get(
-      "annual-surveys/analytics/assets/drill-down",
-      {
-        params: {
-          district_id: districtId,
+    setLoadingBlocks(true);
+    try {
+      const res = await apiClient.get(
+        "annual-surveys/analytics/assets/drill-down",
+        {
+          params: {
+            district_id: districtId,
+          }
         }
-      }
-    );
+      );
 
-    return (res.data?.items || []).map(item => ({
-      ...item,
+      return (res.data?.items || []).map(item => ({
+        ...item,
 
-      blockName: item.geography_name,
-      blockId: item.geography_id,
+        blockName: item.geography_name,
+        blockId: item.geography_id,
 
-      districtId: districtId,
+        districtId: districtId,
 
-      ...mapApiToUI(item.assets)
-    }));
+        ...mapAssetsApiToUI(item.assets)
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching districts assets:", error);
+      return [];
+    } finally {
+      setLoadingBlocks(false);
+    }
   };
 
   const fetchGPDataAssets = async (districtId, blockId) => {
-
-    const res = await apiClient.get(
-      "annual-surveys/analytics/assets/drill-down",
-      {
-        params: {
-          district_id: districtId,
-          block_id: blockId,
+    setLoadingGPs(true);
+    try {
+      const res = await apiClient.get(
+        "annual-surveys/analytics/assets/drill-down",
+        {
+          params: {
+            district_id: districtId,
+            block_id: blockId,
+          }
         }
-      }
-    );
-    return (res.data?.items || []).map(item => ({
-      gpName: item.geography_name,
-      gpId: item.geography_id,
+      );
+      return (res.data?.items || []).map(item => ({
+        gpName: item.geography_name,
+        gpId: item.geography_id,
 
-      ...mapApiToUI(item.assets)
-    }));
+        ...mapAssetsApiToUI(item.assets)
+      }));
+    } catch (error) {
+      console.error("❌ Error fetching districts assets:", error);
+      return [];
+    } finally {
+      setLoadingGPs(false);
+    }
   };
 
   useEffect(() => {
@@ -3293,7 +2745,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
           color: '#111827',
           margin: '0 0 16px 0'
         }}>
-          Overview {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+          {t("common:overview")} {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
@@ -3352,11 +2804,11 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
             marginBottom: "16px",
           }}
         >
-          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>{t("assets.assets")}</h1>
         </div>
 
         {/* Sections */}
-        {dashboardSections.map((section, i) => (
+        {assetsSections.map((section, i) => (
           <div key={i} style={{ marginBottom: "24px" }}>
 
             {/* Section Heading */}
@@ -3368,7 +2820,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                 color: "#374151",
               }}
             >
-              {section.title}
+              {t(`assets.${section.title}`)}
             </h2>
 
             {/* Cards */}
@@ -3383,13 +2835,10 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
               {section.cards.map((card, j) => (
                 <SlideDrawer
                   key={j}
-                  title={`${section.title} - ${card.label}`}
-                  clickFunction={() => {
-                    console.log("API call", card.key);
-                  }}
+                  title={`${t(`assets.${section.title}`)}`}
                   trigger={
-                    <Card
-                      title={card.label}
+                    <DashBoardCards
+                      title={t(`assets.${card.label}`)}
                       value={
                         loading
                           ? "..."
@@ -3413,15 +2862,15 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={
                         activeScope === 'Blocks' ? 'block' :
-                        activeScope === 'GPs' ? 'gp' :
-                        'district'
+                          activeScope === 'GPs' ? 'gp' :
+                            'district'
                       }
                       selectedDistrict={selectedDistrictForHierarchy}
                       selectedBlock={selectedBlockForHierarchy}
                       fetchBlocks={fetchBlocks}
                       fetchGramPanchayats={fetchGramPanchayats}
                       AssetsTable={AssetsTable}
-                      mapApiToUI={mapApiToUI}
+                      mapApiToUI={mapAssetsApiToUI}
                       closeParentDrawer={closeDrawer}
                     />
                   )}
@@ -3541,7 +2990,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   color: '#111827',
                   margin: 0
                 }}>
-                  Contractor details
+                  {t("common:contractorDetails")}
                 </h2>
                 <InfoTooltip
                   text="Shows the active vendor’s profile and contract details for this location."
@@ -3560,7 +3009,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                  Loading Contractor details...
+                   {t("table:loadingContractorData")}
                 </div>
               )}
 
@@ -3594,7 +3043,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                        Name
+                         {t("table:name")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3612,7 +3061,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                        Annual contract amount
+                         {t("table:annualContractAmount")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3630,7 +3079,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                        Frequency of work
+                        {t("table:frequencyOfWork")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3651,7 +3100,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                        Work order date
+                        {t("table:workOrderDate")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3669,7 +3118,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                        Duration of work
+                         {t("table:durationOfWork")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3693,7 +3142,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                  No vendor details available for this Gram Panchayat
+                  {t("table:noVendorDetailsAvailableForThisGramPanchayat")}
                 </div>
               )}
             </div>

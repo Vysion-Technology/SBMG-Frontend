@@ -6,6 +6,7 @@ import { useLocation } from '../../context/LocationContext';
 import SendNoticeModal from './common/SendNoticeModal';
 import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
@@ -167,6 +168,7 @@ const AttendanceContent = () => {
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useLocation();
 
+  const { t } = useTranslation(['table', 'common', 'cscCleaning']);
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [districts, setDistricts] = useState([]);
@@ -387,10 +389,10 @@ const AttendanceContent = () => {
   };
 
   const _scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
-  const performanceButtons = ['Time', 'Location'];
+  const performanceButtons = ['time', 'location'];
   const _filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
   const top3ScopeOptions = ['District', 'Block', 'GP'];
-  const top3PeriodButtons = ['Month', 'Year'];
+  const top3PeriodButtons = ['monthly', 'yearly'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -1941,7 +1943,7 @@ const AttendanceContent = () => {
     // For GP view, show date-wise data
     if (activeScope === 'GPs') {
       return responseData.map(item => {
-        const status = (item.present_count || 0) > 0 ? 'CSC Cleaned' : 'CSC Not Cleaned';
+        const status = (item.present_count || 0) > 0 ? t('csc:cscCleaned') : t('csc:cscNotCleaned');
         return {
           id: `${item.geography_id}_${item.date}`,
           date: item.date,
@@ -2479,18 +2481,18 @@ const AttendanceContent = () => {
       //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
       // },
       {
-        title: 'CSC Cleaned',
+        title: t('csc:cscCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserX,
         color: '#ef4444',
-        tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
+        tooltipText: t('csc:presentAttendanceDescription')
       },
       {
-        title: 'CSC Not Cleaned',
+        title: t('csc:cscNotCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
-        tooltipText: 'Number of vendors and supervisors who were absent or did not mark attendance for the selected date/period.'
+        tooltipText: t('csc:absentAttendanceDescription')
       }
     ];
   };
@@ -2760,7 +2762,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -3115,7 +3117,7 @@ const AttendanceContent = () => {
                   marginTop: '4px',
                   marginLeft: '20px'
                 }}>
-                  Loading...
+                  {t('table:loading')}
                 </div>
               )}
 
@@ -3203,7 +3205,7 @@ const AttendanceContent = () => {
                       marginTop: '4px',
                       marginLeft: '20px'
                     }}>
-                      Loading...
+                      {t('table:loading')}
                     </div>
                   )}
 
@@ -3239,7 +3241,7 @@ const AttendanceContent = () => {
               right: '12px'
             }}>
               <InfoTooltip
-                text="Overall attendance statistics for vendors and supervisors in the selected date/period and location."
+                text={t('csc:totalAttendanceDescription')}
                 size={16}
                 color="#9ca3af"
               />
@@ -3258,7 +3260,7 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                CSC Cleaning
+                {t('csc:cscCleaning')}
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -3283,7 +3285,7 @@ const AttendanceContent = () => {
                   <div>
                     <SegmentedGauge
                       percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
-                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
+                      label={loadingAnalytics ? t('table:loading') : t('csc:cscCleaned')}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -3330,10 +3332,10 @@ const AttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Top 3
+                  {t('csc:top3')}
                 </h2>
                 <InfoTooltip
-                  text="Top 3 performers ranked by attendance score. Monthly score = attendance % for selected month. Yearly score = average attendance % across all months in the selected year."
+                  text={t('csc:topPerformersDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3439,7 +3441,7 @@ const AttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {period}
+                      {t(`csc:${period}`)}
                     </button>
                   ))}
                 </div>
@@ -3580,9 +3582,9 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {activeScope === 'State' ? 'District' :
-                        activeScope === 'Districts' ? 'Block' :
-                          activeScope === 'Blocks' ? 'GP' : 'GP'}
+                      {activeScope === 'State' ? t('common:district') :
+                        activeScope === 'Districts' ? t('common:block') :
+                          activeScope === 'Blocks' ? t('common:gp') : t('common:gp')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3591,7 +3593,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
+                      {top3Period === 'Month' ? t('csc:monthlyScore') : t('csc:yearlyScore')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3600,7 +3602,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Rank
+                      {t('csc:rank')}
                     </th>
                   </tr>
                 </thead>
@@ -3613,7 +3615,7 @@ const AttendanceContent = () => {
                         fontSize: '14px',
                         color: '#6b7280'
                       }}>
-                        Loading top 3 data...
+                        {t('table:loading')}
                       </td>
                     </tr>
                   ) : (top3Error || top3Data.length === 0) ? (
@@ -3699,12 +3701,12 @@ const AttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {activeScope === 'State' ? 'State performance score' :
-                    activeScope === 'Districts' ? 'District performance score' :
-                      activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
+                  {activeScope === 'State' ? t('csc:statePerformanceScore') :
+                    activeScope === 'Districts' ? t('csc:districtPerformanceScore') :
+                      activeScope === 'Blocks' ? t('csc:blockPerformanceScore') : t('csc:gpPerformanceScore')}
                 </h2>
                 <InfoTooltip
-                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned / CSC Not Cleaned) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  text={t('csc:performanceScoreDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3738,7 +3740,7 @@ const AttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {scope}
+                      {t(`csc:${scope}`)}
                     </button>
                   ))}
                 </div>
@@ -3839,7 +3841,7 @@ const AttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Below state average
+                  {t('csc:belowStateAverage')}
                 </span>
               </div>
               <div style={{
@@ -3857,7 +3859,7 @@ const AttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Above state average
+                  {t('csc:aboveStateAverage')}
                 </span>
               </div>
             </div>
@@ -3885,7 +3887,7 @@ const AttendanceContent = () => {
                       color: '#6b7280',
                       fontSize: '14px'
                     }}>
-                      Loading chart data...
+                      {t('table:loading')}
                     </div>
                   );
                 }
@@ -4016,7 +4018,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              CSC Cleaning
+              {t('csc:cscCleaning')}
             </h2>
             {viewingContractorsForGp && (
               <span style={{
@@ -4066,7 +4068,7 @@ const AttendanceContent = () => {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              ← Back to GPs
+              ← {t('table:backToGPs')}
             </button>
           )}
           {viewingGpsAttendanceForBlock && !viewingContractorsForGp && (
@@ -4098,7 +4100,7 @@ const AttendanceContent = () => {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              ← Back to Blocks
+              ← {t('table:backToBlocks')}
             </button>
           )}
           {viewingBlocksAttendanceForDistrict && !viewingGpsAttendanceForBlock && (
@@ -4126,7 +4128,7 @@ const AttendanceContent = () => {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              ← Back to Districts
+              ← {t('table:backToDistricts')}
             </button>
           )}
         </div>
@@ -4160,7 +4162,7 @@ const AttendanceContent = () => {
                   color: '#374151'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
-                    {viewingContractorsForGp ? 'Total Contractors' : viewingGpsAttendanceForBlock ? `GP Name (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `Block Name (${blockAttendanceSummaryData.length})` : `District Name (${districtAttendanceSummaryData.length})`}
+                    {viewingContractorsForGp ? (t('table:totalContractors')) : viewingGpsAttendanceForBlock ? `${t('table:gpName')} (${gpAttendanceSummaryData.length})` : viewingBlocksAttendanceForDistrict ? `${t('table:blockName')} (${blockAttendanceSummaryData.length})` : `${t('table:districtName')}  (${districtAttendanceSummaryData.length})`}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('name')}>
@@ -4177,7 +4179,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      CSC Cleaned
+                      {t('csc:cscCleaned')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -4186,7 +4188,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      CSC Not Cleaned
+                      {t('csc:cscNotCleaned')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -4196,7 +4198,7 @@ const AttendanceContent = () => {
                       color: '#374151'
                     }}>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }} >
-                        CSC Cleaning %
+                        {t('csc:cscCleaning')} %
                       </div>
                     </th>
                   </>
@@ -4210,7 +4212,7 @@ const AttendanceContent = () => {
                     color: '#374151'
                   }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center' }}>
-                      CSC Cleaned %
+                      {t('csc:cscCleaned')} %
 
 
                       <span
@@ -4305,7 +4307,7 @@ const AttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading {viewingGpsAttendanceForBlock ? 'GP' : viewingBlocksAttendanceForDistrict ? 'block' : 'district'} data...
+                    {t('table:loading')} {viewingGpsAttendanceForBlock ? 'GP' : viewingBlocksAttendanceForDistrict ? 'block' : 'district'} data...
                   </td>
                 </tr>
               ) : (() => {
@@ -4408,7 +4410,7 @@ const AttendanceContent = () => {
                             color: '#6b7280',
                             marginTop: '4px'
                           }}>
-                            Total Contractors: {item.total_contractors}
+                            {(t('table:totalContractors'))}: {item.total_contractors}
                           </div>
                         </div>
                       </td>
@@ -4470,7 +4472,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              CSC History
+              {t('csc:cscHistory')}
             </h2>
             <div
               onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
@@ -4629,7 +4631,7 @@ const AttendanceContent = () => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={historySearchTerm}
                 onChange={(e) => setHistorySearchTerm(e.target.value)}
                 style={{
@@ -4689,10 +4691,10 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Date' :
-                    activeScope === 'State' ? 'District name' :
-                      activeScope === 'Districts' ? 'Block name' :
-                        activeScope === 'Blocks' ? 'GP name' : 'Village name'}
+                  {activeScope === 'GPs' ? (t('table:date')) :
+                    activeScope === 'State' ? (t('table:districtName')) :
+                      activeScope === 'Districts' ? (t('table:blockName')) :
+                        activeScope === 'Blocks' ? (t('table:gpName')) : (t('table:villageName'))}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -4716,7 +4718,7 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaned (%)'}
+                  {activeScope === 'GPs' ? 'Status' : `${t('csc:cscCleaned')} (%)`}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -4739,7 +4741,7 @@ const AttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  Action
+                  {t('table:action')}
                 </th>
               </tr>
             </thead>
@@ -4752,7 +4754,7 @@ const AttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading history...
+                    {t('table:loading')}
                   </td>
                 </tr>
               ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
@@ -4802,7 +4804,7 @@ const AttendanceContent = () => {
                           color: '#374151',
                           cursor: 'pointer'
                         }}>
-                        Send notice
+                       {t('table:sendNotice')}
                       </button>
                     </td>
                   </tr>

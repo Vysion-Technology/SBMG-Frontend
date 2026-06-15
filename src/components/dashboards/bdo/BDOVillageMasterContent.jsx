@@ -12,6 +12,7 @@ import autoTable from "jspdf-autotable";
 import { HINDI_FONT } from '../../../utils/font';
 import * as XLSX from "xlsx";
 import EditGPMasterModal from '../common/EditGPMasterModal';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -43,6 +44,8 @@ const BDOVillageMasterContent = () => {
     bdoBlockName,
     loadingBDOData
   } = useBDOLocation();
+
+  const { t } = useTranslation(["common", "table", "gpMaster"])
 
   // BDO always uses their district ID and block ID from /me API
   const selectedDistrictId = bdoDistrictId || null;
@@ -224,7 +227,7 @@ const BDOVillageMasterContent = () => {
   }, []);
 
   // Function to generate PDF from survey data
-   const generatePDF = (data, action = 'download') => {
+  const generatePDF = (data, action = 'download') => {
     const doc = new jsPDF("p", "mm", "a4");
     const pageWidth = doc.internal.pageSize.getWidth();
     let y = 20;
@@ -1453,7 +1456,7 @@ const BDOVillageMasterContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
           </div>
           {/* Year dropdown - view previous years' master data */}
@@ -1517,7 +1520,7 @@ const BDOVillageMasterContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Total GP Master Data
+                  {t('gpmaster:totalGPMasterData')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <InfoTooltip tooltipKey="TOTAL_GP_MASTER_DATA" size={16} color="#6b7280" />
@@ -1565,7 +1568,7 @@ const BDOVillageMasterContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Village GP Data Coverage
+                  {t('gpmaster:villageGPDataCoverage')}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <InfoTooltip tooltipKey="VILLAGE_GP_DATA_COVERAGE" size={16} color="#6b7280" />
@@ -1603,56 +1606,57 @@ const BDOVillageMasterContent = () => {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Total funds sanctioned
+                {t('gpmaster:totalFundsSanctioned')}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
               </div>
             </div>
-                        <div style={{
-                          fontSize: '24px',
-                          fontWeight: '700',
-                          color: analyticsError ? '#ef4444' : '#111827',
-                          margin: 0
-                        }}>
-                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
-                        </div>
-                      </div>
-            
-                      {/* Total work order Amount */}
-                      <div style={{
-                        backgroundColor: 'white',
-                        padding: '20px',
-                        borderRadius: '12px',
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          marginBottom: '12px'
-                        }}>
-                          <h3 style={{
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            color: '#6b7280',
-                            margin: 0
-                          }}>
-                            Total work order Amount
-                          </h3>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-                          </div>
-                        </div>
-                        <div style={{
-                          fontSize: '24px',
-                          fontWeight: '700',
-                          color: analyticsError ? '#ef4444' : '#111827',
-                          margin: 0
-                        }}>
-                          {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
-                        </div>          </div>
+            <div style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: analyticsError ? '#ef4444' : '#111827',
+              margin: 0
+            }}>
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
+            </div>
+          </div>
+
+          {/* Total work order Amount */}
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px'
+            }}>
+              <h3 style={{
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#6b7280',
+                margin: 0
+              }}>
+                {t('gpmaster:totalWorkOrderAmount')}
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
+              </div>
+            </div>
+            <div style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              color: analyticsError ? '#ef4444' : '#111827',
+              margin: 0
+            }}>
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
+            </div>          </div>
+
 
         </div>
 
@@ -1683,7 +1687,7 @@ const BDOVillageMasterContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  SBMG Target vs. Achievement
+                  {t('gpmaster:coverageOverview')}
                 </h3>
                 {/* Legend */}
                 <div style={{
@@ -1724,90 +1728,7 @@ const BDOVillageMasterContent = () => {
             </div>
           )}
 
-          {/* Annual Overview */}
-          <div style={{
-            flex: activeScope === 'GPs' ? 'none' : 1,
-            width: activeScope === 'GPs' ? '100%' : 'auto',
-            backgroundColor: 'white',
-            padding: '14px',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '2px'
-            }}>
-              Annual Overview
-            </h3>
-            <div style={{ height: '1px', backgroundColor: '#e5e7eb', margin: '12px 0' }}></div>
 
-            {/* Metrics List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Fund Utilization rate */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
-                  <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate ?? analyticsData?.fund_utilization_rate ?? '0')}%
-                </span>
-              </div>
-
-              {/* Average Cost Per Household */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
-                  <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : `₹${formatNumber(analyticsData?.annual_overview?.average_cost_per_household_d2d || 0)}`}
-                </span>
-              </div>
-
-              {/* Household covered - Hidden in GP view */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Household covered (D2D)</span>
-                    <InfoTooltip tooltipKey="HOUSEHOLDS_COVERED_D2D" size={14} color="#6b7280" />
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.households_covered_d2d ?? analyticsData?.households_covered_d2d ?? 0)}
-                  </span>
-                </div>
-              )}
-
-              {/* GPs with Identified Asset Gaps */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid #e5e7eb' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>GPs with Identified Asset Gaps</span>
-                    <InfoTooltip tooltipKey="GPS_WITH_ASSET_GAPS" size={14} color="#6b7280" />
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.gps_with_asset_gaps || 0)}
-                  </span>
-                </div>
-              )}
-
-              {/* Active Sanitation Bidders */}
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
-                    <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : formatNumber(analyticsData?.annual_overview?.active_sanitation_bidders || 0)}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
 
@@ -1830,7 +1751,7 @@ const BDOVillageMasterContent = () => {
             color: '#111827',
             margin: '0 0 16px 0'
           }}>
-            Report
+            {t('table:report')}
           </h3>
 
           {/* Table */}
@@ -1852,21 +1773,21 @@ const BDOVillageMasterContent = () => {
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Year
+                {t('table:year')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Master Data
+                {t('table:masterData')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Action
+                {t('table:action')}
               </div>
             </div>
 
@@ -1875,7 +1796,7 @@ const BDOVillageMasterContent = () => {
               const survey = gpSurveyList[0];
               const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
               const hasData = !!survey;
-              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? 'Available' : 'Not Available');
+              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? t('table:available') : t('table:notAvailable'));
               return (
                 <div style={{
                   display: 'grid',
@@ -1896,6 +1817,7 @@ const BDOVillageMasterContent = () => {
                     gap: '8px'
                   }}>
                     <button
+                      onClick={() => handleOpenNoticeModal({ id: survey?.id ?? 1, name: 'GP Report', type: 'GP' })}
                       style={{
                         padding: '6px 12px',
                         backgroundColor: '#f3f4f6',
@@ -1905,28 +1827,27 @@ const BDOVillageMasterContent = () => {
                         color: '#374151',
                         cursor: 'pointer'
                       }}
-                      onClick={() => handleOpenNoticeModal({ id: survey?.id ?? 1, name: 'GP Report', type: 'GP' })}
                     >
-                      Send notice
+                      {t('table:sendNotice')}
                     </button>
                     {/* <button
-                  onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
-                  disabled={!hasData}
-                  title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
-                  style={{
-                    padding: '6px',
-                    backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    cursor: hasData ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: hasData ? 1 : 0.6
-                  }}
-                >
-                  <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
-                </button> */}
+                        onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
+                        disabled={!hasData}
+                        title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
+                        style={{
+                          padding: '6px',
+                          backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '8px',
+                          cursor: hasData ? 'pointer' : 'not-allowed',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: hasData ? 1 : 0.6
+                        }}
+                      >
+                        <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
+                      </button> */}
                     <button
                       onClick={() => hasData && handleDownloadPDF(survey.id)}
                       disabled={!hasData}
@@ -1964,7 +1885,7 @@ const BDOVillageMasterContent = () => {
                         opacity: hasData ? 1 : 0.6
                       }}
                     >
-                      View
+                      {t('table:view')}
                     </button>
                   </div>
                 </div>
@@ -2008,7 +1929,11 @@ const BDOVillageMasterContent = () => {
               margin: 0,
               marginBottom: '12px'
             }}>
-              {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise Coverage
+              {activeScope === 'Districts'
+                ? `${selectedLocation || ''}`
+                : activeScope === 'Blocks'
+                  ? `${selectedBlockForHierarchy?.name || ''}`
+                  : ''}
             </h3>
 
             <h3>
@@ -2114,8 +2039,11 @@ const BDOVillageMasterContent = () => {
                         color: '#374151',
                         cursor: 'pointer'
                       }}>
-                      {activeScope === 'State' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
-
+                      {activeScope === 'State'
+                        ? t('table:districtName')
+                        : activeScope === 'Districts'
+                          ? t('table:blockName')
+                          : t('table:gpName')}
                       ({totalGeographyCount})
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
@@ -2132,7 +2060,7 @@ const BDOVillageMasterContent = () => {
                         color: '#374151',
                         cursor: 'pointer'
                       }}>
-                      Status
+                      {t('table:status')}
                       <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                     </div>
                     <div style={{
@@ -2142,7 +2070,7 @@ const BDOVillageMasterContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Action
+                      {t('table:action')}
                     </div>
                   </div>
 
@@ -2159,11 +2087,11 @@ const BDOVillageMasterContent = () => {
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                     >
-                      <div 
+                      <div
                         onClick={() => handleRowClick(item)}
-                        style={{ 
-                          fontSize: '14px', 
-                          color: '#10b981', 
+                        style={{
+                          fontSize: '14px',
+                          color: '#10b981',
                           fontWeight: '500',
                           cursor: 'pointer',
                           textDecoration: 'underline'

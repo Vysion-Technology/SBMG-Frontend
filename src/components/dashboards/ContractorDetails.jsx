@@ -4,6 +4,7 @@ import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
 import apiClient, { annualSurveysAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const ContractorDetails = () => {
 
@@ -35,6 +36,8 @@ const ContractorDetails = () => {
         trackDropdownChange: contextTrackDropdownChange,
         getCurrentLocationInfo: contextGetCurrentLocationInfo
     } = useLocation();
+
+    const { t } = useTranslation(['common', 'table', 'gpMaster']);
 
     // UI controls state
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -1133,7 +1136,7 @@ const ContractorDetails = () => {
                             color: '#111827',
                             margin: 0
                         }}>
-                            Overview
+                            {t('common:overview')}
                         </h2>
                     </div>
 
@@ -1169,7 +1172,7 @@ const ContractorDetails = () => {
                                         color: '#6b7280',
                                         margin: 0
                                     }}>
-                                        Contractor Data Filled
+                                        {t('gpmaster:contractorDataFilled')}
                                         {/*   (total filled constrator / total contractor) * 100    */}
                                     </h3>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1206,7 +1209,7 @@ const ContractorDetails = () => {
                                         color: '#6b7280',
                                         margin: 0
                                     }}>
-                                        Data Filled covered
+                                        {t('gpmaster:dataFilledCovered')}
                                     </h3>
                                     <InfoTooltip tooltipKey="total_filled_constrator" size={16} color="#9ca3af" />
                                 </div>
@@ -1243,7 +1246,7 @@ const ContractorDetails = () => {
                                 color: '#6b7280',
                                 margin: 0
                             }}>
-                                Total Amount
+                                {t('gpmaster:totalAmount')}
                             </h3>
                             <InfoTooltip tooltipKey="Total_amount" size={16} color="#9ca3af" />
                         </div>
@@ -1287,10 +1290,10 @@ const ContractorDetails = () => {
                                 color: '#111827',
                                 margin: 0
                             }}>
-                                {activeScope === 'State' ? 'District performance score' :
-                                    activeScope === 'Districts' ? 'Block performance score' :
-                                        activeScope === 'Blocks' ? 'GP performance score' :
-                                            'Village performance score'}
+                                {activeScope === 'State' ? t('inspection:districtPerformanceScore') :
+                                    activeScope === 'Districts' ? t('inspection:blockPerformanceScore') :
+                                        activeScope === 'Blocks' ? t('inspection:gpPerformanceScore') :
+                                            t('inspection:villagePerformanceScore')}
                             </h3>
 
                             {/* Legend */}
@@ -1310,10 +1313,10 @@ const ContractorDetails = () => {
                                         backgroundColor: '#ef4444'
                                     }}></div>
                                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        Below {activeScope === 'State' ? 'district average' :
-                                            activeScope === 'Districts' ? 'block average' :
-                                                activeScope === 'Blocks' ? 'GP average' :
-                                                    'village average'}
+                                        {t('inspection:below')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                                            activeScope === 'Districts' ? t('inspection:blockAverage') :
+                                                activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                                                    t('inspection:villageAverage')}
                                     </span>
                                 </div>
                                 <div style={{
@@ -1328,10 +1331,10 @@ const ContractorDetails = () => {
                                         backgroundColor: '#10b981'
                                     }}></div>
                                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        Above {activeScope === 'State' ? 'district average' :
-                                            activeScope === 'Districts' ? 'block average' :
-                                                activeScope === 'Blocks' ? 'GP average' :
-                                                    'village average'}
+                                        {t('inspection:above')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                                            activeScope === 'Districts' ? t('inspection:blockAverage') :
+                                                activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                                                    t('inspection:villageAverage')}
                                     </span>
                                 </div>
                             </div>
@@ -1427,7 +1430,7 @@ const ContractorDetails = () => {
                                         color: '#111827',
                                         margin: 0
                                     }}>
-                                        Contractor Data
+                                        {t('common:contractorDetails')}
                                     </h2>
                                 </div>
                                 <span style={{
@@ -1466,7 +1469,7 @@ const ContractorDetails = () => {
                                     onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                                 >
-                                    ← Back to Districts
+                                    ← {t('table:backToDistricts')}
                                 </button>
                             )}
                             {activeScope === 'Blocks' && (
@@ -1493,7 +1496,7 @@ const ContractorDetails = () => {
                                     onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                                     onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
                                 >
-                                    ← Back to Blocks
+                                    ← {t('table:backToBlocks')}
                                 </button>
                             )}
                         </div>
@@ -1524,9 +1527,9 @@ const ContractorDetails = () => {
                                             alignItems: 'center'
                                         }}
                                     >
-                                        {activeScope === 'State' ? 'District Name' :
-                                            activeScope === 'Districts' ? 'Block Name' :
-                                                activeScope === 'Blocks' ? 'GP Name' : 'Name'}
+                                        {activeScope === 'State' ? t('table:districtName') :
+                                            activeScope === 'Districts' ? t('table:blockName') :
+                                                activeScope === 'Blocks' ? t('table:gpName') : t('table:name')}
 
                                         <span
                                             style={{ cursor: 'pointer', }}
@@ -1549,7 +1552,7 @@ const ContractorDetails = () => {
                                                     alignItems: 'center'
                                                 }}
                                             >
-                                                Total GPs
+                                                {t('table:total')} {t('table:gps')}
                                                 ({getAnalyticsValue('total_gps')})
 
                                                 <span
@@ -1572,7 +1575,7 @@ const ContractorDetails = () => {
                                                     alignItems: 'center'
                                                 }}
                                             >
-                                                GPs with Contractor Data({getAnalyticsValue('gps_with_contractor_data')})
+                                               {t('table:gpsWithContractorData')}({getAnalyticsValue('gps_with_contractor_data')})
                                                 <span
                                                     style={{ cursor: 'pointer', }}
                                                     onClick={() => handleSort('gps_with_data')}>
@@ -1592,7 +1595,7 @@ const ContractorDetails = () => {
                                                     alignItems: 'center'
                                                 }}
                                             >
-                                                Covered %
+                                                {t('table:coverage')} %
                                                 ({getAnalyticsValue('coverage_percentage')}%)
 
                                                 <span
@@ -1618,7 +1621,7 @@ const ContractorDetails = () => {
                                             }}
                                         >
 
-                                            Status
+                                            {t('table:status')}
                                             <span
                                                 style={{ cursor: 'pointer', }}
                                                 onClick={() => handleSort('master_data_status')}>
@@ -1636,7 +1639,7 @@ const ContractorDetails = () => {
                                     if (loadingContractorAnalytics) {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                                Loading contractor data...
+                                                {t('table:loadingContractorData')}
                                             </div>
                                         );
                                     }
@@ -1650,21 +1653,21 @@ const ContractorDetails = () => {
                                     if (loadingDistricts && activeScope === 'State') {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                                Loading districts...
+                                                {t('table:loading')}
                                             </div>
                                         );
                                     }
                                     if ((loadingBlocks || loadingDistrictContractorAnalytics) && activeScope === 'Districts') {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                                Loading blocks...
+                                               {t('table:loading')}
                                             </div>
                                         );
                                     }
                                     if (loadingGPs && activeScope === 'Blocks') {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                                Loading GPs...
+                                                {t('table:loading')}
                                             </div>
                                         );
                                     }
@@ -1673,7 +1676,7 @@ const ContractorDetails = () => {
                                     if (tableData.length === 0) {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                                No data available
+                                                {t('table:noDataAvailable')}
                                             </div>
                                         );
                                     }
@@ -1801,7 +1804,7 @@ const ContractorDetails = () => {
                                 color: '#111827',
                                 margin: 0
                             }}>
-                                Contractor Details
+                                {t('common:contractorDetails')}
                             </h3>
                             <button
                                 onClick={() => {
@@ -1825,14 +1828,14 @@ const ContractorDetails = () => {
                                 onMouseEnter={() => setBackButtonHover(true)}
                                 onMouseLeave={() => setBackButtonHover(false)}
                             >
-                                ← Back to Blocks
+                                ← {t('table:backToGPs')}
                             </button>
                         </div>
                         {/* vendor details page static */}
                         {loadingAnalytics ? (
-                            <div className="text-center text-gray-500">Loading...</div>
+                            <div className="text-center text-gray-500">{t('table:loading')}</div>
                         ) : !analyticsData?.contractors?.length ? (
-                            <div className="text-center text-gray-400">No vendors found</div>
+                            <div className="text-center text-gray-400">{t('table:noDataAvailable')}</div>
                         ) :
                             (
 
@@ -1844,7 +1847,7 @@ const ContractorDetails = () => {
                                                 className='flex flex-col gap-5  max-w-[800px] w-full border border-gray-200 bg-gray-50 rounded-2xl '>
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Name :
+                                                        {t('table:name')} :
                                                     </div>
                                                     <div>
                                                         {item.person_name}
@@ -1852,7 +1855,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Contact Number :
+                                                       {t('table:contactNumber')}  :
                                                     </div>
                                                     <div>
                                                         {item.person_phone}
@@ -1861,7 +1864,7 @@ const ContractorDetails = () => {
 
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Agency name :
+                                                        {t('table:agencyName')} :
                                                     </div>
                                                     <div>
                                                         {item.agency_name || '-'}
@@ -1869,7 +1872,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between'>
                                                     <div>
-                                                        Annual Contract Amount :
+                                                       {t('table:annualContractAmount')}  :
                                                     </div>
 
                                                     <div>
@@ -1879,7 +1882,7 @@ const ContractorDetails = () => {
 
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Contract Start Date :
+                                                        {t('table:contractStartDate')} :
                                                     </div>
                                                     <div>
                                                         {/* {item.contract_start_date} */}
@@ -1889,7 +1892,7 @@ const ContractorDetails = () => {
 
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Contract End Date :
+                                                        {t('table:contractEndDate')} :
                                                     </div>
                                                     <div>
                                                         {new Date(item.contract_end_date).toLocaleDateString()}
@@ -1897,7 +1900,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                        Frequency of work :
+                                                       {t('table:frequencyOfWork')} :
                                                     </div>
                                                     <div>
                                                         {item.contract_frequency}

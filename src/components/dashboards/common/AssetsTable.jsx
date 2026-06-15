@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import SlideDrawer from "../../common/SideDrawer";
 
 const getId = (item) => {
@@ -45,9 +46,9 @@ const formatValue = (key, value) => {
 const renderCellContent = (key, value, subLabels = []) => {
     if (Array.isArray(value)) {
         return (
-            <div className="flex gap-4">
+            <div className="flex gap-5">
                 {value.map((item, index) => (
-                    <div key={index} className="flex flex-col items-center min-w-[50px]">
+                    <div key={index} className="flex flex-col items-center w-[80px]">
                         <span className="font-semibold text-gray-700">
                             {formatValue(key, item.value)}
                         </span>
@@ -59,9 +60,9 @@ const renderCellContent = (key, value, subLabels = []) => {
 
     if (typeof value === "object" && value !== null) {
         return (
-            <div className="flex gap-4">
+            <div className="flex flex gap-5">
                 {Object.entries(value).map(([objKey, val], index) => (
-                    <div key={index} className="flex flex-col items-center min-w-[50px]">
+                    <div key={index} className="flex flex-col items-center w-[80px]">
                         <span className="font-semibold text-gray-700">
                             {formatValue(key, val)}
                         </span>
@@ -85,7 +86,7 @@ const CommonTable = ({
     showBack = false,
 }) => {
     const getColumnWidth = (card) => {
-        if (card.key === "Total_Work_Sanctioned_Status") return "minmax(350px, 3fr)";
+        if (card.key === "Total_Work_Sanctioned_Status") return "minmax(450px, 550px)";
         if (card.key === "FSTPs") return "minmax(300px, 2fr)";
         return "minmax(120px, 200px)";
     };
@@ -94,17 +95,18 @@ const CommonTable = ({
         display: "grid",
         gridTemplateColumns: `200px ${cards.map((card) => getColumnWidth(card)).join(" ")}`,
     };
+    const { t } = useTranslation(['dashboard', 'common']);
 
     return (
         <>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
                 <div className="flex items-center justify-between gap-3 !p-3">
-                    <h3 className="text-md font-bold text-gray-800 uppercase">{title}</h3>
+                    <h3 className="text-md font-bold text-gray-800 uppercase"> {t(`assets.${title}`, title)}</h3>
                     {showBack && (
                         <button
                             type="button"
-                            className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                            className=" cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
                             onClick={onBack}
                         >
                             Back
@@ -117,17 +119,17 @@ const CommonTable = ({
                         <thead className="sticky top-0 z-20 bg-white">
                             <tr style={gridStyle} className="border-b border-gray-200">
                                 <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-30 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
-                                    {nameKey.toUpperCase()}
+                                    {t(nameKey)}
                                 </th>
                                 {cards.map((card) => (
-                                    <th key={card.key} className="!p-4 font-bold text-gray-600 text-left">
+                                    <th key={card.key} className="!p-4 font-bold text-gray-600 ">
                                         <div>
-                                            <p className="font-bold uppercase">{card.label}</p>
+                                            <p className="font-bold uppercase"> {t(`assets.${card.label}`)}</p>
                                             {card.subLabels && (
-                                                <div className="flex !mt-1">
+                                                <div className="flex gap-5 !mt-1 ">
                                                     {card.subLabels.map((label, index) => (
-                                                        <div key={index} className="min-w-[70px] text-[11px] font-medium text-gray-400">
-                                                            {label}
+                                                        <div key={index} className=" text-center w-[80px]  text-[11px] font-medium text-gray-400">
+                                                            {t(`assets.${label}`)}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -155,7 +157,7 @@ const CommonTable = ({
                                         </td>
                                         {cards.map((card) => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
-                                               {renderCellContent(card.key, row[card.key], card.subLabels)}
+                                                {renderCellContent(card.key, row[card.key], card.subLabels)}
                                             </td>
                                         ))}
                                     </tr>
@@ -172,8 +174,8 @@ const CommonTable = ({
                 </div>
 
             </div>
-            <p className="bg-[#D8E6FD] !p-4 !mt-5 text-sm select-none text-[#3B82F6] rounded-2xl">This table will be open on the click of any card from assets. on the click of card table will show data of same category.
-                Table headers will be changed based on click of the selected category.
+            <p className="bg-[#D8E6FD] !p-4 !mt-5 text-sm select-none text-[#3B82F6] rounded-2xl">
+                {t("assets.tableFooterContent")}
             </p>
         </>
     );
@@ -207,6 +209,9 @@ const AssetsTable = ({
     const [error, setError] = useState(null);
     const [isBlockDrawerOpen, setIsBlockDrawerOpen] = useState(false);
     const [isGpDrawerOpen, setIsGpDrawerOpen] = useState(false);
+
+    const { t, i18n } = useTranslation(['dashboard', 'common']);
+
 
     const loadDistrictData = async () => {
         if (Array.isArray(apiData) && apiData.length > 0) {
@@ -394,11 +399,7 @@ const AssetsTable = ({
     const handleRowClick = async (row) => {
         if (level === "district") {
             const districtId = getId(row);
-            console.log("🏘️ District row clicked - districtId:", districtId, "row:", row);
-            if (!districtId) {
-                console.error("❌ No districtId found in row:", row);
-                return;
-            }
+            if (!districtId) return;
 
             setDistrict(row);
             setIsBlockDrawerOpen(true);
@@ -421,18 +422,7 @@ const AssetsTable = ({
             const districtId = getId(district);
             // Extract blockId from row - prefer block-specific fields
             const blockId = row.block_id || row.blockId || row.geography_id || row.id;
-            console.log("🔗 Block row clicked from main table");
-            console.log("   Row object:", row);
-            console.log("   districtId:", districtId);
-            console.log("   blockId (block_id first):", blockId);
-            if (!districtId || !blockId) {
-                console.error("❌ Missing districtId or blockId", { districtId, blockId, row });
-                return;
-            }
-
-            if (districtId === blockId) {
-                console.warn("⚠️  WARNING: districtId and blockId are the SAME! Check row data:", row);
-            }
+            if (!districtId || !blockId) return;
 
             setBlock(row);
             setIsGpDrawerOpen(true);
@@ -455,18 +445,7 @@ const AssetsTable = ({
         const districtId = getId(district);
         // Extract blockId from row - prefer block-specific fields
         const blockId = row.block_id || row.blockId || row.geography_id || row.id;
-        console.log("🔗 Block row clicked from drawer");
-        console.log("   Row object:", row);
-        console.log("   districtId:", districtId);
-        console.log("   blockId (block_id first):", blockId);
-        if (!districtId || !blockId) {
-            console.error("❌ Missing districtId or blockId", { districtId, blockId, row });
-            return;
-        }
-
-        if (districtId === blockId) {
-            console.warn("⚠️  WARNING: districtId and blockId are the SAME! Check row data:", row);
-        }
+        if (!districtId || !blockId) return;
 
         setBlock(row);
         setIsGpDrawerOpen(true);
@@ -485,7 +464,6 @@ const AssetsTable = ({
     };
 
     const handleCloseAll = () => {
-        console.log("🔐 Closing all drawers and resetting data - INCLUDING PARENT");
         setIsBlockDrawerOpen(false);
         setIsGpDrawerOpen(false);
         setBlocksData([]);
@@ -495,16 +473,15 @@ const AssetsTable = ({
         setError(null);
         // Close parent district-level drawer too
         if (typeof closeParentDrawer === "function") {
-            console.log("🚪 Closing parent drawer");
             closeParentDrawer();
         }
     };
 
     const titleByLevel = {
-        district: "DISTRICT",
-        block: "BLOCK",
-        gp: "GRAM PANCHAYAT",
-    }[level] || "DISTRICT";
+        district: "district",
+        block: "block",
+        gp: "gps",
+    }[level];
 
     const descriptionByLevel = {
         district: "Click a district to view its blocks in the nested drawer.",
@@ -512,21 +489,21 @@ const AssetsTable = ({
         gp: "Showing GPs for the selected block.",
     }[level] || "Click a district to view its blocks in the nested drawer.";
 
-    const currentLoading = level === "district" ? loadingDistricts : level === "block" ? loadingBlocks : loadingGps;
+    const currentLoading =
+        level === "district"
+            ? loadingDis || loadingDistricts
+            : level === "block"
+                ? loadingBlocks
+                : loadingGps;
+
 
     return (
         <>
             <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-white !px-4 !py-3 shadow-sm border border-gray-200">
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{titleByLevel} {section}</h2>
-                        <p className="text-sm text-slate-500">{descriptionByLevel}</p>
-                    </div>
-                </div>
 
                 <CommonTable
-                    title={`${titleByLevel} ${section}`}
-                    nameKey={titleByLevel}
+                    title={`${t(`common:${titleByLevel}`)} - ${t(`assets.${section}`)}`}
+                    nameKey={`common:${titleByLevel}`}
                     data={currentData}
                     cards={cards}
                     loading={currentLoading}
@@ -544,7 +521,7 @@ const AssetsTable = ({
             <SlideDrawer
                 open={isBlockDrawerOpen}
                 onClose={handleCloseAll}
-                title={section}
+                title={t(`assets.${section}`)}
                 width="md:w-[90%] w-full"
                 showBack={true}
                 onBack={() => {
@@ -555,8 +532,8 @@ const AssetsTable = ({
                 }}
             >
                 <CommonTable
-                    title="BLOCK"
-                    nameKey="Block"
+                    title={t("common:block")}
+                    nameKey="common:block"
                     data={blocksData}
                     cards={cards}
                     loading={loadingBlocks}
@@ -568,7 +545,7 @@ const AssetsTable = ({
             <SlideDrawer
                 open={isGpDrawerOpen}
                 onClose={handleCloseAll}
-                title={section}
+                title={t(`assets.${section}`)}
                 width="md:w-[80%] w-full"
                 showBack={true}
                 onBack={() => {
@@ -577,8 +554,8 @@ const AssetsTable = ({
                 }}
             >
                 <CommonTable
-                    title="GRAM PANCHAYAT"
-                    nameKey="Gram Panchayat"
+                    title={t("common:gps")}
+                    nameKey="common:gps"
                     data={gpsData}
                     cards={cards}
                     loading={loadingGps}

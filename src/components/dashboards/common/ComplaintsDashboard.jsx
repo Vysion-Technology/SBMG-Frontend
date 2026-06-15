@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Calendar, ChevronDown } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -60,6 +61,7 @@ const ComplaintsDashboard = ({
   onFilterChange,
   onCardClick
 }) => {
+  const { t } = useTranslation(['dashboard', 'common']);
   return (
     <motion.div
       initial="hidden"
@@ -91,7 +93,7 @@ const ComplaintsDashboard = ({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>
-            Complaints
+            {t('complaints')}
           </h2>
           <span style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
             {MONTH_NAMES[new Date().getMonth()]} {selectedComplaintsYear}
@@ -182,15 +184,15 @@ const ComplaintsDashboard = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#9ca3af' }} />
-            <span style={{ fontSize: 14, color: '#374151' }}>Total</span>
+            <span style={{ fontSize: 14, color: '#374151' }}>{t('total')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#10b981' }} />
-            <span style={{ fontSize: 14, color: '#374151' }}>Closed</span>
+            <span style={{ fontSize: 14, color: '#374151' }}>{t('closed')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: '#ef4444' }} />
-            <span style={{ fontSize: 14, color: '#374151' }}>Open</span>
+            <span style={{ fontSize: 14, color: '#374151' }}>{t('open')}</span>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -210,7 +212,7 @@ const ComplaintsDashboard = ({
                 color: activeComplaintsFilter === 'Time' ? 'white' : '#6b7280'
               }}
             >
-              Time
+              {t('time')}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -227,7 +229,7 @@ const ComplaintsDashboard = ({
                 color: activeComplaintsFilter === 'Location' ? 'white' : '#6b7280'
               }}
             >
-              Location
+              {t('location')}
             </motion.button>
           </div>
           <div data-complaints-year-dropdown style={{ position: 'relative' }}>
@@ -327,7 +329,7 @@ const ComplaintsDashboard = ({
             stroke: { show: true, width: 2, colors: ['transparent'] },
             xaxis: { categories: xAxisCategories },
             yaxis: {
-              title: { text: 'Number of Complaints' },
+              title: { text: t('numberOfComplaints') },
               min: 0,
               max: yAxisMax,
               tickAmount: 5

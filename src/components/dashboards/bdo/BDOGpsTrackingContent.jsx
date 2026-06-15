@@ -9,13 +9,17 @@ import DeleteConfirmModal from '../gps/DeleteConfirmModal';
 import FleetSidebar from '../gps/FleetSidebar';
 import GoogleMapView from '../gps/GoogleMapView';
 import VehicleDetailsPanel from '../gps/VehicleDetailsPanel';
+import { useTranslation } from 'react-i18next';
 
 const BDOGpsTrackingContent = () => {
+
+    const { t } = useTranslation(['common', 'table', 'gps']);
+
     const bdoLocation = useBDOLocation();
     const selectedLocation = bdoLocation?.getCurrentLocationInfo() || {};
     
     const [activeScope, setActiveScope] = useState('GPs'); // BDO default scope
-    const [activeFleetTab, setActiveFleetTab] = useState('All(03)');
+    const [activeFleetTab, setActiveFleetTab] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
     const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -79,31 +83,31 @@ const BDOGpsTrackingContent = () => {
         },
     });
 
-    // Filter and search vehicles
+   // Filter and search vehicles
     const filteredVehicles = useMemo(() => {
         let result = vehiclesData;
-        
+
         // Filter by status tab
         result = filterVehiclesByStatus(result, activeFleetTab);
-        
+
         // Filter by search query
         result = searchVehicles(result, searchQuery);
-        
+
         // Filter by flagged status
         if (showOnlyFlagged) {
             result = result.filter(v => v.isFlagged);
         }
-        
+
         return result;
     }, [vehiclesData, activeFleetTab, searchQuery, showOnlyFlagged]);
 
     // Calculate fleet stats
     const fleetStats = useMemo(() => {
         const all = vehiclesData.length;
-        const active = vehiclesData.filter(v => v.status === 'active').length;
-        const running = vehiclesData.filter(v => v.status === 'running').length;
-        const stopped = vehiclesData.filter(v => v.status === 'stopped').length;
-        
+        const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+        const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+        const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
+
         return {
             all,
             active,
@@ -113,22 +117,36 @@ const BDOGpsTrackingContent = () => {
     }, [vehiclesData]);
 
     // Update fleet tabs with real counts
-    const fleetTabs = useMemo(() => [
-        `All(${String(fleetStats.all).padStart(2, '0')})`,
-        `Active(${String(fleetStats.active).padStart(2, '0')})`,
-        `Running(${String(fleetStats.running).padStart(2, '0')})`,
-        `Stopped(${String(fleetStats.stopped).padStart(2, '0')})`,
-    ], [fleetStats]);
+    const [fleetTabsState, setFleetTabsState] = useState([
+        { key: 'all', label: t('gps:all'), count: 0 },
+        { key: 'active', label: t('gps:active'), count: 0 },
+        { key: 'running', label: t('gps:running'), count: 0 },
+        { key: 'stopped', label: t('gps:stopped'), count: 0 }
+    ]);
 
-    // Sync active tab with updated counts
     useEffect(() => {
+        const all = vehiclesData.length;
+        const active = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'active').length;
+        const running = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'running').length;
+        const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
+
+        const updatedTabs = [
+            { key: 'all', label: t('gps:all'), count: all },
+            { key: 'active', label: t('gps:active'), count: active },
+            { key: 'running', label: t('gps:running'), count: running },
+            { key: 'stopped', label: t('gps:stopped'), count: stopped }
+        ];
+
+        setFleetTabsState(updatedTabs);
+
+        // Sync active tab key
         setActiveFleetTab(prev => {
-            const prevStr = typeof prev === 'string' ? prev : 'All(00)';
-            const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
-            const newTab = fleetTabs.find(t => t.startsWith(statusKey));
-            return newTab || fleetTabs[0];
+            const prevKey = typeof prev === 'string' ? prev.split('(')[0].toLowerCase() : 'all';
+            const newTab = updatedTabs.find(tab => tab.key === prevKey);
+            return newTab?.key || updatedTabs[0].key;
         });
-    }, [fleetTabs]);
+
+    }, [vehiclesData, t]);
 
     const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
@@ -205,7 +223,7 @@ const BDOGpsTrackingContent = () => {
                             color: '#374151',
                             margin: 0
                         }}>
-                            Overview
+                            {t('common:overview')}
                         </h1>
                         <span style={{
                             fontSize: '14px',
@@ -293,7 +311,7 @@ const BDOGpsTrackingContent = () => {
                 <FleetSidebar
                     vehicles={filteredVehicles}
                     activeFleetTab={activeFleetTab}
-                    fleetTabs={fleetTabs}
+                    fleetTabs={fleetTabsState}
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
                     onTabChange={setActiveFleetTab}

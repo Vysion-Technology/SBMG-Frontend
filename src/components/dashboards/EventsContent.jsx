@@ -2,8 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
 import { eventsAPI, MEDIA_BASE_URL } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
+import { useTranslation } from "react-i18next";
 
 const EventsContent = () => {
+
+    const { t } = useTranslation(['common', 'table']);
+
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -185,7 +189,7 @@ const EventsContent = () => {
             const tolerance = 0.03;
 
             if (Math.abs(ratio - expected) > tolerance) {
-                setImageError('Only 4:5 aspect ratio images are allowed');
+                setImageError(t('schemeevent:only45AspectRatioAllowed'));
                 setSelectedFile(null);
                 URL.revokeObjectURL(url);
                 return;
@@ -202,17 +206,17 @@ const EventsContent = () => {
     // Handle form submission with seamless two-step API flow
     const handleSubmit = async () => {
         if (!selectedFile) {
-            setImageError('Please upload a 4:5 image');
+            setImageError(t('schemeevent:upload45Image'));
             return;
         }
 
         if (!formData.title.trim() || !formData.description.trim()) {
-            alert('Please fill in all required fields');
+            alert(t('schemeevent:fillRequiredFields'));
             return;
         }
 
         setIsSubmitting(true);
-        setSubmitProgress('Creating event...');
+        setSubmitProgress(t('schemeevent:creatingEvent'));
 
         try {
             // Step 1: Create the event
@@ -228,14 +232,14 @@ const EventsContent = () => {
 
             // Step 2: Upload media if file is selected
             if (selectedFile) {
-                setSubmitProgress('Uploading media...');
+                setSubmitProgress(t('schemeevent:uploadingMedia'));
                 console.log('Uploading media for event ID:', createdEvent.id, 'File:', selectedFile);
                 const uploadResponse = await eventsAPI.uploadEventMedia(createdEvent.id, selectedFile);
                 console.log('Media upload response:', uploadResponse.data);
             }
 
             // Success - close modal and refresh events
-            setSubmitProgress('Event created successfully!');
+            setSubmitProgress(t('schemeevent:eventCreatedSuccessfully'));
             setTimeout(() => {
                 setShowModal(false);
                 setFormData({ title: '', description: '', fromDate: '', toDate: '' });
@@ -250,7 +254,7 @@ const EventsContent = () => {
             setSubmitProgress('');
             setIsSubmitting(false);
             setImageError('');
-            alert('Failed to create event. Please try again.');
+            alert(t('schemeevent:failedToCreateEvent'));
         }
     };
 
@@ -269,7 +273,7 @@ const EventsContent = () => {
 
     const handleDeleteEvent = async (eventId) => {
         if (!eventId || isDeleting) return;
-        const confirmDelete = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
+        const confirmDelete = window.confirm(t('schemeevent:confirmDeleteEvent'));
         if (!confirmDelete) {
             return;
         }
@@ -282,7 +286,7 @@ const EventsContent = () => {
             await fetchEvents();
         } catch (error) {
             console.error('Error deleting event:', error);
-            alert('Failed to delete event. Please try again.');
+            alert(t('schemeevent:failedToDeleteEvent'));
         } finally {
             setIsDeleting(false);
         }
@@ -291,7 +295,7 @@ const EventsContent = () => {
     // Handle event update
     const handleUpdateEvent = async () => {
         if (!editFormData.name.trim() || !editFormData.description.trim()) {
-            alert('Please fill in all required fields');
+            alert(t('schemeevent:fillRequiredFields'));
             return;
         }
 
@@ -320,7 +324,7 @@ const EventsContent = () => {
         } catch (error) {
             console.error('Error updating event:', error);
             setIsUpdating(false);
-            alert('Failed to update event. Please try again.');
+            alert(t('schemeevent:failedToUpdateEvent'));
         }
     };
 
@@ -368,7 +372,7 @@ const EventsContent = () => {
                             alignItems: 'center',
                             gap: '8px'
                         }}>
-                            Overview
+                            {t('common:overview')}
                             <span style={{
                                 fontSize: '16px',
                                 fontWeight: '400',
@@ -403,7 +407,7 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                Active
+                                {t('schemeevent:active')}
                             </button>
                             <button
                                 onClick={() => setEventFilter('inactive')}
@@ -419,7 +423,7 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                Inactive
+                                {t('schemeevent:inactive')}
                             </button>
                             <button
                                 onClick={() => setEventFilter('all')}
@@ -435,7 +439,7 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                All
+                                {t('schemeevent:all')}
                             </button>
                         </div>
                         <button
@@ -455,7 +459,7 @@ const EventsContent = () => {
                                 transition: 'all 0.2s'
                             }}>
                             <Plus style={{ width: '16px', height: '16px' }} />
-                            Add Event
+                            {t('schemeevent:addEvent')}
                         </button>
                     </div>
                 </div>
@@ -470,7 +474,7 @@ const EventsContent = () => {
                         marginTop: '24px'
                     }}>
                         <Loader2 style={{ width: '32px', height: '32px', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ marginLeft: '12px', color: '#6b7280' }}>Loading events...</span>
+                        <span style={{ marginLeft: '12px', color: '#6b7280' }}>{t('table:loading')}</span>
                     </div>
                 )}
 
@@ -491,7 +495,7 @@ const EventsContent = () => {
                                 onClick={() => {
                                     setSelectedEvent(event);
                                     setShowDetailsModal(true);
-                                    setActiveTab('Details');
+                                    setActiveTab('details');
                                 }}
                             >
                                 <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100" >
@@ -646,7 +650,7 @@ const EventsContent = () => {
                                     color: '#111827',
                                     margin: 0
                                 }}>
-                                    Add Event
+                                    {t('schemeevent:addEvent')}
                                 </h2>
                                 <button
                                     onClick={resetModal}
@@ -696,7 +700,7 @@ const EventsContent = () => {
                                         color: selectedFile ? '#10b981' : '#6b7280',
                                         margin: 0
                                     }}>
-                                        {selectedFile ? selectedFile.name : 'Drag and drop your image or click to upload'}
+                                        {selectedFile ? selectedFile.name : t('schemeevent:dragAndDropImage')}
                                     </p>
                                     {selectedFile && (
                                         <p style={{
@@ -704,7 +708,7 @@ const EventsContent = () => {
                                             color: '#10b981',
                                             margin: '8px 0 0 0'
                                         }}>
-                                            ✓ File selected
+                                            ✓   {t('schemeevent:fileSelected')}
                                         </p>
                                     )}
                                 </div>
@@ -732,11 +736,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Event Title
+                                            {t('schemeevent:eventTitle')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Enter event title"
+                                            placeholder={t('schemeevent:eventTitle')}
                                             value={formData.title}
                                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                             style={{
@@ -759,11 +763,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Description
+                                            {t('schemeevent:description')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Event description"
+                                            placeholder={t('schemeevent:description')}
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                             style={{
@@ -787,12 +791,12 @@ const EventsContent = () => {
                                                 color: '#374151',
                                                 marginBottom: '8px'
                                             }}>
-                                                From
+                                                {t('schemeevent:from')}
                                             </label>
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     type="date"
-                                                    placeholder="From"
+                                                    placeholder={t('schemeevent:from')}
                                                     value={formData.fromDate || ''}
                                                     onKeyDown={handleDateKeyDown}
                                                     onChange={(e) => setFormData({ ...formData, fromDate: e.target.value })}
@@ -817,12 +821,12 @@ const EventsContent = () => {
                                                 color: '#374151',
                                                 marginBottom: '8px'
                                             }}>
-                                                To
+                                                {t('schemeevent:to')}
                                             </label>
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     type="date"
-                                                    placeholder="To"
+                                                    placeholder={t('schemeevent:to')}
                                                     value={formData.toDate || ''}
                                                     onKeyDown={handleDateKeyDown}
                                                     onChange={(e) => setFormData({ ...formData, toDate: e.target.value })}
@@ -894,7 +898,7 @@ const EventsContent = () => {
                                             opacity: isSubmitting ? 0.6 : 1
                                         }}
                                     >
-                                        Cancel
+                                        {t('schemeevent:cancel')}
                                     </button>
                                     <button
                                         onClick={handleSubmit}
@@ -914,7 +918,7 @@ const EventsContent = () => {
                                         }}
                                     >
                                         {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                                        {isSubmitting ? 'Creating...' : 'Add Event'}
+                                        {isSubmitting ? t('schemeevent:creating') : t('schemeevent:addEvent')}
                                     </button>
                                 </div>
                             </div>
@@ -981,7 +985,7 @@ const EventsContent = () => {
                                         }}
                                     >
                                         <Edit style={{ width: '16px', height: '16px' }} />
-                                        Edit Event
+                                        {t('schemeevent:editEvent')}
                                     </button>
                                     <button
                                         onClick={() => handleDeleteEvent(selectedEvent?.id)}
@@ -1006,7 +1010,7 @@ const EventsContent = () => {
                                         ) : (
                                             <Trash2 style={{ width: '16px', height: '16px' }} />
                                         )}
-                                        {isDeleting ? 'Deleting...' : 'Delete Event'}
+                                        {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteEvent')}
                                     </button>
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
@@ -1028,7 +1032,7 @@ const EventsContent = () => {
                             <div style={{
                                 display: 'flex',
                             }}>
-                                {['Details'].map((tab) => (
+                                {['details'].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -1044,7 +1048,7 @@ const EventsContent = () => {
                                             transition: 'all 0.2s'
                                         }}
                                     >
-                                        {tab}
+                                        {t(`schemeevent:${tab}`)}
                                     </button>
                                 ))}
                             </div>
@@ -1052,7 +1056,7 @@ const EventsContent = () => {
 
                             {/* Tab Content */}
                             <div style={{ padding: '24px' }}>
-                                {activeTab === 'Details' && (
+                                {activeTab === 'details' && (
                                     <div>
                                         <p style={{
                                             fontSize: '14px',
@@ -1117,7 +1121,7 @@ const EventsContent = () => {
                                     color: '#111827',
                                     margin: 0
                                 }}>
-                                    Edit Event
+                                   {t('schemeevent:editEvent')}
                                 </h2>
                                 <button
                                     onClick={() => setShowEditModal(false)}
@@ -1146,11 +1150,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Event Name
+                                            {t('schemeevent:eventTitle')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Enter event name"
+                                            placeholder= {t('schemeevent:eventTitle')}
                                             value={editFormData.name}
                                             onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                             style={{
@@ -1173,10 +1177,10 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Description
+                                            {t('schemeevent:description')}
                                         </label>
                                         <textarea
-                                            placeholder="Description"
+                                            placeholder={t('schemeevent:description')}
                                             value={editFormData.description}
                                             onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                                             rows={4}
@@ -1201,7 +1205,7 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Start Time
+                                            {t('schemeevent:startTime')}
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -1227,7 +1231,7 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            End Time
+                                            {t('schemeevent:endTime')}
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -1265,7 +1269,7 @@ const EventsContent = () => {
                                                     cursor: 'pointer'
                                                 }}
                                             />
-                                            Active
+                                            {t('schemeevent:active')}
                                         </label>
                                     </div>
                                 </div>
@@ -1294,7 +1298,7 @@ const EventsContent = () => {
                                         opacity: isUpdating ? 0.6 : 1
                                     }}
                                 >
-                                    Cancel
+                                     {t('schemeevent:cancel')}
                                 </button>
                                 <button
                                     onClick={handleUpdateEvent}
@@ -1314,7 +1318,7 @@ const EventsContent = () => {
                                     }}
                                 >
                                     {isUpdating && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                                    {isUpdating ? 'Updating...' : 'Update Event'}
+                                    {isUpdating ? t('schemeevent:updating') : t('schemeevent:updateEvent')}
                                 </button>
                             </div>
                         </div>

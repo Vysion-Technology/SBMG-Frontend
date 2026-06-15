@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Calendar, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -24,6 +25,7 @@ const PerformanceCard = ({
 
   const rows = data;
   const displayMonthLabel = monthLabel ?? MONTH_NAMES[selectedMonth];
+  const { t } = useTranslation(['dashboard', 'common']);
 
   return (
     <div className="performance-card" style={{
@@ -40,7 +42,7 @@ const PerformanceCard = ({
     }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>Performance</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>{t('performance')}</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -64,7 +66,7 @@ const PerformanceCard = ({
                 color: activeTab === 'starPerformers' ? 'white' : '#6b7280'
               }}
             >
-              Star Performers
+              {t('starPerformers')}
             </button>
             <button
               onClick={() => setActiveTab('underperformers')}
@@ -79,7 +81,7 @@ const PerformanceCard = ({
                 color: activeTab === 'underperformers' ? 'white' : '#6b7280'
               }}
             >
-              Underperformers
+             {t('underperformers')}
             </button>
           </div>
           <div style={{ position: 'relative' }}>
@@ -159,21 +161,21 @@ const PerformanceCard = ({
             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  District <ChevronsUpDown size={12} color="#9ca3af" />
+                  {t('district')} <ChevronsUpDown size={12} color="#9ca3af" />
                 </span>
               </th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Avg Resolution time <ChevronsUpDown size={12} color="#9ca3af" />
+                  {t('avgResolutionTime')} <ChevronsUpDown size={12} color="#9ca3af" />
                 </span>
               </th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Complaints <ChevronsUpDown size={12} color="#9ca3af" />
+                  {t('complaints')} <ChevronsUpDown size={12} color="#9ca3af" />
                 </span>
               </th>
               <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>
-                Action
+                {t('action')}
               </th>
             </tr>
           </thead>
@@ -195,7 +197,7 @@ const PerformanceCard = ({
                       color: '#6b7280'
                     }}
                   >
-                    Send notice
+                    {t('sendNotice')}
                   </button>
                 </td>
               </tr>

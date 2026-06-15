@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Loader, Pencil, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * VehicleDetailsPanel component to display detailed vehicle information
@@ -13,6 +14,7 @@ const VehicleDetailsPanel = ({
   onDelete = null,
 }) => {
   if (!vehicle) return null;
+   const { t } = useTranslation(['common', 'table', 'gps']);
 
   return (
     <div style={{
@@ -38,7 +40,7 @@ const VehicleDetailsPanel = ({
           color: '#111827',
           margin: 0,
         }}>
-          Vehicle Details
+          {t('gps:vehicleDetails')}
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {onEdit && (
@@ -121,7 +123,7 @@ const VehicleDetailsPanel = ({
       }}>
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-            Vehicle Number
+            {t('gps:vehicleNo')}
           </div>
           <div style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
             {vehicle.vehicle_no || vehicle.vehicle_number || 'N/A'}
@@ -130,7 +132,7 @@ const VehicleDetailsPanel = ({
 
         <div style={{ marginBottom: '12px' }}>
           <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-            Vehicle Name
+           {t('gps:vehicleName')}
           </div>
           <div style={{ fontSize: '14px', color: '#111827' }}>
             {vehicle.vehicle_name || 'N/A'}
@@ -141,7 +143,7 @@ const VehicleDetailsPanel = ({
           <>
             <div style={{ marginBottom: '12px' }}>
               <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-                District
+                  {t('table:district')}
               </div>
               <div style={{ fontSize: '14px', color: '#111827' }}>
                 {details.district || vehicle.district || 'N/A'}
@@ -150,7 +152,7 @@ const VehicleDetailsPanel = ({
 
             <div style={{ marginBottom: '12px' }}>
               <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-                Block
+                 {t('table:block')}
               </div>
               <div style={{ fontSize: '14px', color: '#111827' }}>
                 {details.block || vehicle.block || 'N/A'}
@@ -159,7 +161,7 @@ const VehicleDetailsPanel = ({
 
             <div>
               <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-                Gram Panchayat
+                {t('table:gps')}
               </div>
               <div style={{ fontSize: '14px', color: '#111827' }}>
                 {details.gp || vehicle.gp || 'N/A'}
@@ -184,7 +186,7 @@ const VehicleDetailsPanel = ({
         }`,
       }}>
         <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-          Current Status
+            {t('gps:currentStatus')}
         </div>
         <div style={{
           fontSize: '16px',
@@ -198,12 +200,12 @@ const VehicleDetailsPanel = ({
         </div>
         {vehicle.speed !== undefined && (
           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-            Speed: {vehicle.speed} km/h
+            {t('gps:speed')}: {vehicle.speed} {t('gps:kmPerHour')}
           </div>
         )}
         {vehicle.last_updated && (
           <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
-            Last updated: {new Date(vehicle.last_updated).toLocaleString()}
+           {t('gps:lastUpdated')}: {new Date(vehicle.last_updated).toLocaleString()}
           </div>
         )}
       </div>
@@ -217,11 +219,11 @@ const VehicleDetailsPanel = ({
           borderRadius: '8px',
         }}>
           <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827', marginBottom: '12px' }}>
-            Driver Information
+            {t('gps:driverInformation')}
           </div>
           <div style={{ marginBottom: '8px' }}>
             <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-              Name
+              {t('gps:name')}
             </div>
             <div style={{ fontSize: '14px', color: '#111827' }}>
               {vehicle.driver.name || 'N/A'}
@@ -229,7 +231,7 @@ const VehicleDetailsPanel = ({
           </div>
           <div>
             <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>
-              Phone
+               {t('gps:phone')}
             </div>
             <div style={{ fontSize: '14px', color: '#111827' }}>
               {vehicle.driver.phone || 'N/A'}
@@ -257,7 +259,7 @@ const VehicleDetailsPanel = ({
             }} 
           />
           <div style={{ fontSize: '14px', color: '#6b7280' }}>
-            Loading details...
+           {t('gps:loadingDetails')}
           </div>
         </div>
       ) : details?.daily_data && details.daily_data.length > 0 ? (
@@ -269,7 +271,7 @@ const VehicleDetailsPanel = ({
             marginTop: 0,
             marginBottom: '12px',
           }}>
-            Daily Data
+             {t('gps:dailyData')}
           </h3>
           
           {details.working_hours_total && (
@@ -278,7 +280,7 @@ const VehicleDetailsPanel = ({
               color: '#6b7280',
               marginBottom: '16px',
             }}>
-              Total Working Hours: <span style={{ fontWeight: '600', color: '#111827' }}>
+              {t('gps:totalWorkingHours')}: <span style={{ fontWeight: '600', color: '#111827' }}>
                 {details.working_hours_total}
               </span>
             </div>
@@ -303,7 +305,7 @@ const VehicleDetailsPanel = ({
                     color: '#374151',
                     borderBottom: '1px solid #e5e7eb',
                   }}>
-                    Date
+                     {t('gps:date')}
                   </th>
                   <th style={{
                     padding: '12px 8px',
@@ -312,7 +314,7 @@ const VehicleDetailsPanel = ({
                     color: '#374151',
                     borderBottom: '1px solid #e5e7eb',
                   }}>
-                    Running Hr
+                    {t('gps:runningHours')}
                   </th>
                   <th style={{
                     padding: '12px 8px',
@@ -321,7 +323,7 @@ const VehicleDetailsPanel = ({
                     color: '#374151',
                     borderBottom: '1px solid #e5e7eb',
                   }}>
-                    Status
+                    {t('gps:status')}
                   </th>
                 </tr>
               </thead>
@@ -377,7 +379,7 @@ const VehicleDetailsPanel = ({
           color: '#6b7280',
           fontSize: '14px',
         }}>
-          No daily data available
+          {t('gps:noDailyDataAvailable')}
         </div>
       )}
     </div>

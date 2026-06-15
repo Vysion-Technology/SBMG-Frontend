@@ -5,6 +5,7 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
+import { useTranslation } from 'react-i18next';
 
 const VDOComplaintsContent = () => {
   // VDO Location context - fixed district, block, and GP
@@ -17,6 +18,8 @@ const VDOComplaintsContent = () => {
     vdoGPName,
     getLocationPath,
   } = useVDOLocation();
+
+  const { t } = useTranslation(['table', 'complaints', 'common']);
 
   // VDO: Always works at villages level (no geo tabs)
   const activeScope = 'GPs';
@@ -866,12 +869,12 @@ const VDOComplaintsContent = () => {
 
     return [
       {
-        title: 'Total Complaints',
+        title: t('complaints:totalComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
         icon: List,
         color: '#9ca3af',
         trend: 'up',
-        tooltipText: 'Total complaints logged for the selected scope and period.',
+        tooltipText: t('complaints:totalComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -921,12 +924,12 @@ const VDOComplaintsContent = () => {
         }
       },
       {
-        title: 'Open Complaints',
+        title: t('complaints:openComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.open),
         icon: List,
         color: '#ef4444',
         trend: 'up',
-        tooltipText: 'Complaints that are currently open and awaiting action.',
+        tooltipText: t('complaints:openComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -960,12 +963,12 @@ const VDOComplaintsContent = () => {
         }
       },
       {
-        title: 'Resolved',
+        title: t('complaints:resolved'),
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
-        tooltipText: 'Complaints resolved after action was taken.',
+        tooltipText: t('complaints:resolvedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -999,12 +1002,12 @@ const VDOComplaintsContent = () => {
         }
       },
       {
-        title: 'Verified',
+        title: t('complaints:verify'),
         value: loadingAnalytics ? '...' : formatNumber(counts.verified),
         icon: List,
         color: '#f59e0b',
         trend: 'up',
-        tooltipText: 'Complaints verified by the VDO.',
+        tooltipText: t('complaints:verifiedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1039,12 +1042,12 @@ const VDOComplaintsContent = () => {
       },
 
       {
-        title: 'Disposed',
+        title: t('complaints:disposed'),
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
         icon: List,
         color: '#14b8a6',
         trend: 'up',
-        tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
+        tooltipText: t('complaints:disposedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -1501,28 +1504,6 @@ const VDOComplaintsContent = () => {
 
   return (
     <div>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Complaints
-          </h1>
-        </div>
-
-      </div>
 
       {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
       <div style={{ padding: '10px 0px 0px 16px' }}>
@@ -1559,7 +1540,7 @@ const VDOComplaintsContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -1954,7 +1935,7 @@ const VDOComplaintsContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Complaints
+              {t('common:complaints')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -2051,7 +2032,7 @@ const VDOComplaintsContent = () => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -2120,7 +2101,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  User
+                  {t('table:userNumber')}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -2140,7 +2121,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Address(GP)
+                  {t('table:addressGP')}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -2160,7 +2141,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Type of complaint
+                  {t('table:typeOfComplaint')}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -2180,7 +2161,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Date of complaint
+                  {t('table:dateOfComplaint')}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -2200,7 +2181,7 @@ const VDOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Status
+                  {t('table:status')}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -2223,7 +2204,7 @@ const VDOComplaintsContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading complaints...
+                    {t('table:loadingComplaints')}
                   </td>
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
@@ -2328,7 +2309,7 @@ const VDOComplaintsContent = () => {
             color: '#6b7280'
           }}>
             <span>
-              {filteredComplaints.length} complaint{filteredComplaints.length !== 1 ? 's' : ''} total
+              {filteredComplaints.length} {t('table:complaintsTotal')}
             </span>
             <div style={{
               display: 'flex',
@@ -2337,7 +2318,7 @@ const VDOComplaintsContent = () => {
               fontSize: '12px',
               color: '#9ca3af'
             }}>
-              <span>Scroll to see all</span>
+              <span>{t('table:scrollToSee')}</span>
               <div style={{
                 width: '16px',
                 height: '16px',
@@ -2358,524 +2339,7 @@ const VDOComplaintsContent = () => {
         complaintId={selectedComplaint}
       />
 
-      {/* Raise Complaint Modal */}
-      {showComplaintModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowComplaintModal(false);
-            }
-          }}
-        >
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '800px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px',
-            position: 'relative'
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '24px'
-            }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Raise Complaint
-              </h2>
-              <button
-                onClick={() => setShowComplaintModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-              </button>
-            </div>
-
-            {/* Complaint Type */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Select Type of Complaint
-              </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={complaintForm.complaintTypeId}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, complaintTypeId: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151',
-                    backgroundColor: 'white',
-                    appearance: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">Select option</option>
-                  {complaintCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-            </div>
-
-            {/* Details */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Details
-              </label>
-              <textarea
-                value={complaintForm.details}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 100) {
-                    setComplaintForm(prev => ({ ...prev, details: value }));
-                  }
-                }}
-                placeholder="Details"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151',
-                  minHeight: '80px',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-              />
-              <div style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                marginTop: '4px',
-                textAlign: 'right'
-              }}>
-                {complaintForm.details.length}/100
-              </div>
-            </div>
-
-            {/* Phone Number */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Phone Number <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="tel"
-                value={complaintForm.phone_number}
-                onChange={(e) => setComplaintForm(prev => ({ ...prev, phone_number: e.target.value }))}
-                placeholder="Phone number"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              />
-            </div>
-
-            {/* District and Block */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '20px'
-            }}>
-              {/* District */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  District
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={complaintForm.districtId}
-                    onChange={(e) => {
-                      const districtId = e.target.value;
-                      setComplaintForm(prev => ({
-                        ...prev,
-                        districtId,
-                        blockId: '',
-                        gpId: '',
-                        village: ''
-                      }));
-                      if (districtId) {
-                        fetchBlocks(districtId);
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: '#374151',
-                      backgroundColor: 'white',
-                      appearance: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="">Select District</option>
-                    {districts.map(district => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af',
-                    pointerEvents: 'none'
-                  }} />
-                </div>
-              </div>
-
-              {/* Block */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Block
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={complaintForm.blockId}
-                    onChange={(e) => {
-                      const blockId = e.target.value;
-                      setComplaintForm(prev => ({
-                        ...prev,
-                        blockId,
-                        gpId: '',
-                        village: ''
-                      }));
-                      if (blockId && complaintForm.districtId) {
-                        fetchGramPanchayats(complaintForm.districtId, blockId);
-                      }
-                    }}
-                    disabled={!complaintForm.districtId}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: complaintForm.districtId ? '#374151' : '#9ca3af',
-                      backgroundColor: complaintForm.districtId ? 'white' : '#f9fafb',
-                      appearance: 'none',
-                      cursor: complaintForm.districtId ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    <option value="">Select Block</option>
-                    {blocks.filter(b => b.district_id === parseInt(complaintForm.districtId)).map(block => (
-                      <option key={block.id} value={block.id}>
-                        {block.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af',
-                    pointerEvents: 'none'
-                  }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Gram Panchayat */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Gram Panchayat
-              </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={complaintForm.gpId}
-                  onChange={(e) => {
-                    const gpId = e.target.value;
-                    setComplaintForm(prev => ({
-                      ...prev,
-                      gpId,
-                      village: ''
-                    }));
-                    if (gpId) {
-                      fetchVillages(gpId);
-                    }
-                  }}
-                  disabled={!complaintForm.blockId}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: complaintForm.blockId ? '#374151' : '#9ca3af',
-                    backgroundColor: complaintForm.blockId ? 'white' : '#f9fafb',
-                    appearance: 'none',
-                    cursor: complaintForm.blockId ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  <option value="">Select Gram Panchayat</option>
-                  {gramPanchayats.filter(gp => gp.block_id === parseInt(complaintForm.blockId)).map(gp => (
-                    <option key={gp.id} value={gp.id}>
-                      {gp.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-            </div>
-
-            {/* Village and Ward/Area */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-              {/* Village */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Village
-                </label>
-                <input
-                  type="text"
-                  value={complaintForm.village}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, village: e.target.value }))}
-                  placeholder="Enter Village"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151'
-                  }}
-                />
-              </div>
-
-              {/* Ward/Area */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Ward/Area
-                </label>
-                <input
-                  type="text"
-                  value={complaintForm.wardArea}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, wardArea: e.target.value }))}
-                  placeholder="Enter Ward/Area"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => {
-                  setShowComplaintModal(false);
-                  setComplaintForm({
-                    complaintTypeId: '',
-                    details: '',
-                    phone_number: '',
-                    districtId: '',
-                    blockId: '',
-                    gpId: '',
-                    village: '',
-                    wardArea: ''
-                  });
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    setSubmittingComplaint(true);
-
-                    const location = [complaintForm.village, complaintForm.wardArea].filter(Boolean).join(', ');
-                    const params = {
-                      phone_number: complaintForm.phone_number,
-                      description: complaintForm.details,
-                      complaint_type_id: complaintForm.complaintTypeId,
-                      gp_id: complaintForm.gpId,
-                      location
-                    };
-                    const body = new URLSearchParams(params).toString();
-
-                    await apiClient.post('/complaints/smd/complaints', body, {
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                    });
-
-                    setComplaintForm({
-                      complaintTypeId: '',
-                      details: '',
-                      phone_number: '',
-                      districtId: '',
-                      blockId: '',
-                      gpId: '',
-                      village: '',
-                      wardArea: ''
-                    });
-                    setShowComplaintModal(false);
-                    setShowSuccessDialog(true);
-                    fetchComplaintsData();
-                  } catch (error) {
-                    console.error('Error submitting complaint:', error);
-                    alert('Failed to submit complaint. Please try again.');
-                  } finally {
-                    setSubmittingComplaint(false);
-                  }
-                }}
-                disabled={submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? '#d1d5db' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 'not-allowed' : 'pointer',
-                  opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 0.6 : 1
-                }}
-              >
-                {submittingComplaint ? 'Submitting...' : 'Add'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      
 
       {/* Success Dialog */}
       {showSuccessDialog && (

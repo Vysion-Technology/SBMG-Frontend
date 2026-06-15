@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, ChevronDown, Loader } from 'lucide-react';
 import apiClient from '../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 /**
  * AddVehicleModal component for adding new vehicles or editing existing ones
@@ -8,8 +9,8 @@ import apiClient from '../../../services/api';
  */
 const AddVehicleModal = ({
   isOpen = false,
-  onClose = () => {},
-  onSubmit = () => {},
+  onClose = () => { },
+  onSubmit = () => { },
   isSubmitting = false,
   editingVehicle = null,
   districts = [],
@@ -26,6 +27,8 @@ const AddVehicleModal = ({
     blockId: '',
     gpId: ''
   });
+
+  const { t } = useTranslation(['common', 'table', 'gps']);
 
   // Local state for location data (will fetch if not provided as props)
   const [localDistricts, setLocalDistricts] = useState(districts);
@@ -49,14 +52,14 @@ const AddVehicleModal = ({
   // Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
   const validateVehicleNumber = (value) => {
     if (!value) {
-      return 'Vehicle number is required';
+      return t('gps:vehicleNumberRequired');
     }
     // Remove spaces and convert to uppercase
     const cleaned = value.replace(/\s+/g, '').toUpperCase();
     // Indian vehicle number format: 2 letters + 2 digits + 2 letters + 4 digits
     const vehicleRegex = /^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$/;
     if (!vehicleRegex.test(cleaned)) {
-      return 'Invalid format. Use format: RJ01AB1234 (2 letters, 2 digits, 2 letters, 4 digits)';
+      return t('gps:invalidVehicleNumberFormat');
     }
     return '';
   };
@@ -64,13 +67,13 @@ const AddVehicleModal = ({
   // IMEI validation: exactly 15 digits
   const validateIMEI = (value) => {
     if (!value) {
-      return 'IMEI number is required';
+      return t('gps:imeiNumberRequired');
     }
     // Remove spaces and check if it's exactly 15 digits
     const cleaned = value.replace(/\s+/g, '');
     const imeiRegex = /^[0-9]{15}$/;
     if (!imeiRegex.test(cleaned)) {
-      return 'IMEI must be exactly 15 digits';
+      return t('gps:imeiValidation');
     }
     return '';
   };
@@ -219,7 +222,7 @@ const AddVehicleModal = ({
     // Validate vehicle number
     const vehicleError = validateVehicleNumber(formData.vehicleNumber);
     const imeiError = validateIMEI(formData.imeiNumber);
-    
+
     setErrors({
       vehicleNumber: vehicleError,
       imeiNumber: imeiError,
@@ -285,7 +288,7 @@ const AddVehicleModal = ({
     };
 
     await onSubmit(submitData);
-    
+
     // Reset form
     setFormData({
       imeiNumber: '',
@@ -400,7 +403,7 @@ const AddVehicleModal = ({
             color: '#111827',
             margin: 0
           }}>
-            {isEditMode ? 'Edit Vehicle' : 'Add Vehicle'}
+            {isEditMode ? t('gps:editVehicle') : t('gps:addVehicle')}
           </h2>
           <button
             onClick={handleClose}
@@ -422,72 +425,72 @@ const AddVehicleModal = ({
 
         {/* Step Indicator - hide in edit mode */}
         {!isEditMode && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: '32px',
-          gap: '16px'
-        }}>
-          {/* Step 1 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: modalStep === 1 ? '#10b981' : modalStep > 1 ? '#10b981' : '#e5e7eb',
-              border: modalStep === 1 ? '2px solid #10b981' : modalStep > 1 ? '2px solid #10b981' : '2px solid #d1d5db',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: modalStep >= 1 ? 'white' : '#6b7280'
-            }}>
-              {modalStep > 1 ? '✓' : '01'}
-            </div>
-            <span style={{
-              fontSize: '14px',
-              fontWeight: modalStep === 1 ? '600' : '400',
-              color: modalStep === 1 ? '#10b981' : '#6b7280'
-            }}>
-              Vehicle Details
-            </span>
-          </div>
-
-          {/* Connector Line */}
           <div style={{
-            width: '60px',
-            height: '2px',
-            backgroundColor: modalStep > 1 ? '#10b981' : '#d1d5db'
-          }}></div>
-
-          {/* Step 2 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: modalStep === 2 ? '#10b981' : '#e5e7eb',
-              border: modalStep === 2 ? '2px solid #10b981' : '2px solid #d1d5db',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: modalStep === 2 ? 'white' : '#6b7280'
-            }}>
-              02
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '32px',
+            gap: '16px'
+          }}>
+            {/* Step 1 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: modalStep === 1 ? '#10b981' : modalStep > 1 ? '#10b981' : '#e5e7eb',
+                border: modalStep === 1 ? '2px solid #10b981' : modalStep > 1 ? '2px solid #10b981' : '2px solid #d1d5db',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: modalStep >= 1 ? 'white' : '#6b7280'
+              }}>
+                {modalStep > 1 ? '✓' : '01'}
+              </div>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: modalStep === 1 ? '600' : '400',
+                color: modalStep === 1 ? '#10b981' : '#6b7280'
+              }}>
+                {t('gps:vehicleDetails')}
+              </span>
             </div>
-            <span style={{
-              fontSize: '14px',
-              fontWeight: modalStep === 2 ? '600' : '400',
-              color: modalStep === 2 ? '#10b981' : '#6b7280'
-            }}>
-              Location
-            </span>
+
+            {/* Connector Line */}
+            <div style={{
+              width: '60px',
+              height: '2px',
+              backgroundColor: modalStep > 1 ? '#10b981' : '#d1d5db'
+            }}></div>
+
+            {/* Step 2 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: modalStep === 2 ? '#10b981' : '#e5e7eb',
+                border: modalStep === 2 ? '2px solid #10b981' : '2px solid #d1d5db',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: modalStep === 2 ? 'white' : '#6b7280'
+              }}>
+                02
+              </div>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: modalStep === 2 ? '600' : '400',
+                color: modalStep === 2 ? '#10b981' : '#6b7280'
+              }}>
+                {t('gps:location')}
+              </span>
+            </div>
           </div>
-        </div>
         )}
 
         {/* Step 1: Vehicle Details */}
@@ -501,11 +504,11 @@ const AddVehicleModal = ({
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                IMEI Number <span style={{ color: '#ef4444' }}>*</span>
+                {t('gps:imeiNumber')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="text"
-                placeholder="Enter IMEI number (e.g., 357803372737250)"
+                placeholder={t('gps:enterImeiNumber')}
                 value={formData.imeiNumber}
                 onChange={(e) => handleInputChange('imeiNumber', e.target.value)}
                 maxLength={15}
@@ -522,30 +525,30 @@ const AddVehicleModal = ({
                 }}
               />
               {errors.imeiNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#ef4444', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#ef4444',
+                  marginTop: '4px'
                 }}>
                   {errors.imeiNumber}
                 </div>
               )}
               {!errors.imeiNumber && formData.imeiNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#10b981', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#10b981',
+                  marginTop: '4px'
                 }}>
-                  {formData.imeiNumber.length}/15 digits - GPS device IMEI for tracking
+                  {formData.imeiNumber.length}/{t('gps:imeiTrackingHint')}
                 </div>
               )}
               {!errors.imeiNumber && !formData.imeiNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#6b7280', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#6b7280',
+                  marginTop: '4px'
                 }}>
-                  GPS device IMEI for tracking (must be exactly 15 digits)
+                    {t('gps:imeiDescription')}
                 </div>
               )}
             </div>
@@ -558,11 +561,11 @@ const AddVehicleModal = ({
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Vehicle Name
+                 {t('gps:vehicleName')}
               </label>
               <input
                 type="text"
-                placeholder="Enter vehicle name"
+                placeholder={t('gps:vehicleName')}
                 value={formData.vehicleName}
                 onChange={(e) => handleInputChange('vehicleName', e.target.value)}
                 disabled={isSubmitting}
@@ -578,10 +581,10 @@ const AddVehicleModal = ({
                 }}
               />
               {errors.vehicleName && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#ef4444', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#ef4444',
+                  marginTop: '4px'
                 }}>
                   {errors.vehicleName}
                 </div>
@@ -596,11 +599,11 @@ const AddVehicleModal = ({
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Vehicle Number <span style={{ color: '#ef4444' }}>*</span>
+                {t('gps:vehicleNumber')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="text"
-                placeholder="Enter vehicle number (e.g., RJ01AB1234)"
+                placeholder={t('gps:vehicleNumber')}
                 value={formData.vehicleNumber}
                 onChange={(e) => handleInputChange('vehicleNumber', e.target.value)}
                 maxLength={10}
@@ -617,21 +620,21 @@ const AddVehicleModal = ({
                 }}
               />
               {errors.vehicleNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#ef4444', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#ef4444',
+                  marginTop: '4px'
                 }}>
                   {errors.vehicleNumber}
                 </div>
               )}
               {!errors.vehicleNumber && formData.vehicleNumber && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#10b981', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#10b981',
+                  marginTop: '4px'
                 }}>
-                  Format: 2 letters (state code) + 2 digits + 2 letters + 4 digits
+                  {t('gps:vehicleNumberFormat')}
                 </div>
               )}
             </div>
@@ -658,7 +661,7 @@ const AddVehicleModal = ({
                   opacity: isSubmitting ? 0.6 : 1,
                 }}
               >
-                Cancel
+                 {t('gps:cancel')}
               </button>
               <button
                 onClick={isEditMode ? handleUpdate : handleNext}
@@ -681,7 +684,7 @@ const AddVehicleModal = ({
                 {isEditMode && isSubmitting && (
                   <Loader style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
                 )}
-                {isEditMode ? (isSubmitting ? 'Updating...' : 'Update Vehicle') : 'Next'}
+                {isEditMode ? (isSubmitting ? t('gps:updating') : t('gps:updateVehicle')) : t('gps:next')}
               </button>
             </div>
           </div>
@@ -699,9 +702,9 @@ const AddVehicleModal = ({
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  District <span style={{ color: '#ef4444' }}>*</span>
+                  { t('table:district')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                  <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative' }}>
                   <select
                     value={formData.districtId}
                     onChange={(e) => handleInputChange('districtId', e.target.value)}
@@ -753,10 +756,10 @@ const AddVehicleModal = ({
                   )}
                 </div>
                 {errors.districtId && (
-                  <div style={{ 
-                    fontSize: '12px', 
-                    color: '#ef4444', 
-                    marginTop: '4px' 
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#ef4444',
+                    marginTop: '4px'
                   }}>
                     {errors.districtId}
                   </div>
@@ -771,9 +774,9 @@ const AddVehicleModal = ({
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Block <span style={{ color: '#ef4444' }}>*</span>
+                  { t('table:block')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                  <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative' }}>
                   <select
                     value={formData.blockId}
                     onChange={(e) => handleInputChange('blockId', e.target.value)}
@@ -793,11 +796,11 @@ const AddVehicleModal = ({
                     }}
                   >
                     <option value="">
-                      {!formData.districtId 
-                        ? 'Select district first' 
-                        : loadingBlocks 
-                        ? 'Loading blocks...' 
-                        : 'Select Block'}
+                      {!formData.districtId
+                        ?  t('gps:selectDistrictFirst')
+                        : loadingBlocks
+                          ? t('gps:loadingBlocks')
+                          : t('gps:selectBlock')}
                     </option>
                     {displayBlocks.map((block) => (
                       <option key={block.id} value={block.id}>
@@ -831,10 +834,10 @@ const AddVehicleModal = ({
                   )}
                 </div>
                 {errors.blockId && (
-                  <div style={{ 
-                    fontSize: '12px', 
-                    color: '#ef4444', 
-                    marginTop: '4px' 
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#ef4444',
+                    marginTop: '4px'
                   }}>
                     {errors.blockId}
                   </div>
@@ -850,7 +853,7 @@ const AddVehicleModal = ({
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Gram Panchayat <span style={{ color: '#ef4444' }}>*</span>
+                 { t('table:gps')} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -872,11 +875,11 @@ const AddVehicleModal = ({
                   }}
                 >
                   <option value="">
-                    {!formData.blockId 
-                      ? 'Select block first' 
-                      : loadingGPs 
-                      ? 'Loading Gram Panchayats...' 
-                      : 'Select Gram Panchayat'}
+                    {!formData.blockId
+                      ?  t('gps:selectBlock')
+                      : loadingGPs
+                        ? t('gps:loadingGramPanchayats')
+                        : t('gps:selectGramPanchayat')}
                   </option>
                   {displayGramPanchayats.map((gp) => (
                     <option key={gp.id} value={gp.id}>
@@ -910,10 +913,10 @@ const AddVehicleModal = ({
                 )}
               </div>
               {errors.gpId && (
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#ef4444', 
-                  marginTop: '4px' 
+                <div style={{
+                  fontSize: '12px',
+                  color: '#ef4444',
+                  marginTop: '4px'
                 }}>
                   {errors.gpId}
                 </div>
@@ -942,7 +945,7 @@ const AddVehicleModal = ({
                   opacity: isSubmitting ? 0.6 : 1,
                 }}
               >
-                Back
+                 { t('gps:back')}
               </button>
               <div style={{ display: 'flex', gap: '12px' }}>
                 <button
@@ -960,7 +963,7 @@ const AddVehicleModal = ({
                     opacity: isSubmitting ? 0.6 : 1,
                   }}
                 >
-                  Cancel
+                 { t('gps:cancel')}
                 </button>
                 <button
                   onClick={handleSubmit}
@@ -981,15 +984,15 @@ const AddVehicleModal = ({
                   }}
                 >
                   {isSubmitting && (
-                    <Loader 
-                      style={{ 
-                        width: '16px', 
+                    <Loader
+                      style={{
+                        width: '16px',
                         height: '16px',
                         animation: 'spin 1s linear infinite',
-                      }} 
+                      }}
                     />
                   )}
-                  {isSubmitting ? 'Adding...' : 'Add Vehicle'}
+                  {isSubmitting ? t('gps:adding') : t('gps:addVehicle')}
                 </button>
               </div>
             </div>

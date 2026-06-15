@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
+import { t } from 'i18next';
 
 /**
  * Single semi-circle arc: left (180°) through top to right (0°).
@@ -17,6 +19,8 @@ const getArcPath = (cx, cy, r) => {
  * Uses strokeDasharray to show segments of the same path - no overlap.
  */
 const AttendanceGauge = ({ presentPercent, absentPercent }) => {
+
+  const { t } = useTranslation(['dashboard', 'common']);
   const pathRef = useRef(null);
   const [totalLength, setTotalLength] = useState(0);
 
@@ -87,7 +91,7 @@ const AttendanceGauge = ({ presentPercent, absentPercent }) => {
         textAnchor="middle"
         style={{ fontSize: 12, fill: '#6b7280' }}
       >
-        CSC Cleaned
+        {t('cscCleaned')}
       </text>
     </svg>
   );
@@ -116,6 +120,8 @@ const AttendanceCard = ({
 
   const [showDateDropdown, setShowDateDropdown] = useState(false);
 
+  const { t } = useTranslation(['dashboard', 'common']);
+
   return (
     <div className="attendance-card" style={{
       width: '100%',
@@ -132,7 +138,7 @@ const AttendanceCard = ({
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>CSC Cleaning</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>{t('cscCleaning')}</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         <div style={{ position: 'relative' }}>
@@ -184,12 +190,12 @@ const AttendanceCard = ({
             <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
             <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#22c55e' }}>{formatCount(present)}</div>
-              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>CSC Cleaned</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t('cscCleaned')}</div>
             </div>
             <div style={{ width: 1, height: 36, backgroundColor: '#e5e7eb', flexShrink: 0 }} />
             <div className="attendance-metric" style={{ flex: 1, minWidth: 0, textAlign: 'center' }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: '#ef4444' }}>{formatCount(absentCount)}</div>
-              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>CSC Not Cleaned</div>
+              <div className="attendance-metric-label" style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{t('cscNotCleaned')}</div>
             </div>
           </div>
 

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RightDrawer = ({ clickFunction, trigger, title, children, showBack = false, backLabel = 'Back', backFunction }) => {
     const [isOpen, setIsOpen] = useState(false);
 
+    const { t } = useTranslation(['dashboard', 'common']);
     // Prevent scrolling when drawer is open
     useEffect(() => {
         if (isOpen) {
@@ -30,7 +32,7 @@ const RightDrawer = ({ clickFunction, trigger, title, children, showBack = false
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-4! border-b border-slate-200">
-                    <h2 className="text-lg font-bold text-gray-800">{title}</h2>
+                    <h2 className="text-lg font-bold text-gray-800"> {t(`assets.${title}`, title)}</h2>
                     <div className="flex items-center gap-2">
                         {showBack && (
                             <button

@@ -8,6 +8,7 @@ import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
 import EditGPMasterModal from '../common/EditGPMasterModal';
+import { useTranslation } from 'react-i18next';
 
 
 const CEOContractorDetails = () => {
@@ -41,6 +42,8 @@ const CEOContractorDetails = () => {
         ceoDistrictName,
         loadingCEOData
     } = useCEOLocation();
+
+    const { t } = useTranslation(['common', 'table', 'gpMaster']);
 
     // CEO always uses their district ID from /me API
     const selectedDistrictId = ceoDistrictId || null;
@@ -1078,7 +1081,7 @@ const CEOContractorDetails = () => {
                         color: '#374151',
                         margin: 0
                     }}>
-                        Contractor Details
+                        {t('common:contractorDetails')}
                     </h1>
                 </div>
 
@@ -1313,7 +1316,7 @@ const CEOContractorDetails = () => {
                             color: '#111827',
                             margin: 0
                         }}>
-                            Overview
+                            {t('common:overview')}
                         </h2>
                     </div>
 
@@ -1347,7 +1350,7 @@ const CEOContractorDetails = () => {
                                     color: '#6b7280',
                                     margin: 0
                                 }}>
-                                    Contractor Data Filled
+                                    {t('gpmaster:contractorDataFilled')}
                                     {/*   (total filled constrator / total contractor) * 100    */}
                                 </h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1386,7 +1389,7 @@ const CEOContractorDetails = () => {
                                 color: '#6b7280',
                                 margin: 0
                             }}>
-                                Data Filled covered
+                                {t('gpmaster:dataFilledCovered')}
                             </h3>
                             <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
                         </div>
@@ -1422,10 +1425,10 @@ const CEOContractorDetails = () => {
                                 color: '#111827',
                                 margin: 0
                             }}>
-                                {activeScope === 'State' ? 'District performance score' :
-                                    activeScope === 'Districts' ? 'Block performance score' :
-                                        activeScope === 'Blocks' ? 'GP performance score' :
-                                            'Village performance score'}
+                                {activeScope === 'State' ? t('inspection:districtPerformanceScore') :
+                                    activeScope === 'Districts' ? t('inspection:blockPerformanceScore') :
+                                        activeScope === 'Blocks' ? t('inspection:gpPerformanceScore') :
+                                            t('inspection:villagePerformanceScore')}
                             </h3>
 
                             {/* Legend */}
@@ -1445,10 +1448,10 @@ const CEOContractorDetails = () => {
                                         backgroundColor: '#ef4444'
                                     }}></div>
                                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        Below {activeScope === 'State' ? 'district average' :
-                                            activeScope === 'Districts' ? 'block average' :
-                                                activeScope === 'Blocks' ? 'GP average' :
-                                                    'village average'}
+                                        {t('inspection:below')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                                            activeScope === 'Districts' ? t('inspection:blockAverage') :
+                                                activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                                                    t('inspection:villageAverage')}
                                     </span>
                                 </div>
                                 <div style={{
@@ -1463,10 +1466,10 @@ const CEOContractorDetails = () => {
                                         backgroundColor: '#10b981'
                                     }}></div>
                                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                                        Above {activeScope === 'State' ? 'district average' :
-                                            activeScope === 'Districts' ? 'block average' :
-                                                activeScope === 'Blocks' ? 'GP average' :
-                                                    'village average'}
+                                        {t('inspection:above')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                                            activeScope === 'Districts' ? t('inspection:blockAverage') :
+                                                activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                                                    t('inspection:villageAverage')}
                                     </span>
                                 </div>
                             </div>
@@ -1557,7 +1560,7 @@ const CEOContractorDetails = () => {
                         color: '#111827',
                         margin: '0 0 16px 0'
                     }}>
-                        Contractor  Details
+                          {t('common:contractorDetails')}
                     </h3>
                     {/* vendor details page static */}
                     {loadingAnalytics ? (
@@ -1575,7 +1578,7 @@ const CEOContractorDetails = () => {
                                             className='flex flex-col gap-5  max-w-[800px] w-full border border-gray-200 bg-gray-50 rounded-2xl '>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Name :
+                                                     {t('table:name')} :
                                                 </div>
                                                 <div>
                                                     {item.person_name}
@@ -1583,7 +1586,7 @@ const CEOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contact Number :
+                                                     {t('table:contactNumber')} :
                                                 </div>
                                                 <div>
                                                     {item.person_phone}
@@ -1592,7 +1595,7 @@ const CEOContractorDetails = () => {
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Agency name :
+                                                  {t('table:agencyName')}  :
                                                 </div>
                                                 <div>
                                                     {item.agency?.name || '-'}
@@ -1600,16 +1603,16 @@ const CEOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Annual Contract Amount :
+                                                     {t('table:annualContractAmount')}   :
                                                 </div>
                                                 <div>
-                                                  ₹ {(item.contract_amount / 100000).toFixed(2)} L
+                                                    ₹ {(item.contract_amount / 100000).toFixed(2)} L
                                                 </div>
                                             </div>
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contract Start Date :
+                                                   {t('table:contractStartDate')} :
                                                 </div>
                                                 <div>
                                                     {/* {item.contract_start_date} */}
@@ -1619,7 +1622,7 @@ const CEOContractorDetails = () => {
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contract End Date :
+                                                    {t('table:contractEndDate')} :
                                                 </div>
                                                 <div>
                                                     {new Date(item.contract_end_date).toLocaleDateString()}
@@ -1627,7 +1630,7 @@ const CEOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Frequency of work :
+                                                    {t('table:frequencyOfWork')} :
                                                 </div>
                                                 <div>
                                                     {item.contract_frequency}
@@ -1736,7 +1739,7 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
-                                            Total {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'}
+                                            {t('table:total')} {t('table:gps')}
                                             <InfoTooltip tooltipKey="TOTAL_GPS" size={14} color="#9ca3af" />
                                             <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                                         </div>
@@ -1748,7 +1751,7 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
-                                            {activeScope === 'State' || activeScope === 'Districts' ? 'GPs' : 'Villages'} with Contractror Data
+                                             {t('table:gpsWithContractorData')} 
                                             <InfoTooltip tooltipKey="GPS_WITH_DATA" size={14} color="#9ca3af" />
                                             <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                                         </div>
@@ -1760,7 +1763,7 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
-                                            Coverage %
+                                             {t('table:coverage')} %
                                             <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
                                             <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                                         </div>
@@ -1772,7 +1775,7 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
-                                            Status
+                                            {t('table:status')}
                                             <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
                                         </div>
                                         <div style={{
@@ -1782,7 +1785,7 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
-                                            Action
+                                             {t('table:action')}
                                         </div>
                                     </div>
 
@@ -1799,11 +1802,11 @@ const CEOContractorDetails = () => {
                                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
                                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                                         >
-                                            <div 
+                                            <div
                                                 onClick={() => handleRowClick(item)}
-                                                style={{ 
-                                                    fontSize: '14px', 
-                                                    color: activeScope === 'GPs' ? '#111827' : '#10b981', 
+                                                style={{
+                                                    fontSize: '14px',
+                                                    color: activeScope === 'GPs' ? '#111827' : '#10b981',
                                                     fontWeight: '500',
                                                     cursor: activeScope === 'GPs' ? 'default' : 'pointer',
                                                     textDecoration: activeScope === 'GPs' ? 'none' : 'underline'
