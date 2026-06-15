@@ -1,7 +1,8 @@
-import { Calendar, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
+import { Calendar, Check, ChevronDown, ChevronRight, ChevronsUpDown, ChevronUp, Database, Download, Edit, Eye, Filter, MapPin, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Chart from 'react-apexcharts';
 import { useLocation } from '../../context/LocationContext';
+import { useAuth } from '../../context/AuthContext';
 import apiClient, { annualSurveysAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 import { generateAnnualSurveysPDF } from '../../utils/annualSurveysPdf';
@@ -46,6 +47,7 @@ const VillageMasterContent = () => {
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useLocation();
 
+  const { user, refreshMe } = useAuth();
   const { t } = useTranslation(["common", "table", "gpMaster"])
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -77,6 +79,7 @@ const VillageMasterContent = () => {
   const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSurveyId, setEditSurveyId] = useState(null);
+  const [reconfirming, setReconfirming] = useState(false);
 
   const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
   const performanceButtons = ['Time', 'Location'];
@@ -896,6 +899,27 @@ const VillageMasterContent = () => {
     setShowSendNoticeModal(false);
     setSelectedNoticeTarget(null);
   }, []);
+
+  const handleReconfirm = async (surveyId) => {
+    if (reconfirming) return;
+
+    try {
+      setReconfirming(true);
+      await annualSurveysAPI.reconfirmSurvey(surveyId);
+      alert('GP Data reconfirmed successfully ✅');
+
+      // Refresh user data to update gp_data_status (and hide lock/banner)
+      await refreshMe();
+
+      // Refresh surveys
+      fetchGpSurveys();
+    } catch (error) {
+      console.error('Reconfirmation failed:', error);
+      alert(error.response?.data?.detail || 'Reconfirmation failed. Please try again.');
+    } finally {
+      setReconfirming(false);
+    }
+  };
 
   // Fetch analytics data (state or district level)
   const fetchAnalytics = useCallback(async () => {
@@ -1774,7 +1798,7 @@ const VillageMasterContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1fr 200px',
+              gridTemplateColumns: '120px 1fr 280px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
@@ -1808,10 +1832,15 @@ const VillageMasterContent = () => {
               const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
               const hasData = !!survey;
               const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? t('table:available') : t('table:notAvailable'));
+
+              // Check if reconfirmation is needed for this specific survey (current year)
+              const isCurrentYear = fyList[0]?.id === selectedFyId;
+              const needsReconfirm = isCurrentYear && hasData && user?.gp_data_status?.is_overdue;
+
               return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '120px 1fr 200px',
+                  gridTemplateColumns: '120px 1fr 280px',
                   padding: '12px 16px',
                   alignItems: 'center',
                   borderBottom: '1px solid #f3f4f6'
@@ -1821,12 +1850,47 @@ const VillageMasterContent = () => {
                   </div>
                   <div style={{ fontSize: '14px', color: hasData ? '#10b981' : '#6b7280', fontWeight: '600' }}>
                     {masterDataLabel}
+                    {needsReconfirm && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '11px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}>
+                        Reconfirmation Required
+                      </span>
+                    )}
                   </div>
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px'
                   }}>
+                    {hasData && (needsReconfirm || (isCurrentYear && user?.gp_data_status)) && (
+                      <button
+                        onClick={() => handleReconfirm(survey.id)}
+                        disabled={reconfirming}
+                        style={{
+                          padding: '6px 10px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: reconfirming ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          boxShadow: needsReconfirm ? '0 0 0 2px rgba(16, 185, 129, 0.4)' : 'none'
+                        }}
+                      >
+                        {reconfirming ? '...' : <><Check size={14} /> Reconfirm</>}
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenNoticeModal({ id: survey?.id ?? 1, name: 'GP Report', type: 'GP' })}
                       style={{

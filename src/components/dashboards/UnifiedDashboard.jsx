@@ -29,6 +29,8 @@ import GpsTrackingContent from './GpsTrackingContent';
 import PaymentsContent from './PaymentsContent';
 import FeedbacksContent from './FeedbacksContent';
 import ContractorDetails from './ContractorDetails';
+import ReconfirmationWarningBanner from '../common/ReconfirmationWarningBanner';
+import ReconfirmationLockOverlay from '../common/ReconfirmationLockOverlay';
 import { useTranslation } from "react-i18next";
 
 const useMediaQuery = (query) => {
@@ -323,8 +325,12 @@ const UnifiedDashboard = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
-
+      <ReconfirmationLockOverlay 
+        onNavigateToReconfirm={handleNavigateToGPMasterData} 
+        activeItem={activeItem}
+      />
       <TopHeaderBar />
+      <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,

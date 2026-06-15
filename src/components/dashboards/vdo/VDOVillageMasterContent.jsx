@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar, Check } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { annualSurveysAPI } from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import { useAuth } from '../../../context/AuthContext';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
@@ -28,7 +29,8 @@ const VDOVillageMasterContent = () => {
     getLocationPath,
   } = useVDOLocation();
 
-    const { t } = useTranslation(["common", "table", "gpMaster"])
+  const { user, refreshMe } = useAuth();
+  const { t } = useTranslation(["common", "table", "gpMaster"])
 
   // VDO: Always works at villages level (no geo tabs)
   const activeScope = 'GPs';
@@ -89,6 +91,7 @@ const VDOVillageMasterContent = () => {
   const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSurveyId, setEditSurveyId] = useState(null);
+  const [reconfirming, setReconfirming] = useState(false);
 
   const scopeButtons = ['GPs']; // BDO can only view GPs
   const performanceButtons = ['Time', 'Location'];
@@ -585,6 +588,27 @@ const VDOVillageMasterContent = () => {
     }
   }, [activeScope, selectedGPId, selectedFyId]);
 
+  const handleReconfirm = async (surveyId) => {
+    if (reconfirming) return;
+
+    try {
+      setReconfirming(true);
+      await annualSurveysAPI.reconfirmSurvey(surveyId);
+      alert('GP Data reconfirmed successfully ✅');
+
+      // Refresh user data to update gp_data_status (and hide lock/banner)
+      await refreshMe();
+
+      // Optional: refresh surveys or analytics
+      fetchGpSurveys();
+    } catch (error) {
+      console.error('Reconfirmation failed:', error);
+      alert(error.response?.data?.detail || 'Reconfirmation failed. Please try again.');
+    } finally {
+      setReconfirming(false);
+    }
+  };
+
   // Fetch analytics data (state or district level)
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -1015,11 +1039,12 @@ const VDOVillageMasterContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1fr 200px',
+              gridTemplateColumns: '120px 1fr 280px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
             }}>
+
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
@@ -1049,10 +1074,15 @@ const VDOVillageMasterContent = () => {
               const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
               const hasData = !!survey;
               const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? t('table:available') : t('table:notAvailable'));
+
+              // Check if reconfirmation is needed for this specific survey (current year)
+              const isCurrentYear = fyList[0]?.id === selectedFyId;
+              const needsReconfirm = isCurrentYear && hasData && user?.gp_data_status?.is_overdue;
+
               return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '120px 1fr 200px',
+                  gridTemplateColumns: '120px 1fr 280px',
                   padding: '12px 16px',
                   alignItems: 'center',
                   borderBottom: '1px solid #f3f4f6'
@@ -1062,6 +1092,19 @@ const VDOVillageMasterContent = () => {
                   </div>
                   <div style={{ fontSize: '14px', color: hasData ? '#10b981' : '#6b7280', fontWeight: '600' }}>
                     {masterDataLabel}
+                    {needsReconfirm && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '11px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}>
+                        Reconfirmation Required
+                      </span>
+                    )}
                   </div>
                   <div style={{
                     display: 'flex',
@@ -1071,6 +1114,30 @@ const VDOVillageMasterContent = () => {
 
                     {hasData ? (
                       <>
+                        {/* RECONFIRM BUTTON */}
+                        {(needsReconfirm || (isCurrentYear && user?.gp_data_status)) && (
+                          <button
+                            onClick={() => handleReconfirm(survey.id)}
+                            disabled={reconfirming}
+                            title="Verify & Reconfirm GP Data"
+                            style={{
+                              padding: '6px 10px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: reconfirming ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              boxShadow: needsReconfirm ? '0 0 0 2px rgba(16, 185, 129, 0.4)' : 'none'
+                            }}
+                          >
+                            {reconfirming ? '...' : <><Check size={14} /> Reconfirm</>}
+                          </button>
+                        )}
                         {/* EDIT BUTTON */}
                         <button
                           onClick={() => {

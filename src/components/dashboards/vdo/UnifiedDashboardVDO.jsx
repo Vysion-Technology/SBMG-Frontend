@@ -30,6 +30,8 @@ import PaymentsContent from '../PaymentsContent';
 import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import VDOContractorDetails from './VDOContractorDetails';
+import ReconfirmationWarningBanner from '../../common/ReconfirmationWarningBanner';
+import ReconfirmationLockOverlay from '../../common/ReconfirmationLockOverlay';
 import { useTranslation } from 'react-i18next';
 
 
@@ -254,6 +256,10 @@ const UnifiedDashboardVDO = () => {
     }
   };
 
+  const handleNavigateToGPMasterData = () => {
+    setActiveItem('gpMasterData');
+  };
+
   return (
     <div style={{
       display: 'flex',
@@ -264,7 +270,12 @@ const UnifiedDashboardVDO = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ReconfirmationLockOverlay 
+        onNavigateToReconfirm={handleNavigateToGPMasterData} 
+        activeItem={activeItem}
+      />
       <TopHeaderBar />
+      <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
