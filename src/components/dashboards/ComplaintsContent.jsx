@@ -5,6 +5,7 @@ import { useLocation } from '../../context/LocationContext';
 import apiClient, { noticesAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
 import ComplaintDetailsPopup from './common/ComplaintDetailsPopup';
+import SLABadge from './common/SLABadge';
 import NoDataFound from './common/NoDataFound';
 import { u } from 'framer-motion/client';
 import { useTranslation } from 'react-i18next';
@@ -85,6 +86,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeSlaFilter, setActiveSlaFilter] = useState('ALL');
+  const [showSlaFilterDropdown, setShowSlaFilterDropdown] = useState(false);
 
   // Raise Complaint Modal state
   const [showComplaintModal, setShowComplaintModal] = useState(false);
@@ -603,10 +606,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       if (!event.target.closest('[data-location-dropdown]') &&
         !event.target.closest('[data-date-dropdown]') &&
         !event.target.closest('[data-top3-dropdown]') &&
+        !event.target.closest('[data-sla-filter-dropdown]') &&
         !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowFilterDropdown(false);
+        setShowSlaFilterDropdown(false);
       }
     };
 
@@ -1948,7 +1953,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       lat: complaint.lat,
       long: complaint.long,
       media: complaint.media_urls || [],
-      comments: complaint.comments || []
+      comments: complaint.comments || [],
+      last_sla_breach_level: complaint.last_sla_breach_level || null
     };
   });
 
@@ -1995,6 +2001,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       ? (complaint.status?.toUpperCase() === normalizedFilterStatus)
       : true; // if no filter selected, show all
 
+    const matchesSlaFilter = activeSlaFilter === 'ALL'
+      ? true
+      : complaint.last_sla_breach_level === activeSlaFilter;
+
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
@@ -2009,7 +2019,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       (complaint.block || '').toLowerCase().includes(q) ||
       (complaint.district || '').toLowerCase().includes(q);
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSlaFilter && matchesSearch;
   });
 
   const sortedComplaints = [...filteredComplaints].sort((a, b) => {
@@ -2017,6 +2027,19 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
+
+    // ✅ ESCALATION SORT
+    if (sortConfig.key === 'last_sla_breach_level') {
+      const getEscalationWeight = (level) => {
+        if (level === 'DISTRICT') return 3;
+        if (level === 'BLOCK') return 2;
+        if (level === 'GP') return 1;
+        return 0;
+      };
+      const wA = getEscalationWeight(a.last_sla_breach_level);
+      const wB = getEscalationWeight(b.last_sla_breach_level);
+      return sortConfig.direction === 'asc' ? wA - wB : wB - wA;
+    }
 
     // ✅ STATUS SORT FIXED
     if (sortConfig.key === 'statusDisplay') {
@@ -3483,6 +3506,79 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 </div>
               )}
             </div>
+
+            {/* SLA Escalation Filter */}
+            <div
+              data-sla-filter-dropdown
+              style={{
+                position: 'relative',
+                minWidth: '180px'
+              }}
+            >
+              <button
+                onClick={() => setShowSlaFilterDropdown(!showSlaFilterDropdown)}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}
+              >
+                <span>
+                  {activeSlaFilter === 'ALL' ? 'All Escalations' : 
+                   activeSlaFilter === 'GP' ? 'GP Escalations' :
+                   activeSlaFilter === 'BLOCK' ? 'Block Escalations' : 'District Escalations'}
+                </span>
+                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+              </button>
+
+              {showSlaFilterDropdown && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  zIndex: 1000,
+                  marginTop: '4px'
+                }}>
+                  {[
+                    { val: 'ALL', label: 'All Escalations' },
+                    { val: 'GP', label: 'GP Escalations' },
+                    { val: 'BLOCK', label: 'Block Escalations' },
+                    { val: 'DISTRICT', label: 'District Escalations' }
+                  ].map((item) => (
+                    <div
+                      key={item.val}
+                      onClick={() => {
+                        setActiveSlaFilter(item.val);
+                        setShowSlaFilterDropdown(false);
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        color: '#374151',
+                        backgroundColor: activeSlaFilter === item.val ? '#f3f4f6' : 'transparent',
+                        borderBottom: item.val !== 'DISTRICT' ? '1px solid #f3f4f6' : 'none'
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div style={{
@@ -3702,6 +3798,23 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:slaEscalation') || 'SLA Escalation'}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('last_sla_breach_level')}>
+                      <SortIcon col="last_sla_breach_level" />
+                    </span>
+                  </div>
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
                   {t('table:action')}
 
                 </th>
@@ -3710,7 +3823,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
-                  <td colSpan="6" style={{
+                  <td colSpan="8" style={{
                     padding: '40px',
                     textAlign: 'center',
                     fontSize: '14px',
@@ -3721,7 +3834,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: 0 }}>
+                  <td colSpan="8" style={{ padding: 0 }}>
                     <NoDataFound size="small" />
                   </td>
                 </tr>
@@ -3808,6 +3921,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
                       </div>
 
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px'
+                    }}>
+                      <SLABadge level={complaint.last_sla_breach_level} />
                     </td>
                     <td>
                       <button

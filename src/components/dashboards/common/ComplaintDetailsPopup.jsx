@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer, ShieldAlert } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
@@ -690,24 +690,39 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                                     border: '3px solid #e5e7eb'
                                                                 }} />
                                                                 <div style={{
-                                                                    backgroundColor: '#fff',
+                                                                    backgroundColor: '#f3f4f6',
                                                                     border: '1px solid #e5e7eb',
                                                                     borderRadius: '8px',
                                                                     padding: '10px 12px',
                                                                     display: 'flex',
-                                                                    gap: '8px',
+                                                                    gap: '10px',
                                                                     alignItems: 'flex-start'
                                                                 }}>
-                                                                    <span style={{ fontSize: '16px' }}>🔔</span>
+                                                                    <span style={{ display: 'inline-flex', alignItems: 'center', color: '#4b5563', marginTop: '2px' }}>
+                                                                        <ShieldAlert size={16} />
+                                                                    </span>
                                                                     <div>
-                                                                        <p style={{
-                                                                            fontSize: '11px', fontWeight: 600,
-                                                                            color: '#6b7280', margin: '0 0 4px 0',
-                                                                            textTransform: 'uppercase', letterSpacing: '0.05em'
-                                                                        }}>
-                                                                            System — SLA Event
-                                                                        </p>
-                                                                        <p style={{ fontSize: '13px', color: '#374151', margin: 0 }}>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                                            <span style={{
+                                                                                fontSize: '11px', fontWeight: 600,
+                                                                                color: '#4b5563',
+                                                                                textTransform: 'uppercase', letterSpacing: '0.05em'
+                                                                            }}>
+                                                                                SLA Event
+                                                                            </span>
+                                                                            <span style={{
+                                                                                backgroundColor: '#e5e7eb',
+                                                                                color: '#374151',
+                                                                                fontSize: '10px',
+                                                                                fontWeight: '600',
+                                                                                padding: '2px 6px',
+                                                                                borderRadius: '4px',
+                                                                                textTransform: 'uppercase'
+                                                                            }}>
+                                                                                System Notification
+                                                                            </span>
+                                                                        </div>
+                                                                        <p style={{ fontSize: '13px', color: '#374151', margin: '6px 0 0 0', lineHeight: '1.4' }}>
                                                                             {c.comment}
                                                                         </p>
                                                                         {c.created_at && (
