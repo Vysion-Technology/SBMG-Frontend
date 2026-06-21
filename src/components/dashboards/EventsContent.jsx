@@ -3,10 +3,17 @@ import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'l
 import { eventsAPI, MEDIA_BASE_URL } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 import { useTranslation } from "react-i18next";
+import { useAuth } from "../../context/AuthContext";
 
 const EventsContent = () => {
 
     const { t } = useTranslation(['common', 'table']);
+
+    const { role } = useAuth();
+
+    const normalizedRole = role?.toUpperCase();
+
+    const canManageEvents = ["ADMIN", "SMD"].includes(normalizedRole);
 
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -337,6 +344,31 @@ const EventsContent = () => {
         setIsSubmitting(false);
     };
 
+    const getEventStatus = (startTime, endTime) => {
+        const now = new Date();
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+
+        if (now < start) {
+            return {
+                label: "Upcoming",
+                color: "#3b82f6" // blue
+            };
+        }
+
+        if (now >= start && now <= end) {
+            return {
+                label: "Ongoing",
+                color: "#10b981" // green
+            };
+        }
+
+        return {
+            label: "Completed",
+            color: "#6b7280" // gray
+        };
+    };
+
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
@@ -442,25 +474,27 @@ const EventsContent = () => {
                                 {t('schemeevent:all')}
                             </button>
                         </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '6px 10px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                transition: 'all 0.2s'
-                            }}>
-                            <Plus style={{ width: '16px', height: '16px' }} />
-                            {t('schemeevent:addEvent')}
-                        </button>
+                        {canManageEvents && (
+                            <button
+                                onClick={() => setShowModal(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '6px 10px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <Plus style={{ width: '16px', height: '16px' }} />
+                                {t('schemeevent:addEvent')}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -510,18 +544,37 @@ const EventsContent = () => {
                                             console.log('Image loaded successfully:', getEventImage(event));
                                         }}
                                     />
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '12px',
-                                        right: '12px',
-                                        backgroundColor: event.active ? '#10b981' : '#ef4444',
-                                        color: 'white',
-                                        padding: '4px 8px',
-                                        borderRadius: '12px',
-                                        fontSize: '12px',
-                                        fontWeight: '500'
-                                    }}>
-                                        {event.active ? 'Active' : 'Inactive'}
+                                    <div className="absolute top-3 left-3 flex flex-col gap-2">
+                                        <span
+                                            style={{
+                                                background: event.active ? "#10b981" : "#ef4444",
+                                                color: "#fff",
+                                                padding: "4px 8px",
+                                                borderRadius: "12px",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            {event.active ? "Active" : "Inactive"}
+                                        </span>
+                                    </div>
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2">
+                                        <span
+                                            style={{
+                                                background: getEventStatus(
+                                                    event.start_time,
+                                                    event.end_time
+                                                ).color,
+                                                color: "#fff",
+                                                padding: "4px 8px",
+                                                borderRadius: "12px",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            {getEventStatus(
+                                                event.start_time,
+                                                event.end_time
+                                            ).label}
+                                        </span>
                                     </div>
                                     {/* Media count indicator if multiple images */}
                                     {event.media && event.media.length > 1 && (
@@ -967,51 +1020,65 @@ const EventsContent = () => {
                                     {selectedEvent?.name || 'Event Details'}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <button
-                                        onClick={() => handleEditClick(selectedEvent)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #10b981',
-                                            borderRadius: '6px',
-                                            backgroundColor: 'transparent',
-                                            color: '#10b981',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <Edit style={{ width: '16px', height: '16px' }} />
-                                        {t('schemeevent:editEvent')}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteEvent(selectedEvent?.id)}
-                                        disabled={isDeleting}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #ef4444',
-                                            borderRadius: '6px',
-                                            backgroundColor: isDeleting ? '#fecaca' : 'transparent',
-                                            color: '#ef4444',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: isDeleting ? 'not-allowed' : 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {isDeleting ? (
-                                            <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                        ) : (
-                                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                                        )}
-                                        {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteEvent')}
-                                    </button>
+
+                                    {canManageEvents && (
+                                        <>
+                                            <button
+                                                onClick={() => handleEditClick(selectedEvent)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 12px',
+                                                    border: '1px solid #10b981',
+                                                    borderRadius: '6px',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#10b981',
+                                                    fontSize: '14px',
+                                                    fontWeight: '500',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <Edit style={{ width: '16px', height: '16px' }} />
+                                                {t('schemeevent:editEvent')}
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDeleteEvent(selectedEvent?.id)}
+                                                disabled={isDeleting}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 12px',
+                                                    border: '1px solid #ef4444',
+                                                    borderRadius: '6px',
+                                                    backgroundColor: isDeleting ? '#fecaca' : 'transparent',
+                                                    color: '#ef4444',
+                                                    fontSize: '14px',
+                                                    fontWeight: '500',
+                                                    cursor: isDeleting ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {isDeleting ? (
+                                                    <Loader2
+                                                        style={{
+                                                            width: '16px',
+                                                            height: '16px',
+                                                            animation: 'spin 1s linear infinite'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Trash2 style={{ width: '16px', height: '16px' }} />
+                                                )}
+
+                                                {isDeleting
+                                                    ? t('schemeevent:deleting')
+                                                    : t('schemeevent:deleteEvent')}
+                                            </button>
+                                        </>
+                                    )}
+
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
                                         style={{
@@ -1025,6 +1092,7 @@ const EventsContent = () => {
                                     >
                                         <X style={{ width: '20px', height: '20px' }} />
                                     </button>
+
                                 </div>
                             </div>
 
@@ -1121,7 +1189,7 @@ const EventsContent = () => {
                                     color: '#111827',
                                     margin: 0
                                 }}>
-                                   {t('schemeevent:editEvent')}
+                                    {t('schemeevent:editEvent')}
                                 </h2>
                                 <button
                                     onClick={() => setShowEditModal(false)}
@@ -1154,7 +1222,7 @@ const EventsContent = () => {
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder= {t('schemeevent:eventTitle')}
+                                            placeholder={t('schemeevent:eventTitle')}
                                             value={editFormData.name}
                                             onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                             style={{
@@ -1298,7 +1366,7 @@ const EventsContent = () => {
                                         opacity: isUpdating ? 0.6 : 1
                                     }}
                                 >
-                                     {t('schemeevent:cancel')}
+                                    {t('schemeevent:cancel')}
                                 </button>
                                 <button
                                     onClick={handleUpdateEvent}

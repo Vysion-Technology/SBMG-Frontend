@@ -1575,7 +1575,7 @@ const ContractorDetails = () => {
                                                     alignItems: 'center'
                                                 }}
                                             >
-                                               {t('table:gpsWithContractorData')}({getAnalyticsValue('gps_with_contractor_data')})
+                                                {t('table:gpsWithContractorData')}({getAnalyticsValue('gps_with_contractor_data')})
                                                 <span
                                                     style={{ cursor: 'pointer', }}
                                                     onClick={() => handleSort('gps_with_data')}>
@@ -1660,7 +1660,7 @@ const ContractorDetails = () => {
                                     if ((loadingBlocks || loadingDistrictContractorAnalytics) && activeScope === 'Districts') {
                                         return (
                                             <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
-                                               {t('table:loading')}
+                                                {t('table:loading')}
                                             </div>
                                         );
                                     }
@@ -1855,7 +1855,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                       {t('table:contactNumber')}  :
+                                                        {t('table:contactNumber')}  :
                                                     </div>
                                                     <div>
                                                         {item.person_phone}
@@ -1872,7 +1872,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between'>
                                                     <div>
-                                                       {t('table:annualContractAmount')}  :
+                                                        {t('table:annualContractAmount')}  :
                                                     </div>
 
                                                     <div>
@@ -1900,7 +1900,7 @@ const ContractorDetails = () => {
                                                 </div>
                                                 <div className='flex justify-between '>
                                                     <div>
-                                                       {t('table:frequencyOfWork')} :
+                                                        {t('table:frequencyOfWork')} :
                                                     </div>
                                                     <div>
                                                         {item.contract_frequency}

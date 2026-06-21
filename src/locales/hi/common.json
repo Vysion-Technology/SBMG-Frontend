@@ -5,7 +5,7 @@
     "inspection": "निरीक्षण",
     "gpMasterData": "जीपी मास्टर डेटा",
     "contractorDetails": "ठेकेदार विवरण",
-    "schemes": "योजनाएं",
+    "schemes": "योजनाएँ एवं परिपत्र",
     "events": "कार्यक्रम",
     "gpsTracking": "जीपीएस ट्रैकिंग",
     "payments": "भुगतान",
@@ -18,5 +18,8 @@
     "district": "जिला",
     "block": "ब्लॉक",
     "gps": "ग्राम पंचायत",
-    "overview": "ओवरव्यू"
+    "overview": "ओवरव्यू",
+    "volunteer": "स्वयंसेवक",
+    "beAVolunteer": "स्वयंसेवक बनें",
+    "profile": "प्रोफ़ाइल"
 }

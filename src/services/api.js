@@ -298,6 +298,28 @@ export const contractorAnalyticsAPI = {
   getGP: (gpId) => apiClient.get(`/contractor-analytics/analytics/gp/${gpId}`),
 };
 
+export const circularAPI = {
+  getCirculars: () =>
+    apiClient.get("circulars/"),
+
+  createCircular: (formData) =>
+    apiClient.post("circulars/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  updateCircular: (id, formData) =>
+    apiClient.put(`circulars/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  deleteCircular: (id) =>
+    apiClient.delete(`/api/v1/circulars/${id}`),
+};
+
 
 
 export default apiClient;

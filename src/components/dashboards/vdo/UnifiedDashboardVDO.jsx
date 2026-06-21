@@ -11,7 +11,8 @@ import {
   Bell,
   CreditCard,
   MessageSquare,
-  Building
+  Building,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -23,16 +24,16 @@ import VDOAttendanceContent from './VDOAttendanceContent';
 import VDOInspectionContent from './VDOInspectionContent';
 import VDOVillageMasterContent from './VDOVillageMasterContent';
 import VDOSchemesContent from './VDOSchemesContent';
-import VDOEventsContent from './VDOEventsContent';
 import VDONoticeContent from './VDONoticeContent';
 import VDOGpsTrackingContent from './VDOGpsTrackingContent';
-import PaymentsContent from '../PaymentsContent';
 import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import VDOContractorDetails from './VDOContractorDetails';
 import ReconfirmationWarningBanner from '../../common/ReconfirmationWarningBanner';
 import ReconfirmationLockOverlay from '../../common/ReconfirmationLockOverlay';
 import { useTranslation } from 'react-i18next';
+import Volunteer from '../Volunteer';
+import EventsContent from '../EventsContent';
 
 
 
@@ -55,7 +56,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
     { key: 'schemes', label: t('common:schemes'), icon: Briefcase },
     { key: 'events', label: t('common:events'), icon: Calendar },
     { key: 'gpsTracking', label: t('common:gpsTracking'), icon: Truck },
-    { key: 'payments', label: t('common:payments'), icon: CreditCard },
+    { key: 'volunteer', label: t('common:volunteer'), icon: UsersRound },
     { key: 'notices', label: t('common:notices'), icon: Bell },
     { key: 'feedbacks', label: t('common:feedbacks'), icon: MessageSquare }
   ];
@@ -237,11 +238,11 @@ const UnifiedDashboardVDO = () => {
       case 'schemes':
         return <VDOSchemesContent />;
       case 'events':
-        return <VDOEventsContent />;
+        return <EventsContent />;
       case 'gpsTracking':
         return <VDOGpsTrackingContent />;
-      case 'payments':
-        return <PaymentsContent />;
+      case 'volunteer':
+        return <Volunteer />;
       case 'notices':
         return <VDONoticeContent />;
       case 'feedbacks':
@@ -270,8 +271,8 @@ const UnifiedDashboardVDO = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
-      <ReconfirmationLockOverlay 
-        onNavigateToReconfirm={handleNavigateToGPMasterData} 
+      <ReconfirmationLockOverlay
+        onNavigateToReconfirm={handleNavigateToGPMasterData}
         activeItem={activeItem}
       />
       <TopHeaderBar />

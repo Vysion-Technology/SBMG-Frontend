@@ -1225,13 +1225,13 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
           <div
             style={{
               position: "absolute",
-              width: "48px",
+              width: "39px",
               height: "32px",
               borderRadius: "18px",
               background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
               boxShadow: "0 2px 6px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1)",
               transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              left: i18n.language === "en" ? "6px" : "47px",
+              left: i18n.language === "en" ? "6px" : "45px",
               top: "4px",
               zIndex: 1
             }}
@@ -1244,7 +1244,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               alignItems: "center",
               justifyContent: "center",
               gap: "4px",
-              width: "45px",
+              width: "40px",
               height: "30px",
               borderRadius: "18px",
               position: "relative",
@@ -1522,8 +1522,10 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
           )}
         </div>
 
-        <Profile open={showProfile}
-          onClose={() => setShowProfile(false)} />
+        <Profile
+          open={showProfile}
+          onClose={() => setShowProfile(false)}
+        />
       </div>
     </header>
   );

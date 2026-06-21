@@ -11,7 +11,8 @@ import {
   Bell,
   CreditCard,
   MessageSquare,
-  Building
+  Building,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -23,14 +24,14 @@ import BDOAttendanceContent from './BDOAttendanceContent';
 import BDOInspectionContent from './BDOInspectionContent';
 import BDOVillageMasterContent from './BDOVillageMasterContent';
 import BDOSchemesContent from './BDOSchemesContent';
-import BDOEventsContent from './BDOEventsContent';
 import BDONoticeContent from './BDONoticeContent';
 import BDOGpsTrackingContent from './BDOGpsTrackingContent';
-import PaymentsContent from '../PaymentsContent';
 import BDOFeedbackContent from './BDOFeedback';
 import { useBDOLocation } from '../../../context/BDOLocationContext';
 import BDOContractorDetails from './BDOContractorDetails';
 import { useTranslation } from 'react-i18next';
+import Volunteer from '../Volunteer';
+import EventsContent from '../EventsContent';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -50,7 +51,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
     { key: 'schemes', label: t('common:schemes'), icon: Briefcase },
     { key: 'events', label: t('common:events'), icon: Calendar },
     { key: 'gpsTracking', label: t('common:gpsTracking'), icon: Truck },
-    { key: 'payments', label: t('common:payments'), icon: CreditCard },
+    { key: 'volunteer', label: t('common:volunteer'), icon: UsersRound },
     { key: 'notices', label: t('common:notices'), icon: Bell },
     { key: 'feedbacks', label: t('common:feedbacks'), icon: MessageSquare }
   ];
@@ -188,7 +189,7 @@ const UnifiedDashboardBDO = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const bdoLocation = useBDOLocation();
 
-  const { t } = useTranslation(['common','dashboard']);
+  const { t } = useTranslation(['common', 'dashboard']);
 
 
   // Show loading screen while BDO data is being fetched
@@ -234,11 +235,11 @@ const UnifiedDashboardBDO = () => {
       case 'schemes':
         return <BDOSchemesContent />;
       case 'events':
-        return <BDOEventsContent />;
+        return <EventsContent />;
       case 'gpsTracking':
         return <BDOGpsTrackingContent />;
-      case 'payments':
-        return <PaymentsContent />;
+      case 'volunteer':
+        return <Volunteer />;
       case 'notices':
         return <BDONoticeContent />;
       case 'feedbacks':

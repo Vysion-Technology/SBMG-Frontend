@@ -40,5 +40,25 @@
     "startTime": "प्रारंभ समय",
     "endTime": "समाप्ति समय",
     "updateScheme": "योजना अपडेट करें",
-    "updateEvent": "कार्यक्रम अपडेट करें"
+    "updateEvent": "कार्यक्रम अपडेट करें",
+
+     "addSchemeCircular": "योजना / परिपत्र जोड़ें",
+  "editSchemeCircular": "योजना / परिपत्र संपादित करें",
+  "manageSchemeAndCircularDetails": "योजना एवं परिपत्र विवरण प्रबंधन",
+  "contentType": "सामग्री प्रकार",
+  "imageUpload": "चित्र अपलोड",
+  "uploadImage": "चित्र अपलोड करें",
+  "aspectRatioRequired": "4:5 अनुपात आवश्यक",
+   "clickToReplaceImage": "चित्र बदलने के लिए क्लिक करें",
+  "remove": "हटाएँ",
+  "currentImage": "वर्तमान चित्र",
+  "existingCircularPdf": "मौजूदा परिपत्र PDF",
+  "clickToReplacePdf": "PDF बदलने के लिए क्लिक करें",
+  "uploadCircularPdf": "परिपत्र PDF अपलोड करें",
+  "pdfFileOnly": "केवल PDF फ़ाइल",
+  "addCircular": "परिपत्र जोड़ें",
+  "update": "अद्यतन करें",
+    "required": "आवश्यक",
+  "optional": "वैकल्पिक",
+    "circular": "परिपत्र"
 }

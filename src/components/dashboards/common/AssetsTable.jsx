@@ -1,6 +1,88 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import SlideDrawer from "../../common/SideDrawer";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { FileSpreadsheet, Printer } from "lucide-react";
+
+
+const exportToExcel = (
+    data,
+    cards,
+    nameKey,
+    fileName = "Assets_Report"
+) => {
+    if (!data?.length) return;
+
+    const excelData = data.map((row) => {
+        const obj = {
+            [nameKey]: getName(row),
+        };
+
+        cards.forEach((card) => {
+            const value = row[card.key];
+
+            // Array data
+            if (Array.isArray(value) && card.subLabels?.length) {
+                value.forEach((item, index) => {
+                    obj[
+                        `${card.label} - ${card.subLabels[index] || `Value ${index + 1}`
+                        }`
+                    ] = item?.value ?? "-";
+                });
+            }
+
+            // Object data
+            else if (
+                typeof value === "object" &&
+                value !== null &&
+                card.subLabels?.length
+            ) {
+                Object.values(value).forEach((val, index) => {
+                    obj[
+                        `${card.label} - ${card.subLabels[index] || `Value ${index + 1}`
+                        }`
+                    ] = val ?? "-";
+                });
+            }
+
+            // Simple value
+            else {
+                obj[card.label] = formatCellValue(value);
+            }
+        });
+
+        return obj;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Column widths
+    const headers = Object.keys(excelData[0] || {});
+
+    worksheet["!cols"] = headers.map((header, index) => ({
+        wch: index === 0 ? 35 : 25,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Assets"
+    );
+
+    const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+    });
+
+    const file = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(file, `${fileName}.xlsx`);
+};
 
 const getId = (item) => {
     if (!item) return null;
@@ -97,21 +179,232 @@ const CommonTable = ({
     };
     const { t } = useTranslation(['dashboard', 'common']);
 
+    // const printRef = useRef(null);
+
+    const handlePrint = () => {
+        const headers = cards.map((card) => {
+            const subHeaders = card.subLabels?.length
+                ? `
+    <div style="
+        display:flex;
+        justify-content:center;
+        margin-top:4px;
+    ">
+        ${card.subLabels.map(label => `
+            <span style="
+                width:100px;
+                display:inline-block;
+                text-align:center;
+            ">
+                ${t(`assets.${label}`)}
+            </span>
+        `).join("")}
+    </div>
+`
+                : "";
+
+            return `
+            <th>
+                ${t(`assets.${card.label}`)}
+                ${subHeaders}
+            </th>
+        `;
+        }).join("");
+
+        const rows = data.map((row) => {
+            const cols = cards.map((card) => {
+                let value = row[card.key];
+                if (Array.isArray(value) && card.subLabels?.length) {
+                    value = `
+        <div style="
+            display:flex;
+            justify-content:center;
+            gap:0;
+            width:100%;
+        ">
+            ${value.map(item => `
+                <span style="
+                    width:100px;
+                    display:inline-block;
+                    text-align:center;
+                ">
+                    ${item?.value ?? "-"}
+                </span>
+            `).join("")}
+        </div>
+    `;
+                }
+                else if (typeof value === "object" && value !== null && card.subLabels?.length) {
+                    value = `
+        <div style="
+            display:flex;
+            justify-content:center;
+            gap:0;
+            width:100%;
+        ">
+            ${Object.values(value).map(val => `
+                <span style="
+                    width:80px;
+                    display:inline-block;
+                    text-align:center;
+                ">
+                    ${val ?? "-"}
+                </span>
+            `).join("")}
+        </div>
+    `;
+                }
+                else {
+                    value = value ?? "-";
+                }
+
+                return `<td style="text-align:center;">${value}</td>`;
+            }).join("");
+
+            return `
+            <tr>
+                <td>${getName(row) || "-"}</td>
+                ${cols}
+            </tr>
+        `;
+        }).join("");
+
+        const printWindow = window.open("", "_blank");
+
+        printWindow.document.write(`
+        <html>
+        <head>
+            <title>${title}</title>
+
+            <style>
+                body{
+                    font-family: Arial, sans-serif;
+                    padding:20px;
+                }
+
+                @page {
+                    size: A4 landscape;
+                    margin: 10mm;
+                }
+
+                h2{
+                    margin-bottom:20px;
+                    text-align:center;
+                }
+
+                table{
+    width:max-content;
+    min-width:100%;
+    border-collapse:collapse;
+}
+
+               th,td{
+                    border:1px solid #ddd;
+                    padding:6px;
+                    text-align:center;
+                    vertical-align:middle;
+                    min-width:90px;
+                }
+                    th:nth-child(3),
+                td:nth-child(3){
+                    min-width:250px;
+}
+                th{
+                    background:#f3f4f6;
+                    font-size:12px;
+                    font-weight:bold;
+                }
+
+                td{
+                    font-size:11px;
+                }
+
+                @media print{
+                    @page{
+                        size: landscape;
+                        margin:10mm;
+                    }
+
+                    body{
+                        padding:0;
+                    }
+
+                    table{
+                        font-size:10px;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+            <h2>${title}</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>${t(nameKey)}</th>
+                        ${headers}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `);
+
+        printWindow.document.close();
+        printWindow.focus();
+
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    };
+
     return (
         <>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
                 <div className="flex items-center justify-between gap-3 !p-3">
-                    <h3 className="text-md font-bold text-gray-800 uppercase"> {t(`assets.${title}`, title)}</h3>
-                    {showBack && (
+                    <h3 className="text-md font-bold text-gray-800 uppercase">
+                        {t(`assets.${title}`, title)}
+                    </h3>
+
+                    <div className="flex items-center gap-2">
+
                         <button
-                            type="button"
-                            className=" cursor-pointer rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
-                            onClick={onBack}
+                            onClick={handlePrint}
+                            className="!px-3 !py-1.5 cursor-pointer bg-[#009B56] hover:bg-green-500 transition-all text-white rounded-lg"
                         >
-                            Back
+                            <Printer size={18} />
                         </button>
-                    )}
+
+                        <button
+                            onClick={() =>
+                                exportToExcel(
+                                    data,
+                                    cards,
+                                    t(nameKey),
+                                    title.replace(/\s+/g, "_")
+                                )
+                            }
+                            className="!px-3 !py-1.5 cursor-pointer transition-all bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                        >
+                            <FileSpreadsheet size={18} />
+                        </button>
+
+                        {showBack && (
+                            <button
+                                type="button"
+                                className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                                onClick={onBack}
+                            >
+                                Back
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="max-h-[400px] overflow-auto">

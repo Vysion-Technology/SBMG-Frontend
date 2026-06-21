@@ -5,7 +5,7 @@
     "inspection": "Inspection",
     "gpMasterData": "GP Master Data",
     "contractorDetails": "Contractor Details",
-    "schemes": "Schemes",
+    "schemes": "Schemes & Circulars",
     "events": "Events",
     "gpsTracking": "GPS Tracking",
     "payments": "Payments",
@@ -18,5 +18,8 @@
     "district": "Districts",
     "block": "Blocks",
     "gps": "GPs",
-    "overview": "Overview"
+    "overview": "Overview",
+    "volunteer": "Volunteer",
+    "beAVolunteer": "Be a Volunteer",
+    "profile": "Profile"
 }

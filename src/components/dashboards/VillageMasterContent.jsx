@@ -2149,7 +2149,6 @@ const VillageMasterContent = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
-
                         fontSize: '14px',
                         fontWeight: '600',
                         color: '#374151'

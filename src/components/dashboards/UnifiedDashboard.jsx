@@ -12,7 +12,8 @@ import {
   CreditCard,
   MessageSquare,
   Building,
-  Menu
+  Menu,
+  UsersRound
 } from 'lucide-react';
 import swachLogo from '../../assets/logos/swach.png';
 import Header from '../common/Header';
@@ -26,12 +27,12 @@ import SchemesContent from './SchemesContent';
 import EventsContent from './EventsContent';
 import NotoficationContent from './NoticeContent';
 import GpsTrackingContent from './GpsTrackingContent';
-import PaymentsContent from './PaymentsContent';
 import FeedbacksContent from './FeedbacksContent';
 import ContractorDetails from './ContractorDetails';
 import ReconfirmationWarningBanner from '../common/ReconfirmationWarningBanner';
 import ReconfirmationLockOverlay from '../common/ReconfirmationLockOverlay';
 import { useTranslation } from "react-i18next";
+import Volunteer from './Volunteer';
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(() =>
@@ -62,7 +63,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
     { key: 'schemes', label: t('schemes'), icon: Briefcase },
     { key: 'events', label: t('events'), icon: Calendar },
     { key: 'gpsTracking', label: t('gpsTracking'), icon: Truck },
-    { key: 'payments', label: t('payments'), icon: CreditCard },
+    { key: 'beAVolunteer', label: t('beAVolunteer'), icon: UsersRound },
     { key: 'notices', label: t('notices'), icon: Bell },
     { key: 'feedbacks', label: t('feedbacks'), icon: MessageSquare }
   ];
@@ -296,8 +297,8 @@ const UnifiedDashboard = () => {
         return <EventsContent />;
       case 'gpsTracking':
         return <GpsTrackingContent />;
-      case 'payments':
-        return <PaymentsContent />;
+      case 'beAVolunteer':
+        return <Volunteer />;
       case 'notices':
         return <NotoficationContent />;
       case 'feedbacks':
@@ -325,8 +326,8 @@ const UnifiedDashboard = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
-      <ReconfirmationLockOverlay 
-        onNavigateToReconfirm={handleNavigateToGPMasterData} 
+      <ReconfirmationLockOverlay
+        onNavigateToReconfirm={handleNavigateToGPMasterData}
         activeItem={activeItem}
       />
       <TopHeaderBar />

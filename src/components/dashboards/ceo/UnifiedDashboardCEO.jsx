@@ -11,7 +11,8 @@ import {
   Bell,
   CreditCard,
   MessageSquare,
-  Building
+  Building,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -23,14 +24,14 @@ import CEOAttendanceContent from './CEOAttendanceContent';
 import CEOInspectionContent from './CEOInspectionContent';
 import CEOVillageMasterContent from './CEOVillageMasterContent';
 import CEOSchemesContent from './CEOSchemesContent';
-import CEOEventsContent from './CEOEventsContent';
 import CEONoticeContent from './CEONoticeContent';
 import CEOGpsTrackingContent from './CEOGpsTrackingContent';
-import PaymentsContent from '../PaymentsContent';
 import CEOFeedbackContent from './CEOFeedback';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import CEOContractorDetails from './CEOContractorDetails';
 import { useTranslation } from 'react-i18next';
+import Volunteer from '../Volunteer';
+import EventsContent from '../EventsContent';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -51,7 +52,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
     { key: 'schemes', label: t('common:schemes'), icon: Briefcase },
     { key: 'events', label: t('common:events'), icon: Calendar },
     { key: 'gpsTracking', label: t('common:gpsTracking'), icon: Truck },
-    { key: 'payments', label: t('common:payments'), icon: CreditCard },
+    { key: 'volunteer', label: t('common:volunteer'), icon: UsersRound },
     { key: 'notices', label: t('common:notices'), icon: Bell },
     { key: 'feedbacks', label: t('common:feedbacks'), icon: MessageSquare }
   ];
@@ -235,11 +236,11 @@ const UnifiedDashboardCEO = () => {
       case 'schemes':
         return <CEOSchemesContent />;
       case 'events':
-        return <CEOEventsContent />;
+        return <EventsContent  />;
       case 'gpsTracking':
         return <CEOGpsTrackingContent />;
-      case 'payments':
-        return <PaymentsContent />;
+      case 'volunteer':
+        return <Volunteer />;
       case 'notices':
         return <CEONoticeContent />;
       case 'feedbacks':
