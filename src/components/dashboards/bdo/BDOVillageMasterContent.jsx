@@ -464,6 +464,7 @@ const BDOVillageMasterContent = () => {
     if (data.d2d_activities) {
       addSection("Door to Door Waste Collection, Segregation & Disposal Activities", [
         ["Door to Door Service available in this gp:", data.d2d_activities.is_active ? "Yes" : "No"],
+        ["Work Frequency:", data.d2d_activities.work_frequency ? (data.d2d_activities.work_frequency === 'none' ? 'None' : data.d2d_activities.work_frequency === 'weekly' ? 'Weekly' : data.d2d_activities.work_frequency === '15 days' ? '15 Days' : data.d2d_activities.work_frequency === 'monthly' ? 'Monthly' : data.d2d_activities.work_frequency) : "None"],
         ["Total No. of Work Sanctioned Through Tender:", data.d2d_activities.sanctioned_tender],
         ["Total No. of Work Sanctioned Self by GPs:", data.d2d_activities.sanctioned_self_gp],
         ["Total No. of Work Sanctioned Through CSR/NGOs:", data.d2d_activities.sanctioned_csr_ngo],

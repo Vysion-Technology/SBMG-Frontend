@@ -98,8 +98,7 @@ const BDOComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSlaFilter, setActiveSlaFilter] = useState('ALL');
-  const [showSlaFilterDropdown, setShowSlaFilterDropdown] = useState(false);
+  const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'asc'
@@ -514,12 +513,10 @@ const BDOComplaintsContent = () => {
       if (!event.target.closest('[data-location-dropdown]') &&
         !event.target.closest('[data-date-dropdown]') &&
         !event.target.closest('[data-top3-dropdown]') &&
-        !event.target.closest('[data-sla-filter-dropdown]') &&
         !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowFilterDropdown(false);
-        setShowSlaFilterDropdown(false);
       }
     };
 
@@ -1445,9 +1442,18 @@ const BDOComplaintsContent = () => {
     : null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
+    // Get normalized status from complaint (already normalized during mapping)
+    const complaintStatusNormalized = (complaint.statusNormalized || normalizeStatusForFilter(complaint.status || 'OPEN'))
+      .trim()
+      .toUpperCase();
+
     const matchesFilter = normalizedFilterStatus && normalizedFilterStatus.length > 0
       ? complaintStatusNormalized === normalizedFilterStatus
       : true; // if no filter selected, show all
+
+    const matchesSlaFilter = showOnlyEscalated
+      ? complaint.last_sla_breach_level === 'GP'
+      : true;
 
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
@@ -2371,78 +2377,34 @@ const BDOComplaintsContent = () => {
               )}
             </div>
 
-            {/* SLA Escalation Filter */}
-            <div
-              data-sla-filter-dropdown
+            {/* Show Escalated Button */}
+            <button
+              onClick={() => setShowOnlyEscalated(!showOnlyEscalated)}
               style={{
-                position: 'relative',
-                minWidth: '180px'
+                padding: '8px 16px',
+                backgroundColor: showOnlyEscalated ? '#dc2626' : '#fee2e2',
+                color: showOnlyEscalated ? '#ffffff' : '#b91c1c',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: showOnlyEscalated ? '0 2px 4px rgba(220, 38, 38, 0.2)' : 'none'
               }}
             >
-              <button
-                onClick={() => setShowSlaFilterDropdown(!showSlaFilterDropdown)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              >
-                <span>
-                  {activeSlaFilter === 'ALL' ? 'All Escalations' : 
-                   activeSlaFilter === 'GP' ? 'GP Escalations' :
-                   activeSlaFilter === 'BLOCK' ? 'Block Escalations' : 'District Escalations'}
-                </span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-
-              {showSlaFilterDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '4px'
-                }}>
-                  {[
-                    { val: 'ALL', label: 'All Escalations' },
-                    { val: 'GP', label: 'GP Escalations' },
-                    { val: 'BLOCK', label: 'Block Escalations' },
-                    { val: 'DISTRICT', label: 'District Escalations' }
-                  ].map((item) => (
-                    <div
-                      key={item.val}
-                      onClick={() => {
-                        setActiveSlaFilter(item.val);
-                        setShowSlaFilterDropdown(false);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        backgroundColor: activeSlaFilter === item.val ? '#f3f4f6' : 'transparent',
-                        borderBottom: item.val !== 'DISTRICT' ? '1px solid #f3f4f6' : 'none'
-                      }}
-                    >
-                      {item.label}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
+                display: 'inline-block'
+              }} />
+              {showOnlyEscalated ? 'Showing GP Escalation' : 'GP Escalation'}
+            </button>
           </div>
 
           <div style={{

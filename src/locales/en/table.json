@@ -56,6 +56,7 @@
   "available": "Available",
   "notAvailable": "Not Available",
   "gpsWithContractorData": "GPs with Contractor Data",
+  "contractsEndingNextMonth": "Contracts Ending Next Month",
   "loadingContractorData": "Loading contractor data...",
   "name": "Name",
   "contactNumber": "Contact Number",
@@ -227,6 +228,7 @@
 
   "D2D_WASTE_COLLECTION": "Door to Door Waste Collection, Segregation & Disposal Activities",
   "D2D_SERVICE_AVAILABLE": "Door to Door Service Available in this GP",
+  "WORK_FREQUENCY": "Work Frequency",
   "CONTRACTORS_THROUGH_TENDER": "Contractors through Tender",
   "GP_THROUGH_PLACEMENT_AGENCY": "GP through Placement Agency",
   "GP_THROUGH_CSR": "GP through CSR",

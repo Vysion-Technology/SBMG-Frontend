@@ -99,8 +99,6 @@ const VDOComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSlaFilter, setActiveSlaFilter] = useState('ALL');
-  const [showSlaFilterDropdown, setShowSlaFilterDropdown] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'asc'
@@ -436,12 +434,10 @@ const VDOComplaintsContent = () => {
       if (!event.target.closest('[data-location-dropdown]') &&
         !event.target.closest('[data-date-dropdown]') &&
         !event.target.closest('[data-top3-dropdown]') &&
-        !event.target.closest('[data-sla-filter-dropdown]') &&
         !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
         setShowFilterDropdown(false);
-        setShowSlaFilterDropdown(false);
       }
     };
 
@@ -1355,10 +1351,6 @@ const VDOComplaintsContent = () => {
       ? complaintStatusNormalized === normalizedFilterStatus
       : true; // if no filter selected, show all
 
-    const matchesSlaFilter = activeSlaFilter === 'ALL'
-      ? true
-      : complaint.last_sla_breach_level === activeSlaFilter;
-
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
@@ -1373,7 +1365,7 @@ const VDOComplaintsContent = () => {
       (complaint.block || '').toLowerCase().includes(q) ||
       (complaint.district || '').toLowerCase().includes(q);
 
-    return matchesFilter && matchesSlaFilter && matchesSearch;
+    return matchesFilter && matchesSearch;
   });
 
   const sortedComplaints = [...filteredComplaints].sort((a, b) => {
@@ -2088,79 +2080,6 @@ const VDOComplaintsContent = () => {
                       }}
                     >
                       {filter}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* SLA Escalation Filter */}
-            <div
-              data-sla-filter-dropdown
-              style={{
-                position: 'relative',
-                minWidth: '180px'
-              }}
-            >
-              <button
-                onClick={() => setShowSlaFilterDropdown(!showSlaFilterDropdown)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              >
-                <span>
-                  {activeSlaFilter === 'ALL' ? 'All Escalations' : 
-                   activeSlaFilter === 'GP' ? 'GP Escalations' :
-                   activeSlaFilter === 'BLOCK' ? 'Block Escalations' : 'District Escalations'}
-                </span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-
-              {showSlaFilterDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '4px'
-                }}>
-                  {[
-                    { val: 'ALL', label: 'All Escalations' },
-                    { val: 'GP', label: 'GP Escalations' },
-                    { val: 'BLOCK', label: 'Block Escalations' },
-                    { val: 'DISTRICT', label: 'District Escalations' }
-                  ].map((item) => (
-                    <div
-                      key={item.val}
-                      onClick={() => {
-                        setActiveSlaFilter(item.val);
-                        setShowSlaFilterDropdown(false);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        backgroundColor: activeSlaFilter === item.val ? '#f3f4f6' : 'transparent',
-                        borderBottom: item.val !== 'DISTRICT' ? '1px solid #f3f4f6' : 'none'
-                      }}
-                    >
-                      {item.label}
                     </div>
                   ))}
                 </div>

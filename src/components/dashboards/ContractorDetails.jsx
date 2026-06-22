@@ -134,8 +134,8 @@ const ContractorDetails = () => {
 
     const gridColumns =
         activeScope === 'Blocks'
-            ? '3fr  1fr '
-            : '2fr 2fr 2fr 2fr ';
+            ? '3fr 2fr 1.5fr'
+            : '2fr 2fr 2fr 2fr 2fr';
 
     // Helper functions for location management
     const trackTabChange = useCallback((scope) => {
@@ -841,6 +841,7 @@ const ContractorDetails = () => {
                     total_gps: district.total_gps || 0,
                     gps_with_data: district.gps_with_data || 0,
                     coverage_percentage: district.coverage_percentage || 0,
+                    contracts_ending_next_month: district.contracts_ending_next_month || 0,
                     object: districtObj
                 };
             });
@@ -867,6 +868,7 @@ const ContractorDetails = () => {
                         total_gps: blockData?.total_gps || 0,
                         gps_with_data: blockData?.gps_with_data || 0,
                         coverage_percentage: blockData?.coverage_percentage || 0,
+                        contracts_ending_next_month: blockData?.contracts_ending_next_month || 0,
                         object: block
                     };
                 });
@@ -877,6 +879,7 @@ const ContractorDetails = () => {
             return blockAnalyticsData.gp_wise_coverage.map(gp => ({
                 name: gp.geography_name || 'N/A',
                 coverage_percentage: gp?.coverage_percentage || 0,
+                contracts_ending_next_month: gp?.contracts_ending_next_month || 0,
                 master_data_status: gp.master_data_status || 'Not Available',
                 geography_id: gp.gp_id,
                 object: {
@@ -893,6 +896,7 @@ const ContractorDetails = () => {
                     total_gps: analyticsData.total_gps || 0,
                     gps_with_data: analyticsData.gps_with_contractor_data || 0,
                     coverage_percentage: analyticsData.coverage_percentage || 0,
+                    contracts_ending_next_month: analyticsData.contracts_ending_next_month || 0,
                     master_data_status: analyticsData.master_data_status || 'Not Available',
                     object: analyticsData
                 }
@@ -1595,6 +1599,26 @@ const ContractorDetails = () => {
                                                     alignItems: 'center'
                                                 }}
                                             >
+                                                {t('table:contractsEndingNextMonth')} ({getAnalyticsValue('contracts_ending_next_month')})
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('contracts_ending_next_month')}>
+                                                    <SortIcon col="contracts_ending_next_month" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
                                                 {t('table:coverage')} %
                                                 ({getAnalyticsValue('coverage_percentage')}%)
 
@@ -1608,27 +1632,49 @@ const ContractorDetails = () => {
                                     </>
                                 )}
                                 {activeScope == 'Blocks' && (
-                                    <div style={{
-                                        fontSize: '14px',
-                                        fontWeight: '600',
-                                        color: '#374151'
-                                    }}>
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                gap: '8px',
-                                                alignItems: 'center'
-                                            }}
-                                        >
-
-                                            {t('table:status')}
-                                            <span
-                                                style={{ cursor: 'pointer', }}
-                                                onClick={() => handleSort('master_data_status')}>
-                                                <SortIcon col="master_data_status" />
-                                            </span>
+                                    <>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+                                                {t('table:contractsEndingNextMonth')} ({getAnalyticsValue('contracts_ending_next_month')})
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('contracts_ending_next_month')}>
+                                                    <SortIcon col="contracts_ending_next_month" />
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
+                                        <div style={{
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    gap: '8px',
+                                                    alignItems: 'center'
+                                                }}
+                                            >
+
+                                                {t('table:status')}
+                                                <span
+                                                    style={{ cursor: 'pointer', }}
+                                                    onClick={() => handleSort('master_data_status')}>
+                                                    <SortIcon col="master_data_status" />
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
 
                             </div>
@@ -1745,31 +1791,38 @@ const ContractorDetails = () => {
                                                         {formatNumber(item.gps_with_data)}
                                                     </div>
                                                     <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.contracts_ending_next_month)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
                                                         {item.coverage_percentage}%
                                                     </div>
                                                 </>
                                             )}
                                             {activeScope == 'Blocks' && (
-                                                <div style={{ fontSize: '14px', color: '#111827' }}>
-                                                    <span
-                                                        style={{
-                                                            padding: '4px 8px',
-                                                            borderRadius: '4px',
-                                                            backgroundColor:
-                                                                item.master_data_status === 'Available'
-                                                                    ? '#d1fae5'
-                                                                    : '#fee2e2',
-                                                            color:
-                                                                item.master_data_status === 'Available'
-                                                                    ? '#065f46'
-                                                                    : '#991b1b',
-                                                            fontSize: '12px',
-
-                                                        }}
-                                                    >
-                                                        {item.master_data_status || 'Not Available'}
-                                                    </span>
-                                                </div>
+                                                <>
+                                                    <div style={{ fontSize: '14px', color: '#374151' }}>
+                                                        {formatNumber(item.contracts_ending_next_month)}
+                                                    </div>
+                                                    <div style={{ fontSize: '14px', color: '#111827' }}>
+                                                        <span
+                                                            style={{
+                                                                padding: '4px 8px',
+                                                                borderRadius: '4px',
+                                                                backgroundColor:
+                                                                    item.master_data_status === 'Available'
+                                                                        ? '#d1fae5'
+                                                                        : '#fee2e2',
+                                                                color:
+                                                                    item.master_data_status === 'Available'
+                                                                        ? '#065f46'
+                                                                        : '#991b1b',
+                                                                fontSize: '12px',
+                                                            }}
+                                                        >
+                                                            {item.master_data_status || 'Not Available'}
+                                                        </span>
+                                                    </div>
+                                                </>
                                             )}
 
                                         </div>

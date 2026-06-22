@@ -196,7 +196,8 @@ function mapGetToForm(data) {
       households_covered: n(d2d.households_covered),
       status_start: n(d2d.status_start),
       status_running: n(d2d.status_running),
-      status_completed: n(d2d.status_completed)
+      status_completed: n(d2d.status_completed),
+      work_frequency: ['none', 'weekly', '15 days', 'monthly'].includes(d2d.work_frequency) ? d2d.work_frequency : 'none'
     },
     // sbmg_targets: {
     //   ihhl: n(sbmg.ihhl),
@@ -362,7 +363,8 @@ function formToPayload(form) {
       households_covered: n(form.d2d_activities?.households_covered),
       status_start: n(form.d2d_activities?.status_start),
       status_running: n(form.d2d_activities?.status_running),
-      status_completed: n(form.d2d_activities?.status_completed)
+      status_completed: n(form.d2d_activities?.status_completed),
+      work_frequency: s(form.d2d_activities?.work_frequency) || 'none'
     },
 
 
@@ -472,9 +474,13 @@ const Select = ({ label, value, onChange, options, disabled }) => (
         backgroundColor: 'white'
       }}
     >
-      {options.map((opt) => (
-        <option key={opt} value={opt}>{opt}</option>
-      ))}
+      {options.map((opt) => {
+        const val = typeof opt === 'object' ? opt.value : opt;
+        const lbl = typeof opt === 'object' ? opt.label : opt;
+        return (
+          <option key={val} value={val}>{lbl}</option>
+        );
+      })}
     </select>
   </div>
 );
@@ -688,7 +694,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           households_covered: '',
           status_start: '',
           status_running: '',
-          status_completed: ''
+          status_completed: '',
+          work_frequency: 'none'
         },
 
         bartan_bank: {
@@ -1089,13 +1096,15 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         sanctioned_self_gp: 0,
         sanctioned_csr_ngo: 0,
         sanctioned_shg: 0,
+        sanctioned_mixed_model: 0,
         total_expenditure: 0,
         vehicles_deployed: 0,
         persons_deployed: 0,
         households_covered: 0,
         status_start: 0,
         status_running: 0,
-        status_completed: 0
+        status_completed: 0,
+        work_frequency: 'none'
       });
     }
   };
@@ -1466,6 +1475,19 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                         type="number" min={0}
                         value={form.d2d_activities?.status_running}
                         onChange={(v) => update('d2d_activities.status_running', v === '' ? '' : Number(v))}
+                      />
+
+                      <Select
+                        label={t('table:WORK_FREQUENCY') || 'Work Frequency'}
+                        value={form.d2d_activities?.work_frequency}
+                        onChange={(v) => update('d2d_activities.work_frequency', v)}
+                        options={[
+                          { value: 'none', label: 'None' },
+                          { value: 'weekly', label: 'Weekly' },
+                          { value: '15 days', label: '15 Days' },
+                          { value: 'monthly', label: 'Monthly' }
+                        ]}
+                        disabled={saving}
                       />
 
                       {/* <Input label={t('table:WORK_COMPLETED')}

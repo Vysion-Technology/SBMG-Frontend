@@ -1712,7 +1712,7 @@ const CEOContractorDetails = () => {
                                     {/* Table Header - Sticky */}
                                     <div style={{
                                         display: 'grid',
-                                        gridTemplateColumns: '2fr 1fr 2fr 1fr 1.5fr 60px',
+                                        gridTemplateColumns: '2fr 1fr 2fr 2fr 1fr 1.5fr 60px',
                                         backgroundColor: '#f9fafb',
                                         padding: '12px 16px',
                                         borderBottom: '1px solid #e5e7eb',
@@ -1763,6 +1763,17 @@ const CEOContractorDetails = () => {
                                             fontWeight: '600',
                                             color: '#374151'
                                         }}>
+                                            {t('table:contractsEndingNextMonth')} ({formatNumber(analyticsData?.contracts_ending_next_month || 0)})
+                                            <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                                        </div>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '14px',
+                                            fontWeight: '600',
+                                            color: '#374151'
+                                        }}>
                                              {t('table:coverage')} %
                                             <InfoTooltip tooltipKey="COVERAGE_PERCENTAGE" size={14} color="#9ca3af" />
                                             <ArrowUpDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
@@ -1793,7 +1804,7 @@ const CEOContractorDetails = () => {
                                     {coverageData.map((item, index) => (
                                         <div key={item.geography_id || index} style={{
                                             display: 'grid',
-                                            gridTemplateColumns: '2fr 1fr 2fr 1fr 1.5fr 60px',
+                                            gridTemplateColumns: '2fr 1fr 2fr 2fr 1fr 1.5fr 60px',
                                             padding: '12px 16px',
                                             borderBottom: index < coverageData.length - 1 ? '1px solid #e5e7eb' : 'none',
                                             backgroundColor: 'white',
@@ -1818,6 +1829,9 @@ const CEOContractorDetails = () => {
                                             </div>
                                             <div style={{ fontSize: '14px', color: '#111827' }}>
                                                 {formatNumber(item.gps_with_data || 0)}
+                                            </div>
+                                            <div style={{ fontSize: '14px', color: '#111827' }}>
+                                                {formatNumber(item.contracts_ending_next_month || 0)}
                                             </div>
                                             <div style={{ fontSize: '14px', color: '#111827' }}>
                                                 {item.coverage_percentage ? `${item.coverage_percentage}%` : '0%'}
