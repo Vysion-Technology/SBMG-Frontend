@@ -170,6 +170,10 @@ const CommonTable = ({
     const getColumnWidth = (card) => {
         if (card.key === "Total_Work_Sanctioned_Status") return "minmax(450px, 550px)";
         if (card.key === "FSTPs") return "minmax(300px, 2fr)";
+        if (card.key === "OWNED_VEHICLES") return "minmax(250px, 200px)";
+        if (card.key === "CONTRACTOR_VEHICLES") return "minmax(250px, 200px)";
+        if (card.key === "WORK_FREQUENCY") return "minmax(250px, 200px)";
+        if (card.key === "work_status") return "minmax(250px, 200px)";
         return "minmax(120px, 200px)";
     };
 
@@ -374,12 +378,12 @@ const CommonTable = ({
 
                     <div className="flex items-center gap-2">
 
-                        <button
+                        {/* <button
                             onClick={handlePrint}
                             className="!px-3 !py-1.5 cursor-pointer bg-[#009B56] hover:bg-green-500 transition-all text-white rounded-lg"
                         >
                             <Printer size={18} />
-                        </button>
+                        </button> */}
 
                         <button
                             onClick={() =>

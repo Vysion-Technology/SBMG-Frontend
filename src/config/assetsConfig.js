@@ -285,16 +285,37 @@ export const assetsSections = [
     ]
   },
   {
-    title: "doorToDoorWasteCollection",
+    title: 'bartanBank',
     cards: [
       {
-        key: "Total_gps",
-        label: "totalGps",
-        bgColor: "#FFEDD5",
+        key: "NO_OF_STABLES_BARTAN_BANK",
+        label: "NO_OF_STABLES_BARTAN_BANK",
+        bgColor: "#FEFCE8",
         textColor: "#364153",
         border: "#E5E7EB",
-        bgImg: "/doortodoorhouse.png",
+        bgImg: "/doortodoorimg.png",
       },
+      {
+        key: "REVENUE_OF_BARTAN_BANK",
+        label: "REVENUE_OF_BARTAN_BANK",
+        bgColor: "#FEFCE8",
+        textColor: "#364153",
+        border: "#E5E7EB",
+        bgImg: "/doortodoorimg.png",
+      },
+    ]
+  },
+  {
+    title: "doorToDoorWasteCollection",
+    cards: [
+      // {
+      //   key: "Total_gps",
+      //   label: "totalGps",
+      //   bgColor: "#FFEDD5",
+      //   textColor: "#364153",
+      //   border: "#E5E7EB",
+      //   bgImg: "/doortodoorhouse.png",
+      // },
       {
         key: "Total_Work_Sanctioned_Status",
         label: "totalWorkSanctioned",
@@ -319,22 +340,22 @@ export const assetsSections = [
         border: "#E5E7EB",
         bgImg: "/doortodoorimg.png",
       },
-      {
-        key: "not_started_gp",
-        label: "notStartedGp",
-        bgColor: "#FFEDD5",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoorhouse.png",
-      },
-      {
-        key: "Total_Vehicles_Collection_transportation_waste",
-        label: "totalVehiclesForWasteCollection",
-        bgColor: "#FFEDD5",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
+      // {
+      //   key: "not_started_gp",
+      //   label: "notStartedGp",
+      //   bgColor: "#FFEDD5",
+      //   textColor: "#364153",
+      //   border: "#E5E7EB",
+      //   bgImg: "/doortodoorhouse.png",
+      // },
+      // {
+      //   key: "Total_Vehicles_Collection_transportation_waste",
+      //   label: "totalVehiclesForWasteCollection",
+      //   bgColor: "#FFEDD5",
+      //   textColor: "#364153",
+      //   border: "#E5E7EB",
+      //   bgImg: "/doortodoortruck.png",
+      // },
       {
         key: "Total_Persons_Deployed",
         label: "totalPersonsDeployed",
@@ -352,6 +373,47 @@ export const assetsSections = [
         bgImg: "/doortodoorimg.png",
       },
       {
+        key: "OWNED_VEHICLES",
+        label: "OWNED_VEHICLES",
+        subLabels: [
+          "E_RICKSHAWS",
+          "MOTORIZED_VEHICLES"
+        ],
+        bgColor: "#FEFCE8",
+        textColor: "#364153",
+        border: "#E5E7EB",
+        bgImg: "/doortodoortruck.png",
+      },
+      {
+        key: "CONTRACTOR_VEHICLES",
+        label: "CONTRACTOR_VEHICLES",
+        subLabels: [
+          "E_RICKSHAWS",
+          "MOTORIZED_VEHICLES"
+        ],
+        bgColor: "#FEFCE8",
+        textColor: "#364153",
+        border: "#E5E7EB",
+        bgImg: "/doortodoortruck.png",
+      },
+
+      {
+        key: "WORK_FREQUENCY",
+        label: "WORK_FREQUENCY",
+        subLabels: [
+          "DAILY",
+          "WEEKLY",
+          "FORTNIGHTLY",
+          "MONTHLY",
+        ],
+        width: "555px",
+        bgColor: "#FFEDD5",
+        textColor: "#364153",
+        border: "#E5E7EB",
+        bgImg: "/doortodoorimg.png",
+      },
+
+      {
         key: "work_status",
         label: "workStatus",
         subLabels: [
@@ -365,71 +427,18 @@ export const assetsSections = [
         border: "#E5E7EB",
         bgImg: "/doortodoorimg.png",
       },
-    ],
-  },
-  {
-    title: 'bartanBank',
-    cards: [
+
       {
-        key: "bartan_bank",
-        label: "bartanBankInformation",
+        key: "CONTRACTORS_ENDING_NEXT_MONTH",
+        label: "CONTRACTORS_ENDING_NEXT_MONTH",
         bgColor: "#FEFCE8",
         textColor: "#364153",
         border: "#E5E7EB",
         bgImg: "/doortodoorimg.png",
       },
-    ]
-  }, {
-    title: 'vehicle',
-    cards: [
-      {
-        key: "ownedTricycles",
-        label: "ownedTricycles",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-      {
-        key: "ownedERickshaws",
-        label: "ownedERickshaws",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-      {
-        key: "ownedMotorizedVehicles",
-        label: "ownedMotorizedVehicles",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-      {
-        key: "contractorTricycles",
-        label: "contractorTricycles",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-      {
-        key: "contractorERickshaws",
-        label: "contractorERickshaws",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-      {
-        key: "contractorMotorizedVehicles",
-        label: "contractorMotorizedVehicles",
-        bgColor: "#FEFCE8",
-        textColor: "#364153",
-        border: "#E5E7EB",
-        bgImg: "/doortodoortruck.png",
-      },
-    ]
+
+
+    ],
   },
+  
 ];

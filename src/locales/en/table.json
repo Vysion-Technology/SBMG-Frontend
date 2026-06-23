@@ -263,5 +263,15 @@
   "AGENCY_NAME": "Agency Name",
   "EMAIL": "Email",
   "CONTACT_NUMBER": "Contact Number",
-  "ADDRESS": "Address"
+  "ADDRESS": "Address",
+
+
+    "FSM": "Faecal Sludge Management (FSM)",
+  "TWIN_PIT_TOILETS": "No. of Twin Pit Toilets",
+  "SINGLE_PIT_TOILETS": "No. of Single Pit Toilets",
+  "SEPTIC_TANK_TOILETS": "No. of Septic Tank Toilets",
+  "RETROFITTED_TOILETS": "No. of Retrofitted Toilets",
+  "MECHANIZED_DESLUDGING": "Mechanized De-Sludging",
+  "FSTPS_RURAL": "No. of FSTPs (Rural)",
+  "FSTPS_URBAN": "No. of FSTPs (Urban)"
 }

@@ -23,7 +23,6 @@ import BDOComplaintsContent from './BDOComplaintsContent';
 import BDOAttendanceContent from './BDOAttendanceContent';
 import BDOInspectionContent from './BDOInspectionContent';
 import BDOVillageMasterContent from './BDOVillageMasterContent';
-import BDOSchemesContent from './BDOSchemesContent';
 import BDONoticeContent from './BDONoticeContent';
 import BDOGpsTrackingContent from './BDOGpsTrackingContent';
 import BDOFeedbackContent from './BDOFeedback';
@@ -32,6 +31,7 @@ import BDOContractorDetails from './BDOContractorDetails';
 import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
+import SchemesContent from '../SchemesContent';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -233,7 +233,7 @@ const UnifiedDashboardBDO = () => {
       case 'contractorDetails':
         return <BDOContractorDetails />;
       case 'schemes':
-        return <BDOSchemesContent />;
+        return <SchemesContent />;
       case 'events':
         return <EventsContent />;
       case 'gpsTracking':

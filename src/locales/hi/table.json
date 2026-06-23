@@ -254,5 +254,14 @@
   "AGENCY_NAME": "एजेंसी का नाम",
   "EMAIL": "ईमेल",
   "CONTACT_NUMBER": "संपर्क नंबर",
-  "ADDRESS": "पता"
+  "ADDRESS": "पता",
+
+    "FSM": "फीकल स्लज प्रबंधन (FSM)",
+  "TWIN_PIT_TOILETS": "ट्विन पिट शौचालयों की संख्या",
+  "SINGLE_PIT_TOILETS": "सिंगल पिट शौचालयों की संख्या",
+  "SEPTIC_TANK_TOILETS": "सेप्टिक टैंक शौचालयों की संख्या",
+  "RETROFITTED_TOILETS": "रेट्रोफिटेड शौचालयों की संख्या",
+  "MECHANIZED_DESLUDGING": "मशीनीकृत डी-स्लजिंग",
+  "FSTPS_RURAL": "ग्रामीण FSTP की संख्या",
+  "FSTPS_URBAN": "शहरी FSTP की संख्या"
 }

@@ -317,7 +317,7 @@ export const circularAPI = {
     }),
 
   deleteCircular: (id) =>
-    apiClient.delete(`/api/v1/circulars/${id}`),
+    apiClient.delete(`circulars/${id}`),
 };
 
 

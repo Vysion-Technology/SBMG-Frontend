@@ -1361,15 +1361,15 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                 </>
               ))}
 
-              {section('Faecal Sludge Management (FSM)', grid2(
+              {section((t('table:FSM')), grid2(
                 <>
-                  <Input label="No. of twin pits Toilets" type="number" min={0} value={form.fsm_details?.twin_pit_toilets} onChange={(v) => update('fsm_details.twin_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='No. of Single pits Toilets' type="number" min={0} value={form.fsm_details?.single_pit_toilets} onChange={(v) => update('fsm_details.single_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of Septic tank Toilets" type="number" min={0} value={form.fsm_details?.septic_tank_toilets} onChange={(v) => update('fsm_details.septic_tank_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of Retrofitted toilets" type="number" min={0} value={form.fsm_details?.retrofitted_toilets} onChange={(v) => update('fsm_details.retrofitted_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Mechanized De-Sludging" type="number" min={0} value={form.fsm_details?.mechanized_desludging} onChange={(v) => update('fsm_details.mechanized_desludging', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of FSTPs Rural" type="number" min={0} value={form.fsm_details?.fstps_rural} onChange={(v) => update('fsm_details.fstps_rural', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of FSTPs Urban" type="number" min={0} value={form.fsm_details?.fstps_urban} onChange={(v) => update('fsm_details.fstps_urban', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TWIN_PIT_TOILETS')} type="number" min={0} value={form.fsm_details?.twin_pit_toilets} onChange={(v) => update('fsm_details.twin_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SINGLE_PIT_TOILETS')} type="number" min={0} value={form.fsm_details?.single_pit_toilets} onChange={(v) => update('fsm_details.single_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SEPTIC_TANK_TOILETS')} type="number" min={0} value={form.fsm_details?.septic_tank_toilets} onChange={(v) => update('fsm_details.septic_tank_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:RETROFITTED_TOILETS')} type="number" min={0} value={form.fsm_details?.retrofitted_toilets} onChange={(v) => update('fsm_details.retrofitted_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:MECHANIZED_DESLUDGING')} type="number" min={0} value={form.fsm_details?.mechanized_desludging} onChange={(v) => update('fsm_details.mechanized_desludging', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:FSTPS_RURAL')} type="number" min={0} value={form.fsm_details?.fstps_rural} onChange={(v) => update('fsm_details.fstps_rural', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:FSTPS_URBAN')} type="number" min={0} value={form.fsm_details?.fstps_urban} onChange={(v) => update('fsm_details.fstps_urban', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
@@ -1387,7 +1387,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Input label={t('table:BARTAN_BANK_INFORMATION')} type="number" min={0} value={form.bartan_bank?.established_banks} onChange={(v) => update('bartan_bank.established_banks', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
-              {section('Vehicle Assets', grid3(
+              {/* {section('Vehicle Assets', grid3(
                 <>
                   <Input label="Owned Tricycles" type="number" min={0} value={form.vehicle_assets?.owned_tricycles} onChange={(v) => update('vehicle_assets.owned_tricycles', v === '' ? '' : Number(v))} disabled={saving} />
                   <Input label="Owned E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.owned_e_rickshaws} onChange={(v) => update('vehicle_assets.owned_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
@@ -1396,7 +1396,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Input label="Contractor E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.contractor_e_rickshaws} onChange={(v) => update('vehicle_assets.contractor_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
                   <Input label="Contractor Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.contractor_motorized_vehicles} onChange={(v) => update('vehicle_assets.contractor_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
-              ))}
+              ))} */}
 
               {section((t('table:D2D_WASTE_COLLECTION')), (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

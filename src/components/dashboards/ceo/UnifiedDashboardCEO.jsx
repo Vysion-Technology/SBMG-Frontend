@@ -23,7 +23,6 @@ import CEOComplaintsContent from './CEOComplaintsContent';
 import CEOAttendanceContent from './CEOAttendanceContent';
 import CEOInspectionContent from './CEOInspectionContent';
 import CEOVillageMasterContent from './CEOVillageMasterContent';
-import CEOSchemesContent from './CEOSchemesContent';
 import CEONoticeContent from './CEONoticeContent';
 import CEOGpsTrackingContent from './CEOGpsTrackingContent';
 import CEOFeedbackContent from './CEOFeedback';
@@ -32,6 +31,7 @@ import CEOContractorDetails from './CEOContractorDetails';
 import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
+import SchemesContent from '../SchemesContent';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -234,7 +234,7 @@ const UnifiedDashboardCEO = () => {
       case 'contractorDetails':
         return <CEOContractorDetails />;
       case 'schemes':
-        return <CEOSchemesContent />;
+        return <SchemesContent />;
       case 'events':
         return <EventsContent  />;
       case 'gpsTracking':

@@ -45,7 +45,7 @@ export const mapAssetsApiToUI = (res) => {
     GOBARDhan_Project: res?.gobardhan?.total_projects || 0,
 
     // D2D
-    Total_gps: res?.d2d_activities?.gps_with_d2d_active || 0,
+    // Total_gps: res?.d2d_activities?.gps_with_d2d_active || 0,
 
     Total_Work_Sanctioned_Status: [
       { label: "Tender", value: res?.d2d_activities?.sanctioned_tender || 0 },
@@ -61,22 +61,43 @@ export const mapAssetsApiToUI = (res) => {
     Total_Persons_Deployed: res?.d2d_activities?.persons_deployed || 0,
     Total_House_Hold_Covered: res?.d2d_activities?.households_covered || 0,
 
+    CONTRACTORS_ENDING_NEXT_MONTH: res?.contracts_ending_next_month || 0,
+
     work_status: [
-      { label: "Start", value: res?.d2d_activities?.status_start || 0 },
+      { label: "NOT_STARTED", value: res?.d2d_activities?.status_start || 0 },
       { label: "Running", value: res?.d2d_activities?.status_running || 0 },
-      { label: "Completed", value: res?.d2d_activities?.status_completed || 0 },
+      // { label: "Completed", value: res?.d2d_activities?.status_completed || 0 },
     ],
+
+
+    WORK_FREQUENCY: [
+      { label: "DAILY", value: res?.d2d_activities?.work_frequency_count?.none || 0 },
+      { label: "WEEKLY", value: res?.d2d_activities?.work_frequency_count?.weekly || 0 },
+      { label: "FORTNIGHTLY", value: res?.d2d_activities?.work_frequency_count?.["15 days"] || 0 },
+      { label: "MONTHLY", value: res?.d2d_activities?.work_frequency_count?.monthly || 0 },
+    ],
+
+
+
+    OWNED_VEHICLES: [
+      { label: "E_RICKSHAWS", value: res?.vehicle_assets?.owned_e_rickshaws || 0 },
+      { label: "MOTORIZED_VEHICLES", value: res?.vehicle_assets?.owned_motorized_vehicles || 0 },
+    ],
+    CONTRACTOR_VEHICLES: [
+      { label: "E_RICKSHAWS", value: res?.vehicle_assets?.contractor_e_rickshaws || 0 },
+      { label: "MOTORIZED_VEHICLES", value: res?.vehicle_assets?.contractor_motorized_vehicles || 0 },
+    ],
+
+
 
     // Back bartan
     bartan_bank: res?.bartan_bank?.established_banks || 0,
 
     // vehicle_assets
-    ownedTricycles: res?.vehicle_assets?.owned_tricycles || 0,
-    ownedERickshaws: res?.vehicle_assets?.owned_e_rickshaws || 0,
-    ownedMotorizedVehicles: res?.vehicle_assets?.owned_motorized_vehicles || 0,
-    contractorTricycles: res?.vehicle_assets?.contractor_tricycles || 0,
-    contractorERickshaws: res?.vehicle_assets?.contractor_e_rickshaws || 0,
-    contractorMotorizedVehicles: res?.vehicle_assets?.contractor_motorized_vehicles || 0,
+    // ownedERickshaws: res?.vehicle_assets?.owned_e_rickshaws || 0,
+    // ownedMotorizedVehicles: res?.vehicle_assets?.owned_motorized_vehicles || 0,
+    // contractorERickshaws: res?.vehicle_assets?.contractor_e_rickshaws || 0,
+    // contractorMotorizedVehicles: res?.vehicle_assets?.contractor_motorized_vehicles || 0,
 
     // Gobara Dhan 
     total_sanctioned: res?.gobardhan?.total_sanctioned || 0,

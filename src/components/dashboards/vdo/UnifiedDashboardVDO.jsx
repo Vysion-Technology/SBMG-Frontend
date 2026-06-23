@@ -23,7 +23,7 @@ import VDOComplaintsContent from './VDOComplaintsContent';
 import VDOAttendanceContent from './VDOAttendanceContent';
 import VDOInspectionContent from './VDOInspectionContent';
 import VDOVillageMasterContent from './VDOVillageMasterContent';
-import VDOSchemesContent from './VDOSchemesContent';
+
 import VDONoticeContent from './VDONoticeContent';
 import VDOGpsTrackingContent from './VDOGpsTrackingContent';
 import VDOFeedbackContent from './VDOFeedback';
@@ -34,6 +34,7 @@ import ReconfirmationLockOverlay from '../../common/ReconfirmationLockOverlay';
 import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
+import SchemesContent from '../SchemesContent';
 
 
 
@@ -236,7 +237,7 @@ const UnifiedDashboardVDO = () => {
       case 'contractorDetails':
         return <VDOContractorDetails />;
       case 'schemes':
-        return <VDOSchemesContent />;
+        return <SchemesContent />;
       case 'events':
         return <EventsContent />;
       case 'gpsTracking':

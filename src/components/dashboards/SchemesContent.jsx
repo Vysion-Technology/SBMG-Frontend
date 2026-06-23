@@ -3,13 +3,22 @@ import { useEffect, useState } from "react";
 import { MEDIA_BASE_URL, schemesAPI, circularAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 
 
 const SchemesContent = () => {
 
   const { t } = useTranslation(['common', 'table']);
 
+  const { role } = useAuth();
+
+  const normalizedRole = role?.toUpperCase();
+
+  const canManageEvents = ["ADMIN", "SMD"].includes(normalizedRole);
+
   const [circulars, setCirculars] = useState([]);
+
+  const [listTab, setListTab] = useState("schemes");
 
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -141,7 +150,11 @@ const SchemesContent = () => {
     }
   };
 
-  const allItems = [...schemes, ...circulars];
+  // const allItems = [...schemes, ...circulars];
+  const displayedItems =
+    listTab === "schemes"
+      ? schemes
+      : circulars;
 
 
   // Helper function to format date
@@ -380,7 +393,7 @@ const SchemesContent = () => {
 
     // Existing Image
     if (scheme.image_url) {
-      setExistingImage(scheme.image_url);
+      setExistingImage(getImageUrl(scheme));
     } else if (
       scheme.media &&
       scheme.media.length > 0
@@ -461,36 +474,89 @@ const SchemesContent = () => {
 
     try {
 
-      const payload = {
-        name: editFormData.name,
-        description: editFormData.description,
-        eligibility: editFormData.eligibility,
-        benefits: editFormData.benefits,
-        active: editFormData.active,
-      };
+      const isCircular = !!selectedScheme?.pdf_url;
 
-      await schemesAPI.updateScheme(
-        selectedScheme.id,
-        payload
-      );
+      if (isCircular) {
 
-      if (selectedFile) {
-        await schemesAPI.uploadSchemeMedia(
-          selectedScheme.id,
-          selectedFile
+        const circularData = {
+          title: editFormData.name,
+          description: editFormData.description,
+          active: editFormData.active
+        };
+
+        const fd = new FormData();
+
+        fd.append(
+          "circular_data",
+          JSON.stringify(circularData)
         );
+
+        if (selectedPdf) {
+          fd.append("pdf", selectedPdf);
+        }
+
+        if (selectedFile) {
+          fd.append("image", selectedFile);
+        }
+
+        await circularAPI.updateCircular(
+          selectedScheme.id,
+          fd
+        );
+
+      } else {
+
+        const payload = {
+          name: editFormData.name,
+          description: editFormData.description,
+          eligibility: editFormData.eligibility,
+          benefits: editFormData.benefits,
+          active: editFormData.active,
+        };
+
+        await schemesAPI.updateScheme(
+          selectedScheme.id,
+          payload
+        );
+
+        if (selectedFile) {
+          await schemesAPI.uploadSchemeMedia(
+            selectedScheme.id,
+            selectedFile
+          );
+        }
       }
 
       setShowEditModal(false);
 
-      fetchSchemes();
-      fetchCirculars();
+      setSelectedScheme(null);
+
+      setSelectedFile(null);
+      setSelectedPdf(null);
+
+      setExistingImage(null);
+      setExistingPdf(null);
+
+      setEditFormData({
+        name: '',
+        description: '',
+        eligibility: '',
+        benefits: '',
+        active: true
+      });
+
+      await fetchSchemes();
+      await fetchCirculars();
 
     } catch (err) {
 
-      console.log(err);
+      console.error("Update Error:", err);
 
-      alert("Failed to update");
+      alert(
+        isCircular
+          ? "Failed to update circular"
+          : "Failed to update scheme"
+      );
 
     } finally {
 
@@ -506,6 +572,19 @@ const SchemesContent = () => {
     setImageError('');
     setSubmitProgress('');
     setIsSubmitting(false);
+  };
+
+  const getImageUrl = (item) => {
+    if (!item?.image_url) return null;
+
+    if (
+      item.image_url.startsWith("http://") ||
+      item.image_url.startsWith("https://")
+    ) {
+      return item.image_url;
+    }
+
+    return `${MEDIA_BASE_URL}/${item.image_url}`;
   };
 
 
@@ -550,7 +629,7 @@ const SchemesContent = () => {
                 fontWeight: '400',
                 color: '#6b7280'
               }}>
-                {allItems.length.toString().padStart(2, '0')}
+                {displayedItems.length.toString().padStart(2, '0')}
               </span>
             </h2>
 
@@ -614,26 +693,78 @@ const SchemesContent = () => {
                 {t('schemeevent:all')}
               </button>
             </div>
-            <button
-              onClick={() => setShowModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}>
-              <Plus style={{ width: '16px', height: '16px' }} />
-              {t('table:add')}
-            </button>
+            {canManageEvents && (
+              <button
+                onClick={() => setShowModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}>
+                <Plus style={{ width: '16px', height: '16px' }} />
+                {t('table:add')}
+              </button>
+            )}
           </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "20px"
+          }}
+        >
+          <button
+            onClick={() => setListTab("schemes")}
+            style={{
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: 600,
+              background:
+                listTab === "schemes"
+                  ? "#10b981"
+                  : "#f3f4f6",
+              color:
+                listTab === "schemes"
+                  ? "#fff"
+                  : "#374151"
+            }}
+          >
+            📋 Schemes ({schemes.length})
+          </button>
+
+          <button
+            onClick={() => setListTab("circulars")}
+            style={{
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: 600,
+              background:
+                listTab === "circulars"
+                  ? "#2563eb"
+                  : "#f3f4f6",
+              color:
+                listTab === "circulars"
+                  ? "#fff"
+                  : "#374151"
+            }}
+          >
+            📄 Circulars ({circulars.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -662,7 +793,7 @@ const SchemesContent = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
             {
 
-              allItems.map((scheme) => {
+              displayedItems.map((scheme) => {
 
                 const isCircular = !!scheme.pdf_url;
 
@@ -681,11 +812,13 @@ const SchemesContent = () => {
                       <img
                         src={
                           scheme.image_url
-                            ? scheme.image_url
+                            ? getImageUrl(scheme)
                             : getSchemeImage(scheme)
-                        } alt="scheme"
+                        }
+                        alt="scheme"
                         className="w-full h-full object-cover"
                         onError={(e) => {
+                          console.log("Image Failed =>", e.currentTarget.src);
                           e.currentTarget.src = "/background.png";
                         }}
                       />
@@ -767,7 +900,7 @@ const SchemesContent = () => {
         )}
 
         {/* No Schemes State */}
-        {!loading && !error && allItems.length === 0 && (
+        {!loading && !error && displayedItems.length === 0 && (
           <div style={{
             marginTop: '24px',
             backgroundColor: 'white',
@@ -1706,52 +1839,60 @@ const SchemesContent = () => {
                     'Details'
                   }
                 </h2>
+
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button
-                    onClick={() => handleEditClick(selectedScheme)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      border: '1px solid #10b981',
-                      borderRadius: '6px',
-                      backgroundColor: 'transparent',
-                      color: '#10b981',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Edit style={{ width: '16px', height: '16px' }} />
-                    {t('schemeevent:editScheme')}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteScheme(selectedScheme?.id)}
-                    disabled={isDeleting}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      border: '1px solid #ef4444',
-                      borderRadius: '6px',
-                      backgroundColor: isDeleting ? '#fecaca' : 'transparent',
-                      color: '#ef4444',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: isDeleting ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {isDeleting ? (
-                      <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <Trash2 style={{ width: '16px', height: '16px' }} />
-                    )}
-                    {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteScheme')}
-                  </button>
+                  {canManageEvents && (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(selectedScheme)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          border: '1px solid #10b981',
+                          borderRadius: '6px',
+                          backgroundColor: 'transparent',
+                          color: '#10b981',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <Edit style={{ width: '16px', height: '16px' }} />
+                        {t('schemeevent:editScheme')}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteScheme(selectedScheme?.id)}
+                        disabled={isDeleting}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          border: '1px solid #ef4444',
+                          borderRadius: '6px',
+                          backgroundColor: isDeleting ? '#fecaca' : 'transparent',
+                          color: '#ef4444',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: isDeleting ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {isDeleting ? (
+                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        )}
+                        {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteScheme')}
+                      </button>
+                    </>)
+                  }
+
+
+
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     style={{
