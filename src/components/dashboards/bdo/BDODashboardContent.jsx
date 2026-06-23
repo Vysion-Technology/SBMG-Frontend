@@ -2126,6 +2126,13 @@ const BDODashboardContent = () => {
       if (isNaN(num)) return "-";
       return `${(num / 1000).toFixed(2)} kms`;
     }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value;
   };
 
