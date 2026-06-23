@@ -17,6 +17,7 @@
   "gpName": "ग्राम पंचायत का नाम",
   "blockName": "ब्लॉक का नाम",
   "districtName": "जिले का नाम",
+  "registerData": "पंजीकृत डेटा",
   "state": "राज्य",
   "backToState": "राज्य पर वापस जाएँ",
   "backToDistricts": "जिलों पर वापस जाएं",
@@ -233,8 +234,6 @@
   "HOUSEHOLDS_COVERED": "कवर किए गए परिवार",
   "WORK_START": "कार्य प्रारंभ",
   "not_started": "प्रारंभ नहीं हुआ",
-
-  
   "WORK_RUNNING": "कार्य प्रगति पर",
   "WORK_COMPLETED": "कार्य पूर्ण",
   "VILLAGE_DATA": "ग्राम डेटा",
@@ -255,8 +254,7 @@
   "EMAIL": "ईमेल",
   "CONTACT_NUMBER": "संपर्क नंबर",
   "ADDRESS": "पता",
-
-    "FSM": "फीकल स्लज प्रबंधन (FSM)",
+  "FSM": "फीकल स्लज प्रबंधन (FSM)",
   "TWIN_PIT_TOILETS": "ट्विन पिट शौचालयों की संख्या",
   "SINGLE_PIT_TOILETS": "सिंगल पिट शौचालयों की संख्या",
   "SEPTIC_TANK_TOILETS": "सेप्टिक टैंक शौचालयों की संख्या",

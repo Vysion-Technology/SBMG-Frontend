@@ -440,5 +440,5 @@ export const assetsSections = [
 
     ],
   },
-  
+
 ];

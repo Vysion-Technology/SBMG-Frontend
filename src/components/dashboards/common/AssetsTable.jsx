@@ -103,7 +103,12 @@ const getName = (item) => {
     return item.name || item.geography_name || item.districtName || item.blockName || item.gpName || "";
 };
 
-const formatCellValue = (value) => {
+const formatCellValue = (value, key) => {
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+        const num = Number(value);
+        return isNaN(num) ? "-" : `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     if (Array.isArray(value)) {
         return value.map((v) => v.value).join(" | ");
     }
@@ -120,6 +125,12 @@ const formatValue = (key, value) => {
         const num = Number(value);
         if (isNaN(num)) return "-";
         return `${(num / 1000).toFixed(2)} kms`;
+    }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+        const num = Number(value);
+        if (isNaN(num)) return "-";
+        return `${(num / 100000).toFixed(2)} Lac`;
     }
 
     return value ?? "-";

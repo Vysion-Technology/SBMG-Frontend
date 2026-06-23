@@ -108,6 +108,17 @@ const VolunteerDetails = ({ open, onClose, volunteerId }) => {
             </div>
         );
     }
+    const formatDate = (dateString) => {
+        if (!dateString) return "—";
+
+        const date = new Date(dateString);
+
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = String(date.getFullYear()).slice(-2);
+
+        return `${day}-${month}-${year}`;
+    };
 
 
 
@@ -192,7 +203,7 @@ const VolunteerDetails = ({ open, onClose, volunteerId }) => {
                                             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl !p-4 shadow-xl border border-gray-200">
                                                 <div className="flex items-center gap-4">
                                                     <img
-                                                        src={MEDIA_BASE_URL+volunteer?.photo_url}
+                                                        src={MEDIA_BASE_URL + volunteer?.photo_url}
                                                         alt="Volunteer"
                                                         className="w-20 h-20 rounded-full object-cover border-2 border-white shadow"
                                                     />
@@ -221,6 +232,7 @@ const VolunteerDetails = ({ open, onClose, volunteerId }) => {
                                                     <Info label={t('table:mobileNumber')} value={volunteer?.mobile_number} />
                                                     <Info label={t('table:alternateMobile')} value={volunteer?.alternate_mobile} />
                                                     <Info label={t('table:email')} value={volunteer?.email} />
+                                                    <Info label={t("table:registerData")} value={formatDate(volunteer.created_at)} />
                                                 </div>
                                             </div>
 

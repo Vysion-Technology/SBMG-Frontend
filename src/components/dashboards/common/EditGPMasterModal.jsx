@@ -171,7 +171,8 @@ function mapGetToForm(data) {
     },
 
     bartan_bank: {
-      established_banks: n(o(data.bartan_bank, {}).established_banks)
+      established_banks: n(o(data.bartan_bank, {}).established_banks),
+      revenue: n(o(data.bartan_bank, {}).revenue)
     },
 
     vehicle_assets: {
@@ -197,7 +198,7 @@ function mapGetToForm(data) {
       status_start: n(d2d.status_start),
       status_running: n(d2d.status_running),
       status_completed: n(d2d.status_completed),
-      work_frequency: ['none', 'weekly', '15 days', 'monthly'].includes(d2d.work_frequency) ? d2d.work_frequency : 'none'
+      work_frequency: ['daily', 'weekly', '15 days', 'monthly'].includes(d2d.work_frequency) ? d2d.work_frequency : ''
     },
     // sbmg_targets: {
     //   ihhl: n(sbmg.ihhl),
@@ -337,7 +338,8 @@ function formToPayload(form) {
     },
 
     bartan_bank: {
-      established_banks: n(form.bartan_bank?.established_banks)
+      established_banks: n(form.bartan_bank?.established_banks),
+      revenue: n(form.bartan_bank?.revenue)
     },
 
     vehicle_assets: {
@@ -364,7 +366,7 @@ function formToPayload(form) {
       status_start: n(form.d2d_activities?.status_start),
       status_running: n(form.d2d_activities?.status_running),
       status_completed: n(form.d2d_activities?.status_completed),
-      work_frequency: s(form.d2d_activities?.work_frequency) || 'none'
+      work_frequency: s(form.d2d_activities?.work_frequency) || ''
     },
 
 
@@ -542,7 +544,7 @@ const BooleanRadio = ({ label, value, onChange, disabled }) => (
 );
 
 const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess, vdoGPId, fy_id }) => {
-  const { t } = useTranslation(['table', 'common'])
+  const { t } = useTranslation(['table', 'common', 'dashboard'])
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -695,11 +697,12 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           status_start: '',
           status_running: '',
           status_completed: '',
-          work_frequency: 'none'
+          work_frequency: ''
         },
 
         bartan_bank: {
           established_banks: '',
+          revenue: '',
         },
 
         vehicle_assets: {
@@ -1104,7 +1107,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         status_start: 0,
         status_running: 0,
         status_completed: 0,
-        work_frequency: 'none'
+        work_frequency: ''
       });
     }
   };
@@ -1384,7 +1387,17 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
               {section((t('table:BARTAN_BANK')), grid2(
                 <>
-                  <Input label={t('table:BARTAN_BANK_INFORMATION')} type="number" min={0} value={form.bartan_bank?.established_banks} onChange={(v) => update('bartan_bank.established_banks', v === '' ? '' : Number(v))} disabled={saving} />
+                  <BooleanRadio
+                    label={t('dashboard:assets.NO_OF_STABLES_BARTAN_BANK')}
+                    value={form.bartan_bank?.established_banks === 1}
+                    onChange={(val) =>
+                      update(
+                        "bartan_bank.established_banks",
+                        val ? 1 : 0
+                      )
+                    }
+                  />
+                  <Input label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')} type="number" min={0} value={form.bartan_bank?.revenue} onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
               {/* {section('Vehicle Assets', grid3(
@@ -1424,6 +1437,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                         onChange={(v) => update('d2d_activities.sanctioned_self_gp', v === '' ? '' : Number(v))}
                       />
 
+
+
                       <Input label={t('table:GP_THROUGH_CSR')}
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_csr_ngo}
@@ -1447,11 +1462,17 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                         onChange={(v) => update('d2d_activities.total_expenditure', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label={t('table:VEHICLES_DEPLOYED')}
+                      {/* <Input label={t('table:VEHICLES_DEPLOYED')}
                         type="number" min={0}
                         value={form.d2d_activities?.vehicles_deployed}
                         onChange={(v) => update('d2d_activities.vehicles_deployed', v === '' ? '' : Number(v))}
-                      />
+                      /> */}
+
+                      <Input label="Owned E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.owned_e_rickshaws} onChange={(v) => update('vehicle_assets.owned_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Owned Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.owned_motorized_vehicles} onChange={(v) => update('vehicle_assets.owned_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Contractor E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.contractor_e_rickshaws} onChange={(v) => update('vehicle_assets.contractor_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Contractor Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.contractor_motorized_vehicles} onChange={(v) => update('vehicle_assets.contractor_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+
 
                       <Input label={t('table:PERSONS_DEPLOYED')}
                         type="number" min={0}
@@ -1482,7 +1503,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                         value={form.d2d_activities?.work_frequency}
                         onChange={(v) => update('d2d_activities.work_frequency', v)}
                         options={[
-                          { value: 'none', label: 'None' },
+                          { value: 'daily', label: 'Daily' },
                           { value: 'weekly', label: 'Weekly' },
                           { value: '15 days', label: '15 Days' },
                           { value: 'monthly', label: 'Monthly' }

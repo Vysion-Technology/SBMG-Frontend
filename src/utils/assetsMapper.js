@@ -71,7 +71,7 @@ export const mapAssetsApiToUI = (res) => {
 
 
     WORK_FREQUENCY: [
-      { label: "DAILY", value: res?.d2d_activities?.work_frequency_count?.none || 0 },
+      { label: "DAILY", value: res?.d2d_activities?.work_frequency_count?.daily || 0 },
       { label: "WEEKLY", value: res?.d2d_activities?.work_frequency_count?.weekly || 0 },
       { label: "FORTNIGHTLY", value: res?.d2d_activities?.work_frequency_count?.["15 days"] || 0 },
       { label: "MONTHLY", value: res?.d2d_activities?.work_frequency_count?.monthly || 0 },
@@ -91,7 +91,8 @@ export const mapAssetsApiToUI = (res) => {
 
 
     // Back bartan
-    bartan_bank: res?.bartan_bank?.established_banks || 0,
+    NO_OF_STABLES_BARTAN_BANK: res?.bartan_bank?.established_banks || 0,
+    REVENUE_OF_BARTAN_BANK: res?.bartan_bank?.revenue || 0,
 
     // vehicle_assets
     // ownedERickshaws: res?.vehicle_assets?.owned_e_rickshaws || 0,

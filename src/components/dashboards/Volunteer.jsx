@@ -367,6 +367,33 @@ const Volunteer = () => {
         bVal = isVolunteerLevel ? 1 : (countMap[b.name?.toUpperCase().trim()] ?? 0) > 0 ? 1 : 0;
         return sortConfig.direction === "asc" ? aVal - bVal : bVal - aVal;
       }
+      if (sortConfig.key === "created_at") {
+        if (!isVolunteerLevel) return 0;
+
+        aVal = a.created_at ? new Date(a.created_at).getTime() : 0;
+        bVal = b.created_at ? new Date(b.created_at).getTime() : 0;
+
+        return sortConfig.direction === "asc"
+          ? aVal - bVal
+          : bVal - aVal;
+      }
+
+      if (sortConfig.key === "gender") {
+        if (!isVolunteerLevel) return 0;
+
+        const genderOrder = {
+          male: 1,
+          female: 2,
+          other: 3,
+        };
+
+        aVal = genderOrder[(a.gender || "").toLowerCase()] || 99;
+        bVal = genderOrder[(b.gender || "").toLowerCase()] || 99;
+
+        return sortConfig.direction === "asc"
+          ? aVal - bVal
+          : bVal - aVal;
+      }
 
       return 0;
     });
@@ -383,6 +410,18 @@ const Volunteer = () => {
         <span style={{ fontSize: "8px", lineHeight: 1, color: isActive && !isAsc ? "#10b981" : "#d1d5db" }}>▼</span>
       </span>
     );
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "—";
+
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = String(date.getFullYear()).slice(-2);
+
+    return `${day}-${month}-${year}`;
   };
 
   return (
@@ -415,7 +454,7 @@ const Volunteer = () => {
           {/* ── Table header */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: "2fr 1fr 1fr",
+            gridTemplateColumns: "2fr 1fr 1fr 1fr",
             backgroundColor: '#f9fafb',
             padding: '12px 16px',
             borderBottom: '1px solid #e5e7eb',
@@ -426,13 +465,44 @@ const Volunteer = () => {
               <SortIcon columnKey="name" />
             </div>
 
-            <div onClick={() => handleSort("count")} style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-              {isVolunteerLevel ? t('table:gender') : (
-                <>
-                  {t('table:totalCount')} <span style={{ color: '#6b7280', fontWeight: '400', marginLeft: '4px' }}>({totalVolunteers})</span>
-                  <SortIcon columnKey="count" />
-                </>
+            <div
+              onClick={() => handleSort("created_at")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#374151",
+              }}
+            >
+              {isVolunteerLevel ? t("table:registerData") : t("table:totalCount")}
+              {isVolunteerLevel && <SortIcon columnKey="created_at" />}
+
+              {!isVolunteerLevel && (
+                <span
+                  style={{
+                    color: "#6b7280",
+                    fontWeight: "400",
+                    marginLeft: "4px",
+                  }}
+                >
+                  ({totalVolunteers})
+                </span>
               )}
+            </div>
+
+            <div
+              onClick={() => handleSort("gender")}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                fontSize: "14px",
+                fontWeight: "600",
+                color: "#374151",
+              }}
+            >
+              {isVolunteerLevel ? t("table:gender") : ""}
+              {isVolunteerLevel && <SortIcon columnKey="gender" />}
             </div>
 
             <div onClick={() => handleSort("status")} style={{ display: 'flex', alignItems: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
@@ -456,7 +526,7 @@ const Volunteer = () => {
                   onClick={() => !isVolunteerLevel && handleClick(item)}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr",
+                    gridTemplateColumns: "2fr 1fr 1fr 1fr",
                     padding: "12px 16px",
                     borderBottom: "1px solid #f1f1f1",
                     cursor: isVolunteerLevel ? "default" : "pointer",
@@ -478,10 +548,18 @@ const Volunteer = () => {
                   >
                     {isVolunteerLevel ? (item.full_name || "N/A") : (item.name || "N/A")}
                   </div>
-
-                  {/* Count / Gender */}
+                  {/* Register Date */}
                   <div style={{ fontSize: "13px", color: "#374151" }}>
-                    {isVolunteerLevel ? (item.gender || "—") : count}
+                    {isVolunteerLevel
+                      ? formatDate(item.created_at)
+                      : ""}
+                  </div>
+
+                  {/* Gender / Count */}
+                  <div style={{ fontSize: "13px", color: "#374151" }}>
+                    {isVolunteerLevel
+                      ? (item.gender || "—")
+                      : count}
                   </div>
 
                   {/* Status */}

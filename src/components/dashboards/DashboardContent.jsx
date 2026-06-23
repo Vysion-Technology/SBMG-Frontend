@@ -2706,6 +2706,13 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
       if (isNaN(num)) return "-";
       return `${(num / 1000).toFixed(2)} kms`;
     }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value;
   };
 
@@ -3009,7 +3016,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                   {t("table:loadingContractorData")}
+                  {t("table:loadingContractorData")}
                 </div>
               )}
 
@@ -3043,7 +3050,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                         {t("table:name")}
+                        {t("table:name")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3061,7 +3068,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                         {t("table:annualContractAmount")}
+                        {t("table:annualContractAmount")}
                       </div>
                       <div style={{
                         fontSize: '16px',
@@ -3118,7 +3125,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                         color: '#6b7280',
                         marginBottom: '4px'
                       }}>
-                         {t("table:durationOfWork")}
+                        {t("table:durationOfWork")}
                       </div>
                       <div style={{
                         fontSize: '16px',

@@ -146,9 +146,8 @@
   "additionalVolunteersCount": "Additional Volunteers Count",
   "yes": "Yes",
   "no": "No",
-
-
-   "ADD_GP_MASTER_DATA": "Add GP Master Data",
+  "registerData": "Register Data",
+  "ADD_GP_MASTER_DATA": "Add GP Master Data",
   "EDIT_GP_MASTER_DATA": "Edit GP Master Data",
   "LOADING": "Loading...",
   "VDO_DETAILS": "VDO Details",
@@ -208,16 +207,12 @@
   "BLOCKS_COVERED_PWMU": "Total No. of Blocks Covered Under PWMU",
   "URBAN_MRFS": "Total No. of Urban MRFs",
   "BLOCKS_COVERED_URBAN_MRF": "Total No. of Blocks Covered Under Urban MRFs",
-
-
   "GOBARDHAN_PROJECT": "GOBAR-dhan Project",
   "TOTAL_SANCTIONED": "Total Sanctioned",
   "TOTAL_FUNCTIONAL": "Total Functional",
   "GAS_PRODUCTION": "Gas Production",
-
   "BARTAN_BANK": "Bartan Bank",
   "BARTAN_BANK_INFORMATION": "Bartan Bank Information",
-
   "VEHICLE_ASSETS": "Vehicle Assets",
   "OWNED_TRICYCLES": "Owned Tricycles",
   "OWNED_E_RICKSHAWS": "Owned E-Rickshaws",
@@ -225,7 +220,6 @@
   "CONTRACTOR_TRICYCLES": "Contractor Tricycles",
   "CONTRACTOR_E_RICKSHAWS": "Contractor E-Rickshaws",
   "CONTRACTOR_MOTORIZED_VEHICLES": "Contractor Motorized Vehicles",
-
   "D2D_WASTE_COLLECTION": "Door to Door Waste Collection, Segregation & Disposal Activities",
   "D2D_SERVICE_AVAILABLE": "Door to Door Service Available in this GP",
   "WORK_FREQUENCY": "Work Frequency",
@@ -239,34 +233,28 @@
   "PERSONS_DEPLOYED": "Persons Deployed",
   "HOUSEHOLDS_COVERED": "Households Covered",
   "WORK_START": "Work Start",
-   "not_started": "Not Started",
+  "not_started": "Not Started",
   "WORK_RUNNING": "Work Running",
   "WORK_COMPLETED": "Work Completed",
-
   "VILLAGE_DATA": "Village Data",
   "VILLAGE": "Village",
   "ADD_VILLAGE": "Add Village",
   "VILLAGE_NAME": "Village Name",
   "POPULATION": "Population",
-  
   "SBMG_IHHL": "SBMG IHHL",
   "SBMG_CSC": "SBMG CSC",
   "SOAK_PIT": "Soak Pit",
   "MAGIC_PIT": "Magic Pit",
   "LEACH_PIT": "Leach Pit",
-  
   "CANCEL": "Cancel",
   "SAVE": "Save",
   "SAVING": "Saving...",
-
   "CREATE_AGENCY": "Create Agency",
   "AGENCY_NAME": "Agency Name",
   "EMAIL": "Email",
   "CONTACT_NUMBER": "Contact Number",
   "ADDRESS": "Address",
-
-
-    "FSM": "Faecal Sludge Management (FSM)",
+  "FSM": "Faecal Sludge Management (FSM)",
   "TWIN_PIT_TOILETS": "No. of Twin Pit Toilets",
   "SINGLE_PIT_TOILETS": "No. of Single Pit Toilets",
   "SEPTIC_TANK_TOILETS": "No. of Septic Tank Toilets",
