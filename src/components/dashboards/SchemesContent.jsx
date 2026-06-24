@@ -1,13 +1,30 @@
-import React, { useState, useEffect } from "react";
-import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
-import { schemesAPI, MEDIA_BASE_URL } from '../../services/api';
+import { Edit, Loader2, Plus, Trash2, Upload, X } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { MEDIA_BASE_URL, schemesAPI, circularAPI } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
+import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
+
 
 const SchemesContent = () => {
+
+  const { t } = useTranslation(['common', 'table']);
+
+  const { role } = useAuth();
+
+  const normalizedRole = role?.toUpperCase();
+
+  const canManageEvents = ["ADMIN", "SMD"].includes(normalizedRole);
+
+  const [circulars, setCirculars] = useState([]);
+
+  const [listTab, setListTab] = useState("schemes");
+
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
   const [selectedScheme, setSelectedScheme] = useState(null);
-  const [activeTab, setActiveTab] = useState('Details');
+  const [activeTab, setActiveTab] = useState('details');
   const [schemes, setSchemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,6 +39,17 @@ const SchemesContent = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitProgress, setSubmitProgress] = useState('');
 
+  const [existingImage, setExistingImage] = useState(null);
+  const [existingPdf, setExistingPdf] = useState(null);
+
+  // Form
+  const [contentType, setContentType] = useState("scheme");
+  const [selectedPdf, setSelectedPdf] = useState(null);
+
+  // Img ration Error state
+  const [imageError, setImageError] = useState('');
+
+
   // Edit scheme state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
@@ -29,8 +57,6 @@ const SchemesContent = () => {
     description: '',
     eligibility: '',
     benefits: '',
-    start_time: '',
-    end_time: '',
     active: true
   });
   const [isUpdating, setIsUpdating] = useState(false);
@@ -39,20 +65,25 @@ const SchemesContent = () => {
   // Fetch schemes data on component mount and when filter changes
   useEffect(() => {
     fetchSchemes();
+    fetchCirculars();
   }, [schemeFilter]);
 
   // Close modals if selected scheme is no longer in the filtered list
-  useEffect(() => {
-    if (selectedScheme && !loading) {
-      const schemeStillVisible = schemes.some(s => s.id === selectedScheme.id);
-      if (!schemeStillVisible) {
-        // Scheme is no longer visible (likely disabled and filtered out)
-        setShowEditModal(false);
-        setShowDetailsModal(false);
-        setSelectedScheme(null);
-      }
+
+
+  const fetchCirculars = async () => {
+    try {
+      const res = await circularAPI.getCirculars();
+
+      setCirculars(
+        Array.isArray(res.data)
+          ? res.data
+          : []
+      );
+    } catch (err) {
+      console.log("Circular Error:", err);
     }
-  }, [schemes, selectedScheme, loading]);
+  };
 
   const fetchSchemes = async () => {
     try {
@@ -119,6 +150,13 @@ const SchemesContent = () => {
     }
   };
 
+  // const allItems = [...schemes, ...circulars];
+  const displayedItems =
+    listTab === "schemes"
+      ? schemes
+      : circulars;
+
+
   // Helper function to format date
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -132,6 +170,19 @@ const SchemesContent = () => {
     } catch (error) {
       return 'Invalid Date';
     }
+  };
+
+  const getPdfUrl = (item) => {
+    if (!item?.pdf_url) return null;
+
+    if (
+      item.pdf_url.startsWith("http://") ||
+      item.pdf_url.startsWith("https://")
+    ) {
+      return item.pdf_url;
+    }
+
+    return `${MEDIA_BASE_URL}/${item.pdf_url}`;
   };
 
   // Helper function to truncate text
@@ -150,25 +201,123 @@ const SchemesContent = () => {
   };
 
   // Handle file selection
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 🔥 always reset FIRST
+    setImageError('');
+    setSelectedFile(null);
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const expected = 4 / 5;
+      const tolerance = 0.03;
+
+      if (Math.abs(ratio - expected) > tolerance) {
+        setImageError(t('schemeevent:only45AspectRatioAllowed'));
+        setSelectedFile(null);
+        URL.revokeObjectURL(url);
+        return;
+      }
+
       setSelectedFile(file);
-    }
+      setImageError('');
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
   };
 
   // Handle form submission with seamless two-step API flow
   const handleSubmit = async () => {
+
+    if (contentType === "circular") {
+
+      if (!selectedPdf) {
+        alert("Please select PDF");
+        return;
+      }
+
+      if (!formData.name.trim() || !formData.description.trim()) {
+        alert("Please fill required fields");
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      try {
+
+        const circularData = {
+          title: formData.name,
+          description: formData.description
+        };
+
+        const fd = new FormData();
+
+        fd.append(
+          "circular_data",
+          JSON.stringify(circularData)
+        );
+
+        fd.append("pdf", selectedPdf);
+
+        if (selectedFile) {
+          fd.append("image", selectedFile);
+        }
+
+        await circularAPI.createCircular(fd);
+
+        setShowModal(false);
+
+        setFormData({
+          name: '',
+          description: '',
+          details: '',
+          benefits: ''
+        });
+
+        setSelectedFile(null);
+        setSelectedPdf(null);
+
+        fetchSchemes();
+        fetchCirculars();
+
+      } catch (error) {
+
+        console.log(error);
+
+        alert("Failed to create circular");
+
+      } finally {
+
+        setIsSubmitting(false);
+
+      }
+
+      return;
+    }
+
+    // ===== Existing Scheme Code =====
+
+    if (!selectedFile) {
+      setImageError(t('schemeevent:upload45Image'));
+      return;
+    }
+
     if (!formData.name.trim() || !formData.description.trim()) {
-      alert('Please fill in all required fields');
+      alert(t('schemeevent:fillRequiredFields'));
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitProgress('Creating scheme...');
+    setSubmitProgress(t('schemeevent:creatingScheme'));
 
     try {
-      // Step 1: Create the scheme
+
       const schemePayload = {
         name: formData.name,
         description: formData.description,
@@ -178,109 +327,266 @@ const SchemesContent = () => {
         end_time: new Date().toISOString(),
       };
 
-      const createResponse = await schemesAPI.createScheme(schemePayload);
-      const createdScheme = createResponse.data;
+      const createResponse =
+        await schemesAPI.createScheme(
+          schemePayload
+        );
 
-      // Step 2: Upload media if file is selected
+      const createdScheme =
+        createResponse.data;
+
       if (selectedFile) {
-        setSubmitProgress('Uploading media...');
-        console.log('Uploading media for scheme ID:', createdScheme.id, 'File:', selectedFile);
-        const uploadResponse = await schemesAPI.uploadSchemeMedia(createdScheme.id, selectedFile);
-        console.log('Media upload response:', uploadResponse.data);
+
+        await schemesAPI.uploadSchemeMedia(
+          createdScheme.id,
+          selectedFile
+        );
       }
 
-      // Success - close modal and refresh schemes
-      setSubmitProgress('Scheme created successfully!');
-      setTimeout(() => {
-        setShowModal(false);
-        setFormData({ name: '', description: '', details: '', benefits: '' });
-        setSelectedFile(null);
-        setIsSubmitting(false);
-        setSubmitProgress('');
-        fetchSchemes(); // Refresh the schemes list
-      }, 1000);
+      setShowModal(false);
+
+      setFormData({
+        name: '',
+        description: '',
+        details: '',
+        benefits: ''
+      });
+
+      setSelectedFile(null);
+
+      fetchSchemes();
+      fetchCirculars();
 
     } catch (error) {
-      console.error('Error creating scheme:', error);
-      setSubmitProgress('');
+
+      console.log(error);
+
+      alert(
+        t('schemeevent:failedToCreateScheme')
+      );
+
+    } finally {
+
       setIsSubmitting(false);
-      alert('Failed to create scheme. Please try again.');
+
     }
   };
 
   // Handle edit button click
   const handleEditClick = (scheme) => {
+
     setSelectedScheme(scheme);
+
+    const isCircular = !!scheme.pdf_url;
+
+    setContentType(
+      isCircular ? "circular" : "scheme"
+    );
+
     setEditFormData({
-      name: scheme.name || '',
-      description: scheme.description || '',
-      eligibility: scheme.eligibility || '',
-      benefits: scheme.benefits || '',
-      start_time: scheme.start_time || '',
-      end_time: scheme.end_time || '',
-      active: scheme.active !== undefined ? scheme.active : true
+      name: scheme.name || scheme.title || "",
+      description: scheme.description || "",
+      eligibility: scheme.eligibility || "",
+      benefits: scheme.benefits || "",
+      active: scheme.active ?? true
     });
+
+    // Existing Image
+    if (scheme.image_url) {
+      setExistingImage(getImageUrl(scheme));
+    } else if (
+      scheme.media &&
+      scheme.media.length > 0
+    ) {
+      setExistingImage(
+        `${MEDIA_BASE_URL}/${encodeURIComponent(
+          scheme.media[0].media_url
+        )}`
+      );
+    } else {
+      setExistingImage(null);
+    }
+
+    // Existing PDF
+    setExistingPdf(
+      scheme.pdf_url || null
+    );
+
+    setSelectedFile(null);
+    setSelectedPdf(null);
+
+    setShowDetailsModal(false);
     setShowEditModal(true);
   };
 
   const handleDeleteScheme = async (schemeId) => {
+
     if (!schemeId || isDeleting) return;
-    const confirmDelete = window.confirm('Are you sure you want to delete this scheme? This action cannot be undone.');
-    if (!confirmDelete) {
-      return;
-    }
+
+    const confirmDelete = window.confirm(
+      "Are you sure?"
+    );
+
+    if (!confirmDelete) return;
 
     try {
+
       setIsDeleting(true);
-      await schemesAPI.deleteScheme(schemeId);
+
+      const isCircular =
+        !!selectedScheme?.pdf_url;
+
+      if (isCircular) {
+        await circularAPI.deleteCircular(
+          schemeId
+        );
+      } else {
+        await schemesAPI.deleteScheme(
+          schemeId
+        );
+      }
+
       setShowDetailsModal(false);
       setSelectedScheme(null);
+
       await fetchSchemes();
-    } catch (error) {
-      console.error('Error deleting scheme:', error);
-      alert('Failed to delete scheme. Please try again.');
+      await fetchCirculars();
+
+    } catch (err) {
+
+      console.log(err);
+
+      alert("Delete failed");
+
     } finally {
+
       setIsDeleting(false);
+
     }
   };
 
   // Handle scheme update
   const handleUpdateScheme = async () => {
-    if (!editFormData.name.trim() || !editFormData.description.trim()) {
-      alert('Please fill in all required fields');
-      return;
-    }
+
+    if (!selectedScheme) return;
 
     setIsUpdating(true);
 
     try {
-      const updatePayload = {
-        name: editFormData.name,
-        description: editFormData.description,
-        eligibility: editFormData.eligibility,
-        benefits: editFormData.benefits,
-        start_time: editFormData.start_time,
-        end_time: editFormData.end_time,
-        active: editFormData.active
-      };
 
-      await schemesAPI.updateScheme(selectedScheme.id, updatePayload);
+      const isCircular = !!selectedScheme?.pdf_url;
 
-      // If scheme is set to inactive, switch filter to "All" so user can see it as inactive
-      if (!editFormData.active && schemeFilter === 'active') {
-        setSchemeFilter('all');
+      if (isCircular) {
+
+        const circularData = {
+          title: editFormData.name,
+          description: editFormData.description,
+          active: editFormData.active
+        };
+
+        const fd = new FormData();
+
+        fd.append(
+          "circular_data",
+          JSON.stringify(circularData)
+        );
+
+        if (selectedPdf) {
+          fd.append("pdf", selectedPdf);
+        }
+
+        if (selectedFile) {
+          fd.append("image", selectedFile);
+        }
+
+        await circularAPI.updateCircular(
+          selectedScheme.id,
+          fd
+        );
+
+      } else {
+
+        const payload = {
+          name: editFormData.name,
+          description: editFormData.description,
+          eligibility: editFormData.eligibility,
+          benefits: editFormData.benefits,
+          active: editFormData.active,
+        };
+
+        await schemesAPI.updateScheme(
+          selectedScheme.id,
+          payload
+        );
+
+        if (selectedFile) {
+          await schemesAPI.uploadSchemeMedia(
+            selectedScheme.id,
+            selectedFile
+          );
+        }
       }
 
-      // Close modal and refresh
       setShowEditModal(false);
+
+      setSelectedScheme(null);
+
+      setSelectedFile(null);
+      setSelectedPdf(null);
+
+      setExistingImage(null);
+      setExistingPdf(null);
+
+      setEditFormData({
+        name: '',
+        description: '',
+        eligibility: '',
+        benefits: '',
+        active: true
+      });
+
+      await fetchSchemes();
+      await fetchCirculars();
+
+    } catch (err) {
+
+      console.error("Update Error:", err);
+
+      alert(
+        isCircular
+          ? "Failed to update circular"
+          : "Failed to update scheme"
+      );
+
+    } finally {
+
       setIsUpdating(false);
-      fetchSchemes(); // Refresh schemes
-    } catch (error) {
-      console.error('Error updating scheme:', error);
-      setIsUpdating(false);
-      alert('Failed to update scheme. Please try again.');
+
     }
   };
+
+  const resetModal = () => {
+    setShowModal(false);
+    setFormData({ name: '', description: '', details: '', benefits: '' });
+    setSelectedFile(null);
+    setImageError('');
+    setSubmitProgress('');
+    setIsSubmitting(false);
+  };
+
+  const getImageUrl = (item) => {
+    if (!item?.image_url) return null;
+
+    if (
+      item.image_url.startsWith("http://") ||
+      item.image_url.startsWith("https://")
+    ) {
+      return item.image_url;
+    }
+
+    return `${MEDIA_BASE_URL}/${item.image_url}`;
+  };
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
@@ -317,13 +623,13 @@ const SchemesContent = () => {
               alignItems: 'center',
               gap: '8px'
             }}>
-              Overview
+              {t('common:overview')}
               <span style={{
                 fontSize: '16px',
                 fontWeight: '400',
                 color: '#6b7280'
               }}>
-                {schemes.length.toString().padStart(2, '0')}
+                {displayedItems.length.toString().padStart(2, '0')}
               </span>
             </h2>
 
@@ -352,7 +658,7 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Active
+                {t('schemeevent:active')}
               </button>
               <button
                 onClick={() => setSchemeFilter('inactive')}
@@ -368,7 +674,7 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Inactive
+                {t('schemeevent:inactive')}
               </button>
               <button
                 onClick={() => setSchemeFilter('all')}
@@ -384,29 +690,81 @@ const SchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                All
+                {t('schemeevent:all')}
               </button>
             </div>
-            <button
-              onClick={() => setShowModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 10px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                transition: 'all 0.2s'
-              }}>
-              <Plus style={{ width: '16px', height: '16px' }} />
-              Add Scheme
-            </button>
+            {canManageEvents && (
+              <button
+                onClick={() => setShowModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}>
+                <Plus style={{ width: '16px', height: '16px' }} />
+                {t('table:add')}
+              </button>
+            )}
           </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "8px",
+            marginBottom: "20px"
+          }}
+        >
+          <button
+            onClick={() => setListTab("schemes")}
+            style={{
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: 600,
+              background:
+                listTab === "schemes"
+                  ? "#10b981"
+                  : "#f3f4f6",
+              color:
+                listTab === "schemes"
+                  ? "#fff"
+                  : "#374151"
+            }}
+          >
+            📋 Schemes ({schemes.length})
+          </button>
+
+          <button
+            onClick={() => setListTab("circulars")}
+            style={{
+              padding: "8px 16px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontWeight: 600,
+              background:
+                listTab === "circulars"
+                  ? "#2563eb"
+                  : "#f3f4f6",
+              color:
+                listTab === "circulars"
+                  ? "#fff"
+                  : "#374151"
+            }}
+          >
+            📄 Circulars ({circulars.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -419,7 +777,7 @@ const SchemesContent = () => {
             marginTop: '24px'
           }}>
             <Loader2 style={{ width: '32px', height: '32px', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-            <span style={{ marginLeft: '12px', color: '#6b7280' }}>Loading schemes...</span>
+            <span style={{ marginLeft: '12px', color: '#6b7280' }}>{t('table:loading')}</span>
           </div>
         )}
 
@@ -432,129 +790,117 @@ const SchemesContent = () => {
 
         {/* Scheme Cards Grid */}
         {!loading && !error && (
-          <div className="columns-1 sm:columns-2 md:columns-3  lg:columns-4 gap-4 mt-6">
-            {schemes.map((scheme) => (
-              <div
-                key={scheme.id}
-                onClick={() => {
-                  setSelectedScheme(scheme);
-                  setShowDetailsModal(true);
-                  setActiveTab('Details');
-                }}
-                style={{
-                  breakInside: 'avoid', // ⭐ important (card break na ho)
-                  marginBottom: '20px',
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  width: '100%',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                <div style={{
-                  width: '100%',
-                  marginBottom: '8px',
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  backgroundColor: '#f3f4f6',
-                  breakInside: 'avoid',
-                }}>
-                  <img
-                    src={getSchemeImage(scheme)}
-                    alt="scheme"
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      display: 'block',
-                      objectFit: 'cover',
-                    }}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+            {
 
-                    onError={(e) => {
-                      console.log('Image failed to load:', getEventImage(event));
-                      e.target.src = '/background.png';
+              displayedItems.map((scheme) => {
+
+                const isCircular = !!scheme.pdf_url;
+
+                return (
+                  <div
+                    key={scheme.id}
+                    className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
+                    onClick={() => {
+                      console.log("Selected Item =>", scheme);
+                      setSelectedScheme({ ...scheme });
+                      setActiveTab("details");
+                      setShowDetailsModal(true);
                     }}
-                    onLoad={() => {
-                      console.log('Image loaded successfully:', getEventImage(event));
-                    }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    backgroundColor: scheme.active ? '#10b981' : '#ef4444',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    fontWeight: '500'
-                  }}>
-                    {scheme.active ? 'Active' : 'Inactive'}
-                  </div>
-                  {/* Media count indicator if multiple images */}
-                  {scheme.media && scheme.media.length > 1 && (
-                    <div style={{
-                      position: 'absolute',
-                      bottom: '12px',
-                      right: '12px',
-                      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                      color: 'white',
-                      padding: '4px 8px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '500'
-                    }}>
-                      +{scheme.media.length - 1} more
+                  >
+                    <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
+                      <img
+                        src={
+                          scheme.image_url
+                            ? getImageUrl(scheme)
+                            : getSchemeImage(scheme)
+                        }
+                        alt="scheme"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.log("Image Failed =>", e.currentTarget.src);
+                          e.currentTarget.src = "/background.png";
+                        }}
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '12px',
+                          left: '12px',
+                          backgroundColor: isCircular ? '#2563eb' : '#10b981',
+                          color: '#fff',
+                          padding: '4px 10px',
+                          borderRadius: '999px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        {isCircular ? 'Circular' : 'Scheme'}
+                      </div>
+                      <div style={{
+                        position: 'absolute',
+                        top: '12px',
+                        right: '12px',
+                        backgroundColor: scheme.active ? '#10b981' : '#ef4444',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}>
+                        {scheme.active ? 'Active' : 'Inactive'}
+                      </div>
+                      {/* Media count indicator if multiple images */}
+                      {scheme.media && scheme.media.length > 1 && (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '12px',
+                          right: '12px',
+                          backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                          color: 'white',
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '500'
+                        }}>
+                          +{scheme.media.length - 1} more
+                        </div>
+                      )}
+
                     </div>
-                  )}
+                    <div style={{ padding: '16px' }}>
+                      <h3 style={{
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        color: '#111827',
+                        margin: '0 0 6px 0',
+                        lineHeight: '1.4'
+                      }}>
+                        {scheme.name || scheme.title || 'Untitled'}
+                      </h3>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#6b7280',
+                        margin: 0,
+                        lineHeight: '1.4',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden'
+                      }}>
+                        {truncateText(scheme.description, 60)}
+                      </p>
 
-                </div>
-                <div style={{ padding: '16px' }}>
-                  <h3 style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#111827',
-                    margin: '0 0 6px 0',
-                    lineHeight: '1.4'
-                  }}>
-                    {scheme.name || 'Untitled Scheme'}
-                  </h3>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#6b7280',
-                    margin: 0,
-                    lineHeight: '1.4',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden'
-                  }}>
-                    {truncateText(scheme.description, 60)}
-                  </p>
-
-                </div>
-              </div>
-            ))}
+                    </div>
+                  </div>
+                )
+              }
+              )}
           </div>
         )}
 
         {/* No Schemes State */}
-        {!loading && !error && schemes.length === 0 && (
+        {!loading && !error && displayedItems.length === 0 && (
           <div style={{
             marginTop: '24px',
             backgroundColor: 'white',
@@ -566,293 +912,887 @@ const SchemesContent = () => {
         )}
       </div>
 
-      {/* Add Scheme Modal */}
-      {
-        showModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              width: '500px',
-              maxHeight: '80vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}>
-              {/* Modal Header */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px 24px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
-                <h2 style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  Add scheme
-                </h2>
-                <button
-                  onClick={() => setShowModal(false)}
+
+      {/* Add/Edit Scheme-Circular Modal */}
+      {(showModal || showEditModal) && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px",
+          }}
+        >
+          <div
+            style={{
+              width: "650px",
+              maxWidth: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              background: "#fff",
+              borderRadius: "18px",
+              boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
+            }}
+          >
+            {/* Header */}
+            <div
+              style={{
+                padding: "20px 24px",
+                borderBottom: "1px solid #e5e7eb",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <h2
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    color: '#6b7280'
+                    margin: 0,
+                    fontSize: "20px",
+                    fontWeight: "700",
                   }}
                 >
-                  <X style={{ width: '20px', height: '20px' }} />
-                </button>
+                  {showEditModal
+                    ? (t('schemeevent:editSchemeCircular'))
+                    : (t('schemeevent:addSchemeCircular'))}
+                </h2>
+
+                <p
+                  style={{
+                    margin: "4px 0 0",
+                    color: "#6b7280",
+                    fontSize: "13px",
+                  }}
+                >
+                  {t('schemeevent:manageSchemeAndCircularDetails')}
+                </p>
               </div>
 
-              {/* Modal Content */}
-              <div style={{ padding: '24px' }}>
-                {/* Image Upload Area */}
-                <div style={{
-                  border: '2px dashed #d1d5db',
-                  borderRadius: '8px',
-                  padding: '40px 20px',
-                  textAlign: 'center',
-                  marginBottom: '24px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  backgroundColor: selectedFile ? '#f0f9ff' : 'transparent',
-                  borderColor: selectedFile ? '#10b981' : '#d1d5db'
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setShowEditModal(false);
+
+                  setSelectedFile(null);
+                  setSelectedPdf(null);
+
+                  setExistingImage(null);
+                  setExistingPdf(null);
+
+                  setImageError('')
                 }}
-                  onClick={() => document.getElementById('schemeFileInput').click()}>
+                style={{
+                  border: "none",
+                  background: "#f3f4f6",
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  justifyItems: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: "24px" }}>
+              {/* Type Selection */}
+
+              <label
+                style={{
+                  display: "block",
+                  marginBottom: "12px",
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+              >
+                {t('schemeevent:contentType')}
+              </label>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "12px",
+                  marginBottom: "24px",
+                }}
+              >
+                <div
+                  onClick={() => setContentType("scheme")}
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    border:
+                      contentType === "scheme"
+                        ? "2px solid #10b981"
+                        : "1px solid #e5e7eb",
+                    background:
+                      contentType === "scheme"
+                        ? "#ecfdf5"
+                        : "#fff",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "28px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    📋
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: "600",
+                    }}
+                  >
+                    {t('common:schemes')}
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => setContentType("circular")}
+                  style={{
+                    padding: "16px",
+                    borderRadius: "14px",
+                    cursor: "pointer",
+                    textAlign: "center",
+                    border:
+                      contentType === "circular"
+                        ? "2px solid #2563eb"
+                        : "1px solid #e5e7eb",
+                    background:
+                      contentType === "circular"
+                        ? "#eff6ff"
+                        : "#fff",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: "28px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    📄
+                  </div>
+
+                  <div
+                    style={{
+                      fontWeight: "600",
+                    }}
+                  >
+                    {t('schemeevent:circular')}
+                  </div>
+                </div>
+              </div>
+              {/* Image Upload */}
+              <div style={{ marginBottom: "24px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "8px",
+                    position: "relative"
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>
+                    {t('schemeevent:imageUpload')}
+                  </span>
+
+
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      color:
+                        contentType === "scheme"
+                          ? "#ef4444"
+                          : "#6b7280",
+                    }}
+                  >
+                    {contentType === "scheme"
+                      ? (t('schemeevent:required'))
+                      : (t('schemeevent:optional'))}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() =>
+                    document
+                      .getElementById("schemeImage")
+                      .click()
+                  }
+                  style={{
+                    border: "2px dashed #d1d5db",
+                    borderRadius: "14px",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    background: "#fafafa",
+                  }}
+                >
                   <input
-                    id="schemeFileInput"
+                    id="schemeImage"
                     type="file"
                     accept="image/*"
+                    hidden
                     onChange={handleFileSelect}
-                    style={{ display: 'none' }}
                   />
-                  <Upload style={{
-                    width: '32px',
-                    height: '32px',
-                    color: selectedFile ? '#10b981' : '#9ca3af',
-                    margin: '0 auto 12px'
-                  }} />
-                  <p style={{
-                    fontSize: '14px',
-                    color: selectedFile ? '#10b981' : '#6b7280',
-                    margin: 0
-                  }}>
-                    {selectedFile ? selectedFile.name : 'Drag and drop your image or click to upload'}
-                  </p>
-                  {selectedFile && (
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#10b981',
-                      margin: '8px 0 0 0'
-                    }}>
-                      ✓ File selected
-                    </p>
+
+                  {selectedFile ? (
+                    <div
+                      style={{
+                        padding: "20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <img
+                        src={URL.createObjectURL(selectedFile)}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "250px",
+                          objectFit: "cover",
+                          borderRadius: "12px",
+                        }}
+                      />
+
+                      <p
+                        style={{
+                          marginTop: "12px",
+                          fontWeight: 600,
+                          color: "#10b981",
+                        }}
+                      >
+                        {selectedFile.name}
+                      </p>
+
+                      <small
+                        style={{
+                          color: "#6b7280",
+                          display: "block",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        Click to replace image
+                      </small>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            setSelectedFile(null);
+
+                            if (showEditModal) {
+                              // purani image wapas dikha do
+                              // setExistingImage(null) mat karna
+                            }
+
+                            document.getElementById("schemeImage").value = "";
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#ef4444",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ) : existingImage ? (
+                    <div
+                      style={{
+                        padding: "20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <img
+                        src={existingImage}
+                        alt=""
+                        style={{
+                          width: "100%",
+                          height: "250px",
+                          objectFit: "cover",
+                          borderRadius: "12px",
+                        }}
+                      />
+
+                      <p
+                        style={{
+                          marginTop: "12px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Current Image
+                      </p>
+
+                      <small
+                        style={{
+                          color: "#6b7280",
+                        }}
+                      >
+                        Click to replace image
+                      </small>
+
+                      <div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExistingImage(null);
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            color: "#ef4444",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            marginTop: "10px",
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        padding: "40px 20px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <Upload
+                        size={36}
+                        style={{
+                          color: "#9ca3af",
+                          marginBottom: "12px",
+                          justifySelf: "center"
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          fontWeight: 500,
+                        }}
+                      >
+                        {t('schemeevent:uploadImage')}
+                      </div>
+
+                      <small
+                        style={{
+                          color: "#6b7280",
+                        }}
+                      >
+                        {t('schemeevent:aspectRatioRequired')}
+                      </small>
+                    </div>
                   )}
-                </div>
-
-                {/* Form Fields */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Name Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter scheme"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  {/* Description Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  {/* Eligibility Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Eligibility
-                    </label>
-                    <textarea
-                      placeholder="Enter eligibility criteria"
-                      value={formData.details}
-                      onChange={(e) => setFormData({ ...formData, details: e.target.value })}
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  {/* Benefits Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Benefits
-                    </label>
-                    <textarea
-                      placeholder="Benefits"
-                      value={formData.benefits}
-                      onChange={(e) => setFormData({ ...formData, benefits: e.target.value })}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px 24px',
-                borderTop: '1px solid #e5e7eb'
-              }}>
-                {/* Progress indicator */}
-                {isSubmitting && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    color: '#10b981',
-                    fontSize: '14px'
-                  }}>
-                    <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                    {submitProgress}
+              {/* 👇 ADD THIS ERROR MESSAGE HERE */}
+              {imageError && (
+                <p style={{
+                  color: '#ef4444',
+                  fontSize: '12px',
+                  marginTop: '-12px',
+                  marginBottom: '16px'
+                }}>
+                  {imageError}
+                </p>
+              )}
+
+
+              {/* Existing PDF */}
+
+              {showEditModal &&
+                contentType === "circular" &&
+                existingPdf && (
+                  <div
+                    style={{
+                      marginBottom: "20px",
+                      background: "#eff6ff",
+                      padding: "14px",
+                      borderRadius: "10px",
+                      border: "1px solid #bfdbfe"
+                    }}
+                  >
+                    📄 {t('schemeevent:existingCircularPdf')}
                   </div>
                 )}
 
-                {/* Buttons */}
-                <div style={{ display: 'flex', gap: '12px', marginLeft: 'auto' }}>
-                  <button
-                    onClick={() => {
-                      if (!isSubmitting) {
-                        setShowModal(false);
-                        setFormData({ name: '', description: '', details: '', benefits: '' });
-                        setSelectedFile(null);
-                      }
-                    }}
-                    disabled={isSubmitting}
+              {/* PDF Upload */}
+
+              {contentType === "circular" && (
+                <div style={{ marginBottom: "24px" }}>
+                  <div
+                    onClick={() =>
+                      document
+                        .getElementById("pdfUpload")
+                        .click()
+                    }
                     style={{
-                      padding: '10px 20px',
+                      border: "2px dashed #3b82f6",
+                      borderRadius: "14px",
+                      cursor: "pointer",
+                      overflow: "hidden",
+                      background: "#f8fbff",
+                    }}
+                  >
+                    <input
+                      hidden
+                      id="pdfUpload"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) =>
+                        setSelectedPdf(
+                          e.target.files[0]
+                        )
+                      }
+                    />
+
+                    {selectedPdf ? (
+                      <div
+                        style={{
+                          padding: "24px",
+                          textAlign: "center",
+                          position: "relative",
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPdf(null);
+                          }}
+                          style={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            width: 34,
+                            height: 34,
+                            border: "none",
+                            borderRadius: "50%",
+                            background: "#ef4444",
+                            color: "#fff",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <X size={16} />
+                        </button>
+
+                        <div
+                          style={{
+                            fontSize: "60px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          📄
+                        </div>
+
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: "#2563eb",
+                          }}
+                        >
+                          {selectedPdf.name}
+                        </div>
+
+                        <small>
+                          {t('schemeevent:clickToReplacePdf')}
+                        </small>
+                        <div>
+                          <div
+                            style={{
+                              color: "#ef4444",
+                              fontWeight: 600,
+                              marginTop: "10px",
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPdf(null);
+                            }}
+                          >
+                            {t('schemeevent:remove')}
+                          </div>
+                        </div>
+                      </div>
+                    ) : existingPdf ? (
+                      <div
+                        style={{
+                          padding: "24px",
+                          textAlign: "center",
+                          position: "relative",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "60px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          📄
+                        </div>
+
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: "#2563eb",
+                          }}
+                        >
+                          {t('schemeevent:existingCircularPdf')}
+                        </div>
+
+                        <small>
+                          {t('schemeevent:clickToReplacePdf')}
+                        </small>
+                        <div>
+                          <div
+                            style={{
+                              color: "#ef4444",
+                              fontWeight: 600,
+                              marginTop: "10px",
+                              textDecoration: "underline",
+                              cursor: "pointer",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPdf(null);
+                            }}
+                          >
+                            Remove
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          padding: "35px 20px",
+                          textAlign: "center",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "50px",
+                            marginBottom: "10px",
+                          }}
+                        >
+                          📄
+                        </div>
+
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            color: "#2563eb",
+                          }}
+                        >
+                          {t('schemeevent:uploadCircularPdf')}
+                        </div>
+
+                        <small>
+                          {t('schemeevent:pdfFileOnly')}
+                        </small>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Name */}
+
+              <div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t('schemeevent:name')}
+                </label>
+
+                <input
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+
+                  type="text"
+                  placeholder="Enter Name"
+                  value={
+                    showEditModal
+                      ? editFormData.name
+                      : formData.name
+                  }
+                  onChange={(e) =>
+                    showEditModal
+                      ? setEditFormData({
+                        ...editFormData,
+                        name: e.target.value
+                      })
+                      : setFormData({
+                        ...formData,
+                        name: e.target.value
+                      })
+                  }
+                />
+              </div>
+
+              {/* Description */}
+
+              {<div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t('schemeevent:description')}
+                </label>
+
+                <textarea
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+
+                  placeholder="Enter Description"
+                  value={
+                    showEditModal
+                      ? editFormData.description
+                      : formData.description
+                  }
+                  onChange={(e) =>
+                    showEditModal
+                      ? setEditFormData({
+                        ...editFormData,
+                        description: e.target.value
+                      })
+                      : setFormData({
+                        ...formData,
+                        description: e.target.value
+                      })
+                  }
+                />
+              </div>}
+
+              {/* Eligibility */}
+
+              {contentType === "scheme" && (<div style={{ marginBottom: "20px" }}>
+                <label
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  {t('schemeevent:eligibility')}
+                </label>
+
+                <textarea
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+
+                  rows={4}
+                  placeholder="Enter Eligibility"
+                  value={
+                    showEditModal
+                      ? editFormData.eligibility
+                      : formData.details
+                  }
+                  onChange={(e) =>
+                    showEditModal
+                      ? setEditFormData({
+                        ...editFormData,
+                        eligibility: e.target.value
+                      })
+                      : setFormData({
+                        ...formData,
+                        details: e.target.value
+                      })
+                  }
+                />
+              </div>)}
+
+              {/* Benefits */}
+
+              {contentType === "scheme" && (
+
+                <div style={{ marginBottom: "20px" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {t('schemeevent:benefits')}
+                  </label>
+
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '12px',
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
-                      backgroundColor: 'white',
-                      color: '#374151',
                       fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                      opacity: isSubmitting ? 0.6 : 1
+                      outline: 'none',
+                      resize: 'vertical'
                     }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    style={{
-                      padding: '10px 20px',
-                      border: 'none',
-                      borderRadius: '8px',
-                      backgroundColor: isSubmitting ? '#9ca3af' : '#10b981',
-                      color: 'white',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: isSubmitting ? 'not-allowed' : 'pointer',
+
+                    rows={4}
+                    placeholder="Enter Benefits"
+                    value={
+                      showEditModal
+                        ? editFormData.benefits
+                        : formData.benefits
+                    }
+                    onChange={(e) =>
+                      showEditModal
+                        ? setEditFormData({
+                          ...editFormData,
+                          benefits: e.target.value
+                        })
+                        : setFormData({
+                          ...formData,
+                          benefits: e.target.value
+                        })
+                    }
+                  />
+
+                </div>)}
+
+              {showEditModal && (
+                <div style={{ marginBottom: "20px" }}>
+                  {/* Active Status Field */}
+                  <div>
+                    <label style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
-                    }}
-                  >
-                    {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                    {isSubmitting ? 'Creating...' : 'Add Scheme'}
-                  </button>
+                      gap: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      color: '#374151',
+                      cursor: 'pointer'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={editFormData.active}
+                        onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          cursor: 'pointer'
+                        }}
+                      />
+                      {t('schemeevent:active')}
+                    </label>
+                  </div>
+
                 </div>
-              </div>
+              )}
+            </div>
+
+            {/* Footer */}
+
+            <div
+              style={{
+                borderTop: "1px solid #e5e7eb",
+                padding: "20px 24px",
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: "12px",
+              }}
+            >
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setShowEditModal(false);
+
+                  setSelectedFile(null);
+                  setSelectedPdf(null);
+
+                  setExistingImage(null);
+                  setExistingPdf(null);
+                  setImageError('')
+                }}
+                style={{
+                  padding: "12px 20px",
+                  border: "1px solid #d1d5db",
+                  background: "#fff",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                }}
+              >
+                {t('schemeevent:cancel')}
+              </button>
+
+              <button
+                onClick={
+                  showEditModal
+                    ? handleUpdateScheme
+                    : handleSubmit
+                }
+                disabled={
+                  isSubmitting || isUpdating
+                }
+                style={{
+                  padding: "12px 20px",
+                  border: "none",
+                  background:
+                    contentType === "scheme"
+                      ? "#10b981"
+                      : "#2563eb",
+                  color: "#fff",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >
+                {showEditModal
+                  ? (t('schemeevent:update'))
+                  : contentType === "scheme"
+                    ? (t('schemeevent:addScheme'))
+                    : (t('schemeevent:addCircular'))}
+              </button>
             </div>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* Scheme Details Modal */}
       {
@@ -893,54 +1833,66 @@ const SchemesContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {selectedScheme?.name || 'Scheme Details'}
+                  {
+                    selectedScheme?.name ||
+                    selectedScheme?.title ||
+                    'Details'
+                  }
                 </h2>
+
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <button
-                    onClick={() => handleEditClick(selectedScheme)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      border: '1px solid #10b981',
-                      borderRadius: '6px',
-                      backgroundColor: 'transparent',
-                      color: '#10b981',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <Edit style={{ width: '16px', height: '16px' }} />
-                    Edit Scheme
-                  </button>
-                  <button
-                    onClick={() => handleDeleteScheme(selectedScheme?.id)}
-                    disabled={isDeleting}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '6px 12px',
-                      border: '1px solid #ef4444',
-                      borderRadius: '6px',
-                      backgroundColor: isDeleting ? '#fecaca' : 'transparent',
-                      color: '#ef4444',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: isDeleting ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {isDeleting ? (
-                      <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                    ) : (
-                      <Trash2 style={{ width: '16px', height: '16px' }} />
-                    )}
-                    {isDeleting ? 'Deleting...' : 'Delete Scheme'}
-                  </button>
+                  {canManageEvents && (
+                    <>
+                      <button
+                        onClick={() => handleEditClick(selectedScheme)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          border: '1px solid #10b981',
+                          borderRadius: '6px',
+                          backgroundColor: 'transparent',
+                          color: '#10b981',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <Edit style={{ width: '16px', height: '16px' }} />
+                        {t('schemeevent:editScheme')}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteScheme(selectedScheme?.id)}
+                        disabled={isDeleting}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 12px',
+                          border: '1px solid #ef4444',
+                          borderRadius: '6px',
+                          backgroundColor: isDeleting ? '#fecaca' : 'transparent',
+                          color: '#ef4444',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: isDeleting ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {isDeleting ? (
+                          <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
+                        ) : (
+                          <Trash2 style={{ width: '16px', height: '16px' }} />
+                        )}
+                        {isDeleting ? t('schemeevent:deleting') : t('schemeevent:deleteScheme')}
+                      </button>
+                    </>)
+                  }
+
+
+
                   <button
                     onClick={() => setShowDetailsModal(false)}
                     style={{
@@ -961,25 +1913,31 @@ const SchemesContent = () => {
               <div style={{
                 display: 'flex',
               }}>
-                {['Details', 'Benefits', 'Eligibility'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    style={{
-                      padding: '10px 20px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: activeTab === tab ? '600' : '400',
-                      color: activeTab === tab ? '#111827' : '#6b7280',
-                      borderBottom: activeTab === tab ? '2px solid #10b981' : 'none',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {tab}
-                  </button>
-                ))}
+                {
+                  (
+                    selectedScheme?.pdf_url
+                      ? ['details'] // Circular ke liye sirf Details
+                      : ['details', 'benefits', 'eligibility'] // Scheme ke liye sab tabs
+                  ).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      style={{
+                        padding: '10px 20px',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: activeTab === tab ? '600' : '400',
+                        color: activeTab === tab ? '#111827' : '#6b7280',
+                        borderBottom: activeTab === tab ? '2px solid #10b981' : 'none',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {t(`schemeevent:${tab}`)}
+                    </button>
+                  ))
+                }
               </div>
               <divider />
               <div style={{
@@ -992,417 +1950,91 @@ const SchemesContent = () => {
               <divider />
 
               {/* Tab Content */}
+              {/* Tab Content */}
               <div style={{ padding: '24px' }}>
-                {activeTab === 'Details' && (
+
+                {activeTab === "details" && (
                   <div>
-                    <p style={{
-                      fontSize: '14px',
-                      lineHeight: '1.6',
-                      color: '#374151',
-                      margin: '0 0 16px 0'
-                    }}>
-                      {selectedScheme?.description || 'No description available.'}
+                    <p style={{ fontSize: "14px", lineHeight: "1.6", color: "#374151", marginBottom: "20px" }}>
+                      {selectedScheme?.description || "No description available."}
                     </p>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: '16px',
-                      marginTop: '20px'
-                    }}>
 
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'Benefits' && (
-                  <div style={{
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: '#374151',
-                    whiteSpace: 'pre-line'
-                  }}>
-                    {selectedScheme?.benefits || 'No benefits information available.'}
-                  </div>
-                )}
-
-                {activeTab === 'Eligibility' && (
-                  <div style={{
-                    fontSize: '14px',
-                    lineHeight: '1.6',
-                    color: '#374151',
-                    whiteSpace: 'pre-line'
-                  }}>
-                    {selectedScheme?.eligibility || 'No eligibility information available.'}
-                  </div>
-                )}
-
-                {activeTab === 'Media' && (
-                  <div>
-                    {selectedScheme?.media && selectedScheme.media.length > 0 ? (
+                    {selectedScheme?.pdf_url && (
                       <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                        gap: '16px'
+                        background: "#f0f4ff",
+                        border: "1px solid #c7d7f5",
+                        borderRadius: "14px",
+                        padding: "20px",
+                        marginTop: "8px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "12px"
                       }}>
-                        {selectedScheme.media.map((mediaItem, index) => (
-                          <div key={index} style={{
-                            position: 'relative',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '1px solid #e5e7eb',
-                            backgroundColor: '#f3f4f6'
-                          }}>
-                            <img
-                              src={`${MEDIA_BASE_URL}/${encodeURIComponent(mediaItem.media_url)}`}
-                              alt={`Scheme media ${index + 1}`}
-                              style={{
-                                width: '100%',
-                                height: '150px',
-                                objectFit: 'cover',
-                                display: 'block',
-                                transition: 'opacity 0.3s ease'
-                              }}
-                              onLoad={(e) => {
-                                e.target.style.opacity = '1';
-                              }}
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                            <div style={{
-                              display: 'none',
-                              width: '100%',
-                              height: '150px',
-                              backgroundColor: '#f3f4f6',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#6b7280',
-                              fontSize: '14px',
-                              flexDirection: 'column',
-                              gap: '8px'
-                            }}>
-                              <div style={{ fontSize: '24px' }}>📷</div>
-                              <div>Failed to load image</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div style={{ fontSize: "36px", lineHeight: 1 }}>📄</div>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: "14px", color: "#1e3a6e" }}>
+                              {selectedScheme?.title || selectedScheme?.name || 'Circular PDF'}
+                            </div>
+                            <div style={{ fontSize: "12px", color: "#6b7280", marginTop: "2px" }}>
+                              PDF Document
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{
-                        textAlign: 'center',
-                        padding: '40px',
-                        color: '#6b7280'
-                      }}>
-                        <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>No media available</p>
-                        <p style={{ fontSize: '14px', margin: 0 }}>This scheme doesn't have any images or media files.</p>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "8px" }}>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = getPdfUrl(selectedScheme);
+                              link.download = selectedScheme?.title || selectedScheme?.name || 'circular.pdf';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                            }}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              background: "#10b981",
+                              color: "#fff",
+                              border: "none",
+                              padding: "8px 14px",
+                              borderRadius: "8px",
+                              fontWeight: 500,
+                              fontSize: "13px",
+                              cursor: "pointer",
+                            }}
+                          >
+                            ⬇ Download
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
+
+                {activeTab === 'benefits' && (
+                  <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151', whiteSpace: 'pre-line' }}>
+                    {selectedScheme?.benefits || 'No benefits information available.'}
+                  </div>
+                )}
+
+                {activeTab === 'eligibility' && (
+                  <div style={{ fontSize: '14px', lineHeight: '1.6', color: '#374151', whiteSpace: 'pre-line' }}>
+                    {selectedScheme?.eligibility || 'No eligibility information available.'}
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
         )
       }
 
-      {/* Edit Scheme Modal */}
-      {
-        showEditModal && selectedScheme && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1001
-          }}>
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              width: '500px',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-            }}>
-              {/* Modal Header */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px 24px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
-                <h2 style={{
-                  fontSize: '18px',
-                  fontWeight: '600',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  Edit Scheme
-                </h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    color: '#6b7280'
-                  }}
-                >
-                  <X style={{ width: '20px', height: '20px' }} />
-                </button>
-              </div>
 
-              {/* Modal Content */}
-              <div style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Name Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter scheme name"
-                      value={editFormData.name}
-                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  {/* Description Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Description
-                    </label>
-                    <textarea
-                      placeholder="Description"
-                      value={editFormData.description}
-                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  {/* Eligibility Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Eligibility
-                    </label>
-                    <textarea
-                      placeholder="Eligibility criteria"
-                      value={editFormData.eligibility}
-                      onChange={(e) => setEditFormData({ ...editFormData, eligibility: e.target.value })}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  {/* Benefits Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Benefits
-                    </label>
-                    <textarea
-                      placeholder="Benefits"
-                      value={editFormData.benefits}
-                      onChange={(e) => setEditFormData({ ...editFormData, benefits: e.target.value })}
-                      rows={3}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none',
-                        resize: 'vertical'
-                      }}
-                    />
-                  </div>
-
-                  {/* Start Time Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      Start Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editFormData.start_time ? new Date(editFormData.start_time).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  {/* End Time Field */}
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      marginBottom: '8px'
-                    }}>
-                      End Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={editFormData.end_time ? new Date(editFormData.end_time).toISOString().slice(0, 16) : ''}
-                      onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        outline: 'none'
-                      }}
-                    />
-                  </div>
-
-                  {/* Active Status Field */}
-                  <div>
-                    <label style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      color: '#374151',
-                      cursor: 'pointer'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={editFormData.active}
-                        onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
-                        style={{
-                          width: '16px',
-                          height: '16px',
-                          cursor: 'pointer'
-                        }}
-                      />
-                      Active
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Modal Footer */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '12px',
-                padding: '20px 24px',
-                borderTop: '1px solid #e5e7eb'
-              }}>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  disabled={isUpdating}
-                  style={{
-                    padding: '10px 20px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: isUpdating ? 'not-allowed' : 'pointer',
-                    opacity: isUpdating ? 0.6 : 1
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdateScheme}
-                  disabled={isUpdating}
-                  style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    backgroundColor: isUpdating ? '#9ca3af' : '#10b981',
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: isUpdating ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}
-                >
-                  {isUpdating && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                  {isUpdating ? 'Updating...' : 'Update Scheme'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      }
     </div >
   );
 };

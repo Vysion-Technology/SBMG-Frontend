@@ -1,0 +1,18 @@
+{
+    "totalGPMasterData": "कुल ग्राम पंचायत मास्टर डेटा",
+    "villageGPDataCoverage": "ग्राम पंचायत डेटा कवरेज",
+    "totalFundsSanctioned": "कुल स्वीकृत निधि",
+    "totalWorkOrderAmount": "कुल कार्यादेश राशि",
+    "coverageOverview": "कवरेज ओवरव्यू",
+    "totalGPs": "कुल ग्राम पंचायतें",
+    "gpsWithData": "डेटा उपलब्ध ग्राम पंचायतें",
+    "contractorDataFilled": "भरा गया ठेकेदार डेटा",
+    "dataFilledCovered": "डेटा भराव कवरेज",
+    "totalAmount": "कुल राशि",
+    "districtPerformanceScore": "जिला प्रदर्शन स्कोर",
+    "belowDistrictAverage": "जिला औसत से कम",
+    "aboveDistrictAverage": "जिला औसत से अधिक"
+
+
+   
+}

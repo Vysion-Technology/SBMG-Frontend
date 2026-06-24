@@ -11,6 +11,7 @@ import NoDataFound from './common/NoDataFound';
 import { InfoTooltip } from '../common/Tooltip';
 import InspectionDetailPage from "./common/InspectionDetailPage";
 import { AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 
 const InspectionContent = () => {
@@ -21,7 +22,7 @@ const InspectionContent = () => {
   const {
     activeScope,
     selectedLocation,
-    selectedLocationId,
+    selectedLocationId: _selectedLocationId,
     selectedDistrictId,
     selectedBlockId,
     selectedGPId,
@@ -38,10 +39,12 @@ const InspectionContent = () => {
     setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
     updateLocationSelection: contextUpdateLocationSelection,
-    trackTabChange: contextTrackTabChange,
-    trackDropdownChange: contextTrackDropdownChange,
-    getCurrentLocationInfo: contextGetCurrentLocationInfo
+    trackTabChange: _trackTabChange,
+    trackDropdownChange: _trackDropdownChange,
+    getCurrentLocationInfo: _getCurrentLocationInfo
   } = useLocation();
+
+  const { t } = useTranslation(['inspection', 'common', 'table']);
 
   // UI controls state
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -52,9 +55,9 @@ const InspectionContent = () => {
   const [gramPanchayats, setGramPanchayats] = useState([]);
   const [loadingGPs, setLoadingGPs] = useState(false);
 
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activePerformance, setActivePerformance] = useState('Time');
+  const [_activeFilter, _setActiveFilter] = useState('All');
+  const [_searchTerm, _setSearchTerm] = useState('');
+  const [_activePerformance, _setActivePerformance] = useState('Time');
 
   // Analytics data state
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -99,19 +102,19 @@ const InspectionContent = () => {
   // Inspection Summary table state - Districts level
   const [districtInspectionSummaryData, setDistrictInspectionSummaryData] = useState([]);
   const [loadingDistrictInspectionSummary, setLoadingDistrictInspectionSummary] = useState(false);
-  const [districtInspectionSummaryError, setDistrictInspectionSummaryError] = useState(null);
+  const [_districtInspectionSummaryError, setDistrictInspectionSummaryError] = useState(null);
 
   // Inspection Summary table state - Blocks level
   const [blockInspectionSummaryData, setBlockInspectionSummaryData] = useState([]);
   const [loadingBlockInspectionSummary, setLoadingBlockInspectionSummary] = useState(false);
-  const [blockInspectionSummaryError, setBlockInspectionSummaryError] = useState(null);
+  const [_blockInspectionSummaryError, setBlockInspectionSummaryError] = useState(null);
   const [selectedDistrictForBlocksInspection, setSelectedDistrictForBlocksInspection] = useState(null);
   const [viewingBlocksInspectionForDistrict, setViewingBlocksInspectionForDistrict] = useState(false);
 
   // Inspection Summary table state - GPs level
   const [gpInspectionSummaryData, setGpInspectionSummaryData] = useState([]);
   const [loadingGpInspectionSummary, setLoadingGpInspectionSummary] = useState(false);
-  const [gpInspectionSummaryError, setGpInspectionSummaryError] = useState(null);
+  const [_gpInspectionSummaryError, setGpInspectionSummaryError] = useState(null);
   const [selectedBlockForGpsInspection, setSelectedBlockForGpsInspection] = useState(null);
   const [viewingGpsInspectionForBlock, setViewingGpsInspectionForBlock] = useState(false);
 
@@ -136,11 +139,11 @@ const InspectionContent = () => {
   const prevPerformersLocationParams = useRef(null);
 
   // Date selection state
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [_selectedYear, _setSelectedYear] = useState(new Date().getFullYear());
+  const [_selectedMonth, _setSelectedMonth] = useState(null);
+  const [_selectedDay, _setSelectedDay] = useState(null);
   const [showDateDropdown, setShowDateDropdown] = useState(false);
-  const [selectionStep, setSelectionStep] = useState('year');
+  const [_selectionStep, _setSelectionStep] = useState('year');
 
   const [opendetails, setOpenDetails] = useState(false);
   const [selectedInspectionId, setSelectedInspectionId] = useState(null);
@@ -176,7 +179,7 @@ const InspectionContent = () => {
     }
   };
 
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
 
   const handleSort = (key) => {
     setSortConfig((prev) => {
@@ -199,8 +202,8 @@ const InspectionContent = () => {
 
 
 
-  const scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
-  const performanceButtons = ['Time', 'Location'];
+  const _scopeButtons = ['State', 'Districts', 'Blocks', 'GPs'];
+  const _performanceButtons = ['Time', 'Location'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -315,7 +318,7 @@ const InspectionContent = () => {
   }, [activeScope, selectedDistrictId, selectedBlockId]);
 
   // Helper functions
-  const getLocationOptions = () => {
+  const _getLocationOptions = () => {
     if (activeScope === 'Districts') {
       return districts;
     } else if (activeScope === 'Blocks') {
@@ -346,18 +349,18 @@ const InspectionContent = () => {
   const activeHierarchyDistrict = selectedDistrictForHierarchy ||
     (selectedDistrictId ? districts.find(d => d.id === selectedDistrictId) : null);
 
-  const blocksForActiveDistrict = activeHierarchyDistrict
+  const _blocksForActiveDistrict = activeHierarchyDistrict
     ? blocks.filter(block => block.district_id === activeHierarchyDistrict.id)
     : [];
 
   const activeHierarchyBlock = selectedBlockForHierarchy ||
     (selectedBlockId ? blocks.find(block => block.id === selectedBlockId) : null);
 
-  const gpsForActiveBlock = activeHierarchyBlock
+  const _gpsForActiveBlock = activeHierarchyBlock
     ? gramPanchayats.filter(gp => gp.block_id === activeHierarchyBlock.id)
     : [];
 
-  const getMenuItemStyles = (isActive) => ({
+  const _getMenuItemStyles = (isActive) => ({
     padding: '8px 12px',
     cursor: 'pointer',
     fontSize: '14px',
@@ -370,7 +373,7 @@ const InspectionContent = () => {
     transition: 'background-color 0.15s ease, color 0.15s ease'
   });
 
-  const handleDistrictHover = (district) => {
+  const _handleDistrictHover = (district) => {
     if (activeScope === 'Blocks' || activeScope === 'GPs') {
       if (!selectedDistrictForHierarchy || selectedDistrictForHierarchy.id !== district.id) {
         setSelectedDistrictForHierarchy(district);
@@ -381,7 +384,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleDistrictClick = (district) => {
+  const _handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
       setSelectedDistrictId(district.id);
       setSelectedLocation(district.name);
@@ -403,7 +406,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleBlockHover = (block) => {
+  const _handleBlockHover = (block) => {
     if (activeScope === 'GPs') {
       if (!selectedBlockForHierarchy || selectedBlockForHierarchy.id !== block.id) {
         setSelectedBlockForHierarchy(block);
@@ -413,7 +416,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleBlockClick = (block) => {
+  const _handleBlockClick = (block) => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
@@ -434,7 +437,7 @@ const InspectionContent = () => {
     }
   };
 
-  const handleGPClick = (gp) => {
+  const _handleGPClick = (gp) => {
     const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
@@ -491,7 +494,10 @@ const InspectionContent = () => {
     selectedDistrictId,
     selectedBlockId,
     fetchBlocks,
-    fetchGramPanchayats
+    fetchGramPanchayats,
+    setDropdownLevel,
+    setSelectedBlockForHierarchy,
+    setSelectedDistrictForHierarchy
   ]);
 
   // Date helper functions
@@ -1021,7 +1027,7 @@ const InspectionContent = () => {
       setLoadingPerformanceReport(false);
       performanceReportCallInProgress.current = false;
     }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedLocation, startDate, endDate]);
 
   // Calculate date range: current date to same date previous year (for inspection summary)
   const getInspectionSummaryDateRange = () => {
@@ -1179,7 +1185,7 @@ const InspectionContent = () => {
   // Fetch individual inspection issues for a specific GP
   const fetchInspectionsForGp = useCallback(async (gp) => {
     try {
-      const { startDate, endDate } = getInspectionSummaryDateRange();
+      const { startDate: _startDate, endDate: _endDate } = getInspectionSummaryDateRange();
 
       console.log('🔄 Fetching inspection issues for GP:', gp.name);
 
@@ -1195,7 +1201,7 @@ const InspectionContent = () => {
       console.log('✅ Inspection issues data fetched:', inspectionData.length, 'issues');
 
       // Map inspection issues to a format suitable for display
-      const inspectionIssues = inspectionData.map((item, index) => ({
+      const inspectionIssues = inspectionData.map((item) => ({
         id: item.id,
         name: item.village_name,
         remarks: item.remarks,
@@ -1226,6 +1232,43 @@ const InspectionContent = () => {
       return enrichedGp;
     }
   }, []);
+
+  // Memoized handler for table row clicks to prevent stale closures
+  const handleTableRowClick = useCallback((item) => {
+    if (viewingGpsInspectionForBlock) {
+      // GPs are now clickable - fetch inspection issues
+      fetchInspectionsForGp(item);
+      setActiveScope('GPs');
+      setSelectedGPId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+      setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
+      updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
+    } else if (viewingBlocksInspectionForDistrict) {
+      // Clicking on block to view GPs
+      fetchGpInspectionSummary(item);
+      setSelectedBlockForGpsInspection(item);
+      setActiveScope('Blocks');
+      setSelectedBlockId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
+      setSelectedBlockForHierarchy(item);
+      updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
+    } else {
+      // Clicking on district to view blocks
+      fetchBlockInspectionSummary(item);
+      setSelectedDistrictForBlocksInspection(item);
+      setActiveScope('Districts');
+      setSelectedDistrictId(item.id);
+      setSelectedLocation(item.name || item.geo_name);
+      setSelectedLocationId(item.id);
+      setSelectedDistrictForHierarchy(item);
+      setSelectedBlockForHierarchy(null);
+      updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
+    }
+  }, [viewingGpsInspectionForBlock, viewingBlocksInspectionForDistrict, fetchInspectionsForGp, fetchGpInspectionSummary, fetchBlockInspectionSummary, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, updateLocationSelection, setActiveScope, setSelectedBlockForHierarchy, setSelectedBlockId, setSelectedDistrictForHierarchy, setSelectedDistrictId, setSelectedGPId, setSelectedLocation, setSelectedLocationId]);
 
   // Effect to fetch analytics when scope or location changes
   // Use refs to track previous values and only call API when relevant values actually change
@@ -1434,11 +1477,6 @@ const InspectionContent = () => {
       return;
     }
 
-    // Reset viewing flags for blocks when not in that scope
-    if (activeScope !== 'Blocks' && viewingGpsInspectionForBlock) {
-      setViewingGpsInspectionForBlock(false);
-    }
-
     // When GPs scope is active and a GP is selected, show inspections for that GP
     if (activeScope === 'GPs' && selectedGPId) {
       const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
@@ -1452,11 +1490,6 @@ const InspectionContent = () => {
         setViewingInspectionsForGp(true);
       }
       return;
-    }
-
-    // Reset viewing flag for GPs when not in that scope
-    if (activeScope !== 'GPs' && viewingInspectionsForGp) {
-      setViewingInspectionsForGp(false);
     }
   }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocksInspection, selectedBlockForGpsInspection, selectedGpForInspections, viewingBlocksInspectionForDistrict, viewingGpsInspectionForBlock, viewingInspectionsForGp, fetchBlockInspectionSummary, fetchGpInspectionSummary]);
 
@@ -2143,7 +2176,7 @@ const InspectionContent = () => {
     }
   ];
 
-  const sortValueMap = {
+  const _sortValueMap = {
     name: (item) => item.name || item.geo_name || '',
 
     total_inspections: (item) => item.total_inspections || 0,
@@ -2258,7 +2291,7 @@ const InspectionContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Overview
+                {t('common:overview')}
               </h2>
               <span style={{
                 fontSize: '14px',
@@ -2340,7 +2373,7 @@ const InspectionContent = () => {
                         </h3>
                       </div>
 
-                      {dateRanges.map((range, index) => (
+                      {dateRanges.map((range) => (
                         <div
                           key={range.value}
                           onClick={() => handleDateRangeSelection(range)}
@@ -2540,7 +2573,7 @@ const InspectionContent = () => {
                   boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
                 }}
               >
-                My inspections ({yourInspectionsData?.total || '0'})
+                {t('inspection:myInspections')} ({yourInspectionsData?.total || '0'})
               </button>
             </div>
 
@@ -2573,7 +2606,7 @@ const InspectionContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Statewide Avg Score
+                  {t('inspection:statewideAvgScore')}
                 </h3>
                 <InfoTooltip tooltipKey="AVERAGE_INSPECTION_SCORE" size={16} color="#9ca3af" />
               </div>
@@ -2608,7 +2641,7 @@ const InspectionContent = () => {
                     color: '#6b7280',
                     margin: 0
                   }}>
-                    Total inspections
+                    {t('inspection:totalInspections')}
                   </h3>
                 </div>
                 <InfoTooltip tooltipKey="TOTAL_INSPECTIONS" size={16} color="#9ca3af" />
@@ -2642,7 +2675,7 @@ const InspectionContent = () => {
                   color: '#6b7280',
                   margin: 0
                 }}>
-                  Village covered
+                  {t('inspection:villageCovered')}
                 </h3>
                 <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
               </div>
@@ -2677,10 +2710,10 @@ const InspectionContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {activeScope === 'State' ? 'District performance score' :
-                    activeScope === 'Districts' ? 'Block performance score' :
-                      activeScope === 'Blocks' ? 'GP performance score' :
-                        'Village performance score'}
+                  {activeScope === 'State' ? t('inspection:districtPerformanceScore') :
+                    activeScope === 'Districts' ? t('inspection:blockPerformanceScore') :
+                      activeScope === 'Blocks' ? t('inspection:gpPerformanceScore') :
+                        t('inspection:villagePerformanceScore')}
                 </h3>
 
                 {/* Legend */}
@@ -2700,10 +2733,10 @@ const InspectionContent = () => {
                       backgroundColor: '#ef4444'
                     }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Below {activeScope === 'State' ? 'district average' :
-                        activeScope === 'Districts' ? 'block average' :
-                          activeScope === 'Blocks' ? 'GP average' :
-                            'village average'}
+                      {t('inspection:below')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                        activeScope === 'Districts' ? t('inspection:blockAverage') :
+                          activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                            t('inspection:villageAverage')}
                     </span>
                   </div>
                   <div style={{
@@ -2718,10 +2751,10 @@ const InspectionContent = () => {
                       backgroundColor: '#10b981'
                     }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Above {activeScope === 'State' ? 'district average' :
-                        activeScope === 'Districts' ? 'block average' :
-                          activeScope === 'Blocks' ? 'GP average' :
-                            'village average'}
+                      {t('inspection:above')} {activeScope === 'State' ? t('inspection:districtAverage') :
+                        activeScope === 'Districts' ? t('inspection:blockAverage') :
+                          activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                            t('inspection:villageAverage')}
                     </span>
                   </div>
                 </div>
@@ -2820,7 +2853,7 @@ const InspectionContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Inspection
+                  {t('common:inspection')}
                 </h2>
               </div>
               <span style={{
@@ -2840,10 +2873,14 @@ const InspectionContent = () => {
             {viewingInspectionsForGp && (
               <button
                 onClick={() => {
+                  // Simple fix: Only toggle visibility flags
+                  // Do NOT change activeScope or selectedBlockId as it triggers useEffect cascade
+
                   setSelectedGpForInspections(null);
                   setViewingInspectionsForGp(false);
-                  // Update breadcrumb - back to GPs list level
-                  setActiveScope('GPs');
+                  setViewingGpsInspectionForBlock(true);
+                  setSelectedGPId(null);
+                  setViewingBlocksInspectionForDistrict(false);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2859,7 +2896,7 @@ const InspectionContent = () => {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                ← Back to GPs
+                ←  {t('table:backToGPs')}
               </button>
             )}
             {viewingGpsInspectionForBlock && !viewingInspectionsForGp && (
@@ -2867,14 +2904,15 @@ const InspectionContent = () => {
                 onClick={() => {
                   setViewingGpsInspectionForBlock(false);
                   setSelectedBlockForGpsInspection(null);
+                  setSelectedGPId(null);
                   setGpInspectionSummaryData([]);
                   setViewingBlocksInspectionForDistrict(true);
                   // Refetch blocks listing
                   if (selectedDistrictForBlocksInspection) {
                     fetchBlockInspectionSummary(selectedDistrictForBlocksInspection);
                   }
-                  // Update breadcrumb - back to blocks level (keep block selected)
-                  setActiveScope('Blocks');
+                  // Update breadcrumb - back to districts level to show blocks listing
+                  setActiveScope('Districts');
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2890,7 +2928,7 @@ const InspectionContent = () => {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                ← Back to Blocks
+                ← {t('table:backToBlocks')}
               </button>
             )}
             {viewingBlocksInspectionForDistrict && !viewingGpsInspectionForBlock && (
@@ -2903,6 +2941,9 @@ const InspectionContent = () => {
                   setActiveScope('State');
                   setSelectedDistrictForHierarchy(null);
                   setSelectedBlockForHierarchy(null);
+                  setSelectedDistrictId(null);
+                  setSelectedBlockId(null);
+                  setSelectedGPId(null);
                 }}
                 style={{
                   padding: '8px 16px',
@@ -2918,7 +2959,7 @@ const InspectionContent = () => {
                 onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
                 onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               >
-                ← Back to Districts
+                ← {t('table:backToDistricts')}
               </button>
             )}
           </div>
@@ -2945,12 +2986,12 @@ const InspectionContent = () => {
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {viewingInspectionsForGp
-                    ? `Inspection`
+                    ? t('common:inspection')
                     : viewingGpsInspectionForBlock
-                      ? `GP Name (${gpInspectionSummaryData.length})`
+                      ? t('table:gpName')
                       : viewingBlocksInspectionForDistrict
-                        ? `Block Name (${blockInspectionSummaryData.length})`
-                        : `District Name (${districtInspectionSummaryData.length})`}
+                        ? ` ${t('table:blockName')} (${blockInspectionSummaryData.length})`
+                        : ` ${t('table:districtName')} (${districtInspectionSummaryData.length})`}
 
                   <span
                     style={{ cursor: 'pointer', }}
@@ -2968,7 +3009,7 @@ const InspectionContent = () => {
                     textAlign: 'center', display: 'flex', gap: '3px', justifyContent: 'center'
                   }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      Inspection Date
+                      {t('table:inspectionDate')}
                       <span
                         style={{ cursor: 'pointer', }}
                         onClick={() => handleSort('date')}>
@@ -2989,8 +3030,8 @@ const InspectionContent = () => {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <div>
                       {viewingBlocksInspectionForDistrict
-                        ? `Inspected GPs`
-                        : `Inspected Blocks`}<span>({getHeaderTotal()})</span>
+                        ? ` ${t('inspection:inspectedGPs')}`
+                        : ` ${t('inspection:inspectedBlocks')}`}<span>({getHeaderTotal()})</span>
                     </div>
 
                     <span
@@ -3010,7 +3051,7 @@ const InspectionContent = () => {
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
 
-                  {viewingInspectionsForGp ? 'Inspection By' : 'Avg. Score'}
+                  {viewingInspectionsForGp ? t('table:inspectionBy') : t('table:avgScore')}
 
                   <span
                     style={{ cursor: 'pointer', }}
@@ -3036,8 +3077,8 @@ const InspectionContent = () => {
                 textAlign: 'center'
               }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  {viewingInspectionsForGp ? 'Score' : 'Coverage %'}
-                  <span
+                  {viewingInspectionsForGp ? t('table:score') : `${t('table:coverage')} %`}
+                  < span
                     style={{ cursor: 'pointer', }}
                     onClick={() =>
                       handleSort(
@@ -3214,51 +3255,7 @@ const InspectionContent = () => {
                         fontWeight: '500'
                       }}>
                         <div
-                          onClick={() => {
-                            if (viewingGpsInspectionForBlock) {
-                              // GPs are now clickable - fetch inspection issues
-                              fetchInspectionsForGp(item);
-                              // setSelectedGpInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('GPs');
-                              setSelectedGPId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
-                              setSelectedBlockForHierarchy(selectedBlockForGpsInspection);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
-                              updateLocationSelection('GPs', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, selectedBlockForGpsInspection?.id, item.id, 'table_click');
-                            } else if (viewingBlocksInspectionForDistrict) {
-                              // Clicking on block to view GPs
-                              fetchGpInspectionSummary(item);
-                              setSelectedBlockForGpsInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('Blocks');
-                              setSelectedBlockId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(selectedDistrictForBlocksInspection);
-                              setSelectedBlockForHierarchy(item);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id);
-                              updateLocationSelection('Blocks', item.name || item.geo_name, item.id, selectedDistrictForBlocksInspection?.id, item.id, null, 'table_click');
-                            } else {
-                              // Clicking on district to view blocks
-                              fetchBlockInspectionSummary(item);
-                              setSelectedDistrictForBlocksInspection(item);
-                              // Sync header with table selection
-                              setActiveScope('Districts');
-                              setSelectedDistrictId(item.id);
-                              setSelectedLocation(item.name || item.geo_name);
-                              setSelectedLocationId(item.id);
-                              // Update breadcrumb hierarchy
-                              setSelectedDistrictForHierarchy(item);
-                              setSelectedBlockForHierarchy(null);
-                              // trackDropdownChange(item.name || item.geo_name, item.id, item.id);
-                              updateLocationSelection('Districts', item.name || item.geo_name, item.id, item.id, null, null, 'table_click');
-                            }
-                          }}
+                          onClick={() => handleTableRowClick(item)}
                           style={{
                             cursor: 'pointer',
                             color: '#10b981',
@@ -3342,124 +3339,7 @@ const InspectionContent = () => {
             gap: '16px',
             marginTop: '16px'
           }}>
-            {/* Top Critical Issues */}
-            <div style={{
-              backgroundColor: 'white',
-              padding: '20px',
-              marginLeft: '16px',
-              borderRadius: '12px',
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: '0 0 10px 0'
-              }}>
-                Top Critical Issues
-              </h3>
 
-              <divider />
-              <div style={{
-                height: '1px',
-                backgroundColor: '#e5e7eb',
-                margin: '2px 0'
-              }}></div>
-
-              {/* Loading State */}
-              {loadingCriticalIssues && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  padding: '40px 20px',
-                  color: '#6b7280',
-                  fontSize: '14px'
-                }}>
-                  Loading critical issues...
-                </div>
-              )}
-
-              {/* Error State */}
-              {criticalIssuesError && !loadingCriticalIssues && (
-                <NoDataFound size="small" />
-              )}
-
-              {/* Data State */}
-              {!loadingCriticalIssues && !criticalIssuesError && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                  {/* Issue 1 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 12px',
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: '16px', color: '#374151' }}>No Safety Equipment</span>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                      {getCriticalIssuesCount('no_safety_equipment')}
-                    </span>
-                  </div>
-
-                  {/* Issue 2 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 12px',
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>CSC without water/Elec.</span>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                      {getCriticalIssuesCount('csc_wo_water_or_electricity')}
-                    </span>
-                  </div>
-
-                  {/* Issue 3 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 12px',
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: '16px', color: '#374151' }}>Firm Not Paid</span>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                      {getCriticalIssuesCount('firm_not_paid')}
-                    </span>
-                  </div>
-
-                  {/* Issue 4 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 12px',
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Staff Not Paid</span>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                      {getCriticalIssuesCount('staff_not_paid')}
-                    </span>
-                  </div>
-
-                  {/* Issue 5 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '12px 12px'
-                  }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Visibly Not Clean</span>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>
-                      {getCriticalIssuesCount('visibly_unclean_village')}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
 
             {/* Top 3 Performers */}
             <div style={{
@@ -3482,7 +3362,7 @@ const InspectionContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Top 3 Performers(Officers)
+                  {t('inspection:top3PerformersOfficers')}
                 </h3>
 
                 {/* Dropdown */}
@@ -3555,10 +3435,10 @@ const InspectionContent = () => {
                 color: '#6b7280',
                 textTransform: 'uppercase'
               }}>
-                <div>Rank</div>
-                <div>Name</div>
-                <div>Location</div>
-                <div>Inspections</div>
+                <div>{t('table:rank')}</div>
+                <div>{t('table:name')}</div>
+                <div>{t('table:location')}</div>
+                <div>{t('common:inspection')}</div>
               </div>
 
               {/* Loading State */}
@@ -3571,7 +3451,7 @@ const InspectionContent = () => {
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                  Loading top performers...
+                  {t('table:loading')}
                 </div>
               )}
 
@@ -3612,20 +3492,7 @@ const InspectionContent = () => {
                 );
               })}
             </div>
-          </div>
-        )
-      }
 
-      {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
-      {
-        !showMyInspections && activeScope !== 'GPs' && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 2fr',
-            gap: '16px',
-            marginTop: '16px',
-            marginLeft: '16px',
-          }}>
             {/* Top 3 Performers - Updated Version */}
             <div style={{
               backgroundColor: 'white',
@@ -3646,7 +3513,7 @@ const InspectionContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Top 3 Performers(Locations)
+                  {t('inspection:top3PerformersLocations')}
                 </h3>
 
                 {/* District Dropdown */}
@@ -3719,9 +3586,9 @@ const InspectionContent = () => {
                 color: '#6b7280',
                 textTransform: 'uppercase'
               }}>
-                <div>Rank</div>
-                <div>{selectedPerformersFilter2}</div>
-                <div>Score</div>
+                <div>{t('table:rank')}</div>
+                <div>{selectedPerformersFilter2 === "District" ? t('table:district') : selectedPerformersFilter2 === "Block" ? t('table:block') : t('table:gps')}</div>
+                <div>{t('table:score')}</div>
               </div>
 
               {/* Loading State */}
@@ -3734,7 +3601,7 @@ const InspectionContent = () => {
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                  Loading top performers...
+                  {t('table:loading')}
                 </div>
               )}
 
@@ -3776,6 +3643,20 @@ const InspectionContent = () => {
                 );
               })}
             </div>
+          </div>
+        )
+      }
+
+      {/* Additional Sections - Top 3 Performers and Performance Report - Hidden in GP view */}
+      {
+        !showMyInspections && activeScope !== 'GPs' && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr',
+            gap: '16px',
+            marginTop: '16px',
+            marginLeft: '16px',
+          }}>
 
             {/* Performance Report */}
             <div style={{
@@ -3798,7 +3679,7 @@ const InspectionContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Performance report
+                  {t('inspection:performanceReport')}
                 </h3>
 
                 {/* District Dropdown */}
@@ -3872,14 +3753,14 @@ const InspectionContent = () => {
                 textTransform: 'uppercase'
               }}>
                 <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'start', gap: '4px' }}>
-                  {selectedPerformanceReportFilter}
+                  {selectedPerformanceReportFilter === "District" ? t('table:district') : selectedPerformanceReportFilter === "Block" ? t('table:block') : t('table:gps')}
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
                     <span style={{ fontSize: '10px', lineHeight: '1' }}>▼</span>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Coverage
+                  {t('table:coverage')}
                   <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={14} color="#6b7280" />
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '10px', lineHeight: '1' }}>▲</span>
@@ -3899,7 +3780,7 @@ const InspectionContent = () => {
                   color: '#6b7280',
                   fontSize: '14px'
                 }}>
-                  Loading performance report...
+                   {t('table:loading')}
                 </div>
               )}
 
@@ -3940,7 +3821,7 @@ const InspectionContent = () => {
                             whiteSpace: 'nowrap'
                           }}
                         >
-                          Send notice
+                          {t('table:sendNotice')}
                         </button>
                       </div>
                     </div>
@@ -3967,297 +3848,299 @@ const InspectionContent = () => {
       }
 
       {/* Your Inspections Table */}
-      {showMyInspections && (
-        <div style={{
-          marginTop: '16px',
-          marginLeft: '16px',
-          marginRight: '16px',
-        }}>
+      {
+        showMyInspections && (
           <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
+            marginTop: '16px',
+            marginLeft: '16px',
+            marginRight: '16px',
           }}>
-            {/* Header */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '16px'
+              backgroundColor: 'white',
+              padding: '20px',
+              borderRadius: '12px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
             }}>
-              <h3 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                {activeScope === 'GPs' ? 'Inspections' : 'My Inspections'} ({yourInspectionsData?.total || '0'})
-              </h3>
-
-              <button
-                onClick={() => setShowMyInspections(false)}
-                style={{
-                  padding: '6px 12px',
-                  backgroundColor: '#10B981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer'
-                }}
-              >
-                Close
-              </button>
-            </div>
-
-            {/* Table Header */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: activeScope === 'GPs'
-                ? '120px 120px 1.5fr 120px 120px 220px'
-                : '120px 1.5fr 1.5fr 120px 120px 220px',
-              gap: '16px',
-              padding: '12px 16px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              marginBottom: '8px',
-              fontSize: '12px',
-              fontWeight: '600',
-              color: '#6b7280',
-              textTransform: 'uppercase'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Date
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('date')}>
-                  <SortIcon col="date" />
-                </span>
-              </div>
-              {activeScope === 'GPs' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Inspection by
-                  <span
-                    style={{ cursor: 'pointer', }}
-                    onClick={() => handleSort('inspector_role')}>
-                    <SortIcon col="inspector_role" />
-                  </span>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Village Name
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('village_name')}>
-                  <SortIcon col="village_name" />
-                </span>
-              </div>
-              {activeScope !== 'GPs' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  GP Name
-                  <span
-                    style={{ cursor: 'pointer', }}
-                    onClick={() => handleSort('gp_name')}>
-                    <SortIcon col="gp_name" />
-                  </span>
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Cleaning Score
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('overall_score')}>
-                  <SortIcon col="overall_score" />
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                Visibly Clean
-                <span
-                  style={{ cursor: 'pointer', }}
-                  onClick={() => handleSort('visibly_clean')}>
-                  <SortIcon col="visibly_clean" />
-                </span>
-              </div>
-              <div>Action</div>
-            </div>
-
-            {/* Loading State */}
-            {loadingYourInspections && (
+              {/* Header */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                padding: '40px 20px',
-                color: '#6b7280',
-                fontSize: '14px'
+                marginBottom: '16px'
               }}>
-                Loading your inspections...
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  {activeScope === 'GPs' ? t('common:inspection') : t('inspection:myInspections')} ({yourInspectionsData?.total || '0'})
+                </h3>
+
+                <button
+                  onClick={() => setShowMyInspections(false)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#10B981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('table:close')}
+                </button>
               </div>
-            )}
 
-            {/* Error State */}
-            {yourInspectionsError && !loadingYourInspections && (
-              <NoDataFound size="small" />
-            )}
-
-            {/* Data State */}
-            {!loadingYourInspections && !yourInspectionsError && (
-              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                {sortedYourInspections.length === 0 ? (
-                  <NoDataFound size="small" />
-                ) : (
-                  sortedYourInspections.map((inspection, index) => (
-                    <div key={inspection.id || index} style={{
-                      display: 'grid',
-                      gridTemplateColumns: activeScope === 'GPs'
-                        ? '120px 120px 1.5fr 120px 120px 220px'
-                        : '120px 1.5fr 1.5fr 120px 120px 220px',
-                      gap: '16px',
-                      padding: '12px 16px',
-                      alignItems: 'center',
-                      borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
-                    }}>
-                      <div style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
-                        {formatDate(inspection.date)}
-                      </div>
-                      {activeScope === 'GPs' && (
-                        <div style={{ fontSize: '14px', color: '#374151' }}>
-                          {inspection.inspector_role || 'CEO'}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '14px', color: '#374151' }}>
-                        {inspection.village_name || 'Village name'}
-                      </div>
-                      {activeScope !== 'GPs' && (
-                        <div style={{ fontSize: '14px', color: '#374151' }}>
-                          {inspection.gp_name || 'GP name'}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
-                        {inspection.overall_score || 0}%
-                      </div>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: inspection.visibly_clean ? '#10b981' : '#ef4444'
-                      }}>
-                        {inspection.visibly_clean ? 'Yes' : 'No'}
-                      </div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-
-                        <button
-                          onClick={() => handleOpenNoticeModalFromInspection(inspection)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#f3f4f6',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Send notice
-                        </button>
-                        <button
-                          onClick={() => handleDownloadPDF(inspection)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#f3f4f6',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}
-                        >
-                          <Download style={{ width: '14px', height: '14px' }} />
-                          PDF
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => handleDetailspage(inspection.id)}
-                          title="View Data"
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '6px',
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '6px',
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
-                            color: '#374151'
-                          }}
-                        >
-                          <Eye style={{ width: '18px', height: '18px' }} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                {/* Pagination */}
-                {getYourInspections().length > 0 && totalPages > 1 && (
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '20px',
-                    borderTop: '1px solid #f3f4f6'
-                  }}>
-                    <button
-                      onClick={() => fetchYourInspectionsData(currentPage - 1)}
-                      disabled={currentPage <= 1}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
-                        color: currentPage <= 1 ? '#9ca3af' : '#374151',
-                        cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Previous
-                    </button>
-
-                    <span style={{ fontSize: '14px', color: '#6b7280' }}>
-                      Page {currentPage} of {totalPages}
+              {/* Table Header */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: activeScope === 'GPs'
+                  ? '120px 120px 1.5fr 120px 120px 220px'
+                  : '120px 1.5fr 1.5fr 120px 120px 220px',
+                gap: '16px',
+                padding: '12px 16px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                fontSize: '12px',
+                fontWeight: '600',
+                color: '#6b7280',
+                textTransform: 'uppercase'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {t('table:date')}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('date')}>
+                    <SortIcon col="date" />
+                  </span>
+                </div>
+                {activeScope === 'GPs' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {t('table:inspectionBy')}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('inspector_role')}>
+                      <SortIcon col="inspector_role" />
                     </span>
-
-                    <button
-                      onClick={() => fetchYourInspectionsData(currentPage + 1)}
-                      disabled={currentPage >= totalPages}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
-                        color: currentPage >= totalPages ? '#9ca3af' : '#374151',
-                        cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
-                        fontSize: '14px'
-                      }}
-                    >
-                      Next
-                    </button>
                   </div>
                 )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {t('table:villageName')}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('village_name')}>
+                    <SortIcon col="village_name" />
+                  </span>
+                </div>
+                {activeScope !== 'GPs' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {t('table:gpName')}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('gp_name')}>
+                      <SortIcon col="gp_name" />
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {t('table:score')}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('overall_score')}>
+                    <SortIcon col="overall_score" />
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  {t('table:visiblyClean')}
+                  <span
+                    style={{ cursor: 'pointer', }}
+                    onClick={() => handleSort('visibly_clean')}>
+                    <SortIcon col="visibly_clean" />
+                  </span>
+                </div>
+                <div>{t('table:action')}</div>
               </div>
-            )}
+
+              {/* Loading State */}
+              {loadingYourInspections && (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  {t('table:loading')}
+                </div>
+              )}
+
+              {/* Error State */}
+              {yourInspectionsError && !loadingYourInspections && (
+                <NoDataFound size="small" />
+              )}
+
+              {/* Data State */}
+              {!loadingYourInspections && !yourInspectionsError && (
+                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {sortedYourInspections.length === 0 ? (
+                    <NoDataFound size="small" />
+                  ) : (
+                    sortedYourInspections.map((inspection, index) => (
+                      <div key={inspection.id || index} style={{
+                        display: 'grid',
+                        gridTemplateColumns: activeScope === 'GPs'
+                          ? '120px 120px 1.5fr 120px 120px 220px'
+                          : '120px 1.5fr 1.5fr 120px 120px 220px',
+                        gap: '16px',
+                        padding: '12px 16px',
+                        alignItems: 'center',
+                        borderBottom: index < getYourInspections().length - 1 ? '1px solid #f3f4f6' : 'none'
+                      }}>
+                        <div style={{ fontSize: '14px', color: '#374151', cursor: 'pointer' }}>
+                          {formatDate(inspection.date)}
+                        </div>
+                        {activeScope === 'GPs' && (
+                          <div style={{ fontSize: '14px', color: '#374151' }}>
+                            {inspection.inspector_role || 'CEO'}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '14px', color: '#374151' }}>
+                          {inspection.village_name || 'Village name'}
+                        </div>
+                        {activeScope !== 'GPs' && (
+                          <div style={{ fontSize: '14px', color: '#374151' }}>
+                            {inspection.gp_name || 'GP name'}
+                          </div>
+                        )}
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                          {inspection.overall_score || 0}%
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: inspection.visibly_clean ? '#10b981' : '#ef4444'
+                        }}>
+                          {inspection.visibly_clean ? 'Yes' : 'No'}
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+
+                          <button
+                            onClick={() => handleOpenNoticeModalFromInspection(inspection)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#f3f4f6',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              color: '#374151',
+                              cursor: 'pointer'
+                            }}
+                          >
+                             {t('table:sendNotice')}
+                          </button>
+                          <button
+                            onClick={() => handleDownloadPDF(inspection)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: '#f3f4f6',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              color: '#374151',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Download style={{ width: '14px', height: '14px' }} />
+                            {t('table:pdf')}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleDetailspage(inspection.id)}
+                            title="View Data"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '6px',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              cursor: 'pointer',
+                              color: '#374151'
+                            }}
+                          >
+                            <Eye style={{ width: '18px', height: '18px' }} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+
+                  {/* Pagination */}
+                  {getYourInspections().length > 0 && totalPages > 1 && (
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '20px',
+                      borderTop: '1px solid #f3f4f6'
+                    }}>
+                      <button
+                        onClick={() => fetchYourInspectionsData(currentPage - 1)}
+                        disabled={currentPage <= 1}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          backgroundColor: currentPage <= 1 ? '#f9fafb' : 'white',
+                          color: currentPage <= 1 ? '#9ca3af' : '#374151',
+                          cursor: currentPage <= 1 ? 'not-allowed' : 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        Previous
+                      </button>
+
+                      <span style={{ fontSize: '14px', color: '#6b7280' }}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+
+                      <button
+                        onClick={() => fetchYourInspectionsData(currentPage + 1)}
+                        disabled={currentPage >= totalPages}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          backgroundColor: currentPage >= totalPages ? '#f9fafb' : 'white',
+                          color: currentPage >= totalPages ? '#9ca3af' : '#374151',
+                          cursor: currentPage >= totalPages ? 'not-allowed' : 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
 
 

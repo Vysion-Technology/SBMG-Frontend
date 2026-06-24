@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * DeleteConfirmModal - confirmation dialog before deleting a vehicle
@@ -14,7 +15,7 @@ const DeleteConfirmModal = ({
   if (!isOpen) return null;
 
   const vehicleNo = vehicle?.vehicle_no || vehicle?.vehicle_number || 'this vehicle';
-
+  const { t } = useTranslation(['common', 'table', 'gps']);
   return (
     <div style={{
       position: 'fixed',
@@ -51,10 +52,10 @@ const DeleteConfirmModal = ({
           </div>
           <div style={{ flex: 1 }}>
             <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: '0 0 8px 0' }}>
-              Delete vehicle?
+              {t('gps:deleteVehicle')}
             </h3>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
-              Are you sure you want to delete <strong>{vehicleNo}</strong>? This action cannot be undone.
+               {t('gps:confirmDeleteVehicle')} <strong>{vehicleNo}</strong>?{t('gps:confirmDeleteVehicle2')}
             </p>
           </div>
           <button
@@ -86,7 +87,7 @@ const DeleteConfirmModal = ({
               cursor: isDeleting ? 'not-allowed' : 'pointer',
             }}
           >
-            Cancel
+            {t('gps:cancel')} 
           </button>
           <button
             onClick={onConfirm}
@@ -103,7 +104,7 @@ const DeleteConfirmModal = ({
               opacity: isDeleting ? 0.7 : 1,
             }}
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? t('gps:deleting') : t('gps:delete')}
           </button>
         </div>
       </div>

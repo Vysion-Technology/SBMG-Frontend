@@ -1,6 +1,6 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
+import {
+  LayoutDashboard,
   FileText,
   CheckCircle,
   ListChecks,
@@ -11,7 +11,8 @@ import {
   Bell,
   CreditCard,
   MessageSquare,
-  Building
+  Building,
+  UsersRound
 } from 'lucide-react';
 import { useState } from 'react';
 import swachLogo from '../../../assets/logos/swach.png';
@@ -22,32 +23,45 @@ import VDOComplaintsContent from './VDOComplaintsContent';
 import VDOAttendanceContent from './VDOAttendanceContent';
 import VDOInspectionContent from './VDOInspectionContent';
 import VDOVillageMasterContent from './VDOVillageMasterContent';
-import VDOSchemesContent from './VDOSchemesContent';
-import VDOEventsContent from './VDOEventsContent';
+
 import VDONoticeContent from './VDONoticeContent';
 import VDOGpsTrackingContent from './VDOGpsTrackingContent';
-import PaymentsContent from '../PaymentsContent';
 import VDOFeedbackContent from './VDOFeedback';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
 import VDOContractorDetails from './VDOContractorDetails';
+import ReconfirmationWarningBanner from '../../common/ReconfirmationWarningBanner';
+import ReconfirmationLockOverlay from '../../common/ReconfirmationLockOverlay';
+import { useTranslation } from 'react-i18next';
+import Volunteer from '../Volunteer';
+import EventsContent from '../EventsContent';
+import SchemesContent from '../SchemesContent';
+
+
+
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
-  const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Complaints', icon: FileText },
-    { name: 'CSC Cleaning', icon: CheckCircle },
-    { name: 'Inspection', icon: ListChecks },
-    { name: 'GP Master Data', icon: Database },
-    { name: 'Contractor Details', icon: Building },
-    { name: 'Schemes', icon: Briefcase },
-    { name: 'Events', icon: Calendar },
-    { name: 'GPS Tracking', icon: Truck },
-    { name: 'Payments', icon: CreditCard },
-    { name: 'Notices', icon: Bell },
-    { name: 'Feedbacks', icon: MessageSquare }
-  ];
 
- return (
+  const { t } = useTranslation(['dashboard', 'common'])
+
+  const handleItemClick = (key) => {
+    setActiveItem(key);
+  };
+
+  const menuItems = [
+    { key: 'dashboard', label: t('common:dashboard'), icon: LayoutDashboard },
+    { key: 'complaints', label: t('common:complaints'), icon: FileText },
+    { key: 'cscCleaning', label: t('common:cscCleaning'), icon: CheckCircle },
+    { key: 'inspection', label: t('common:inspection'), icon: ListChecks },
+    { key: 'gpMasterData', label: t('common:gpMasterData'), icon: Database },
+    { key: 'contractorDetails', label: t('common:contractorDetails'), icon: Building },
+    { key: 'schemes', label: t('common:schemes'), icon: Briefcase },
+    { key: 'events', label: t('common:events'), icon: Calendar },
+    { key: 'gpsTracking', label: t('common:gpsTracking'), icon: Truck },
+    { key: 'volunteer', label: t('common:volunteer'), icon: UsersRound },
+    { key: 'notices', label: t('common:notices'), icon: Bell },
+    { key: 'feedbacks', label: t('common:feedbacks'), icon: MessageSquare }
+  ];
+  return (
     <aside className="h-screen flex flex-col m-0 p-0 transition-all duration-250 ease-in-out" style={{
       width: isSidebarOpen ? '272px' : '80px',
       height: '100%',
@@ -65,18 +79,18 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
         paddingRight: '6px',
         margin: 0
       }}>
-       <div style={{
-         display: 'flex',
-         alignItems: 'center',
-         justifyContent: 'center',
-         gap: isSidebarOpen ? '12px' : '0',
-         backgroundColor: 'white',
-         border: '1px solid #d1d5db',
-         borderRadius: '8px',
-         margin: 10,
-         padding: '5px',
-         minHeight: '48px'
-       }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: isSidebarOpen ? '12px' : '0',
+          backgroundColor: 'white',
+          border: '1px solid #d1d5db',
+          borderRadius: '8px',
+          margin: 10,
+          padding: '5px',
+          minHeight: '48px'
+        }}>
           {/* Swach Logo */}
           <div style={{
             width: '36px',
@@ -86,9 +100,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <img 
-              src={swachLogo} 
-              alt="Swach Logo" 
+            <img
+              src={swachLogo}
+              alt="Swach Logo"
               style={{
                 width: '100%',
                 height: '100%',
@@ -126,13 +140,13 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
         }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.name === activeItem;
-            
+            const isActive = item.key === activeItem;
+
             return (
-              <li key={item.name} style={{marginTop: '10px'}}>
+              <li key={item.key} style={{ marginTop: '10px' }}>
                 <button
-                  onClick={() => setActiveItem(item.name)}
-                  title={!isSidebarOpen ? item.name : ''}
+                  onClick={() => handleItemClick(item.key)}
+                  title={!isSidebarOpen ? item.label : ''}
                   style={{
                     width: '100%',
                     display: 'flex',
@@ -162,9 +176,9 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
                       fontSize: '14px',
                       fontWeight: '500',
                       whiteSpace: 'nowrap'
-                    }}>{item.name}</span>
+                    }}>{item.label}</span>
                   )}
-                 
+
                 </button>
               </li>
             );
@@ -176,10 +190,12 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 };
 
 const UnifiedDashboardVDO = () => {
-  const [activeItem, setActiveItem] = useState('Dashboard');
+  const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const vdoLocation = useVDOLocation();
-  
+
+  const { t } = useTranslation(['dashboard', 'common'])
+
   // Show loading screen while VDO data is being fetched
   if (!vdoLocation || vdoLocation.loadingVDOData || !vdoLocation.vdoDistrictId || !vdoLocation.vdoBlockId || !vdoLocation.vdoGPId) {
     return (
@@ -208,29 +224,29 @@ const UnifiedDashboardVDO = () => {
 
   const renderContent = () => {
     switch (activeItem) {
-      case 'Dashboard':
+      case 'dashboard':
         return <VDODashboardContent />;
-      case 'Complaints':
+      case 'complaints':
         return <VDOComplaintsContent />;
-      case 'CSC Cleaning':
+      case 'cscCleaning':
         return <VDOAttendanceContent />;
-      case 'Inspection':
+      case 'inspection':
         return <VDOInspectionContent />;
-      case 'GP Master Data':
+      case 'gpMasterData':
         return <VDOVillageMasterContent />;
-      case 'Contractor Details':
+      case 'contractorDetails':
         return <VDOContractorDetails />;
-      case 'Schemes':
-        return <VDOSchemesContent />;
-      case 'Events':
-        return <VDOEventsContent />;
-      case 'GPS Tracking':
+      case 'schemes':
+        return <SchemesContent />;
+      case 'events':
+        return <EventsContent />;
+      case 'gpsTracking':
         return <VDOGpsTrackingContent />;
-      case 'Payments':
-        return <PaymentsContent />;
-      case 'Notices':
+      case 'volunteer':
+        return <Volunteer />;
+      case 'notices':
         return <VDONoticeContent />;
-      case 'Feedbacks':
+      case 'feedbacks':
         return <VDOFeedbackContent />;
       default:
         return (
@@ -240,6 +256,10 @@ const UnifiedDashboardVDO = () => {
           </div>
         );
     }
+  };
+
+  const handleNavigateToGPMasterData = () => {
+    setActiveItem('gpMasterData');
   };
 
   return (
@@ -252,44 +272,49 @@ const UnifiedDashboardVDO = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ReconfirmationLockOverlay
+        onNavigateToReconfirm={handleNavigateToGPMasterData}
+        activeItem={activeItem}
+      />
       <TopHeaderBar />
+      <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
         minHeight: 0,
         overflow: 'hidden'
       }}>
-      <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
-        width: isSidebarOpen ? '272px' : '80px',
-        transition: 'width 0.25s ease',
-        overflow: 'hidden',
-        flexShrink: 0
-      }}>
-        <Sidebar 
-          activeItem={activeItem} 
-          setActiveItem={setActiveItem} 
-          isSidebarOpen={isSidebarOpen}
-        />
-      </div>
-      <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
-        flex: 1,
-        backgroundColor: '#F3F4F6',
-        margin: 0,
-        padding: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'auto'
-      }}>
-        <Header
-          pageTitle={activeItem}
-          onMenuClick={() => setIsSidebarOpen(prev => !prev)}
-          onNotificationsClick={() => setActiveItem('Notices')}
-          showLocationSearch={false}
-        />
-        <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
-          {renderContent()}
+        <div className={`transition-all duration-250 ease-in-out flex-shrink-0`} style={{
+          width: isSidebarOpen ? '272px' : '80px',
+          transition: 'width 0.25s ease',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}>
+          <Sidebar
+            activeItem={activeItem}
+            setActiveItem={setActiveItem}
+            isSidebarOpen={isSidebarOpen}
+          />
         </div>
-      </div>
+        <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+          flex: 1,
+          backgroundColor: '#F3F4F6',
+          margin: 0,
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'auto'
+        }}>
+          <Header
+            pageTitle={t(activeItem)}
+            onMenuClick={() => setIsSidebarOpen(prev => !prev)}
+            onNotificationsClick={() => setActiveItem('notices')}
+            showLocationSearch={false}
+          />
+          <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
+            {renderContent()}
+          </div>
+        </div>
       </div>
     </div>
   );

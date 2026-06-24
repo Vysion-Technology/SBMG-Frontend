@@ -2,8 +2,19 @@ import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
 import { eventsAPI, MEDIA_BASE_URL } from '../../services/api';
 import NoDataFound from './common/NoDataFound';
+import { useTranslation } from "react-i18next";
+import { useAuth } from "../../context/AuthContext";
 
 const EventsContent = () => {
+
+    const { t } = useTranslation(['common', 'table']);
+
+    const { role } = useAuth();
+
+    const normalizedRole = role?.toUpperCase();
+
+    const canManageEvents = ["ADMIN", "SMD"].includes(normalizedRole);
+
     const [showModal, setShowModal] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
@@ -21,6 +32,10 @@ const EventsContent = () => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitProgress, setSubmitProgress] = useState('');
+
+    // Img ration Error state
+    const [imageError, setImageError] = useState('');
+
 
     // Edit event state
     const [showEditModal, setShowEditModal] = useState(false);
@@ -160,21 +175,55 @@ const EventsContent = () => {
 
     // Handle file selection
     const handleFileSelect = (event) => {
+
+
         const file = event.target.files[0];
         if (file) {
             setSelectedFile(file);
         }
+        if (!file) return;
+
+        // 🔥 always reset FIRST
+        setImageError('');
+        setSelectedFile(null);
+
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        img.onload = () => {
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const expected = 4 / 5;
+            const tolerance = 0.03;
+
+            if (Math.abs(ratio - expected) > tolerance) {
+                setImageError(t('schemeevent:only45AspectRatioAllowed'));
+                setSelectedFile(null);
+                URL.revokeObjectURL(url);
+                return;
+            }
+
+            setSelectedFile(file);
+            setImageError('');
+            URL.revokeObjectURL(url);
+        };
+
+        img.src = url;
     };
 
     // Handle form submission with seamless two-step API flow
     const handleSubmit = async () => {
+        if (!selectedFile) {
+            setImageError(t('schemeevent:upload45Image'));
+            return;
+        }
+
         if (!formData.title.trim() || !formData.description.trim()) {
-            alert('Please fill in all required fields');
+            alert(t('schemeevent:fillRequiredFields'));
             return;
         }
 
         setIsSubmitting(true);
-        setSubmitProgress('Creating event...');
+        setSubmitProgress(t('schemeevent:creatingEvent'));
 
         try {
             // Step 1: Create the event
@@ -190,14 +239,14 @@ const EventsContent = () => {
 
             // Step 2: Upload media if file is selected
             if (selectedFile) {
-                setSubmitProgress('Uploading media...');
+                setSubmitProgress(t('schemeevent:uploadingMedia'));
                 console.log('Uploading media for event ID:', createdEvent.id, 'File:', selectedFile);
                 const uploadResponse = await eventsAPI.uploadEventMedia(createdEvent.id, selectedFile);
                 console.log('Media upload response:', uploadResponse.data);
             }
 
             // Success - close modal and refresh events
-            setSubmitProgress('Event created successfully!');
+            setSubmitProgress(t('schemeevent:eventCreatedSuccessfully'));
             setTimeout(() => {
                 setShowModal(false);
                 setFormData({ title: '', description: '', fromDate: '', toDate: '' });
@@ -211,7 +260,8 @@ const EventsContent = () => {
             console.error('Error creating event:', error);
             setSubmitProgress('');
             setIsSubmitting(false);
-            alert('Failed to create event. Please try again.');
+            setImageError('');
+            alert(t('schemeevent:failedToCreateEvent'));
         }
     };
 
@@ -230,7 +280,7 @@ const EventsContent = () => {
 
     const handleDeleteEvent = async (eventId) => {
         if (!eventId || isDeleting) return;
-        const confirmDelete = window.confirm('Are you sure you want to delete this event? This action cannot be undone.');
+        const confirmDelete = window.confirm(t('schemeevent:confirmDeleteEvent'));
         if (!confirmDelete) {
             return;
         }
@@ -243,7 +293,7 @@ const EventsContent = () => {
             await fetchEvents();
         } catch (error) {
             console.error('Error deleting event:', error);
-            alert('Failed to delete event. Please try again.');
+            alert(t('schemeevent:failedToDeleteEvent'));
         } finally {
             setIsDeleting(false);
         }
@@ -252,7 +302,7 @@ const EventsContent = () => {
     // Handle event update
     const handleUpdateEvent = async () => {
         if (!editFormData.name.trim() || !editFormData.description.trim()) {
-            alert('Please fill in all required fields');
+            alert(t('schemeevent:fillRequiredFields'));
             return;
         }
 
@@ -281,8 +331,42 @@ const EventsContent = () => {
         } catch (error) {
             console.error('Error updating event:', error);
             setIsUpdating(false);
-            alert('Failed to update event. Please try again.');
+            alert(t('schemeevent:failedToUpdateEvent'));
         }
+    };
+
+    const resetModal = () => {
+        setShowModal(false);
+        setFormData({ name: '', description: '', details: '', benefits: '' });
+        setSelectedFile(null);
+        setImageError('');
+        setSubmitProgress('');
+        setIsSubmitting(false);
+    };
+
+    const getEventStatus = (startTime, endTime) => {
+        const now = new Date();
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+
+        if (now < start) {
+            return {
+                label: "Upcoming",
+                color: "#3b82f6" // blue
+            };
+        }
+
+        if (now >= start && now <= end) {
+            return {
+                label: "Ongoing",
+                color: "#10b981" // green
+            };
+        }
+
+        return {
+            label: "Completed",
+            color: "#6b7280" // gray
+        };
     };
 
     return (
@@ -320,7 +404,7 @@ const EventsContent = () => {
                             alignItems: 'center',
                             gap: '8px'
                         }}>
-                            Overview
+                            {t('common:overview')}
                             <span style={{
                                 fontSize: '16px',
                                 fontWeight: '400',
@@ -355,7 +439,7 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                Active
+                                {t('schemeevent:active')}
                             </button>
                             <button
                                 onClick={() => setEventFilter('inactive')}
@@ -371,7 +455,7 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                Inactive
+                                {t('schemeevent:inactive')}
                             </button>
                             <button
                                 onClick={() => setEventFilter('all')}
@@ -387,28 +471,30 @@ const EventsContent = () => {
                                     transition: 'all 0.2s'
                                 }}
                             >
-                                All
+                                {t('schemeevent:all')}
                             </button>
                         </div>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                backgroundColor: '#10b981',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                padding: '6px 10px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                transition: 'all 0.2s'
-                            }}>
-                            <Plus style={{ width: '16px', height: '16px' }} />
-                            Add Event
-                        </button>
+                        {canManageEvents && (
+                            <button
+                                onClick={() => setShowModal(true)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    backgroundColor: '#10b981',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    padding: '6px 10px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: '500'
+                                }}
+                            >
+                                <Plus style={{ width: '16px', height: '16px' }} />
+                                {t('schemeevent:addEvent')}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -422,7 +508,7 @@ const EventsContent = () => {
                         marginTop: '24px'
                     }}>
                         <Loader2 style={{ width: '32px', height: '32px', color: '#10b981', animation: 'spin 1s linear infinite' }} />
-                        <span style={{ marginLeft: '12px', color: '#6b7280' }}>Loading events...</span>
+                        <span style={{ marginLeft: '12px', color: '#6b7280' }}>{t('table:loading')}</span>
                     </div>
                 )}
 
@@ -435,79 +521,60 @@ const EventsContent = () => {
 
                 {/* Event Cards Grid */}
                 {!loading && !error && (
-                    <div className="columns-1 sm:columns-2 md:columns-3  lg:columns-4 gap-4 mt-6" >
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
                         {events.map((event) => (
                             <div
                                 key={event.id}
+                                className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
                                 onClick={() => {
                                     setSelectedEvent(event);
                                     setShowDetailsModal(true);
-                                    setActiveTab('Details');
-                                }}
-                                style={{
-                                    breakInside: 'avoid', // ⭐ important (card break na ho)
-                                    marginBottom: '20px',
-                                    backgroundColor: 'white',
-                                    borderRadius: '12px',
-                                    border: '1px solid #e5e7eb',
-                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                    width: '100%',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.2s',
-                                    '&:hover': {
-                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                                        transform: 'translateY(-2px)'
-                                    }
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(-2px)';
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    setActiveTab('details');
                                 }}
                             >
-                                <div style={{
-                                    width: '100%',
-                                    marginBottom: '8px',
-                                    borderTopLeftRadius: '8px',
-                                    borderTopRightRadius: '8px',
-                                    overflow: 'hidden',
-                                    position: 'relative',
-                                    backgroundColor: '#f3f4f6',
-                                    breakInside: 'avoid',
-                                }}>
+                                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100" >
                                     <img
                                         src={getEventImage(event)}
                                         alt={event.name || 'Event image'}
-                                        style={{
-                                            width: '100%',
-                                            height: 'auto',
-                                            display: 'block',
-                                            objectFit: 'cover',
-
-                                        }}
+                                        className="w-full h-full object-cover"
                                         onError={(e) => {
-                                            console.log('Image failed to load:', getEventImage(event));
-                                            e.target.src = '/background.png';
+                                            e.currentTarget.src = "/background.png";
                                         }}
                                         onLoad={() => {
                                             console.log('Image loaded successfully:', getEventImage(event));
                                         }}
                                     />
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '12px',
-                                        right: '12px',
-                                        backgroundColor: event.active ? '#10b981' : '#ef4444',
-                                        color: 'white',
-                                        padding: '4px 8px',
-                                        borderRadius: '12px',
-                                        fontSize: '12px',
-                                        fontWeight: '500'
-                                    }}>
-                                        {event.active ? 'Active' : 'Inactive'}
+                                    <div className="absolute top-3 left-3 flex flex-col gap-2">
+                                        <span
+                                            style={{
+                                                background: event.active ? "#10b981" : "#ef4444",
+                                                color: "#fff",
+                                                padding: "4px 8px",
+                                                borderRadius: "12px",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            {event.active ? "Active" : "Inactive"}
+                                        </span>
+                                    </div>
+                                    <div className="absolute top-3 right-3 flex flex-col gap-2">
+                                        <span
+                                            style={{
+                                                background: getEventStatus(
+                                                    event.start_time,
+                                                    event.end_time
+                                                ).color,
+                                                color: "#fff",
+                                                padding: "4px 8px",
+                                                borderRadius: "12px",
+                                                fontSize: "12px"
+                                            }}
+                                        >
+                                            {getEventStatus(
+                                                event.start_time,
+                                                event.end_time
+                                            ).label}
+                                        </span>
                                     </div>
                                     {/* Media count indicator if multiple images */}
                                     {event.media && event.media.length > 1 && (
@@ -636,10 +703,10 @@ const EventsContent = () => {
                                     color: '#111827',
                                     margin: 0
                                 }}>
-                                    Add Event
+                                    {t('schemeevent:addEvent')}
                                 </h2>
                                 <button
-                                    onClick={() => setShowModal(false)}
+                                    onClick={resetModal}
                                     style={{
                                         background: 'none',
                                         border: 'none',
@@ -686,7 +753,7 @@ const EventsContent = () => {
                                         color: selectedFile ? '#10b981' : '#6b7280',
                                         margin: 0
                                     }}>
-                                        {selectedFile ? selectedFile.name : 'Drag and drop your image or click to upload'}
+                                        {selectedFile ? selectedFile.name : t('schemeevent:dragAndDropImage')}
                                     </p>
                                     {selectedFile && (
                                         <p style={{
@@ -694,10 +761,22 @@ const EventsContent = () => {
                                             color: '#10b981',
                                             margin: '8px 0 0 0'
                                         }}>
-                                            ✓ File selected
+                                            ✓   {t('schemeevent:fileSelected')}
                                         </p>
                                     )}
                                 </div>
+
+                                {/* 👇 ADD THIS ERROR MESSAGE HERE */}
+                                {imageError && (
+                                    <p style={{
+                                        color: '#ef4444',
+                                        fontSize: '12px',
+                                        marginTop: '-12px',
+                                        marginBottom: '16px'
+                                    }}>
+                                        {imageError}
+                                    </p>
+                                )}
 
                                 {/* Form Fields */}
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -710,11 +789,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Event Title
+                                            {t('schemeevent:eventTitle')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Enter event title"
+                                            placeholder={t('schemeevent:eventTitle')}
                                             value={formData.title}
                                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                             style={{
@@ -737,11 +816,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Description
+                                            {t('schemeevent:description')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Event description"
+                                            placeholder={t('schemeevent:description')}
                                             value={formData.description}
                                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                             style={{
@@ -765,12 +844,12 @@ const EventsContent = () => {
                                                 color: '#374151',
                                                 marginBottom: '8px'
                                             }}>
-                                                From
+                                                {t('schemeevent:from')}
                                             </label>
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     type="date"
-                                                    placeholder="From"
+                                                    placeholder={t('schemeevent:from')}
                                                     value={formData.fromDate || ''}
                                                     onKeyDown={handleDateKeyDown}
                                                     onChange={(e) => setFormData({ ...formData, fromDate: e.target.value })}
@@ -795,12 +874,12 @@ const EventsContent = () => {
                                                 color: '#374151',
                                                 marginBottom: '8px'
                                             }}>
-                                                To
+                                                {t('schemeevent:to')}
                                             </label>
                                             <div style={{ position: 'relative' }}>
                                                 <input
                                                     type="date"
-                                                    placeholder="To"
+                                                    placeholder={t('schemeevent:to')}
                                                     value={formData.toDate || ''}
                                                     onKeyDown={handleDateKeyDown}
                                                     onChange={(e) => setFormData({ ...formData, toDate: e.target.value })}
@@ -872,7 +951,7 @@ const EventsContent = () => {
                                             opacity: isSubmitting ? 0.6 : 1
                                         }}
                                     >
-                                        Cancel
+                                        {t('schemeevent:cancel')}
                                     </button>
                                     <button
                                         onClick={handleSubmit}
@@ -892,7 +971,7 @@ const EventsContent = () => {
                                         }}
                                     >
                                         {isSubmitting && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                                        {isSubmitting ? 'Creating...' : 'Add Event'}
+                                        {isSubmitting ? t('schemeevent:creating') : t('schemeevent:addEvent')}
                                     </button>
                                 </div>
                             </div>
@@ -941,51 +1020,65 @@ const EventsContent = () => {
                                     {selectedEvent?.name || 'Event Details'}
                                 </h2>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <button
-                                        onClick={() => handleEditClick(selectedEvent)}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #10b981',
-                                            borderRadius: '6px',
-                                            backgroundColor: 'transparent',
-                                            color: '#10b981',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        <Edit style={{ width: '16px', height: '16px' }} />
-                                        Edit Event
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteEvent(selectedEvent?.id)}
-                                        disabled={isDeleting}
-                                        style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px',
-                                            padding: '6px 12px',
-                                            border: '1px solid #ef4444',
-                                            borderRadius: '6px',
-                                            backgroundColor: isDeleting ? '#fecaca' : 'transparent',
-                                            color: '#ef4444',
-                                            fontSize: '14px',
-                                            fontWeight: '500',
-                                            cursor: isDeleting ? 'not-allowed' : 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                    >
-                                        {isDeleting ? (
-                                            <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-                                        ) : (
-                                            <Trash2 style={{ width: '16px', height: '16px' }} />
-                                        )}
-                                        {isDeleting ? 'Deleting...' : 'Delete Event'}
-                                    </button>
+
+                                    {canManageEvents && (
+                                        <>
+                                            <button
+                                                onClick={() => handleEditClick(selectedEvent)}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 12px',
+                                                    border: '1px solid #10b981',
+                                                    borderRadius: '6px',
+                                                    backgroundColor: 'transparent',
+                                                    color: '#10b981',
+                                                    fontSize: '14px',
+                                                    fontWeight: '500',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <Edit style={{ width: '16px', height: '16px' }} />
+                                                {t('schemeevent:editEvent')}
+                                            </button>
+
+                                            <button
+                                                onClick={() => handleDeleteEvent(selectedEvent?.id)}
+                                                disabled={isDeleting}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 12px',
+                                                    border: '1px solid #ef4444',
+                                                    borderRadius: '6px',
+                                                    backgroundColor: isDeleting ? '#fecaca' : 'transparent',
+                                                    color: '#ef4444',
+                                                    fontSize: '14px',
+                                                    fontWeight: '500',
+                                                    cursor: isDeleting ? 'not-allowed' : 'pointer'
+                                                }}
+                                            >
+                                                {isDeleting ? (
+                                                    <Loader2
+                                                        style={{
+                                                            width: '16px',
+                                                            height: '16px',
+                                                            animation: 'spin 1s linear infinite'
+                                                        }}
+                                                    />
+                                                ) : (
+                                                    <Trash2 style={{ width: '16px', height: '16px' }} />
+                                                )}
+
+                                                {isDeleting
+                                                    ? t('schemeevent:deleting')
+                                                    : t('schemeevent:deleteEvent')}
+                                            </button>
+                                        </>
+                                    )}
+
                                     <button
                                         onClick={() => setShowDetailsModal(false)}
                                         style={{
@@ -999,6 +1092,7 @@ const EventsContent = () => {
                                     >
                                         <X style={{ width: '20px', height: '20px' }} />
                                     </button>
+
                                 </div>
                             </div>
 
@@ -1006,7 +1100,7 @@ const EventsContent = () => {
                             <div style={{
                                 display: 'flex',
                             }}>
-                                {['Details'].map((tab) => (
+                                {['details'].map((tab) => (
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
@@ -1022,7 +1116,7 @@ const EventsContent = () => {
                                             transition: 'all 0.2s'
                                         }}
                                     >
-                                        {tab}
+                                        {t(`schemeevent:${tab}`)}
                                     </button>
                                 ))}
                             </div>
@@ -1030,7 +1124,7 @@ const EventsContent = () => {
 
                             {/* Tab Content */}
                             <div style={{ padding: '24px' }}>
-                                {activeTab === 'Details' && (
+                                {activeTab === 'details' && (
                                     <div>
                                         <p style={{
                                             fontSize: '14px',
@@ -1095,7 +1189,7 @@ const EventsContent = () => {
                                     color: '#111827',
                                     margin: 0
                                 }}>
-                                    Edit Event
+                                    {t('schemeevent:editEvent')}
                                 </h2>
                                 <button
                                     onClick={() => setShowEditModal(false)}
@@ -1124,11 +1218,11 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Event Name
+                                            {t('schemeevent:eventTitle')}
                                         </label>
                                         <input
                                             type="text"
-                                            placeholder="Enter event name"
+                                            placeholder={t('schemeevent:eventTitle')}
                                             value={editFormData.name}
                                             onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                                             style={{
@@ -1151,10 +1245,10 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Description
+                                            {t('schemeevent:description')}
                                         </label>
                                         <textarea
-                                            placeholder="Description"
+                                            placeholder={t('schemeevent:description')}
                                             value={editFormData.description}
                                             onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
                                             rows={4}
@@ -1179,7 +1273,7 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            Start Time
+                                            {t('schemeevent:startTime')}
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -1205,7 +1299,7 @@ const EventsContent = () => {
                                             color: '#374151',
                                             marginBottom: '8px'
                                         }}>
-                                            End Time
+                                            {t('schemeevent:endTime')}
                                         </label>
                                         <input
                                             type="datetime-local"
@@ -1243,7 +1337,7 @@ const EventsContent = () => {
                                                     cursor: 'pointer'
                                                 }}
                                             />
-                                            Active
+                                            {t('schemeevent:active')}
                                         </label>
                                     </div>
                                 </div>
@@ -1272,7 +1366,7 @@ const EventsContent = () => {
                                         opacity: isUpdating ? 0.6 : 1
                                     }}
                                 >
-                                    Cancel
+                                    {t('schemeevent:cancel')}
                                 </button>
                                 <button
                                     onClick={handleUpdateEvent}
@@ -1292,7 +1386,7 @@ const EventsContent = () => {
                                     }}
                                 >
                                     {isUpdating && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                                    {isUpdating ? 'Updating...' : 'Update Event'}
+                                    {isUpdating ? t('schemeevent:updating') : t('schemeevent:updateEvent')}
                                 </button>
                             </div>
                         </div>

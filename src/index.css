@@ -10,16 +10,47 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
+}
+
+@media print {
+
+  body * {
+    visibility: hidden;
+  }
+
+  .print-section,
+  .print-section * {
+    visibility: visible;
+  }
+
+  .print-section {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: auto;
+    background: white;
+    overflow: visible;
+  }
+
+
+}
+
+@page {
+  margin: 10mm;
 }
 
 html {
   overflow-x: hidden;
   width: 100%;
 }
-html, body {
+
+html,
+body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -27,6 +58,7 @@ html, body {
   height: 100%;
   overflow-x: hidden;
 }
+
 #root {
   width: 100%;
   min-width: 0;
@@ -51,6 +83,7 @@ code {
 .dashboard-content-wrapper {
   padding: 0 16px;
 }
+
 @media (max-width: 640px) {
   .dashboard-content-wrapper {
     padding: 0 8px;
@@ -63,13 +96,23 @@ code {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
   }
+
   .dashboard-card {
     min-width: 0;
     width: 100%;
   }
-  h1 { font-size: 1.25rem; }
-  h2 { font-size: 1.125rem; }
-  h3 { font-size: 1rem; }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+
+  h2 {
+    font-size: 1.125rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
 }
 
 /* Tablet */
@@ -85,19 +128,31 @@ code {
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
   }
-  button, a {
+
+  button,
+  a {
     min-height: 44px;
     min-width: 44px;
   }
+
   .table-responsive {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     width: 100%;
   }
-  h1 { font-size: 1.5rem; }
-  h2 { font-size: 1.25rem; }
-  h3 { font-size: 1.125rem; }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.125rem;
+  }
 }
 
 /* Overview banner - hover effect for each metric */
@@ -105,6 +160,7 @@ code {
   border-color: var(--metric-color, #2563eb) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+
 .overview-metric.overview-metric-hover:hover .overview-metric-value {
   color: var(--metric-color, #2563eb) !important;
   text-decoration: underline;
@@ -114,24 +170,31 @@ code {
 
 /* Overview banner responsive */
 @media (max-width: 640px) {
-  .overview-banner { min-height: auto !important; }
+  .overview-banner {
+    min-height: auto !important;
+  }
+
   .overview-banner-content {
     flex-direction: column !important;
     gap: 16px !important;
     padding: 16px 12px !important;
     min-height: auto !important;
   }
+
   .overview-banner .overview-metric span:first-of-type {
     font-size: 24px !important;
   }
+
   .overview-banner .overview-metric span:last-of-type {
     font-size: 12px !important;
   }
 }
+
 @media (max-width: 380px) {
   .overview-banner-content {
     padding: 12px 8px !important;
   }
+
   .overview-banner .overview-metric span:first-of-type {
     font-size: 20px !important;
   }
@@ -143,11 +206,13 @@ code {
     flex-wrap: wrap !important;
     padding: 8px 0 12px !important;
   }
+
   .app-header-left {
     flex: 0 1 auto !important;
     min-width: 0 !important;
     /* padding-right: 8px; */
   }
+
   .app-header-right {
     flex: 1 1 100% !important;
     min-width: 100% !important;
@@ -158,6 +223,7 @@ code {
     /* padding-right: 8px; */
     border-top: 1px solid #e5e7eb;
   }
+
   .app-header-search {
     flex: 1 !important;
     min-width: 0 !important;
@@ -170,6 +236,7 @@ code {
   .app-header-left h1 {
     font-size: 16px !important;
   }
+
   .app-header-left .breadcrumb-text {
     font-size: 12px !important;
     overflow: hidden !important;
@@ -178,6 +245,7 @@ code {
     flex-wrap: nowrap !important;
     max-width: 160px;
   }
+
   .dashboard-overview-section h2,
   .list-of-districts-table h2 {
     font-size: 18px !important;
@@ -191,6 +259,7 @@ code {
     margin-right: 8px !important;
   }
 }
+
 @media (max-width: 380px) {
   .dashboard-overview-section {
     margin-left: 4px !important;
@@ -207,6 +276,7 @@ code {
     margin-top: 12px !important;
   }
 }
+
 @media (max-width: 380px) {
   .list-of-districts-table {
     padding: 8px !important;
@@ -220,6 +290,7 @@ code {
 .complaints-cards-grid {
   min-width: 0;
 }
+
 .complaints-card-item {
   min-width: 0;
   overflow: hidden;
@@ -230,6 +301,7 @@ code {
   .complaints-dashboard .apexcharts-canvas {
     min-height: 200px;
   }
+
   .complaints-dashboard {
     padding: 12px !important;
     margin-left: 8px !important;
@@ -237,10 +309,12 @@ code {
     margin-top: 12px !important;
     max-width: 100% !important;
   }
+
   .complaints-cards-grid {
     grid-template-columns: 1fr !important;
   }
 }
+
 @media (max-width: 380px) {
   .complaints-dashboard {
     padding: 8px !important;
@@ -256,7 +330,8 @@ code {
   padding-right: 0 !important;
   border-top-right-radius: 12px;
 }
-.dashboard-main-content > * {
+
+.dashboard-main-content>* {
   min-width: 0;
   max-width: 100%;
 }
@@ -266,7 +341,7 @@ code {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding-right: 24px !important;
-  
+
 }
 
 
@@ -286,13 +361,16 @@ code {
     margin-right: 8px !important;
     margin-top: 12px !important;
   }
+
   .dashboard-cards-top {
     grid-template-columns: 1fr !important;
   }
-  .dashboard-cards-top > *,
-  .dashboard-cards-bottom > * {
+
+  .dashboard-cards-top>*,
+  .dashboard-cards-bottom>* {
     min-width: 0 !important;
   }
+
   .dashboard-cards-bottom {
     grid-template-columns: 1fr !important;
     grid-template-areas:
@@ -309,6 +387,7 @@ code {
     margin-right: 8px !important;
   }
 }
+
 @media (max-width: 380px) {
   .dashboard-cards-grid {
     margin-left: 4px !important;
@@ -332,18 +411,21 @@ code {
 }
 
 /* Card headers - prevent overflow, allow wrap */
-.attendance-card .attendance-metrics-row > div:first-child,
-.inspection-card > div:first-child,
-.contractor-card > div:first-child {
+.attendance-card .attendance-metrics-row>div:first-child,
+.inspection-card>div:first-child,
+.contractor-card>div:first-child {
   min-width: 0;
 }
+
 @media (max-width: 640px) {
-  .attendance-card > div:first-child,
-  .inspection-card > div:first-child,
-  .contractor-card > div:first-child {
+
+  .attendance-card>div:first-child,
+  .inspection-card>div:first-child,
+  .contractor-card>div:first-child {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
+
   .attendance-card button,
   .inspection-card button,
   .contractor-card button {
@@ -357,10 +439,12 @@ code {
     flex-wrap: wrap !important;
     gap: 8px !important;
   }
+
   .attendance-card .attendance-metric {
     flex: 1 1 calc(33.33% - 8px) !important;
     min-width: 0 !important;
   }
+
   .attendance-card .attendance-metric-label {
     font-size: 10px !important;
   }
@@ -368,6 +452,7 @@ code {
 
 /* Inspection & Contractor cards - lower minWidth on mobile */
 @media (max-width: 640px) {
+
   .inspection-card .metric-box,
   .contractor-card .metric-box {
     min-width: 0 !important;
@@ -380,6 +465,7 @@ code {
   .schemes-events-card .schemes-metrics-row {
     flex-wrap: wrap !important;
   }
+
   .schemes-events-card .schemes-metric {
     flex: 1 1 30% !important;
     min-width: 0 !important;
@@ -392,15 +478,18 @@ code {
     padding: 8px 12px !important;
     gap: 12px !important;
   }
+
   .top-header-bar img {
     max-height: 40px !important;
   }
 }
+
 @media (max-width: 380px) {
   .top-header-bar {
     padding: 6px 8px !important;
     gap: 8px !important;
   }
+
   .top-header-bar img {
     max-height: 36px !important;
   }
@@ -411,9 +500,10 @@ code {
   .sidebar-mobile-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 40;
   }
+
   .sidebar-wrapper.sidebar-mobile {
     position: fixed !important;
     top: 0 !important;
@@ -426,6 +516,7 @@ code {
     transform: translateX(-100%);
     transition: transform 0.25s ease;
   }
+
   .sidebar-wrapper.sidebar-mobile.open {
     transform: translateX(0);
   }

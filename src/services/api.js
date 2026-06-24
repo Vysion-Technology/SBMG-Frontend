@@ -19,6 +19,84 @@ const apiClient = axios.create({
   },
 });
 
+// ============================================================================
+// GLOBAL SECURITY INTERCEPTOR (XSS & File Upload Protection)
+// ============================================================================
+const validatePayload = (data) => {
+  if (!data) return;
+
+  const containsHTML = (str) => typeof str === 'string' && /[<>]/.test(str);
+
+  // Scenario A: Handle FormData (File Uploads & Mixed Forms)
+  if (data instanceof FormData) {
+    for (let [key, value] of data.entries()) {
+      // 1. Check Text Fields for XSS
+      if (typeof value === 'string' && containsHTML(value)) {
+        alert(`Security Alert: HTML tags (<, >) and scripts are not allowed`)
+        throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+      }
+      
+      // 2. Check File Uploads (Size, Type, Double-Extensions)
+      if (value instanceof File) {
+        // Size Check (5MB)
+        if (value.size > 5 * 1024 * 1024) {
+          alert(`Security Alert: File "${value.name}" exceeds the 5MB limit.`)
+          throw new Error(`Security Alert: File "${value.name}" exceeds the 5MB limit.`);
+        }
+        
+        // Double-Extension & Null Byte Check
+        const fileName = value.name;
+        const fileParts = fileName.split('.');
+        if (fileParts.length > 2 || fileName.includes('%00')) {
+          alert(`Security Alert: File "${fileName}" has an invalid format or double extension.`)
+          throw new Error(`Security Alert: File "${fileName}" has an invalid format or double extension.`);
+        }
+        
+        // MIME Type Check (Whitelist)
+        const validMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+        if (!validMimeTypes.includes(value.type)) {
+          alert(`Security Alert: File type "${value.type}" is not allowed.`)
+          throw new Error(`Security Alert: File type "${value.type}" is not allowed.`);
+        }
+      }
+    }
+  } 
+  // Scenario B: Handle Standard JSON Objects
+  else if (typeof data === 'object') {
+    const checkObject = (obj) => {
+      for (let key in obj) {
+        if (typeof obj[key] === 'string' && containsHTML(obj[key])) {
+          alert("Security Alert: HTML tags (<, >) and scripts are not allowed")
+          throw new Error(`Security Alert: HTML tags (<, >) and scripts are not allowed in "${key}".`);
+        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+          checkObject(obj[key]); // Recursive check for nested JSON
+        }
+      }
+    };
+    checkObject(data);
+  }
+};
+
+apiClient.interceptors.request.use(
+  (config) => {
+    // Only intercept data-mutating requests for security validation
+    if (['post', 'put', 'patch'].includes(config.method?.toLowerCase())) {
+      try {
+        validatePayload(config.data);
+      } catch (error) {
+        // Reject the request BEFORE it leaves the browser
+        return Promise.reject(error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+// ============================================================================
+
+
 // Add request interceptor for authentication
 apiClient.interceptors.request.use(
   (config) => {
@@ -45,20 +123,34 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for handling 401 errors
+// Add response interceptor for handling token refresh and 401 errors
 apiClient.interceptors.response.use(
   (response) => {
+    // Check for X-Refresh-Token in the response headers
+    const refreshToken = response.headers['x-refresh-token'];
+    if (refreshToken) {
+      console.log('🔄 Received new access token via X-Refresh-Token header');
+      localStorage.setItem('access_token', refreshToken);
+      // The next request will pick up the new token from localStorage via the request interceptor
+    }
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear stored tokens and user data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
-
-      // Redirect to login page
-      // window.location.href = '/login';
+    if (error.response) {
+      if (error.response.status === 401) {
+        // Clear stored tokens and user data
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+        windows.alert("session timed out");
+        // Redirect to login page
+        window.location.href = '/login';
+      } else if (error.response.status === 412) {
+        // GP Reconfirmation Required
+        if (error.response.data?.detail === "GP_RECONFIRMATION_REQUIRED") {
+          window.dispatchEvent(new CustomEvent('gp-reconfirmation-required'));
+        }
+      }
     }
     return Promise.reject(error);
   }
@@ -195,6 +287,7 @@ export const annualSurveysAPI = {
   getSurvey: (id) => apiClient.get(`/annual-surveys/${id}`),
   addsurvey: (data) => apiClient.post('/annual-surveys/fill', data),
   updateSurvey: (id, data) => apiClient.put(`/annual-surveys/${id}`, data),
+  reconfirmSurvey: (id) => apiClient.patch(`/annual-surveys/${id}/reconfirm`),
   listSurveys: (params = {}) => {
     const q = new URLSearchParams();
     if (params.skip != null) q.append('skip', params.skip);
@@ -224,7 +317,7 @@ export const feedbackAPI = {
     const queryParams = new URLSearchParams();
     if (params.feedback_source) queryParams.append('feedback_source', params.feedback_source);
     if (params.skip !== undefined) queryParams.append('skip', params.skip);
-    if (params.limit !== undefined) queryParams.append('limit', params.limit);
+    if (params.limit !== undefined) queryParams.append('limit', 100);
     return apiClient.get(`/feedback/?${queryParams.toString()}`);
   },
 
@@ -290,5 +383,28 @@ export const contractorAnalyticsAPI = {
   getGP: (gpId) => apiClient.get(`/contractor-analytics/analytics/gp/${gpId}`),
 };
 
-export default apiClient;
+export const circularAPI = {
+  getCirculars: () =>
+    apiClient.get("circulars/"),
 
+  createCircular: (formData) =>
+    apiClient.post("circulars/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  updateCircular: (id, formData) =>
+    apiClient.put(`circulars/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  deleteCircular: (id) =>
+    apiClient.delete(`circulars/${id}`),
+};
+
+
+
+export default apiClient;

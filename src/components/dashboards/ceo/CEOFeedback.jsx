@@ -4,6 +4,7 @@ import Chart from 'react-apexcharts';
 import { useAuth } from '../../../context/AuthContext';
 import { feedbackAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const CEOFeedbackContent = () => {
   const { user } = useAuth();
@@ -12,6 +13,9 @@ const CEOFeedbackContent = () => {
   const [feedback, setFeedback] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('All');
+
+  // Language 
+  const { t } = useTranslation(['common', 'noFB', 'table'])
 
   // Stats state
   const [stats, setStats] = useState(null);
@@ -157,7 +161,7 @@ const CEOFeedbackContent = () => {
   const ratingDistribution = useMemo(() => {
     if (!feedbacks || feedbacks.length === 0) {
       return [
-        { label: '5 Star', value: 0, color: '#10B981' },
+        { label: `5 Star`, value: 0, color: '#10B981' },
         { label: '4 Star', value: 0, color: '#34D399' },
         { label: '3 Star', value: 0, color: '#FBBF24' },
         { label: '2 Star', value: 0, color: '#F97316' },
@@ -182,7 +186,7 @@ const CEOFeedbackContent = () => {
     };
 
     return [5, 4, 3, 2, 1].map(rating => ({
-      label: `${rating} Star`,
+      label: `${rating} ${t('noFB:star')}`,
       value: total > 0 ? Math.round((ratingCounts[rating] / total) * 100) : 0,
       color: colors[rating]
     }));
@@ -216,12 +220,12 @@ const CEOFeedbackContent = () => {
 
     return [
       {
-        label: 'Authority Users',
+        label: t('noFB:authorityUsers'),
         value: total > 0 ? Math.round((authUserCount / total) * 100) : 0,
         color: colors.auth
       },
       {
-        label: 'Public Users',
+        label: t('noFB:publicUsers'),
         value: total > 0 ? Math.round((publicUserCount / total) * 100) : 0,
         color: colors.public
       }
@@ -498,71 +502,55 @@ const CEOFeedbackContent = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '24px'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Feedback
-          </h1>
-        </div>
-      </div>
-
-      {/* Title Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginLeft: '16px', marginRight: '16px' }}>
-        <div>
-          <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Rajasthan / All</p>
-        </div>
-        <button
-          onClick={handleOpenModal}
-          disabled={loadingMyFeedback}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#059669',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: loadingMyFeedback ? 'wait' : 'pointer',
-            opacity: loadingMyFeedback ? 0.6 : 1
-          }}
-        >
-          {loadingMyFeedback
-            ? 'Loading...'
-            : myFeedback
-              ? 'Change Review'
-              : 'Give Review'}
-        </button>
-      </div>
+      
 
       {/* Overview Section */}
       <div style={{
-        backgroundColor: 'white',
+             backgroundColor: 'white',
         borderRadius: '12px',
         padding: '24px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        marginTop: '10px',
         marginBottom: '32px',
         marginLeft: '16px',
         marginRight: '16px'
       }}>
         {/* Overview Heading */}
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, marginBottom: '24px' }}>
-          Overview
-        </h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
+
+          }}
+        >
+          {/* Overview Heading */}
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, }}>
+            {t('common:overview')}
+          </h2>
+          <button
+            onClick={handleOpenModal}
+            disabled={loadingMyFeedback}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#059669',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: loadingMyFeedback ? 'wait' : 'pointer',
+              opacity: loadingMyFeedback ? 0.6 : 1,
+            }}
+          >
+            {loadingMyFeedback
+              ? t('noFB:loading')
+              : myFeedback
+                ? t('noFB:changeReview')
+                : t('noFB:giveReview')}
+          </button>
+        </div>
 
         {loadingStats ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -582,7 +570,7 @@ const CEOFeedbackContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Average Rating</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:averageRating')}</h3>
                 <InfoTooltip
                   tooltipKey="AVERAGE_RATING"
                   size={16}
@@ -623,7 +611,7 @@ const CEOFeedbackContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Total Ratings</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:totalRatings')}</h3>
                 <InfoTooltip
                   tooltipKey="TOTAL_RATINGS"
                   size={16}
@@ -669,7 +657,7 @@ const CEOFeedbackContent = () => {
         marginRight: '16px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Reviews</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:reviews')}</h3>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
@@ -678,7 +666,7 @@ const CEOFeedbackContent = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reviews..."
+                placeholder={t('noFB:searchReviews')}
                 style={{
                   padding: '8px 12px 8px 36px',
                   border: '1px solid #D1D5DB',
@@ -705,9 +693,9 @@ const CEOFeedbackContent = () => {
                   outline: 'none'
                 }}
               >
-                <option value="All">All</option>
-                <option value="AUTH_USER">Authority Users</option>
-                <option value="PUBLIC_USER">Public Users</option>
+                  <option value="All">{t('noFB:all')}</option>
+                <option value="AUTH_USER">{t('noFB:authorityUsers')}</option>
+                <option value="PUBLIC_USER">{t('noFB:publicUsers')}</option>
               </select>
               <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9CA3AF' }} />
             </div>
@@ -737,7 +725,7 @@ const CEOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      User
+                        {t('noFB:user')}
                       <SortIcon col="user" />
                     </div>
                   </th>
@@ -746,7 +734,7 @@ const CEOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Review
+                       {t('noFB:reviews')}
                       <SortIcon col="review" />
                     </div>
                   </th>
@@ -755,7 +743,7 @@ const CEOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Rating
+                       {t('noFB:rating')}
                       <SortIcon col="rating" />
                     </div>
                   </th>
@@ -771,7 +759,7 @@ const CEOFeedbackContent = () => {
                       {review.comment || '-'}
                     </td>
                     <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
-                      {review.rating} Star
+                      {review.rating} {t('noFB:star')}
                     </td>
                   </tr>
                 ))}
@@ -806,7 +794,7 @@ const CEOFeedbackContent = () => {
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                {myFeedback ? 'Change Review' : 'My Review'}
+                 {myFeedback ? (t('noFB:changeReview')) :  (t('noFB:myReview'))}
               </h2>
               <button
                 onClick={handleCloseModal}
@@ -825,13 +813,13 @@ const CEOFeedbackContent = () => {
 
             {loadingMyFeedback ? (
               <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: '#6B7280' }}>Loading...</p>
+                  <p style={{ color: '#6B7280' }}> {(t('noFB:loading'))}  </p>
               </div>
             ) : (
               <>
                 {/* Question */}
                 <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
-                  How was your experience with the app?
+                  {(t('noFB:appExperienceQuestion'))}
                 </p>
 
                 {/* Emoji Rating */}
@@ -860,13 +848,13 @@ const CEOFeedbackContent = () => {
                   ))}
                 </div>
                 <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
-                  {selectedRating} Star
+                  {selectedRating}  {(t('noFB:star'))}
                 </p>
 
                 {/* Feedback Input */}
                 <div style={{ marginBottom: '24px' }}>
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                    Feedback
+                     {(t('noFB:feedback'))}
                   </label>
                   <textarea
                     value={feedback}
@@ -911,7 +899,7 @@ const CEOFeedbackContent = () => {
                       opacity: savingFeedback ? 0.5 : 1
                     }}
                   >
-                    Cancel
+                      {(t('noFB:cancel'))}
                   </button>
                   <button
                     onClick={handleSaveReview}
@@ -927,7 +915,7 @@ const CEOFeedbackContent = () => {
                       cursor: savingFeedback ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {savingFeedback ? 'Saving...' : 'Save'}
+                    {savingFeedback ? (t('noFB:saving')) : (t('noFB:save'))}
                   </button>
                 </div>
               </>

@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar, Check } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { annualSurveysAPI } from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
+import { useAuth } from '../../../context/AuthContext';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
-import EditGPMasterModal from '../EditGPMasterModal';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { HINDI_FONT } from '../../../utils/font';
+import EditGPMasterModal from '../common/EditGPMasterModal';
+import { useTranslation } from 'react-i18next';
 
 const VDOVillageMasterContent = () => {
   // Refs to prevent duplicate API calls
@@ -26,6 +28,9 @@ const VDOVillageMasterContent = () => {
     loadingVDOData,
     getLocationPath,
   } = useVDOLocation();
+
+  const { user, refreshMe } = useAuth();
+  const { t } = useTranslation(["common", "table", "gpMaster"])
 
   // VDO: Always works at villages level (no geo tabs)
   const activeScope = 'GPs';
@@ -86,6 +91,7 @@ const VDOVillageMasterContent = () => {
   const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSurveyId, setEditSurveyId] = useState(null);
+  const [reconfirming, setReconfirming] = useState(false);
 
   const scopeButtons = ['GPs']; // BDO can only view GPs
   const performanceButtons = ['Time', 'Location'];
@@ -214,20 +220,29 @@ const VDOVillageMasterContent = () => {
       y += 8;
 
       fields.forEach(([label, value]) => {
-        checkPageBreak(8);
+        const labelMaxWidth = 45;   // label ke liye width
+        const valueMaxWidth = 90;   // value ke liye width
 
-        // Label English (Helvetica) mein hi rahega
+        const labelLines = doc.splitTextToSize(label, labelMaxWidth);
+        const valueLines = doc.splitTextToSize(secureString(value), valueMaxWidth);
+
+        const lineHeight = 6;
+        const blockHeight = Math.max(labelLines.length, valueLines.length) * lineHeight;
+
+        checkPageBreak(blockHeight);
+
+        // Label
         doc.setFont("helvetica", "bold");
         doc.setFontSize(11);
         doc.setTextColor(107, 114, 128);
-        doc.text(label, 20, y);
+        doc.text(labelLines, 20, y);
 
-        // Value (HindiFont) use karega jo Hindi aur English dono dikhayega
+        // Value
         doc.setFont("HindiFont", "normal");
         doc.setTextColor(17, 24, 39);
-        doc.text(secureString(value), 70, y);
+        doc.text(valueLines, 70, y);
 
-        y += 7;
+        y += blockHeight + 2; // dynamic spacing
       });
 
       y += 5;
@@ -239,17 +254,24 @@ const VDOVillageMasterContent = () => {
       ["GP Name:", data.gp_name],
       ["Block Name:", data.block_name],
       ["District Name:", data.district_name],
-      ["Sarpanch Name:", data.sarpanch_name],
-      ["Sarpanch Contact:", data.sarpanch_contact],
-      ["Number of Ward Panchs:", data.num_ward_panchs],
+
+      ["Agency Name:", data.agency_name],
     ]);
 
     if (data.vdo) {
       addSection("VDO Details", [
         ["Name:", data.vdo_name],
-        ["Username:", data.vdo.username],
+        ["Contact Number:", data.vdo_contact_number],
       ]);
     }
+    if (data.gp_name) {
+      addSection("Sarpanch Details", [
+        ["Name:", data.sarpanch_name],
+        ["Contact Number:", data.sarpanch_contact],
+        ["Number of Ward Panchs:", data.num_ward_panchs],
+      ]);
+    }
+
 
     if (data.work_order) {
       addSection("Work Order", [
@@ -297,31 +319,82 @@ const VDOVillageMasterContent = () => {
       ]);
     }
 
-
-
+    if (data.odf_sustainability) {
+      addSection("ODF Sustainability", [
+        ["IHHL:", data.odf_sustainability.ihhl],
+        ["Community Sanitary Complex (CSC):", data.odf_sustainability.csc],
+        ["Total No. of CSCs in Shala Darpan (Schools):", data.odf_sustainability.csc_shala_darpan],
+      ]);
+    }
 
     if (data.swm_assets) {
       addSection("SLWM Assets", [
-        ["RRC:", data.swm_assets.rrc],
-        ["PWMU:", data.swm_assets.pwmu],
-        ["Compost Pit:", data.swm_assets.compost_pit],
-        ["Collection Vehicle:", data.swm_assets.collection_vehicle],
+        ["Segregation Bins at HH Level:", data.swm_assets.bins_hh_level],
+        ["Segregation Bins at Public Places:", data.swm_assets.bins_public_places],
+        ["Community Compost Pit:", data.swm_assets.community_compost_pits],
+        ["Segregation Sheds(RRC):", data.swm_assets.segregation_sheds],
+        ["Tricycles (Manual):", data.swm_assets.tricycles_manual],
+        ["E-Rickshaws/Battery operated Vehicles:", data.swm_assets.e_rickshaws],
+        ["Motorized Vehicles:", data.swm_assets.motorized_vehicles],
+      ]);
+    }
+    if (data.lwm_assets) {
+      addSection("Liquid Waste Management", [
+        ["Soak/Magic/Leach pits at HH Level:", data.lwm_assets.pits_hh_level],
+        ["Community Soak/Magic/Leach pits:", data.lwm_assets.community_pits],
+        ["WSP (Waste Stabilization Pond):", data.lwm_assets.wsp],
+        ["Dewats:", data.lwm_assets.dewats],
+        ["Wetland:", data.lwm_assets.wetlands],
+        ["Any Other (Trenching, Phytorids, etc.):", data.lwm_assets.other_treatments],
+        ["Drainage channels (meters):", data.lwm_assets.drainage_channels],
+      ]);
+    }
+    if (data.pwmu_details) {
+      addSection("Plastic Waste Management Unit(PWMUs)", [
+        ["Total No. of Established PWMU:", data.pwmu_details.established_pwmu],
+        ["Total No. of Blocks Covered Under PWMU:", data.pwmu_details.blocks_covered_pwmu],
+        ["Total No. of Urban MRFs:", data.pwmu_details.urban_mrfs],
+        ["Total No. of Blocks Covered Under Urban MRFs:", data.pwmu_details.blocks_covered_urban_mrf],
       ]);
     }
 
-    if (data.sbmg_targets) {
-      addSection("SBMG Targets", [
-        ["IHHL:", data.sbmg_targets.ihhl],
-        ["CSC:", data.sbmg_targets.csc],
-        ["Soak Pit:", data.sbmg_targets.soak_pit],
-        ["Magic Pit:", data.sbmg_targets.magic_pit],
-        ["RRC:", data.sbmg_targets.rrc],
-        ["PWMU:", data.sbmg_targets.pwmu],
-        ["Leach Pit:", data.sbmg_targets.leach_pit],
-        ["WSP:", data.sbmg_targets.wsp],
-        ["DEWATS:", data.sbmg_targets.dewats],
+    if (data.fsm_details) {
+      addSection("Faecal Sludge Management (FSM)", [
+        ["No. of twin pits Toilets:", data.fsm_details.twin_pit_toilets],
+        ["No. of Single pits Toilets:", data.fsm_details.single_pit_toilets],
+        ["No. of Septic tank Toilets:", data.fsm_details.septic_tank_toilets],
+        ["No. of Retrofitted toilets:", data.fsm_details.retrofitted_toilets],
+        ["Mechanized De-Sludging:", data.fsm_details.mechanized_desludging],
+        ["No. of FSTPs Rural:", data.fsm_details.fstps_rural],
+        ["No. of FSTPs Urban:", data.fsm_details.fstps_urban],
       ]);
     }
+    if (data.gobardhan_projects) {
+      addSection("GOBAR-dhan Project", [
+        ["GOBAR-dhan Project:", data.gobardhan_projects.total_projects],
+      ]);
+    }
+
+    if (data.d2d_activities) {
+      addSection("Door to Door Waste Collection, Segregation & Disposal Activities", [
+        ["Door to Door Service available in this gp:", data.d2d_activities.is_active ? "Yes" : "No"],
+        ["Work Frequency:", data.d2d_activities.work_frequency ? (data.d2d_activities.work_frequency === 'none' ? 'None' : data.d2d_activities.work_frequency === 'weekly' ? 'Weekly' : data.d2d_activities.work_frequency === '15 days' ? '15 Days' : data.d2d_activities.work_frequency === 'monthly' ? 'Monthly' : data.d2d_activities.work_frequency) : "None"],
+        ["Total No. of Work Sanctioned Through Tender:", data.d2d_activities.sanctioned_tender],
+        ["Total No. of Work Sanctioned Self by GPs:", data.d2d_activities.sanctioned_self_gp],
+        ["Total No. of Work Sanctioned Through CSR/NGOs:", data.d2d_activities.sanctioned_csr_ngo],
+        ["Total No. of Work Sanctioned Through SHGs:", data.d2d_activities.sanctioned_shg],
+        ["Total Expenditure Amt. (Rs in Lakhs):", data.d2d_activities.total_expenditure],
+        ["Vehicles Deployed:", data.d2d_activities.vehicles_deployed],
+        ["Persons Deployed:", data.d2d_activities.persons_deployed],
+        ["Households Covered:", data.d2d_activities.households_covered],
+        ["Work Start:", data.d2d_activities.status_start],
+        ["Work Running:", data.d2d_activities.status_running],
+        ["Work Completed:", data.d2d_activities.status_completed],
+      ]);
+    }
+
+
+
 
     // ===== Village Table (Full Hindi Support) =====
     if (data.village_data?.length) {
@@ -515,6 +588,27 @@ const VDOVillageMasterContent = () => {
       setLoadingGpSurvey(false);
     }
   }, [activeScope, selectedGPId, selectedFyId]);
+
+  const handleReconfirm = async (surveyId) => {
+    if (reconfirming) return;
+
+    try {
+      setReconfirming(true);
+      await annualSurveysAPI.reconfirmSurvey(surveyId);
+      alert('GP Data reconfirmed successfully ✅');
+
+      // Refresh user data to update gp_data_status (and hide lock/banner)
+      await refreshMe();
+
+      // Optional: refresh surveys or analytics
+      fetchGpSurveys();
+    } catch (error) {
+      console.error('Reconfirmation failed:', error);
+      alert(error.response?.data?.detail || 'Reconfirmation failed. Please try again.');
+    } finally {
+      setReconfirming(false);
+    }
+  };
 
   // Fetch analytics data (state or district level)
   const fetchAnalytics = useCallback(async () => {
@@ -858,11 +952,10 @@ const VDOVillageMasterContent = () => {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Total funds sanctioned
+                {t('gpmaster:totalFundsSanctioned')}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_FUNDS_SANCTIONED" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -895,11 +988,10 @@ const VDOVillageMasterContent = () => {
                 color: '#6b7280',
                 margin: 0
               }}>
-                Total work order Amount
+                 {t('gpmaster:totalWorkOrderAmount')}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <InfoTooltip tooltipKey="TOTAL_WORK_ORDER_AMOUNT" size={16} color="#6b7280" />
-                <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
               </div>
             </div>
             <div style={{
@@ -912,131 +1004,10 @@ const VDOVillageMasterContent = () => {
             </div>
           </div>
 
-          {/* SBMG Target Achievement Rate */}
-          <div style={{
-            backgroundColor: 'white',
-            padding: '20px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '12px'
-            }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#6b7280',
-                margin: 0
-              }}>
-                SBMG Target Achievement Rate
-              </h3>
-              <InfoTooltip tooltipKey="SBMG_TARGET_ACHIEVEMENT_RATE" size={16} color="#6b7280" />
-            </div>
-            <div style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              color: analyticsError ? '#ef4444' : '#111827',
-              margin: 0
-            }}>
-              {loadingAnalytics ? '...' : `${getAnalyticsValue('sbmg_target_achievement_rate', 0)}%`}
-            </div>
-          </div>
+         
         </div>
 
-        {/* SBMG Target vs Achievement and Annual Overview Section */}
-        <div style={{
-          display: 'flex',
-          gap: '10px',
-          marginTop: '16px'
-        }}>
-          <divider />
-
-          {/* Annual Overview */}
-          <div style={{
-            flex: activeScope === 'GPs' ? 'none' : 1,
-            width: activeScope === 'GPs' ? '100%' : 'auto',
-            backgroundColor: 'white',
-            padding: '14px',
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0,
-              marginBottom: '2px'
-            }}>
-              Annual Overview
-            </h3>
-            <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
-            <divider />
-
-            {/* Metrics List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Fund Utilization rate */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingBottom: '16px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Fund Utilization rate</span>
-                  <InfoTooltip tooltipKey="FUND_UTILIZATION_RATE" size={14} color="#6b7280" />
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.fund_utilization_rate !== undefined && analyticsData?.annual_overview?.fund_utilization_rate !== null ? `${analyticsData.annual_overview.fund_utilization_rate}%` : analyticsData?.fund_utilization_rate !== undefined && analyticsData?.fund_utilization_rate !== null ? `${analyticsData.fund_utilization_rate}%` : '0%')}
-                </span>
-              </div>
-
-              {/* Average Cost Per Household */}
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                paddingBottom: '16px',
-                borderBottom: '1px solid #e5e7eb'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '16px', color: '#6b7280' }}>Average Cost Per Household(D2D)</span>
-                  <InfoTooltip tooltipKey="AVERAGE_COST_PER_HOUSEHOLD_D2D" size={14} color="#6b7280" />
-                </div>
-                <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                  {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.average_cost_per_household_d2d !== undefined && analyticsData?.annual_overview?.average_cost_per_household_d2d !== null ? `₹${formatNumber(analyticsData.annual_overview.average_cost_per_household_d2d)}` : '₹0')}
-                </span>
-              </div>
-
-              {/* Active Sanitation Bidders - Hidden in GP view */}
-              {activeScope !== 'GPs' && (
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px', color: '#6b7280' }}>Active Sanitation Bidders</span>
-                    <InfoTooltip tooltipKey="ACTIVE_SANITATION_BIDDERS" size={14} color="#6b7280" />
-                  </div>
-                  <span style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>
-                    {loadingAnalytics ? '...' : (analyticsData?.annual_overview?.active_sanitation_bidders !== undefined && analyticsData?.annual_overview?.active_sanitation_bidders !== null ? formatNumber(analyticsData.annual_overview.active_sanitation_bidders) : '0')}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+  
 
       </div>
 
@@ -1057,7 +1028,7 @@ const VDOVillageMasterContent = () => {
             color: '#111827',
             margin: '0 0 16px 0'
           }}>
-            Report
+              {t('table:report')}
           </h3>
 
           {/* Table */}
@@ -1069,31 +1040,32 @@ const VDOVillageMasterContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1fr 200px',
+              gridTemplateColumns: '120px 1fr 280px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
             }}>
+
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Year
+                 {t('table:year')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Master Data
+                {t('table:masterData')}
               </div>
               <div style={{
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                Action
+                 {t('table:action')}
               </div>
             </div>
 
@@ -1102,11 +1074,16 @@ const VDOVillageMasterContent = () => {
               const survey = gpSurveyList[0];
               const fyLabel = fyList.find((f) => f.id === selectedFyId)?.fy || selectedFyId || '—';
               const hasData = !!survey;
-              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? 'Available' : 'Not Available');
+              const masterDataLabel = loadingGpSurvey ? '...' : (hasData ? t('table:available') : t('table:notAvailable'));
+
+              // Check if reconfirmation is needed for this specific survey (current year)
+              const isCurrentYear = fyList[0]?.id === selectedFyId;
+              const needsReconfirm = isCurrentYear && hasData && user?.gp_data_status?.is_overdue;
+
               return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '120px 1fr 200px',
+                  gridTemplateColumns: '120px 1fr 280px',
                   padding: '12px 16px',
                   alignItems: 'center',
                   borderBottom: '1px solid #f3f4f6'
@@ -1116,6 +1093,19 @@ const VDOVillageMasterContent = () => {
                   </div>
                   <div style={{ fontSize: '14px', color: hasData ? '#10b981' : '#6b7280', fontWeight: '600' }}>
                     {masterDataLabel}
+                    {needsReconfirm && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '11px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        fontWeight: '500'
+                      }}>
+                        Reconfirmation Required
+                      </span>
+                    )}
                   </div>
                   <div style={{
                     display: 'flex',
@@ -1125,6 +1115,30 @@ const VDOVillageMasterContent = () => {
 
                     {hasData ? (
                       <>
+                        {/* RECONFIRM BUTTON */}
+                        {(needsReconfirm || (isCurrentYear && user?.gp_data_status)) && (
+                          <button
+                            onClick={() => handleReconfirm(survey.id)}
+                            disabled={reconfirming}
+                            title="Verify & Reconfirm GP Data"
+                            style={{
+                              padding: '6px 10px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '8px',
+                              cursor: reconfirming ? 'not-allowed' : 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              boxShadow: needsReconfirm ? '0 0 0 2px rgba(16, 185, 129, 0.4)' : 'none'
+                            }}
+                          >
+                            {reconfirming ? '...' : <><Check size={14} /> Reconfirm</>}
+                          </button>
+                        )}
                         {/* EDIT BUTTON */}
                         <button
                           onClick={() => {
@@ -1175,7 +1189,7 @@ const VDOVillageMasterContent = () => {
                             justifyContent: 'center'
                           }}
                         >
-                          View
+                           {t('table:view')}
                         </button>
                       </>
                     ) : (

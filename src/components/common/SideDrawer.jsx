@@ -5,10 +5,12 @@ const SlideDrawer = ({
     trigger,
     open: controlledOpen,
     onClose,
+    onBack,
+    showBack = false,
     title,
     children,
     clickFunction,
-    width = "md:w-3/4"
+    width = "md:w-[85%]"
 }) => {
 
     const [internalOpen, setInternalOpen] = useState(false);
@@ -32,10 +34,12 @@ const SlideDrawer = ({
         setOpen(true);
         clickFunction?.();
     };
-
     const handleClose = () => {
-        setOpen(false);
-        onClose?.();
+        if (isControlled) {
+            onClose?.();
+        } else {
+            setInternalOpen(false); // 🔥 district drawer bhi close hoga
+        }
     };
 
     return (
@@ -60,8 +64,25 @@ const SlideDrawer = ({
         ${open ? "translate-x-0" : "translate-x-full"}`}
             >
                 {/* HEADER */}
-                <div className="flex items-center justify-between !p-4">
-                    <h2 className="font-bold text-gray-800">{title}</h2>
+                {/* HEADER */}
+                <div className="flex items-center justify-between border-b border-gray-200 !p-4">
+
+                    <div className="flex items-center gap-3">
+                        {showBack && (
+                            <button
+                                onClick={onBack}
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+                            >
+                                ← Back
+                            </button>
+                        )}
+
+
+                    </div>
+                    <h2 className="font-bold text-gray-800">
+                        {title}
+                    </h2>
+
                     <button className="cursor-pointer" onClick={handleClose}>
                         <X />
                     </button>
@@ -69,7 +90,9 @@ const SlideDrawer = ({
 
                 {/* BODY */}
                 <div className="h-[calc(100vh-60px)] overflow-y-auto !p-4">
-                    {children}
+                    {typeof children === "function"
+                        ? children({ closeDrawer: handleClose })
+                        : children}
                 </div>
             </aside>
         </>

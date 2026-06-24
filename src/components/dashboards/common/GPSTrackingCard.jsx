@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const formatNumber = (n) => {
   if (typeof n === 'number') return n.toLocaleString();
@@ -19,10 +20,11 @@ const GPSTrackingCard = ({
   loading = false,
   error = null
 }) => {
+  const { t } = useTranslation(['dashboard', 'common']);
   const metrics = [
-    { value: formatNumber(total), label: 'Total', color: '#3b82f6' },
-    { value: formatNumber(running), label: 'Running', color: '#22c55e' },
-    { value: formatNumber(stopped), label: 'Stopped', color: '#ef4444' }
+    { value: formatNumber(total), label: t('total'), color: '#3b82f6' },
+    { value: formatNumber(running), label: t('running'), color: '#22c55e' },
+    { value: formatNumber(stopped), label: t('stopped'), color: '#ef4444' }
   ];
 
   return (
@@ -39,7 +41,7 @@ const GPSTrackingCard = ({
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>GPS Tracking</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>{t('common:gpsTracking')}</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         {/* <button

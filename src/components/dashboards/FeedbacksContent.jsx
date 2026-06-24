@@ -4,6 +4,7 @@ import Chart from 'react-apexcharts';
 import { useAuth } from '../../context/AuthContext';
 import { feedbackAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const FeedbacksContent = () => {
   const { user } = useAuth();
@@ -12,6 +13,9 @@ const FeedbacksContent = () => {
   const [feedback, setFeedback] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('All');
+
+  // Language 
+  const { t } = useTranslation(['common', 'noFB', 'table'])
 
   // Stats state
   const [stats, setStats] = useState(null);
@@ -157,7 +161,7 @@ const FeedbacksContent = () => {
   const ratingDistribution = useMemo(() => {
     if (!feedbacks || feedbacks.length === 0) {
       return [
-        { label: '5 Star', value: 0, color: '#10B981' },
+        { label: `5 Star`, value: 0, color: '#10B981' },
         { label: '4 Star', value: 0, color: '#34D399' },
         { label: '3 Star', value: 0, color: '#FBBF24' },
         { label: '2 Star', value: 0, color: '#F97316' },
@@ -182,7 +186,7 @@ const FeedbacksContent = () => {
     };
 
     return [5, 4, 3, 2, 1].map(rating => ({
-      label: `${rating} Star`,
+      label: `${rating} ${t('noFB:star')}`,
       value: total > 0 ? Math.round((ratingCounts[rating] / total) * 100) : 0,
       color: colors[rating]
     }));
@@ -216,12 +220,12 @@ const FeedbacksContent = () => {
 
     return [
       {
-        label: 'Authority Users',
+        label: t('noFB:authorityUsers'),
         value: total > 0 ? Math.round((authUserCount / total) * 100) : 0,
         color: colors.auth
       },
       {
-        label: 'Public Users',
+        label: t('noFB:publicUsers'),
         value: total > 0 ? Math.round((publicUserCount / total) * 100) : 0,
         color: colors.public
       }
@@ -522,7 +526,7 @@ const FeedbacksContent = () => {
         >
           {/* Overview Heading */}
           <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, }}>
-            Overview
+            {t('common:overview')}
           </h2>
           <button
             onClick={handleOpenModal}
@@ -540,17 +544,17 @@ const FeedbacksContent = () => {
             }}
           >
             {loadingMyFeedback
-              ? 'Loading...'
+              ? t('noFB:loading')
               : myFeedback
-                ? 'Change Review'
-                : 'Give Review'}
+                ? t('noFB:changeReview')
+                : t('noFB:giveReview')}
           </button>
         </div>
 
 
         {loadingStats ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>Loading statistics...</p>
+            <p style={{ color: '#6B7280' }}>{(t('noFB:loadingStatistics'))}</p>
           </div>
         ) : statsError ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -566,7 +570,7 @@ const FeedbacksContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Average Rating</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:averageRating')}</h3>
                 <InfoTooltip
                   tooltipKey="AVERAGE_RATING"
                   size={16}
@@ -607,7 +611,7 @@ const FeedbacksContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Total Ratings</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:totalRatings')}</h3>
                 <InfoTooltip
                   tooltipKey="TOTAL_RATINGS"
                   size={16}
@@ -653,7 +657,7 @@ const FeedbacksContent = () => {
         marginRight: '16px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Reviews</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:reviews')}</h3>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
@@ -662,7 +666,7 @@ const FeedbacksContent = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reviews..."
+                placeholder={t('noFB:searchReviews')}
                 style={{
                   padding: '8px 12px 8px 36px',
                   border: '1px solid #D1D5DB',
@@ -689,9 +693,9 @@ const FeedbacksContent = () => {
                   outline: 'none'
                 }}
               >
-                <option value="All">All</option>
-                <option value="AUTH_USER">Authority Users</option>
-                <option value="PUBLIC_USER">Public Users</option>
+                <option value="All">{t('noFB:all')}</option>
+                <option value="AUTH_USER">{t('noFB:authorityUsers')}</option>
+                <option value="PUBLIC_USER">{t('noFB:publicUsers')}</option>
               </select>
               <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9CA3AF' }} />
             </div>
@@ -701,7 +705,7 @@ const FeedbacksContent = () => {
         {/* Table */}
         {loadingFeedbacks ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>Loading reviews...</p>
+            <p style={{ color: '#6B7280' }}>{t('noFB:loadingReviews')}</p>
           </div>
         ) : feedbacksError ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -709,7 +713,7 @@ const FeedbacksContent = () => {
           </div>
         ) : filteredReviews.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>No reviews found</p>
+            <p style={{ color: '#6B7280' }}>{t('noFB:noReviewsFound')}</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -721,7 +725,7 @@ const FeedbacksContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      User
+                      {t('noFB:user')}
                       <SortIcon col="user" />
                     </div>
                   </th>
@@ -730,7 +734,7 @@ const FeedbacksContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Review
+                      {t('noFB:reviews')}
                       <SortIcon col="review" />
                     </div>
                   </th>
@@ -739,7 +743,7 @@ const FeedbacksContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Rating
+                      {t('noFB:rating')}
                       <SortIcon col="rating" />
                     </div>
                   </th>
@@ -755,7 +759,7 @@ const FeedbacksContent = () => {
                       {review.comment || '-'}
                     </td>
                     <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
-                      {review.rating} Star
+                      {review.rating} {t('noFB:star')}
                     </td>
                   </tr>
                 ))}
@@ -791,7 +795,7 @@ const FeedbacksContent = () => {
               {/* Modal Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                  {myFeedback ? 'Change Review' : 'My Review'}
+                  {myFeedback ? (t('noFB:changeReview')) :  (t('noFB:myReview'))}
                 </h2>
                 <button
                   onClick={handleCloseModal}
@@ -810,13 +814,13 @@ const FeedbacksContent = () => {
 
               {loadingMyFeedback ? (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
-                  <p style={{ color: '#6B7280' }}>Loading...</p>
+                  <p style={{ color: '#6B7280' }}> {(t('noFB:loading'))}  </p>
                 </div>
               ) : (
                 <>
                   {/* Question */}
                   <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
-                    How was your experience with the app?
+                   {(t('noFB:appExperienceQuestion'))}
                   </p>
 
                   {/* Emoji Rating */}
@@ -845,13 +849,13 @@ const FeedbacksContent = () => {
                     ))}
                   </div>
                   <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
-                    {selectedRating} Star
+                    {selectedRating} {(t('noFB:star'))}
                   </p>
 
                   {/* Feedback Input */}
                   <div style={{ marginBottom: '24px' }}>
                     <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                      Feedback
+                      {(t('noFB:feedback'))}
                     </label>
                     <textarea
                       value={feedback}
@@ -896,7 +900,7 @@ const FeedbacksContent = () => {
                         opacity: savingFeedback ? 0.5 : 1
                       }}
                     >
-                      Cancel
+                      {(t('noFB:cancel'))}
                     </button>
                     <button
                       onClick={handleSaveReview}
@@ -912,7 +916,7 @@ const FeedbacksContent = () => {
                         cursor: savingFeedback ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      {savingFeedback ? 'Saving...' : 'Save'}
+                      {savingFeedback ? (t('noFB:saving')) : (t('noFB:save'))}
                     </button>
                   </div>
                 </>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const accentColor = '#6B21A8';
 const labelColor = accentColor;
@@ -17,13 +18,16 @@ const ContractorDetailsCard = ({
   loading = false,
   error = null
 }) => {
+
+   const { t } = useTranslation(['dashboard', 'common']);
+
   const percentStr = typeof dataFilledPercent === 'number'
     ? `${dataFilledPercent.toFixed(2)}%`
     : String(dataFilledPercent);
 
   const metrics = [
-    { value: percentStr, label: 'Contractor Data Filled' },
-    { value: dataFilledCovered, label: 'Data Filled covered' }
+    { value: percentStr, label: t('contractorDataFilled') },
+    { value: dataFilledCovered, label: t('dataFilledCovered') }
   ];
 
   return (
@@ -41,7 +45,7 @@ const ContractorDetailsCard = ({
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: accentColor, margin: 0 }}>Contractor Details</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: accentColor, margin: 0 }}>{t('contractorDetails')}</h3>
           <InfoTooltip text={tooltipText} size={14} color={accentColor} />
         </div>
         {/* <button

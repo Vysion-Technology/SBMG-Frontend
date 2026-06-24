@@ -128,8 +128,21 @@ export const AuthProvider = ({ children }) => {
     clearStoredAuth();
   };
 
+  const refreshMe = async () => {
+    try {
+      const meResponse = await authAPI.getMe();
+      const userData = meResponse.data;
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Refresh user data error:', error);
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, role, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, role, login, logout, refreshMe, loading }}>
       {children}
     </AuthContext.Provider>
   );

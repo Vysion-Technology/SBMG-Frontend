@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import apiClient from '../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 
 const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min }) => (
@@ -27,6 +28,10 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabl
 
 
 const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) => {
+
+
+    const { t } = useTranslation(['table', 'complaints', 'common']);
+
 
     const [agencies, setAgencies] = useState([]);
     const [error, setError] = useState('')
@@ -322,12 +327,12 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
 
 
     return (
-        <div className='fixed top-0 left-0 bg-black/50 w-full h-full '>
+        <div className='fixed top-0 left-0 bg-black/50 w-full h-full z-[9999] '>
 
             <div className="w-[700px] fixed top-1/2 left-1/2 -translate-x-1/2 z-10 -translate-y-1/2 h-[500px] bg-white p-9 rounded-2xl ">
                 {/* header */}
                 <div className='p-4! border-b border-gray-300 flex justify-between '>
-                    <h1 className='text-2xl font-semibold'>{editData ? 'Edit' : 'Add'} Contractor Details</h1>
+                    <h1 className='text-2xl font-semibold'>{editData ? (t('table:edit')) : (t('table:add'))} {t('common:contractorDetails')}</h1>
                     <button
                         onClick={onClose}
                         className='text-2xl cursor-pointer'
@@ -339,7 +344,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                     <div className='flex justify-between gap-5 py-2! px-4! w-full'>
                         <div className='flex flex-col  gap-5 w-1/2'>
                             <div className='flex flex-col gap-1 w-full'>
-                                <label htmlFor="">Name  </label>
+                                <label htmlFor="">{t('table:name')}  </label>
                                 <input
                                     autoComplete='off'
                                     className='border-[#d1d5db] border  p-1! w-full text-md rounded '
@@ -353,7 +358,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                 />
                             </div>
                             <div className='flex flex-col gap-1 '>
-                                <label htmlFor="">Work order amount   </label>
+                                <label htmlFor="">{t('table:workOrderAmount')}</label>
 
                                 <input
                                     type="text"
@@ -365,7 +370,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                         const value = e.target.value.replace(/\D/g, "");
                                         setFormData({ ...formData, amount: value });
                                     }}
-                                    placeholder="Enter amount"
+                                    placeholder={t('table:workOrderAmount')}
                                     className="border border-[#d1d5db] p-1! w-full rounded"
                                 />
 
@@ -390,7 +395,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                         }}
                                         className='uppercase'
                                     >
-                                        + ADD Agency
+                                        + {t('table:addAgency')}
                                     </button>
                                 </div>
                                 <div style={{ position: "relative", width: "100%" }}>
@@ -495,7 +500,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                             </div> */}
 
                             <div className='flex flex-col gap-1 w-full'>
-                                <label htmlFor="">Frequency of work </label>
+                                <label htmlFor="">{t('table:frequencyOfWork')}</label>
                                 <select
                                     style={{
                                         padding: '8px 10px',
@@ -527,7 +532,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                         </div>
                         <div className='flex flex-col gap-5  w-1/2'>
                             <div className='flex flex-col gap-1  w-full'>
-                                <label htmlFor="">Phone Number  </label>
+                                <label htmlFor=""> {t('table:contactNumber')} </label>
                                 <input
                                     type="text"
                                     name="person_phone"
@@ -542,7 +547,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
 
                             </div>
                             <div className='flex flex-col gap-1  w-full'>
-                                <label htmlFor="">Work order date  </label>
+                                <label htmlFor="">{t('table:workOrderDate')}  </label>
                                 <input
                                     name='contract_start_date'
                                     className='border-[#d1d5db] border p-1! text-md  rounded w-full '
@@ -555,7 +560,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                             </div>
 
                             <div className='flex flex-col gap-1 w-full'>
-                                <label htmlFor="">Duration of work   </label>
+                                <label htmlFor="">{t('table:durationOfWork')}   </label>
                                 <select
                                     style={{
                                         padding: "8px 10px",
@@ -589,7 +594,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                         <span className='text-sm absolute -top-2 left-5 text-red-500  p-1!'>{error}</span>
 
                         <button disabled={saving} type='submit' className='w-full rounded p-2! uppercase text-white bg-[#009B56] cursor-pointer transition hover:bg-[#168e58]'>
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? (t('table:saving')) : (t('table:save'))}
                         </button>
                     </div>
                 </form>
@@ -621,7 +626,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                             boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
                         }}
                     >
-                        <h3 style={{ marginBottom: "15px" }}>Create Agency</h3>
+                        <h3 style={{ marginBottom: "15px" }}>{t('table:createAgency')}</h3>
 
                         {errorInagency && !loading && (
                             <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', marginBottom: '16px' }}>
@@ -630,7 +635,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                         )}
 
                         <Input
-                            label="Agency Name"
+                            label={t('table:agencyName')}
                             value={agencyForm.name}
                             onChange={(v) =>
                                 setAgencyForm((prev) => ({ ...prev, name: v }))
@@ -638,7 +643,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                         />
 
                         <Input
-                            label="Email"
+                            label={t('table:email')}
                             value={agencyForm.email}
                             onChange={(v) =>
                                 setAgencyForm((prev) => ({ ...prev, email: v }))
@@ -646,7 +651,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                         />
 
                         <Input
-                            label="Contact Number"
+                            label={t('table:contactNumber')}
                             value={agencyForm.contact_number}
                             onChange={(v) =>
                                 setAgencyForm((prev) => ({
@@ -656,7 +661,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                             }
                         />
                         <Input
-                            label="Address"
+                            label={t('table:address')}
                             value={agencyForm.address}
                             onChange={(v) =>
                                 setAgencyForm((prev) => ({ ...prev, address: v }))
@@ -674,7 +679,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                     cursor: "pointer"
                                 }}
                             >
-                                Cancel
+                                {t('table:cancel')}
                             </button>
 
                             <button
@@ -689,7 +694,7 @@ const EditContractorDetails = ({ isOpen, onClose, editData, onsuccess, gpId }) =
                                     cursor: "pointer"
                                 }}
                             >
-                                {loading ? "Saving..." : "Save"}
+                                {loading ? (t('table:saving')) : (t('table:save'))}
                             </button>
                         </div>
                     </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import nodataImage from '../../../assets/images/nodata.png';
+import { useTranslation } from 'react-i18next';
 
 /**
  * NoDataFound Component
@@ -12,7 +13,12 @@ import nodataImage from '../../../assets/images/nodata.png';
  * @param {string} props.size - Size variant: 'small', 'medium', or 'large' (defaults to 'medium')
  * @param {Object} props.style - Additional inline styles
  */
-const NoDataFound = ({ message = "No data was found", size = "medium", style = {} }) => {
+
+const NoDataFound = ({ message, size = "medium", style = {} }) => {
+  const { t } = useTranslation('cscCleaning');
+
+  const displayMessage = message || t('csc:noDataFound');
+
   const sizes = {
     small: {
       imageWidth: '190px',
@@ -44,9 +50,9 @@ const NoDataFound = ({ message = "No data was found", size = "medium", style = {
       width: '100%',
       ...style
     }}>
-      <img 
-        src={nodataImage} 
-        alt="No data found" 
+      <img
+        src={nodataImage}
+        alt="No data found"
         style={{
           width: sizeConfig.imageWidth,
           height: 'auto',
@@ -60,7 +66,7 @@ const NoDataFound = ({ message = "No data was found", size = "medium", style = {
         fontWeight: '500',
         margin: 0
       }}>
-        {message}
+        {displayMessage}
       </p>
     </div>
   );

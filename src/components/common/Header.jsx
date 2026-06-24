@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LayoutDashboard, Loader2, LogOut, Menu, Search, User } from 'lucide-react';
+import { Bell, ChevronDown, LayoutDashboard, Loader2, LogOut, Menu, Search, User, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,8 @@ import { useLocation } from '../../context/LocationContext';
 import { useVDOLocation } from '../../context/VDOLocationContext';
 import apiClient from '../../services/api';
 import { ROLES } from '../../utils/roleConfig';
+import { useTranslation } from "react-i18next";
+import Profile from '../dashboards/common/Profile';
 
 const buildSubtitle = (typeLabel, meta) => {
   if (typeLabel === 'District') {
@@ -30,7 +32,48 @@ const buildSubtitle = (typeLabel, meta) => {
   return typeLabel;
 };
 
-const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, pageTitle = 'Dashboard', isMobile = false }) => {
+
+const IndiaFlag = ({ size = 20 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 20 20"
+    style={{ borderRadius: "50%", display: "block" }}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Saffron */}
+    <rect width="20" height="6.66" y="0" fill="#FF9933" />
+    {/* White */}
+    <rect width="20" height="6.66" y="6.66" fill="#FFFFFF" />
+    {/* Green */}
+    <rect width="20" height="6.68" y="13.32" fill="#138808" />
+
+    {/* Ashoka Chakra (Blue wheel) */}
+    <circle cx="10" cy="10" r="2.8" fill="none" stroke="#000080" strokeWidth="0.5" />
+    <circle cx="10" cy="10" r="0.5" fill="#000080" />
+
+    {/* 24 spokes */}
+    {Array.from({ length: 24 }).map((_, i) => {
+      const angle = (i * 360) / 24;
+      const rad = (angle * Math.PI) / 180;
+      const x1 = 10 + 0.5 * Math.cos(rad);
+      const y1 = 10 + 0.5 * Math.sin(rad);
+      const x2 = 10 + 2.8 * Math.cos(rad);
+      const y2 = 10 + 2.8 * Math.sin(rad);
+      return (
+        <line
+          key={i}
+          x1={x1} y1={y1}
+          x2={x2} y2={y2}
+          stroke="#000080"
+          strokeWidth="0.4"
+        />
+      );
+    })}
+  </svg>
+);
+
+const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, pageTitle = 'dashboard', isMobile = false }) => {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
   const isCEO = role === ROLES.CEO;
@@ -87,6 +130,17 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
   const [searchError, setSearchError] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+
+  const [showProfile, setShowProfile] = useState(false)
+
+  // Language selection
+  const { i18n, t } = useTranslation();
+
+
+  const changeLanguage = (lang) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem("language", lang);
+  };
 
   const searchTimeoutRef = useRef(null);
   const activeRequestRef = useRef(0);
@@ -1020,7 +1074,7 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
               ref={inputRef}
               type="text"
               value={searchTerm}
-              placeholder={isBDO ? "Search GPs" : isCEO ? "Search blocks or GPs" : "Search districts, blocks, or GPs"}
+              placeholder={isBDO ? t("searchGps") : isCEO ? t("searchBlocksOrGps") : t("searchDistrictsBlocksOrGps")}
               onChange={handleInputChange}
               onFocus={handleInputFocus}
               onKeyDown={handleKeyDown}
@@ -1148,6 +1202,87 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
             )}
           </div>
         )}
+
+        {/* Language Change */}
+        <div
+          onClick={() => changeLanguage(i18n.language === "en" ? "hi" : "en")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            width: "90px",
+            height: "40px",
+            borderRadius: "22px",
+            background: "#e0e0e0",
+            boxShadow: "inset 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 3px rgba(0,0,0,0.15)",
+            cursor: "pointer",
+            position: "relative",
+            padding: "4px",
+            boxSizing: "border-box",
+            userSelect: "none"
+          }}
+        >
+          {/* Sliding pill */}
+          <div
+            style={{
+              position: "absolute",
+              width: "39px",
+              height: "32px",
+              borderRadius: "18px",
+              background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1)",
+              transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              left: i18n.language === "en" ? "6px" : "45px",
+              top: "4px",
+              zIndex: 1
+            }}
+          />
+
+          {/* EN side */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+              width: "40px",
+              height: "30px",
+              borderRadius: "18px",
+              position: "relative",
+              zIndex: 2,
+              transition: "opacity 0.3s"
+            }}
+          >
+            {i18n.language === "en" ? (
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", letterSpacing: "0.5px" }}>EN</span>
+            ) : (
+              <span style={{ fontSize: "10px", fontWeight: "600", color: "#999", letterSpacing: "0.5px" }}>EN</span>
+            )}
+          </div>
+
+          {/* HI side */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "4px",
+              width: "45px",
+              height: "30px",
+              borderRadius: "18px",
+              position: "relative",
+              zIndex: 2,
+              transition: "opacity 0.3s"
+            }}
+          >
+            {i18n.language === "hi" ? (
+              <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", letterSpacing: "0.5px" }}>HI</span>
+            ) : (
+              <span style={{ fontSize: "10px", fontWeight: "600", color: "#999", letterSpacing: "0.5px" }}>HI</span>
+            )}
+          </div>
+        </div>
+
+
         {/* Notification bell - Separate container */}
         <div style={{
           backgroundColor: '#f3f4f6',
@@ -1321,6 +1456,37 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                 </div>
               </div>
 
+              <button
+                onClick={() => setShowProfile(true)}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  border: 'none',
+                  backgroundColor: 'white',
+                  textAlign: 'left',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                }}
+              >
+                <UserRound style={{ width: '20px', height: '20px', color: 'black' }} />
+                <span style={{
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: 'black'
+                }}>
+                  {t('profile')}
+                </span>
+              </button>
+
               {/* Logout Button */}
               <button
                 onClick={handleLogout}
@@ -1349,12 +1515,17 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
                   fontWeight: '500',
                   color: '#ef4444'
                 }}>
-                  Logout
+                  {t('logOut')}
                 </span>
               </button>
             </div>
           )}
         </div>
+
+        <Profile
+          open={showProfile}
+          onClose={() => setShowProfile(false)}
+        />
       </div>
     </header>
   );

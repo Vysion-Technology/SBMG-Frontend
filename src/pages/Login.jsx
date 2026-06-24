@@ -273,7 +273,7 @@ const Login = () => {
                       <img
                         src={minister2}
                         alt="Minister 2"
-                        className="h-[70px] md:h-[110px] lg:h-[125px] w-auto object-cover"
+                        className="h-[70px] md:h-[110px] lg:h-[120px] w-auto object-cover"
                       />
                     </div>
 
@@ -297,13 +297,13 @@ const Login = () => {
 
 
                 {/* Right Side - Ministers 3 */}
-                <div className="absolute flex flex-col gap-10 right-[-10px] z-10 md:right-[-5px] lg:right-[65px] top-[-70px]  gap-0 items-end px-1 md:px-2">
+                <div className="absolute flex flex-col gap-10 right-[-10px] z-10 md:right-[-5px] lg:right-[85px] top-[-70px]  gap-0 items-end px-1 md:px-2">
                   <div className='flex flex-col gap-10'>
-                    <div className="  relative flex justify-center items-end" style={{ position: 'relative', bottom: '-40px' }}>
+                    <div className="  relative flex justify-center items-end" style={{ position: 'relative', bottom: '-45px' }}>
                       <img
                         src={minister3}
                         alt="Ministers 3 and 4"
-                        className="h-[70px] md:h-[110px] lg:h-[105px] w-auto object-cover"
+                        className="h-[70px] md:h-[110px] lg:h-[100px] w-auto object-cover"
                       />
                     </div>
                     {/* Minister 3 Name */}
@@ -319,7 +319,7 @@ const Login = () => {
                 </div>
 
                 {/* Minister 4*/}
-                <div className="absolute f right-[-10px] md:right-[-4px] lg:right-[1px] top-[-60px] flex gap-0 items-end px-1 md:px-2">
+                <div className="absolute f right-[-10px] md:right-[-4px] lg:right-[8px] top-[-60px] flex gap-0 items-end px-1 md:px-2">
                   <div className='lex flex-col gap-10'>
                     <div className=" relative flex justify-center items-end" style={{ position: 'relative', bottom: '-40px' }}>
                       <img
@@ -624,7 +624,7 @@ const Login = () => {
                 fontWeight: '500',
                 margin: 0
               }}>
-                Call at <a href="tel:0141-2204880">0141-2204880</a> for rural sanitation complaints
+                Call at <a href="tel:18001802310">18001802310</a> for rural sanitation complaints
               </p>
             </div>
 

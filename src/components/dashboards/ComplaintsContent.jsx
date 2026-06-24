@@ -5,7 +5,10 @@ import { useLocation } from '../../context/LocationContext';
 import apiClient, { noticesAPI } from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
 import ComplaintDetailsPopup from './common/ComplaintDetailsPopup';
+import SLABadge from './common/SLABadge';
 import NoDataFound from './common/NoDataFound';
+import { u } from 'framer-motion/client';
+import { useTranslation } from 'react-i18next';
 
 const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Shared location state via context
@@ -33,6 +36,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     trackDropdownChange: contextTrackDropdownChange,
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useLocation();
+
+  const { t } = useTranslation(['table', 'complaints', 'common']);
 
   const trackTabChange = useCallback((scope) => {
     console.log('Tab changed to:', scope);
@@ -81,6 +86,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
 
   // Raise Complaint Modal state
   const [showComplaintModal, setShowComplaintModal] = useState(false);
@@ -171,7 +177,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Sorting 
   const [historySortOrder, setHistorySortOrder] = useState('asc'); // 'asc' or 'desc'
   const [sortConfig, setSortConfig] = useState({
-    key: null,
+    key: "name",
     direction: 'asc'
   });
 
@@ -288,6 +294,16 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       });
     }
   }, [loadingAnalytics, loadingComplaints, complaintsListData]);
+
+  // Predefined date ranges
+  const dateRanges = [
+    { label: 'Year', value: 'year' },
+    { label: 'Quarter', value: 'quarter' },
+    { label: 'Month', value: 'month' },
+    { label: 'Week', value: 'week' },
+    { label: 'Today', value: 'today' },
+    { label: 'Custom', value: 'custom' }
+  ];
 
   // Months array
   const months = [
@@ -452,6 +468,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Open notice modal with complaint data
   const handleOpenNoticeModal = (complaint) => {
     setSelectedComplaintForNotice(complaint);
+    console.log("Complaint dataaa", complaint)
 
     // For complaints module, recipient is always VDO
     const recipient = 'VDO';
@@ -1587,12 +1604,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     return [
       {
-        title: 'Total Complaints',
+        title: t('complaints:totalComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
         icon: List,
         color: '#9ca3af',
         trend: 'up',
-        tooltipText: 'Total complaints logged for the selected scope and period.',
+        tooltipText: t('complaints:totalComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -1642,12 +1659,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         }
       },
       {
-        title: 'Open Complaints',
+        title: t('complaints:openComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.open),
         icon: List,
         color: '#ef4444',
         trend: 'up',
-        tooltipText: 'Complaints that are currently open and awaiting action.',
+        tooltipText: t('complaints:openComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -1680,12 +1697,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
           }
         }
       }, {
-        title: 'Resolved',
+        title: t('complaints:resolved'),
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
-        tooltipText: 'Complaints resolved after action was taken.',
+        tooltipText: t('complaints:resolvedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -1719,12 +1736,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         }
       },
       {
-        title: 'Verified',
+        title: t('complaints:verify'),
         value: loadingAnalytics ? '...' : formatNumber(counts.verified),
         icon: List,
         color: '#f59e0b',
         trend: 'up',
-        tooltipText: 'Complaints verified by the VDO.',
+        tooltipText: t('complaints:verifiedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1759,12 +1776,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       },
 
       {
-        title: 'Disposed',
+        title: t('complaints:disposed'),
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
         icon: List,
         color: '#14b8a6',
         trend: 'up',
-        tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
+        tooltipText: t('complaints:disposedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -1927,10 +1944,14 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       village: complaint.village_name,
       block: complaint.block_name,
       district: complaint.district_name,
+      district_id: complaint.district_id,
+      block_id: complaint.block_id,
+      village_id: complaint.village_id,
       lat: complaint.lat,
       long: complaint.long,
       media: complaint.media_urls || [],
-      comments: complaint.comments || []
+      comments: complaint.comments || [],
+      last_sla_breach_level: complaint.last_sla_breach_level || null
     };
   });
 
@@ -1977,6 +1998,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       ? (complaint.status?.toUpperCase() === normalizedFilterStatus)
       : true; // if no filter selected, show all
 
+    const matchesSlaFilter = showOnlyEscalated
+      ? complaint.last_sla_breach_level === 'DISTRICT'
+      : true;
+
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
@@ -1991,7 +2016,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       (complaint.block || '').toLowerCase().includes(q) ||
       (complaint.district || '').toLowerCase().includes(q);
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSlaFilter && matchesSearch;
   });
 
   const sortedComplaints = [...filteredComplaints].sort((a, b) => {
@@ -1999,6 +2024,19 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
+
+    // ✅ ESCALATION SORT
+    if (sortConfig.key === 'last_sla_breach_level') {
+      const getEscalationWeight = (level) => {
+        if (level === 'DISTRICT') return 3;
+        if (level === 'BLOCK') return 2;
+        if (level === 'GP') return 1;
+        return 0;
+      };
+      const wA = getEscalationWeight(a.last_sla_breach_level);
+      const wB = getEscalationWeight(b.last_sla_breach_level);
+      return sortConfig.direction === 'asc' ? wA - wB : wB - wA;
+    }
 
     // ✅ STATUS SORT FIXED
     if (sortConfig.key === 'statusDisplay') {
@@ -2337,15 +2375,15 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
-            <span style={{
+            {/* <span style={{
               fontSize: '14px',
               color: '#6b7280',
               margin: 0
             }}>
               • {getDateDisplayText()}
-            </span>
+            </span> */}
           </div>
           <div
             onClick={handleCalendarClick}
@@ -2731,7 +2769,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               color: '#111827',
               margin: 0
             }}>
-              Complaints
+              {t('common:complaints')}
             </h2>
             {viewingGPsForBlock && !viewingGPComplaints && (
               <span style={{
@@ -2758,43 +2796,14 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               </span>
             )}
           </div>
+          {/* back buttons */}
           {viewingGPComplaints && (
             <button
               onClick={() => {
                 setSelectedGPForComplaints(null);
                 setViewingGPComplaints(false);
+                setViewingGPsForBlock(true);
                 // Update breadcrumb - back to GPs list level
-                setActiveScope('GPs');
-              }}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-            >
-              ← Back to GPs
-            </button>
-          )}
-          {viewingGPsForBlock && !viewingGPComplaints && (
-            <button
-              onClick={() => {
-                setViewingGPsForBlock(false);
-                setSelectedBlockForGPs(null);
-                setGpsSummaryData([]);
-                setViewingBlocksForDistrict(true);
-                // Refetch blocks listing
-                if (selectedDistrictForBlocks) {
-                  fetchBlocksSummaryData(selectedDistrictForBlocks);
-                }
-                // Update breadcrumb - back to blocks level (keep block selected)
                 setActiveScope('Blocks');
               }}
               style={{
@@ -2811,7 +2820,39 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              ← Back to Blocks
+              ←  {t('table:backToGPs')}
+            </button>
+          )}
+          {viewingGPsForBlock && !viewingGPComplaints && (
+            <button
+              onClick={() => {
+                setViewingGPsForBlock(false);
+                setSelectedBlockForGPs(null);
+                setGpsSummaryData([]);
+                setViewingBlocksForDistrict(true);
+                // Refetch blocks listing
+                if (selectedDistrictForBlocks) {
+                  fetchBlocksSummaryData(selectedDistrictForBlocks);
+                }
+                // Update breadcrumb - back to districts level to show blocks listing
+                setActiveScope('Districts');
+                setSelectedBlockId(null);
+              }}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+            >
+              ← {t('table:backToBlocks')}
             </button>
           )}
           {viewingBlocksForDistrict && !viewingGPsForBlock && (
@@ -2839,9 +2880,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               onMouseEnter={(e) => e.target.style.backgroundColor = '#e5e7eb'}
               onMouseLeave={(e) => e.target.style.backgroundColor = '#f3f4f6'}
             >
-              ← Back to Districts
+              ← {t('table:backToDistricts')}
             </button>
           )}
+          {/* back buttons close */}
         </div>
 
         {/* District Table or GP Complaints Table */}
@@ -2874,7 +2916,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Complaint ID
+                      {t('table:complaintId')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2883,7 +2925,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Complaint Type
+                      {t('table:complaintType')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2892,7 +2934,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Status
+                      {t('table:status')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2901,7 +2943,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Created Date
+                      {t('table:createdDate')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -2910,7 +2952,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Resolved Date
+                      {t('table:resolvedDate')}
                     </th>
                   </>
                 ) : (
@@ -2929,7 +2971,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         gap: '8px',
 
                       }}>
-                        {viewingGPsForBlock ? `GP Name (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `Block Name (${blocksSummaryData.length})` : `District Name (${districtSummaryData.length})`}
+                        {viewingGPsForBlock ? `${t('table:gpName')} (${gpsSummaryData.length})` : viewingBlocksForDistrict ? `${t('table:blockName')} (${blocksSummaryData.length})` : `${t('table:districtName')} (${districtSummaryData.length})`}
                         <span
                           style={{ cursor: 'pointer', }}
                           onClick={() => handleSort('name')}>
@@ -2954,7 +2996,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                           gap: '8px',
                           justifyContent: 'center'
                         }}>
-                        Open Complaints ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
+                        {t('table:openComplaints')} ({viewingGPsForBlock ? selectedBlockForGPs?.totalComplaints || 0 : viewingBlocksForDistrict ? selectedDistrictForBlocks?.totalComplaints || 0 : allComplaintsData.length})
                         <span
                           style={{ cursor: 'pointer', }}
                           onClick={() => handleSort('openComplaints')}>
@@ -2976,7 +3018,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         gap: '8px',
                         justifyContent: 'center'
                       }}>
-                        Avg. Resolution (Days)
+                        {t('table:avgResolutionDays')}
 
                         <span
                           style={{ cursor: 'pointer', }}
@@ -2998,7 +3040,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         gap: '8px',
                         justifyContent: 'center'
                       }}>
-                        Complaints Closed %
+                        {t('table:complaintsClosedPercent')} %
 
                         <span
                           style={{ cursor: 'pointer', }}
@@ -3020,7 +3062,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                         gap: '8px',
                         justifyContent: 'center'
                       }}>
-                        Status
+                        {t('table:status')}
                         <span
                           style={{ cursor: 'pointer', }}
                           onClick={() => handleSort('status')}>
@@ -3387,13 +3429,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               color: '#111827',
               margin: 0
             }}>
-              Complaints
+              {t('common:complaints')}
             </h2>
             <span style={{
               fontSize: '14px',
               color: '#6b7280'
             }}>
-              {getDateDisplayText()}
+              {/* {getDateDisplayText()} */}
             </span>
 
             {/* Status Filter */}
@@ -3461,6 +3503,35 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 </div>
               )}
             </div>
+
+            {/* Show Escalated Button */}
+            <button
+              onClick={() => setShowOnlyEscalated(!showOnlyEscalated)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: showOnlyEscalated ? '#dc2626' : '#fee2e2',
+                color: showOnlyEscalated ? '#ffffff' : '#b91c1c',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: showOnlyEscalated ? '0 2px 4px rgba(220, 38, 38, 0.2)' : 'none'
+              }}
+            >
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
+                display: 'inline-block'
+              }} />
+              {showOnlyEscalated ? 'Showing DISTRCT' : 'DISTRCT'}
+            </button>
           </div>
 
           <div style={{
@@ -3484,7 +3555,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -3543,7 +3614,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               }}
             >
               <Plus style={{ width: '16px', height: '16px' }} />
-              Add complaint
+              {t('complaints:addComplaints')}
             </button>
           </div>
         </div>
@@ -3578,7 +3649,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    User
+                    {t('table:userNumber')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('submittedBy')}>
@@ -3597,7 +3668,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 }}>
 
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    District
+                    {t('table:district')}
 
                     <span
                       style={{ cursor: 'pointer', }}
@@ -3615,7 +3686,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Address(GP)
+                  {t('table:addressGP')}
                 </th>
                 <th style={{
                   padding: '12px',
@@ -3627,7 +3698,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} >
 
-                    Type of complaint
+                    {t('table:typeOfComplaint')}
 
                     <span
                       style={{ cursor: 'pointer', }}
@@ -3647,7 +3718,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    Date of complaint
+                    {t('table:dateOfComplaint')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('submittedDate')}>
@@ -3664,7 +3735,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    Status
+                    {t('table:status')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('statusDisplay')}>
@@ -3680,7 +3751,24 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Action
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:slaEscalation') || 'SLA Escalation'}
+                    <span
+                      style={{ cursor: 'pointer', }}
+                      onClick={() => handleSort('last_sla_breach_level')}>
+                      <SortIcon col="last_sla_breach_level" />
+                    </span>
+                  </div>
+                </th>
+                <th style={{
+                  padding: '12px',
+                  textAlign: 'left',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  position: 'relative'
+                }}>
+                  {t('table:action')}
 
                 </th>
               </tr>
@@ -3688,18 +3776,18 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
-                  <td colSpan="6" style={{
+                  <td colSpan="8" style={{
                     padding: '40px',
                     textAlign: 'center',
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading complaints...
+                    {t('table:loadingComplaints')}
                   </td>
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: 0 }}>
+                  <td colSpan="8" style={{ padding: 0 }}>
                     <NoDataFound size="small" />
                   </td>
                 </tr>
@@ -3787,6 +3875,12 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       </div>
 
                     </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px'
+                    }}>
+                      <SLABadge level={complaint.last_sla_breach_level} />
+                    </td>
                     <td>
                       <button
                         onClick={(e) => {
@@ -3803,7 +3897,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        Send notice
+                        {t('table:sendNotice')}
                       </button>
                     </td>
                   </tr>
@@ -3827,7 +3921,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             color: '#6b7280'
           }}>
             <span>
-              {filteredComplaints.length} complaint{filteredComplaints.length !== 1 ? 's' : ''} total
+              {filteredComplaints.length} {(t("table:complaint"))} {filteredComplaints.length !== 1 ? 's' : ''} {(t("table:total"))}
             </span>
             <div style={{
               display: 'flex',
@@ -3836,7 +3930,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               fontSize: '12px',
               color: '#9ca3af'
             }}>
-              <span>Scroll to see all</span>
+              <span>{(t("table:scrollToSeeAll"))}</span>
               <div style={{
                 width: '16px',
                 height: '16px',
@@ -3903,7 +3997,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#111827',
                 margin: 0
               }}>
-                Raise Complaint
+                {(t("table:raiseComplaint"))}
               </h2>
               <button
                 onClick={() => setShowComplaintModal(false)}
@@ -3930,7 +4024,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Select Type of Complaint
+                {(t("table:selectTypeOfComplaint"))}
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -3948,7 +4042,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="">Select option</option>
+                  <option value=""> {(t("table:selectOption"))}</option>
                   {complaintCategories.map(category => (
                     <option key={category.id} value={category.id}>
                       {category.name}
@@ -3977,7 +4071,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Details
+                {(t("table:details"))}
               </label>
               <textarea
                 value={complaintForm.details}
@@ -3987,7 +4081,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     setComplaintForm(prev => ({ ...prev, details: value }));
                   }
                 }}
-                placeholder="Details"
+                placeholder={(t("table:details"))}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -4019,13 +4113,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Phone Number <span style={{ color: '#ef4444' }}>*</span>
+                {(t("table:phoneNumber"))} <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 type="tel"
                 value={complaintForm.phone_number}
                 onChange={(e) => setComplaintForm(prev => ({ ...prev, phone_number: e.target.value }))}
-                placeholder="Phone number"
+                placeholder={(t("table:phoneNumber"))}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -4053,7 +4147,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  District
+                  {(t("table:district"))}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <select
@@ -4083,7 +4177,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       cursor: 'pointer'
                     }}
                   >
-                    <option value="">Select District</option>
+                    <option value="">{(t("table:selectDistrict"))}</option>
                     {districts.map(district => (
                       <option key={district.id} value={district.id}>
                         {district.name}
@@ -4112,7 +4206,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Block
+                  {(t("table:block"))}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <select
@@ -4142,7 +4236,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       cursor: complaintForm.districtId ? 'pointer' : 'not-allowed'
                     }}
                   >
-                    <option value="">Select Block</option>
+                    <option value="">{(t("table:selectBlock"))}</option>
                     {blocks.filter(b => b.district_id === parseInt(complaintForm.districtId)).map(block => (
                       <option key={block.id} value={block.id}>
                         {block.name}
@@ -4172,7 +4266,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Gram Panchayat
+                {(t("table:gps"))}
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -4201,7 +4295,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     cursor: complaintForm.blockId ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  <option value="">Select Gram Panchayat</option>
+                  <option value="">{(t("table:selectGramPanchayat"))}</option>
                   {gramPanchayats.filter(gp => gp.block_id === parseInt(complaintForm.blockId)).map(gp => (
                     <option key={gp.id} value={gp.id}>
                       {gp.name}
@@ -4237,13 +4331,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Village
+                  {(t("table:village"))}
                 </label>
                 <input
                   type="text"
                   value={complaintForm.village}
                   onChange={(e) => setComplaintForm(prev => ({ ...prev, village: e.target.value }))}
-                  placeholder="Enter Village"
+                  placeholder={(t("table:enterVillage"))}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -4264,13 +4358,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#374151',
                   marginBottom: '8px'
                 }}>
-                  Ward/Area
+                  {(t("table:wardArea"))}
                 </label>
                 <input
                   type="text"
                   value={complaintForm.wardArea}
                   onChange={(e) => setComplaintForm(prev => ({ ...prev, wardArea: e.target.value }))}
-                  placeholder="Enter Ward/Area"
+                  placeholder={(t("table:enterWardArea"))}
                   style={{
                     width: '100%',
                     padding: '10px 12px',
@@ -4315,7 +4409,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   cursor: 'pointer'
                 }}
               >
-                Cancel
+                {(t("table:cancel"))}
               </button>
               <button
                 onClick={async () => {
@@ -4369,7 +4463,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 0.6 : 1
                 }}
               >
-                {submittingComplaint ? 'Submitting...' : 'Add'}
+                {submittingComplaint ? (t("table:submitting")) : (t("table:add"))}
               </button>
             </div>
           </div>
@@ -4430,9 +4524,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               marginBottom: '24px',
               lineHeight: '1.4'
             }}>
-              Your Complaint has been
+              {(t("table:complaintSubmittedSuccessfully"))}
               <br />
-              submitted successfully
+               {(t("table:complaintSubmittedSuccessfully1"))}
             </div>
 
             {/* Close Button */}
@@ -4451,7 +4545,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 maxWidth: '200px'
               }}
             >
-              Close
+               {(t("table:close"))}
             </button>
           </div>
         </div>
@@ -4508,7 +4602,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Notice Location
+                  {(t("table:noticeLocation"))}
                 </h2>
                 <div style={{
                   width: '32px',
@@ -4547,7 +4641,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               fontSize: '14px',
               color: '#374151'
             }}>
-              <strong>To:</strong> {noticeForm.to}
+              <strong> {(t("table:to"))} :</strong> {noticeForm.to}
             </div>
 
             {/* Subject Field */}
@@ -4559,7 +4653,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Subject
+                {(t("table:subject"))}
               </label>
               <input
                 type="text"
@@ -4586,7 +4680,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Category
+                {(t("table:category"))}
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -4613,7 +4707,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   }}
                 >
                   <option value="">
-                    {loadingNoticeCategories ? 'Loading categories...' : 'Select'}
+                    {loadingNoticeCategories ? 'Loading categories...' : (t("table:select"))}
                   </option>
                   {noticeCategories.map(category => (
                     <option key={category.id} value={category.id}>
@@ -4655,7 +4749,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Details
+                {(t("table:details"))}
               </label>
               <textarea
                 value={noticeForm.details}
@@ -4704,7 +4798,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   cursor: 'pointer'
                 }}
               >
-                Cancel
+                 {(t("table:cancel"))}
               </button>
               <button
                 onClick={async () => {
@@ -4725,6 +4819,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       complaint_id: selectedComplaintForNotice?.id,
                       sender_name: senderName,
                       recipient_name: noticeForm.to,
+                      district_id: selectedComplaintForNotice?.district_id,
+                      block_id: selectedComplaintForNotice?.block_id,
+                      gp_id: selectedComplaintForNotice?.village_id,
                       date: new Date().toISOString().split('T')[0],
                       time: new Date().toTimeString().split(' ')[0]
                     };
@@ -4764,7 +4861,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   opacity: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 0.6 : 1
                 }}
               >
-                {sendingNotice ? 'Sending...' : 'Send'}
+                {sendingNotice ?  (t("table:sending")) : (t("table:send"))}
               </button>
             </div>
           </div>
