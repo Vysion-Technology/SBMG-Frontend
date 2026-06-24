@@ -12,8 +12,8 @@ services:
     restart: unless-stopped
     # Bind to 0.0.0.0 so the app is reachable via public IP (e.g. http://139.59.34.99:5173)
     ports:
-      - "0.0.0.0:5173:80"
-      - "0.0.0.0:5174:443"
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
