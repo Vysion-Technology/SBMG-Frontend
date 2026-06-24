@@ -7,6 +7,7 @@ import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
+import { useTranslation } from 'react-i18next';
 
 
 
@@ -40,6 +41,8 @@ const BDOContractorDetails = () => {
         bdoBlockName,
         loadingBDOData
     } = useBDOLocation();
+
+    const { t } = useTranslation(['common', 'table', 'gpMaster']);
 
     // BDO always uses their district ID and block ID from /me API
     const selectedDistrictId = bdoDistrictId || null;
@@ -878,7 +881,7 @@ const BDOContractorDetails = () => {
         return value !== null && value !== undefined ? value : defaultValue;
     };
 
-   
+
 
 
     return (
@@ -900,7 +903,7 @@ const BDOContractorDetails = () => {
                         color: '#374151',
                         margin: 0
                     }}>
-                        Contractor Details
+                       {t('common:contractorDetails')}
                     </h1>
                 </div>
 
@@ -1085,7 +1088,7 @@ const BDOContractorDetails = () => {
                             color: '#111827',
                             margin: 0
                         }}>
-                            Overview
+                             {t('common:overview')}
                         </h2>
                     </div>
 
@@ -1119,7 +1122,7 @@ const BDOContractorDetails = () => {
                                     color: '#6b7280',
                                     margin: 0
                                 }}>
-                                    Contractor Data Filled
+                                  {t('gpmaster:contractorDataFilled')}
                                     {/*   (total filled constrator / total contractor) * 100    */}
                                 </h3>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -1158,7 +1161,7 @@ const BDOContractorDetails = () => {
                                 color: '#6b7280',
                                 margin: 0
                             }}>
-                                Data Filled covered
+                                 {t('gpmaster:dataFilledCovered')}
                             </h3>
                             <InfoTooltip tooltipKey="INSPECTION_COVERAGE_PERCENTAGE" size={16} color="#9ca3af" />
                         </div>
@@ -1179,7 +1182,7 @@ const BDOContractorDetails = () => {
             </div>
 
             {/* Report Section - Only for GP view */}
-            {activeScope === 'GPs' && (
+           {activeScope === 'GPs' && (
 
                 <div style={{
                     backgroundColor: 'white',
@@ -1196,13 +1199,13 @@ const BDOContractorDetails = () => {
                         color: '#111827',
                         margin: '0 0 16px 0'
                     }}>
-                        Contractor  Details
+                          {t('common:contractorDetails')}
                     </h3>
                     {/* vendor details page static */}
                     {loadingAnalytics ? (
                         <div className="text-center text-gray-500">Loading...</div>
                     ) : !analyticsData?.length ? (
-                        <div className="text-center text-gray-400">No vendors found</div>
+                        <div className="text-center text-gray-400">{t('common:noContractorFound')}</div>
                     ) :
                         (
 
@@ -1214,7 +1217,7 @@ const BDOContractorDetails = () => {
                                             className='flex flex-col gap-5  max-w-[800px] w-full border border-gray-200 bg-gray-50 rounded-2xl '>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Name :
+                                                     {t('table:name')} :
                                                 </div>
                                                 <div>
                                                     {item.person_name}
@@ -1222,7 +1225,7 @@ const BDOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contact Number :
+                                                     {t('table:contactNumber')} :
                                                 </div>
                                                 <div>
                                                     {item.person_phone}
@@ -1231,7 +1234,7 @@ const BDOContractorDetails = () => {
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Agency name :
+                                                  {t('table:agencyName')}  :
                                                 </div>
                                                 <div>
                                                     {item.agency?.name || '-'}
@@ -1239,16 +1242,16 @@ const BDOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Annual Contract Amount :
+                                                     {t('table:annualContractAmount')}   :
                                                 </div>
                                                 <div>
-                                                   ₹ {(item.contract_amount / 100000).toFixed(2)} L
+                                                    ₹ {(item.contract_amount / 100000).toFixed(2)} L
                                                 </div>
                                             </div>
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contract Start Date :
+                                                   {t('table:contractStartDate')} :
                                                 </div>
                                                 <div>
                                                     {/* {item.contract_start_date} */}
@@ -1258,7 +1261,7 @@ const BDOContractorDetails = () => {
 
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Contract End Date :
+                                                    {t('table:contractEndDate')} :
                                                 </div>
                                                 <div>
                                                     {new Date(item.contract_end_date).toLocaleDateString()}
@@ -1266,7 +1269,7 @@ const BDOContractorDetails = () => {
                                             </div>
                                             <div className='flex justify-between '>
                                                 <div>
-                                                    Frequency of work :
+                                                    {t('table:frequencyOfWork')} :
                                                 </div>
                                                 <div>
                                                     {item.contract_frequency}

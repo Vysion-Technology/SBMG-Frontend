@@ -1,25 +1,31 @@
-import React from 'react';
-import { Search, X, Truck, Circle, AlertCircle, Pencil, Trash2 } from 'lucide-react';
+import { AlertCircle, Circle, Pencil, Search, Trash2, Truck, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * FleetSidebar component to display vehicle list with filters
  */
 const FleetSidebar = ({
   vehicles = [],
-  activeFleetTab = 'All(03)',
-  fleetTabs = ['All(03)', 'Active(01)', 'Running(01)', 'Stopped(01)'],
+  activeFleetTab = 'all',
+  fleetTabs = [
+    { key: 'all', label: 'All', count: 0 },
+    { key: 'active', label: 'Active', count: 0 },
+    { key: 'running', label: 'Running', count: 0 },
+    { key: 'stopped', label: 'Stopped', count: 0 }
+  ],
   searchQuery = '',
-  onSearchChange = () => {},
-  onTabChange = () => {},
-  onVehicleClick = () => {},
+  onSearchChange = () => { },
+  onTabChange = () => { },
+  onVehicleClick = () => { },
   onEdit = null,
   onDelete = null,
   selectedVehicle = null,
   showFlaggedToggle = false,
   flaggedCount = 0,
   showOnlyFlagged = false,
-  onFlaggedToggle = () => {},
+  onFlaggedToggle = () => { },
 }) => {
+  const { t } = useTranslation(['common', 'table', 'gps']);
   return (
     <div style={{
       width: '400px',
@@ -36,7 +42,7 @@ const FleetSidebar = ({
           color: '#111827',
           margin: '0 0 5px 0'
         }}>
-          Fleet
+          {t('gps:fleet')}
         </h2>
 
         {/* Fleet Tabs */}
@@ -48,8 +54,8 @@ const FleetSidebar = ({
         }}>
           {fleetTabs.map((tab) => (
             <button
-              key={tab}
-              onClick={() => onTabChange(tab)}
+              key={tab.key}
+              onClick={() => onTabChange(tab.key)}
               style={{
                 padding: '5px 7px',
                 borderRadius: '8px',
@@ -57,12 +63,17 @@ const FleetSidebar = ({
                 cursor: 'pointer',
                 fontSize: '13px',
                 fontWeight: '500',
-                backgroundColor: activeFleetTab === tab ? '#10b981' : '#f3f4f6',
-                color: activeFleetTab === tab ? 'white' : '#6b7280',
+                backgroundColor: activeFleetTab === tab.key ? '#10b981' : '#f3f4f6',
+                color: activeFleetTab === tab.key ? 'white' : '#6b7280',
                 transition: 'all 0.2s'
               }}
             >
-              {tab}
+              {tab.label}
+              {typeof tab.count === 'number' && (
+                <span style={{ marginLeft: '6px', fontWeight: '400' }}>
+                  ({String(tab.count).padStart(2, '0')})
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -93,7 +104,7 @@ const FleetSidebar = ({
             }}
           />
           {searchQuery && (
-            <X 
+            <X
               onClick={() => onSearchChange('')}
               style={{
                 position: 'absolute',
@@ -104,14 +115,14 @@ const FleetSidebar = ({
                 height: '16px',
                 color: '#9ca3af',
                 cursor: 'pointer'
-              }} 
+              }}
             />
           )}
         </div>
 
         {/* Flagged Vehicles Toggle */}
         {showFlaggedToggle && flaggedCount > 0 && (
-          <div 
+          <div
             onClick={onFlaggedToggle}
             style={{
               display: 'flex',
@@ -134,17 +145,17 @@ const FleetSidebar = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertCircle style={{ 
-                width: '20px', 
-                height: '20px', 
-                color: '#d97706' 
+              <AlertCircle style={{
+                width: '20px',
+                height: '20px',
+                color: '#d97706'
               }} />
-              <span style={{ 
-                fontSize: '14px', 
-                fontWeight: '600', 
-                color: '#92400e' 
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#92400e'
               }}>
-                Flagged vehicles ({flaggedCount})
+                {t('gps:flaggedVehicles')}({flaggedCount})
               </span>
             </div>
 
@@ -174,8 +185,8 @@ const FleetSidebar = ({
 
         {/* Vehicle List */}
         <div style={{
-          display: 'flex', 
-          flexDirection: 'column', 
+          display: 'flex',
+          flexDirection: 'column',
           gap: '12px',
           maxHeight: 'calc(100vh - 450px)',
           overflowY: 'auto',
@@ -187,23 +198,23 @@ const FleetSidebar = ({
               textAlign: 'center',
               color: '#6b7280'
             }}>
-              <AlertCircle style={{ 
-                width: '48px', 
-                height: '48px', 
+              <AlertCircle style={{
+                width: '48px',
+                height: '48px',
                 margin: '0 auto 16px',
                 color: '#9ca3af'
               }} />
               <p style={{ fontSize: '14px', margin: 0 }}>
-                No vehicles found
+                {t('gps:loadingVehicle')}
               </p>
             </div>
           ) : (
             vehicles.map((vehicle) => {
-              const isSelected = selectedVehicle?.vehicle_id === vehicle.vehicle_id || 
-                               selectedVehicle?.id === vehicle.id;
-              
+              const isSelected = selectedVehicle?.vehicle_id === vehicle.vehicle_id ||
+                selectedVehicle?.id === vehicle.id;
+
               return (
-                <div 
+                <div
                   key={vehicle.vehicle_id || vehicle.id}
                   onClick={() => onVehicleClick(vehicle)}
                   style={{
@@ -213,9 +224,9 @@ const FleetSidebar = ({
                     padding: '16px',
                     backgroundColor: vehicle.isFlagged ? '#fef3c7' : isSelected ? '#f0fdf4' : '#ffffff',
                     borderRadius: '8px',
-                    border: vehicle.isFlagged 
-                      ? '2px solid #fbbf24' 
-                      : isSelected 
+                    border: vehicle.isFlagged
+                      ? '2px solid #fbbf24'
+                      : isSelected
                         ? '2px solid #10b981'
                         : '1px solid #e5e7eb',
                     position: 'relative',
@@ -235,10 +246,10 @@ const FleetSidebar = ({
                   }}
                 >
                   <Truck style={{ width: '24px', height: '24px', color: '#4b5563' }} />
-                  
+
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '13px', fontWeight: '500', color: '#6b7280', marginBottom: '2px' }}>
-                      Vehicle No
+                      {t('gps:vehicleNo')}
                     </div>
                     <div style={{ fontSize: '15px', fontWeight: '600', color: '#111827' }}>
                       {vehicle.vehicle_no || vehicle.vehicle_number || 'N/A'}
@@ -247,30 +258,30 @@ const FleetSidebar = ({
 
                   {/* Status Indicator */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <Circle 
-                      style={{ 
-                        width: '10px', 
-                        height: '10px', 
-                        color: vehicle.status === 'active' 
-                          ? '#10b981' 
+                    <Circle
+                      style={{
+                        width: '10px',
+                        height: '10px',
+                        color: vehicle.status === 'active'
+                          ? '#10b981'
                           : vehicle.status === 'running'
                             ? '#3b82f6'
                             : vehicle.status === 'stopped'
                               ? '#ef4444'
                               : '#6b7280',
-                        fill: vehicle.status === 'active' 
-                          ? '#10b981' 
+                        fill: vehicle.status === 'active'
+                          ? '#10b981'
                           : vehicle.status === 'running'
                             ? '#3b82f6'
                             : vehicle.status === 'stopped'
                               ? '#ef4444'
                               : '#6b7280'
-                      }} 
+                      }}
                     />
-                    <span style={{ 
-                      fontSize: '12px', 
-                      color: vehicle.status === 'active' 
-                        ? '#10b981' 
+                    <span style={{
+                      fontSize: '12px',
+                      color: vehicle.status === 'active'
+                        ? '#10b981'
                         : vehicle.status === 'running'
                           ? '#3b82f6'
                           : '#6b7280',

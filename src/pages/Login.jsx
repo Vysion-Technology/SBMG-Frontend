@@ -624,7 +624,7 @@ const Login = () => {
                 fontWeight: '500',
                 margin: 0
               }}>
-                Call at <a href="tel:0141-2204880">0141-2204880</a> for rural sanitation complaints
+                Call at <a href="tel:18001802310">18001802310</a> for rural sanitation complaints
               </p>
             </div>
 

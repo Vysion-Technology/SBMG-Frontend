@@ -2,8 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Plus, Calendar, ChevronDown, X, Upload, Loader2, Edit, Trash2 } from 'lucide-react';
 import { schemesAPI, MEDIA_BASE_URL } from '../../../services/api';
 import NoDataFound from '../common/NoDataFound';
+import { useTranslation } from "react-i18next";
 
 const BDOSchemesContent = () => {
+
+  const { t } = useTranslation(['common', 'table']);
+
   const [showModal, setShowModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedScheme, setSelectedScheme] = useState(null);
@@ -141,13 +145,13 @@ const BDOSchemesContent = () => {
   };
 
   // Helper function to get scheme image
-      const getSchemeImage = (scheme) => {
-          if (scheme.media && scheme.media.length > 0) {
-              // Use the public media API endpoint
-              return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
-          }
-          return '/background.png'; // Fallback to placeholder
-      };
+  const getSchemeImage = (scheme) => {
+    if (scheme.media && scheme.media.length > 0) {
+      // Use the public media API endpoint
+      return `${MEDIA_BASE_URL}/${encodeURIComponent(scheme.media[0].media_url)}`;
+    }
+    return '/background.png'; // Fallback to placeholder
+  };
   // Handle file selection
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -283,29 +287,6 @@ const BDOSchemesContent = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Schemes
-          </h1>
-        </div>
-
-
-      </div>
 
       {/* Overview Section */}
       <div style={{
@@ -338,7 +319,7 @@ const BDOSchemesContent = () => {
               alignItems: 'center',
               gap: '8px'
             }}>
-              Overview
+              {t('common:overview')}
               <span style={{
                 fontSize: '16px',
                 fontWeight: '400',
@@ -373,7 +354,7 @@ const BDOSchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Active
+                {t('schemeevent:active')}
               </button>
               <button
                 onClick={() => setSchemeFilter('inactive')}
@@ -389,7 +370,7 @@ const BDOSchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                Inactive
+                {t('schemeevent:inactive')}
               </button>
               <button
                 onClick={() => setSchemeFilter('all')}
@@ -405,7 +386,7 @@ const BDOSchemesContent = () => {
                   transition: 'all 0.2s'
                 }}
               >
-                All
+                {t('schemeevent:all')}
               </button>
             </div>
           </div>
@@ -434,52 +415,26 @@ const BDOSchemesContent = () => {
 
         {/* Scheme Cards Grid */}
         {!loading && !error && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '20px',
-            marginTop: '24px'
-          }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
             {schemes.map((scheme) => (
               <div
                 key={scheme.id}
+                className="bg-white rounded-xl border border-gray-200 shadow-sm cursor-pointer transition-all hover:-translate-y-1 hover:shadow-md flex flex-col"
                 onClick={() => {
                   setSelectedScheme(scheme);
                   setShowDetailsModal(true);
-                  setActiveTab('Details');
-                }}
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid #e5e7eb',
-                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  minHeight: '250px',
-                  '&:hover': {
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1)';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  setActiveTab('details');
                 }}
               >
-                <div style={{
-                  height: '160px',
-                  backgroundImage: `url(${getSchemeImage(scheme)})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  marginBottom: '8px',
-                  borderTopLeftRadius: '8px',
-                  borderTopRightRadius: '8px',
-                  position: 'relative'
-                }}>
+                <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
+                  <img
+                    src={getSchemeImage(scheme)}
+                    alt="scheme"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/background.png";
+                    }}
+                  />
                   <div style={{
                     position: 'absolute',
                     top: '12px',
@@ -524,10 +479,14 @@ const BDOSchemesContent = () => {
                   <p style={{
                     fontSize: '14px',
                     color: '#6b7280',
-                    margin: '0 0 6px 0',
-                    lineHeight: '1.5'
+                    margin: 0,
+                    lineHeight: '1.4',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
                   }}>
-                    {truncateText(scheme.description, 80)}
+                    {truncateText(scheme.description, 60)}
                   </p>
 
                 </div>
@@ -549,507 +508,216 @@ const BDOSchemesContent = () => {
         )}
       </div>
 
-     
+
 
       {/* Scheme Details Modal */}
-      {showDetailsModal && selectedScheme && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
+      {
+        showDetailsModal && selectedScheme && (
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            width: '600px',
-            maxHeight: '80vh',
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
           }}>
-            {/* Modal Header */}
             <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingTop: '10px ',
-              paddingBottom: '5px',
-              paddingLeft: '20px',
-              paddingRight: '20px',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              width: '600px',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
+              {/* Modal Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '10px ',
+                paddingBottom: '5px',
+                paddingLeft: '20px',
+                paddingRight: '20px',
               }}>
-                {selectedScheme?.name || 'Scheme Details'}
-              </h2>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button
-                  onClick={() => setShowDetailsModal(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    color: '#6b7280'
-                  }}
-                >
-                  <X style={{ width: '20px', height: '20px' }} />
-                </button>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  {selectedScheme?.name || 'Scheme Details'}
+                </h2>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setShowDetailsModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      color: '#6b7280'
+                    }}
+                  >
+                    <X style={{ width: '20px', height: '20px' }} />
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Tab Navigation */}
-            <div style={{
-              display: 'flex',
-            }}>
-              {['Details', 'Benefits', 'Eligibility'].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '10px 20px',
-                    border: 'none',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    fontWeight: activeTab === tab ? '600' : '400',
-                    color: activeTab === tab ? '#111827' : '#6b7280',
-                    borderBottom: activeTab === tab ? '2px solid #10b981' : 'none',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-            <divider />
-            <div style={{
-              height: '1px',
-              backgroundColor: '#e5e7eb',
-              margin: '12px 0'
-            }}></div>
+              {/* Tab Navigation */}
+              <div style={{
+                display: 'flex',
+              }}>
+                {['details', 'benefits', 'eligibility'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={{
+                      padding: '10px 20px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: activeTab === tab ? '600' : '400',
+                      color: activeTab === tab ? '#111827' : '#6b7280',
+                      borderBottom: activeTab === tab ? '2px solid #10b981' : 'none',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {t(`schemeevent:${tab}`)}
+                  </button>
+                ))}
+              </div>
+              <divider />
+              <div style={{
+                height: '1px',
+                backgroundColor: '#e5e7eb',
+                margin: '12px 0'
+              }}></div>
 
 
-            <divider />
+              <divider />
 
-            {/* Tab Content */}
-            <div style={{ padding: '24px' }}>
-              {activeTab === 'Details' && (
-                <div>
-                  <p style={{
+              {/* Tab Content */}
+              <div style={{ padding: '24px' }}>
+                {activeTab === 'details' && (
+                  <div>
+                    <p style={{
+                      fontSize: '14px',
+                      lineHeight: '1.6',
+                      color: '#374151',
+                      margin: '0 0 16px 0'
+                    }}>
+                      {selectedScheme?.description || 'No description available.'}
+                    </p>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '16px',
+                      marginTop: '20px'
+                    }}>
+
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'benefits' && (
+                  <div style={{
                     fontSize: '14px',
                     lineHeight: '1.6',
                     color: '#374151',
-                    margin: '0 0 16px 0'
+                    whiteSpace: 'pre-line'
                   }}>
-                    {selectedScheme?.description || 'No description available.'}
-                  </p>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '16px',
-                    marginTop: '20px'
-                  }}>
-
+                    {selectedScheme?.benefits || 'No benefits information available.'}
                   </div>
-                </div>
-              )}
+                )}
 
-              {activeTab === 'Benefits' && (
-                <div style={{
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: '#374151',
-                  whiteSpace: 'pre-line'
-                }}>
-                  {selectedScheme?.benefits || 'No benefits information available.'}
-                </div>
-              )}
+                {activeTab === 'eligibility' && (
+                  <div style={{
+                    fontSize: '14px',
+                    lineHeight: '1.6',
+                    color: '#374151',
+                    whiteSpace: 'pre-line'
+                  }}>
+                    {selectedScheme?.eligibility || 'No eligibility information available.'}
+                  </div>
+                )}
 
-              {activeTab === 'Eligibility' && (
-                <div style={{
-                  fontSize: '14px',
-                  lineHeight: '1.6',
-                  color: '#374151',
-                  whiteSpace: 'pre-line'
-                }}>
-                  {selectedScheme?.eligibility || 'No eligibility information available.'}
-                </div>
-              )}
-
-              {activeTab === 'Media' && (
-                <div>
-                  {selectedScheme?.media && selectedScheme.media.length > 0 ? (
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-                      gap: '16px'
-                    }}>
-                      {selectedScheme.media.map((mediaItem, index) => (
-                        <div key={index} style={{
-                          position: 'relative',
-                          borderRadius: '8px',
-                          overflow: 'hidden',
-                          border: '1px solid #e5e7eb',
-                          backgroundColor: '#f3f4f6'
-                        }}>
-                                                      <img
-                                                        src={`${MEDIA_BASE_URL}/${encodeURIComponent(mediaItem.media_url)}`}
-                                                        alt={`Scheme media ${index + 1}`}                            style={{
+                {activeTab === 'Media' && (
+                  <div>
+                    {selectedScheme?.media && selectedScheme.media.length > 0 ? (
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                        gap: '16px'
+                      }}>
+                        {selectedScheme.media.map((mediaItem, index) => (
+                          <div key={index} style={{
+                            position: 'relative',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '1px solid #e5e7eb',
+                            backgroundColor: '#f3f4f6'
+                          }}>
+                            <img
+                              src={`${MEDIA_BASE_URL}/${encodeURIComponent(mediaItem.media_url)}`}
+                              alt={`Scheme media ${index + 1}`}
+                              style={{
+                                width: '100%',
+                                height: '150px',
+                                objectFit: 'cover',
+                                display: 'block',
+                                transition: 'opacity 0.3s ease'
+                              }}
+                              onLoad={(e) => {
+                                e.target.style.opacity = '1';
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div style={{
+                              display: 'none',
                               width: '100%',
                               height: '150px',
-                              objectFit: 'cover',
-                              display: 'block',
-                              transition: 'opacity 0.3s ease'
-                            }}
-                            onLoad={(e) => {
-                              e.target.style.opacity = '1';
-                            }}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div style={{
-                            display: 'none',
-                            width: '100%',
-                            height: '150px',
-                            backgroundColor: '#f3f4f6',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#6b7280',
-                            fontSize: '14px',
-                            flexDirection: 'column',
-                            gap: '8px'
-                          }}>
-                            <div style={{ fontSize: '24px' }}>📷</div>
-                            <div>Failed to load image</div>
+                              backgroundColor: '#f3f4f6',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#6b7280',
+                              fontSize: '14px',
+                              flexDirection: 'column',
+                              gap: '8px'
+                            }}>
+                              <div style={{ fontSize: '24px' }}>📷</div>
+                              <div>Failed to load image</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '40px',
-                      color: '#6b7280'
-                    }}>
-                      <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>No media available</p>
-                      <p style={{ fontSize: '14px', margin: 0 }}>This scheme doesn't have any images or media files.</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Scheme Modal */}
-      {showEditModal && selectedScheme && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1001
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            width: '500px',
-            maxHeight: '90vh',
-            overflow: 'auto',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
-          }}>
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb'
-            }}>
-              <h2 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Edit Scheme
-              </h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  borderRadius: '4px',
-                  color: '#6b7280'
-                }}
-              >
-                <X style={{ width: '20px', height: '20px' }} />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* Name Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Enter scheme name"
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* Description Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Description
-                  </label>
-                  <textarea
-                    placeholder="Description"
-                    value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                {/* Eligibility Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Eligibility
-                  </label>
-                  <textarea
-                    placeholder="Eligibility criteria"
-                    value={editFormData.eligibility}
-                    onChange={(e) => setEditFormData({ ...editFormData, eligibility: e.target.value })}
-                    rows={3}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                {/* Benefits Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Benefits
-                  </label>
-                  <textarea
-                    placeholder="Benefits"
-                    value={editFormData.benefits}
-                    onChange={(e) => setEditFormData({ ...editFormData, benefits: e.target.value })}
-                    rows={3}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none',
-                      resize: 'vertical'
-                    }}
-                  />
-                </div>
-
-                {/* Start Time Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    Start Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={editFormData.start_time ? new Date(editFormData.start_time).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, start_time: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* End Time Field */}
-                <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    marginBottom: '8px'
-                  }}>
-                    End Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={editFormData.end_time ? new Date(editFormData.end_time).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditFormData({ ...editFormData, end_time: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* Active Status Field */}
-                <div>
-                  <label style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#374151',
-                    cursor: 'pointer'
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={editFormData.active}
-                      onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
-                      style={{
-                        width: '16px',
-                        height: '16px',
-                        cursor: 'pointer'
-                      }}
-                    />
-                    Active
-                  </label>
-                </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '40px',
+                        color: '#6b7280'
+                      }}>
+                        <p style={{ fontSize: '16px', margin: '0 0 8px 0' }}>No media available</p>
+                        <p style={{ fontSize: '14px', margin: 0 }}>This scheme doesn't have any images or media files.</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Modal Footer */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              padding: '20px 24px',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <button
-                onClick={() => setShowEditModal(false)}
-                disabled={isUpdating}
-                style={{
-                  padding: '10px 20px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  opacity: isUpdating ? 0.6 : 1
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleUpdateScheme}
-                disabled={isUpdating}
-                style={{
-                  padding: '10px 20px',
-                  border: 'none',
-                  borderRadius: '8px',
-                  backgroundColor: isUpdating ? '#9ca3af' : '#10b981',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                {isUpdating && <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />}
-                {isUpdating ? 'Updating...' : 'Update Scheme'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )
+      }
+
+
     </div>
   );
 };

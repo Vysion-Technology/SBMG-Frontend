@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import apiClient, { annualSurveysAPI, villagesAPI } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const FREQ_OPTIONS = ['DAILY',
   'ALTERNATE_DAYS',
@@ -55,6 +56,7 @@ function mapGetToForm(data) {
   const fsm = o(data.fsm_details, {});
   const gobardhan = o(data.gobardhan_projects, {});
   const d2d = o(data.d2d_activities, {});
+  const vehicle_assets = o(data.vehicle_assets, {});
 
   const vlist = Array.isArray(data.village_data) ? data.village_data : [];
   const village_data = vlist.length > 0
@@ -123,6 +125,7 @@ function mapGetToForm(data) {
       bins_hh_level: n(swm.bins_hh_level),
       bins_public_places: n(swm.bins_public_places),
       community_compost_pits: n(swm.community_compost_pits),
+      hh_compost_pit: n(swm.hh_compost_pit),
       segregation_sheds: n(swm.segregation_sheds),
       tricycles_manual: n(swm.tricycles_manual),
       e_rickshaws: n(swm.e_rickshaws),
@@ -162,7 +165,23 @@ function mapGetToForm(data) {
     },
 
     gobardhan_projects: {
-      total_projects: n(gobardhan.total_projects)
+      total_sanctioned: n(gobardhan.total_sanctioned),
+      total_functional: n(gobardhan.total_functional),
+      gas_production: n(gobardhan.gas_production)
+    },
+
+    bartan_bank: {
+      established_banks: n(o(data.bartan_bank, {}).established_banks),
+      revenue: n(o(data.bartan_bank, {}).revenue)
+    },
+
+    vehicle_assets: {
+      owned_tricycles: n(vehicle_assets?.owned_tricycles),
+      owned_e_rickshaws: n(vehicle_assets?.owned_e_rickshaws),
+      owned_motorized_vehicles: n(vehicle_assets?.owned_motorized_vehicles),
+      contractor_tricycles: n(vehicle_assets?.contractor_tricycles),
+      contractor_e_rickshaws: n(vehicle_assets?.contractor_e_rickshaws),
+      contractor_motorized_vehicles: n(vehicle_assets?.contractor_motorized_vehicles),
     },
 
     d2d_activities: {
@@ -171,13 +190,15 @@ function mapGetToForm(data) {
       sanctioned_self_gp: n(d2d.sanctioned_self_gp),
       sanctioned_csr_ngo: n(d2d.sanctioned_csr_ngo),
       sanctioned_shg: n(d2d.sanctioned_shg),
+      sanctioned_mixed_model: n(d2d.sanctioned_mixed_model),
       total_expenditure: n(d2d.total_expenditure),
       vehicles_deployed: n(d2d.vehicles_deployed),
       persons_deployed: n(d2d.persons_deployed),
       households_covered: n(d2d.households_covered),
       status_start: n(d2d.status_start),
       status_running: n(d2d.status_running),
-      status_completed: n(d2d.status_completed)
+      status_completed: n(d2d.status_completed),
+      work_frequency: ['daily', 'weekly', '15 days', 'monthly'].includes(d2d.work_frequency) ? d2d.work_frequency : ''
     },
     // sbmg_targets: {
     //   ihhl: n(sbmg.ihhl),
@@ -272,6 +293,7 @@ function formToPayload(form) {
       bins_hh_level: n(form.swm_assets?.bins_hh_level),
       bins_public_places: n(form.swm_assets?.bins_public_places),
       community_compost_pits: n(form.swm_assets?.community_compost_pits),
+      hh_compost_pit: n(form.swm_assets?.hh_compost_pit),
       segregation_sheds: n(form.swm_assets?.segregation_sheds),
       tricycles_manual: n(form.swm_assets?.tricycles_manual),
       e_rickshaws: n(form.swm_assets?.e_rickshaws),
@@ -310,7 +332,23 @@ function formToPayload(form) {
 
     // ✅ NEW
     gobardhan_projects: {
-      total_projects: n(form.gobardhan_projects?.total_projects)
+      total_sanctioned: n(form.gobardhan_projects?.total_sanctioned),
+      total_functional: n(form.gobardhan_projects?.total_functional),
+      gas_production: n(form.gobardhan_projects?.gas_production)
+    },
+
+    bartan_bank: {
+      established_banks: n(form.bartan_bank?.established_banks),
+      revenue: n(form.bartan_bank?.revenue)
+    },
+
+    vehicle_assets: {
+      owned_tricycles: n(form.vehicle_assets?.owned_tricycles),
+      owned_e_rickshaws: n(form.vehicle_assets?.owned_e_rickshaws),
+      owned_motorized_vehicles: n(form.vehicle_assets?.owned_motorized_vehicles),
+      contractor_tricycles: n(form.vehicle_assets?.contractor_tricycles),
+      contractor_e_rickshaws: n(form.vehicle_assets?.contractor_e_rickshaws),
+      contractor_motorized_vehicles: n(form.vehicle_assets?.contractor_motorized_vehicles),
     },
 
     // ✅ NEW
@@ -320,13 +358,15 @@ function formToPayload(form) {
       sanctioned_self_gp: n(form.d2d_activities?.sanctioned_self_gp),
       sanctioned_csr_ngo: n(form.d2d_activities?.sanctioned_csr_ngo),
       sanctioned_shg: n(form.d2d_activities?.sanctioned_shg),
+      sanctioned_mixed_model: n(form.d2d_activities?.sanctioned_mixed_model),
       total_expenditure: n(form.d2d_activities?.total_expenditure),
       vehicles_deployed: n(form.d2d_activities?.vehicles_deployed),
       persons_deployed: n(form.d2d_activities?.persons_deployed),
       households_covered: n(form.d2d_activities?.households_covered),
       status_start: n(form.d2d_activities?.status_start),
       status_running: n(form.d2d_activities?.status_running),
-      status_completed: n(form.d2d_activities?.status_completed)
+      status_completed: n(form.d2d_activities?.status_completed),
+      work_frequency: s(form.d2d_activities?.work_frequency) || ''
     },
 
 
@@ -436,9 +476,13 @@ const Select = ({ label, value, onChange, options, disabled }) => (
         backgroundColor: 'white'
       }}
     >
-      {options.map((opt) => (
-        <option key={opt} value={opt}>{opt}</option>
-      ))}
+      {options.map((opt) => {
+        const val = typeof opt === 'object' ? opt.value : opt;
+        const lbl = typeof opt === 'object' ? opt.label : opt;
+        return (
+          <option key={val} value={val}>{lbl}</option>
+        );
+      })}
     </select>
   </div>
 );
@@ -500,6 +544,7 @@ const BooleanRadio = ({ label, value, onChange, disabled }) => (
 );
 
 const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess, vdoGPId, fy_id }) => {
+  const { t } = useTranslation(['table', 'common', 'dashboard'])
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -601,7 +646,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           segregation_sheds: '',
           tricycles_manual: '',
           e_rickshaws: '',
-          motorized_vehicles: ''
+          motorized_vehicles: '',
+          hh_compost_pit: ''
         },
 
         lwm_assets: {
@@ -631,8 +677,10 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           fstps_urban: ''
         },
 
-        gobardhan_projects: {
-          total_projects: ''
+        gobardhan: {
+          total_sanctioned: '',
+          total_functional: '',
+          gas_production: '',
         },
 
         d2d_activities: {
@@ -640,6 +688,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           sanctioned_tender: '',
           sanctioned_self_gp: '',
           sanctioned_csr_ngo: '',
+          sanctioned_mixed_model: '',
           sanctioned_shg: '',
           total_expenditure: '',
           vehicles_deployed: '',
@@ -647,7 +696,22 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           households_covered: '',
           status_start: '',
           status_running: '',
-          status_completed: ''
+          status_completed: '',
+          work_frequency: ''
+        },
+
+        bartan_bank: {
+          established_banks: '',
+          revenue: '',
+        },
+
+        vehicle_assets: {
+          owned_tricycles: 0,
+          owned_e_rickshaws: 0,
+          owned_motorized_vehicles: 0,
+          contractor_tricycles: 0,
+          contractor_e_rickshaws: 0,
+          contractor_motorized_vehicles: 0
         },
 
         village_data: [emptyVillage()],
@@ -1035,13 +1099,15 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         sanctioned_self_gp: 0,
         sanctioned_csr_ngo: 0,
         sanctioned_shg: 0,
+        sanctioned_mixed_model: 0,
         total_expenditure: 0,
         vehicles_deployed: 0,
         persons_deployed: 0,
         households_covered: 0,
         status_start: 0,
         status_running: 0,
-        status_completed: 0
+        status_completed: 0,
+        work_frequency: ''
       });
     }
   };
@@ -1075,7 +1141,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
       >
         <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', margin: 0 }}>
-            {isEdit ? "Edit GP Master Data" : "Add GP Master Data"} {gpName ? `— ${gpName}` : ''}
+            {isEdit ? (t('table:EDIT_GP_MASTER_DATA')) : (t('table:EDIT_GP_MASTER_DATA'))} {gpName ? `— ${gpName}` : ''}
           </h2>
           <button onClick={handleOverlayClick} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#6b7280' }} disabled={saving}>
             <X size={22} />
@@ -1092,32 +1158,32 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
           {loading && <div style={{ padding: '24px', textAlign: 'center', color: '#6b7280' }}>Loading…</div>}
           {!loading && form && (
             <>
-              {section('VDO Details', grid2(
+              {section((t('table:VDO_DETAILS')), grid2(
                 <>
-                  <Input label="VDO name" value={form.vdo_name} onChange={(v) => update('vdo_name', v)} disabled={saving} />
+                  <Input label={t('table:VDO_NAME')} value={form.vdo_name} onChange={(v) => update('vdo_name', v)} disabled={saving} />
                   <Input
-                    label="VDO contact number"
+                    label={t('table:VDO_CONTACT_NUMBER')}
                     value={form.vdo_contact_number}
                     onChange={(v) => handlePhoneChange('vdo_contact_number', v)}
                     error={phoneErrors.vdo_contact_number}
                   />
                 </>
               ))}
-              {section('Basic information', grid2(
+              {section((t('table:BASIC_INFORMATION')), grid2(
                 <>
-                  <Input label="Sarpanch name" value={form.sarpanch_name} onChange={(v) => update('sarpanch_name', v)} disabled={saving} />
+                  <Input label={t('table:SARPANCH_NAME')} value={form.sarpanch_name} onChange={(v) => update('sarpanch_name', v)} disabled={saving} />
 
                   <Input
-                    label="Sarpanch contact"
+                    label={t('table:SARPANCH_CONTACT')}
                     value={form.sarpanch_contact}
                     onChange={(v) => handlePhoneChange('sarpanch_contact', v)}
                     error={phoneErrors.sarpanch_contact}
                   />
 
-                  <Input label="Number of ward panchs" type="number" min={0} value={form.num_ward_panchs} onChange={(v) => update('num_ward_panchs', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:NUMBER_OF_WARD_PANCHS')} type="number" min={0} value={form.num_ward_panchs} onChange={(v) => update('num_ward_panchs', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
-              {section('Agency', grid2(
+              {section((t('table:AGENCY')), grid2(
                 <>
                   {/* Agency Filed */}
                   <div className=''>
@@ -1125,14 +1191,14 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                       <button
                         onClick={() => SetModuleAgency(true)}
                         style={{ color: '#10b981', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '500', cursor: 'pointer' }}
-                        className='uppercase'>+ ADD Agency</button>
+                        className='uppercase'>+ {t('table:ADD_AGENCY')}</button>
                     </div>
                     <div style={{ position: "relative", width: "100%" }}>
 
                       {/* Search Input */}
                       <input
                         type="text"
-                        placeholder="Search Agency..."
+                        placeholder={t('table:SEARCH_AGENCY')}
                         value={agencySearch}
                         onChange={(e) => {
                           setAgencySearch(e.target.value);
@@ -1166,7 +1232,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                         >
                           {agencyesData.length === 0 && (
                             <div style={{ padding: "8px", fontSize: "13px" }}>
-                              No agency found
+                              {t('table:NO_AGENCY_FOUND')}
                             </div>
                           )}
 
@@ -1202,126 +1268,155 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
                 </>
               ))}
-              {section('Work order', grid3(
+              {section((t('table:WORK_ORDER')), grid3(
                 <>
-                  <Input label="Work order no" value={form.work_order?.work_order_no} onChange={(v) => update('work_order.work_order_no', v)} disabled={saving} />
-                  <Input label="Work order date" type="date" value={form.work_order?.work_order_date} onChange={(v) => update('work_order.work_order_date', v)} disabled={saving} />
-                  <Input label="Work order amount" type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:WORK_ORDER_NO')} value={form.work_order?.work_order_no} onChange={(v) => update('work_order.work_order_no', v)} disabled={saving} />
+                  <Input label={t('table:WORK_ORDER_DATE')} type="date" value={form.work_order?.work_order_date} onChange={(v) => update('work_order.work_order_date', v)} disabled={saving} />
+                  <Input label={t('table:WORK_ORDER_AMOUNT')} type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
-              {section('Fund sanctioned', grid3(
+              {section((t('table:FUND_SANCTIONED')), grid3(
                 <>
-                  <Input label="Amount" type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Select label="Head" value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
+                  <Input label={t('table:AMOUNT')} type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Select label={t('table:HEAD')} value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
                   {form.fund_sanctioned?.head === 'OTHER' && (
                     <Input
-                      label="Specify Other Head"
+                      label={t('table:SPECIFY_OTHER_HEAD')}
                       value={form.fund_sanctioned?.other_head}
                       onChange={(v) => update('fund_sanctioned.other_head', v)}
-                      placeholder="Enter fund head..."
+                      placeholder={t('table:ENTER_FUND_HEAD')}
                       disabled={saving}
                     />
                   )}
                 </>
               ))}
-              {section('Door to door collection', (
+              {section((t('table:DOOR_TO_DOOR_COLLECTION')), (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {grid3(
                     <>
-                      <Input label="Number of households" type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households', v === '' ? '' : Number(v))} disabled={saving} />
-                      <Input label="Number of shops" type="number" min={0} value={form.door_to_door_collection?.num_shops} onChange={(v) => update('door_to_door_collection.num_shops', v === '' ? '' : Number(v))} disabled={saving} />
-                      <Select label="Collection frequency" value={form.door_to_door_collection?.collection_frequency} onChange={(v) => update('door_to_door_collection.collection_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
+                      <Input label={t('table:NUMBER_OF_HOUSEHOLDS')} type="number" min={0} value={form.door_to_door_collection?.num_households} onChange={(v) => update('door_to_door_collection.num_households', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label={t('table:NUMBER_OF_SHOPS')} type="number" min={0} value={form.door_to_door_collection?.num_shops} onChange={(v) => update('door_to_door_collection.num_shops', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Select label={t('table:COLLECTION_FREQUENCY')} value={form.door_to_door_collection?.collection_frequency} onChange={(v) => update('door_to_door_collection.collection_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                     </>
                   )}
                 </div>
               ))}
-              {section('Road sweeping', grid3(
+              {section((t('table:ROAD_SWEEPING')), grid3(
                 <>
-                  <Input label="Width (m)" type="number" min={0} value={form.road_sweeping?.width} onChange={(v) => update('road_sweeping.width', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Length (m)" type="number" min={0} value={form.road_sweeping?.length} onChange={(v) => update('road_sweeping.length', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Select label="Cleaning frequency" value={form.road_sweeping?.cleaning_frequency} onChange={(v) => update('road_sweeping.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
+                  <Input label={t('table:WIDTH_M')} type="number" min={0} value={form.road_sweeping?.width} onChange={(v) => update('road_sweeping.width', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:LENGTH_M')} type="number" min={0} value={form.road_sweeping?.length} onChange={(v) => update('road_sweeping.length', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Select label={t('table:CLEANING_FREQUENCY')} value={form.road_sweeping?.cleaning_frequency} onChange={(v) => update('road_sweeping.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
-              {section('Drain cleaning', grid2(
+              {section((t('table:DRAIN_CLEANING')), grid2(
                 <>
-                  <Input label="Length (m)" type="number" min={0} value={form.drain_cleaning?.length} onChange={(v) => update('drain_cleaning.length', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Select label="Cleaning frequency" value={form.drain_cleaning?.cleaning_frequency} onChange={(v) => update('drain_cleaning.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
+                  <Input label={t('table:LENGTH_M')} type="number" min={0} value={form.drain_cleaning?.length} onChange={(v) => update('drain_cleaning.length', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Select label={t('table:CLEANING_FREQUENCY')} value={form.drain_cleaning?.cleaning_frequency} onChange={(v) => update('drain_cleaning.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
-              {section('CSC details', grid2(
+              {section((t('table:CSC_DETAILS')), grid2(
                 <>
-                  <Input label="Numbers" type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Select label="Cleaning frequency" value={form.csc_details?.cleaning_frequency} onChange={(v) => update('csc_details.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
+                  <Input label={t('table:NUMBERS')} type="number" min={0} value={form.csc_details?.numbers} onChange={(v) => update('csc_details.numbers', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Select label={t('table:CLEANING_FREQUENCY')} value={form.csc_details?.cleaning_frequency} onChange={(v) => update('csc_details.cleaning_frequency', v)} options={FREQ_OPTIONS} disabled={saving} />
                 </>
               ))}
 
-              {section('ODF Sustainability', grid2(
+              {section((t('table:ODF_SUSTAINABILITY')), grid2(
                 <>
-                  <Input label="IHHL" type="number" min={0} value={form.odf_sustainability?.ihhl} onChange={(v) => update('odf_sustainability.ihhl', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='Community Sanitary Complex (CSC)' type="number" min={0} value={form.odf_sustainability?.csc} onChange={(v) => update('odf_sustainability.csc', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Total No. of CSCs in Shala Darpan (Schools)" type="number" min={0} value={form.odf_sustainability?.csc_shala_darpan} onChange={(v) => update('odf_sustainability.csc_shala_darpan', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:IHHL')} type="number" min={0} value={form.odf_sustainability?.ihhl} onChange={(v) => update('odf_sustainability.ihhl', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:COMMUNITY_SANITARY_COMPLEX')} type="number" min={0} value={form.odf_sustainability?.csc} onChange={(v) => update('odf_sustainability.csc', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TOTAL_CSC_SCHOOLS')} type="number" min={0} value={form.odf_sustainability?.csc_shala_darpan} onChange={(v) => update('odf_sustainability.csc_shala_darpan', v === '' ? '' : Number(v))} disabled={saving} />
                   {/* <Input label="retrofitting" type="number" min={0} value={form.odf_sustainability?.retrofitting} onChange={(v) => update('odf_sustainability.csc_shala_darpan', v === '' ? '' : Number(v))} disabled={saving} /> */}
                 </>
               ))}
-              {section('SWM assets', grid2(
+              {section((t('table:SWM_ASSETS')), grid2(
                 <>
-                  <Input label="Segregation Bins at HH Level" type="number" min={0} value={form.swm_assets?.bins_hh_level} onChange={(v) => update('swm_assets.bins_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='Segregation Bins at Public Places' type="number" min={0} value={form.swm_assets?.bins_public_places} onChange={(v) => update('swm_assets.bins_public_places', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Community Compost Pit" type="number" min={0} value={form.swm_assets?.community_compost_pits} onChange={(v) => update('swm_assets.community_compost_pits', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Segregation Sheds(RRC)" type="number" min={0} value={form.swm_assets?.segregation_sheds} onChange={(v) => update('swm_assets.segregation_sheds', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Tricycles (Manual)" type="number" min={0} value={form.swm_assets?.tricycles_manual} onChange={(v) => update('swm_assets.tricycles_manual', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="E-Rickshaws/Battery operated Vehicles" type="number" min={0} value={form.swm_assets?.e_rickshaws} onChange={(v) => update('swm_assets.e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Motorized Vehicles" type="number" min={0} value={form.swm_assets?.motorized_vehicles} onChange={(v) => update('swm_assets.motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SEGREGATION_BINS_HH_LEVEL')} type="number" min={0} value={form.swm_assets?.bins_hh_level} onChange={(v) => update('swm_assets.bins_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SEGREGATION_BINS_PUBLIC_PLACES')} type="number" min={0} value={form.swm_assets?.bins_public_places} onChange={(v) => update('swm_assets.bins_public_places', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:COMMUNITY_COMPOST_PIT')} type="number" min={0} value={form.swm_assets?.community_compost_pits} onChange={(v) => update('swm_assets.community_compost_pits', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SEGREGATION_SHEDS_RRC')} type="number" min={0} value={form.swm_assets?.segregation_sheds} onChange={(v) => update('swm_assets.segregation_sheds', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TRICYCLES_MANUAL')} type="number" min={0} value={form.swm_assets?.tricycles_manual} onChange={(v) => update('swm_assets.tricycles_manual', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:E_RICKSHAWS')} type="number" min={0} value={form.swm_assets?.e_rickshaws} onChange={(v) => update('swm_assets.e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:MOTORIZED_VEHICLES')} type="number" min={0} value={form.swm_assets?.motorized_vehicles} onChange={(v) => update('swm_assets.motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:HH_COMPOST_PIT')} type="number" min={0} value={form.swm_assets?.hh_compost_pit} onChange={(v) => update('swm_assets.hh_compost_pit', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
 
-              {section('Liquid Waste Management', grid2(
+              {section((t('table:LIQUID_WASTE_MANAGEMENT')), grid2(
                 <>
-                  <Input label="Soak/Magic/Leach pits at HH Level" type="number" min={0} value={form.lwm_assets?.pits_hh_level} onChange={(v) => update('lwm_assets.pits_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='Community Soak/Magic/Leach pits' type="number" min={0} value={form.lwm_assets?.community_pits} onChange={(v) => update('lwm_assets.community_pits', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="WSP (Waste Stabilization Pond)" type="number" min={0} value={form.lwm_assets?.wsp} onChange={(v) => update('lwm_assets.wsp', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Dewats" type="number" min={0} value={form.lwm_assets?.dewats} onChange={(v) => update('lwm_assets.dewats', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Wetland" type="number" min={0} value={form.lwm_assets?.wetlands} onChange={(v) => update('lwm_assets.wetlands', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Any Other (Trenching, Phytorids, etc.)" type="number" min={0} value={form.lwm_assets?.other_treatments} onChange={(v) => update('lwm_assets.other_treatments', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Drainage channels (meters)" type="number" min={0} value={form.lwm_assets?.drainage_channels} onChange={(v) => update('lwm_assets.drainage_channels', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:PITS_HH_LEVEL')} type="number" min={0} value={form.lwm_assets?.pits_hh_level} onChange={(v) => update('lwm_assets.pits_hh_level', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:COMMUNITY_PITS')} type="number" min={0} value={form.lwm_assets?.community_pits} onChange={(v) => update('lwm_assets.community_pits', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:WSP')} type="number" min={0} value={form.lwm_assets?.wsp} onChange={(v) => update('lwm_assets.wsp', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:DEWATS')} type="number" min={0} value={form.lwm_assets?.dewats} onChange={(v) => update('lwm_assets.dewats', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:WETLAND')} type="number" min={0} value={form.lwm_assets?.wetlands} onChange={(v) => update('lwm_assets.wetlands', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:OTHER_TREATMENTS')} type="number" min={0} value={form.lwm_assets?.other_treatments} onChange={(v) => update('lwm_assets.other_treatments', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:DRAINAGE_CHANNELS')} type="number" min={0} value={form.lwm_assets?.drainage_channels} onChange={(v) => update('lwm_assets.drainage_channels', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
-              {section('Plastic Waste Management Unit(PWMUs)', grid2(
+              {section((t('table:PWMU')), grid2(
                 <>
-                  <Input label="Total No. of Established PWMU" type="number" min={0} value={form.pwmu_details?.established_pwmu} onChange={(v) => update('pwmu_details.established_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='Total No. of Blocks Covered Under PWMU' type="number" min={0} value={form.pwmu_details?.blocks_covered_pwmu} onChange={(v) => update('pwmu_details.blocks_covered_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Total No. of Urban MRFs" type="number" min={0} value={form.pwmu_details?.urban_mrfs} onChange={(v) => update('pwmu_details.urban_mrfs', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Total No. of Blocks Covered Under Urban MRFs" type="number" min={0} value={form.pwmu_details?.blocks_covered_urban_mrf} onChange={(v) => update('pwmu_details.blocks_covered_urban_mrf', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:ESTABLISHED_PWMU')} type="number" min={0} value={form.pwmu_details?.established_pwmu} onChange={(v) => update('pwmu_details.established_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:BLOCKS_COVERED_PWMU')} type="number" min={0} value={form.pwmu_details?.blocks_covered_pwmu} onChange={(v) => update('pwmu_details.blocks_covered_pwmu', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:URBAN_MRFS')} type="number" min={0} value={form.pwmu_details?.urban_mrfs} onChange={(v) => update('pwmu_details.urban_mrfs', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:BLOCKS_COVERED_URBAN_MRF')} type="number" min={0} value={form.pwmu_details?.blocks_covered_urban_mrf} onChange={(v) => update('pwmu_details.blocks_covered_urban_mrf', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
-              {section('Faecal Sludge Management (FSM)', grid2(
+              {section((t('table:FSM')), grid2(
                 <>
-                  <Input label="No. of twin pits Toilets" type="number" min={0} value={form.fsm_details?.twin_pit_toilets} onChange={(v) => update('fsm_details.twin_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label='No. of Single pits Toilets' type="number" min={0} value={form.fsm_details?.single_pit_toilets} onChange={(v) => update('fsm_details.single_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of Septic tank Toilets" type="number" min={0} value={form.fsm_details?.septic_tank_toilets} onChange={(v) => update('fsm_details.septic_tank_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of Retrofitted toilets" type="number" min={0} value={form.fsm_details?.retrofitted_toilets} onChange={(v) => update('fsm_details.retrofitted_toilets', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="Mechanized De-Sludging" type="number" min={0} value={form.fsm_details?.mechanized_desludging} onChange={(v) => update('fsm_details.mechanized_desludging', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of FSTPs Rural" type="number" min={0} value={form.fsm_details?.fstps_rural} onChange={(v) => update('fsm_details.fstps_rural', v === '' ? '' : Number(v))} disabled={saving} />
-                  <Input label="No. of FSTPs Urban" type="number" min={0} value={form.fsm_details?.fstps_urban} onChange={(v) => update('fsm_details.fstps_urban', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TWIN_PIT_TOILETS')} type="number" min={0} value={form.fsm_details?.twin_pit_toilets} onChange={(v) => update('fsm_details.twin_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SINGLE_PIT_TOILETS')} type="number" min={0} value={form.fsm_details?.single_pit_toilets} onChange={(v) => update('fsm_details.single_pit_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:SEPTIC_TANK_TOILETS')} type="number" min={0} value={form.fsm_details?.septic_tank_toilets} onChange={(v) => update('fsm_details.septic_tank_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:RETROFITTED_TOILETS')} type="number" min={0} value={form.fsm_details?.retrofitted_toilets} onChange={(v) => update('fsm_details.retrofitted_toilets', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:MECHANIZED_DESLUDGING')} type="number" min={0} value={form.fsm_details?.mechanized_desludging} onChange={(v) => update('fsm_details.mechanized_desludging', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:FSTPS_RURAL')} type="number" min={0} value={form.fsm_details?.fstps_rural} onChange={(v) => update('fsm_details.fstps_rural', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:FSTPS_URBAN')} type="number" min={0} value={form.fsm_details?.fstps_urban} onChange={(v) => update('fsm_details.fstps_urban', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
 
-              {section('GOBAR-dhan Project', grid2(
+              {section((t('table:GOBARDHAN_PROJECT')), grid2(
                 <>
-                  <Input label="GOBAR-dhan Project" type="number" min={0} value={form.gobardhan_projects?.total_projects} onChange={(v) => update('gobardhan_projects.total_projects', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TOTAL_SANCTIONED')} type="number" min={0} value={form.gobardhan_projects?.total_sanctioned} onChange={(v) => update('gobardhan_projects.total_sanctioned', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:TOTAL_FUNCTIONAL')} type="number" min={0} value={form.gobardhan_projects?.total_functional} onChange={(v) => update('gobardhan_projects.total_functional', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:GAS_PRODUCTION')} type="number" min={0} value={form.gobardhan_projects?.gas_production} onChange={(v) => update('gobardhan_projects.gas_production', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
 
-              {section('Door to Door Waste Collection, Segregation & Disposal Activities', (
+              {section((t('table:BARTAN_BANK')), grid2(
+                <>
+                  <BooleanRadio
+                    label={t('dashboard:assets.NO_OF_STABLES_BARTAN_BANK')}
+                    value={form.bartan_bank?.established_banks === 1}
+                    onChange={(val) =>
+                      update(
+                        "bartan_bank.established_banks",
+                        val ? 1 : 0
+                      )
+                    }
+                  />
+                  <Input label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')} type="number" min={0} value={form.bartan_bank?.revenue} onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))}
+              {/* {section('Vehicle Assets', grid3(
+                <>
+                  <Input label="Owned Tricycles" type="number" min={0} value={form.vehicle_assets?.owned_tricycles} onChange={(v) => update('vehicle_assets.owned_tricycles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Owned E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.owned_e_rickshaws} onChange={(v) => update('vehicle_assets.owned_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Owned Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.owned_motorized_vehicles} onChange={(v) => update('vehicle_assets.owned_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor Tricycles" type="number" min={0} value={form.vehicle_assets?.contractor_tricycles} onChange={(v) => update('vehicle_assets.contractor_tricycles', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.contractor_e_rickshaws} onChange={(v) => update('vehicle_assets.contractor_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label="Contractor Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.contractor_motorized_vehicles} onChange={(v) => update('vehicle_assets.contractor_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                </>
+              ))} */}
+
+              {section((t('table:D2D_WASTE_COLLECTION')), (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
                   {/* Always visible */}
                   <BooleanRadio
-                    label="Door to Door Service available in this gp"
+                    label={t('table:D2D_SERVICE_AVAILABLE')}
                     value={form.d2d_activities?.is_active}
                     onChange={handleD2DChange}
                   />
@@ -1330,71 +1425,97 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   {form.d2d_activities?.is_active === true && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
 
-                      <Input label='Total No. of Work Sanctioned Through Tender'
+                      <Input label={t('table:CONTRACTORS_THROUGH_TENDER')}
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_tender}
                         onChange={(v) => update('d2d_activities.sanctioned_tender', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Self by GPs'
+                      <Input label={t('table:GP_THROUGH_PLACEMENT_AGENCY')}
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_self_gp}
                         onChange={(v) => update('d2d_activities.sanctioned_self_gp', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Through CSR/NGOs'
+
+
+                      <Input label={t('table:GP_THROUGH_CSR')}
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_csr_ngo}
                         onChange={(v) => update('d2d_activities.sanctioned_csr_ngo', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label='Total No. of Work Sanctioned Through SHGs'
+                      <Input label={t('table:GP_THROUGH_SHG')}
                         type="number" min={0}
                         value={form.d2d_activities?.sanctioned_shg}
                         onChange={(v) => update('d2d_activities.sanctioned_shg', v === '' ? '' : Number(v))}
                       />
+                      <Input label={t('table:MIXED_MODEL')}
+                        type="number" min={0}
+                        value={form.d2d_activities?.sanctioned_mixed_model}
+                        onChange={(v) => update('d2d_activities.sanctioned_mixed_model', v === '' ? '' : Number(v))}
+                      />
 
-                      <Input label="Total Expenditure Amt. (Rs in Lakhs)"
+                      <Input label={t('table:TOTAL_EXPENDITURE')}
                         type="number" min={0}
                         value={form.d2d_activities?.total_expenditure}
                         onChange={(v) => update('d2d_activities.total_expenditure', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label="Vehicles Deployed"
+                      {/* <Input label={t('table:VEHICLES_DEPLOYED')}
                         type="number" min={0}
                         value={form.d2d_activities?.vehicles_deployed}
                         onChange={(v) => update('d2d_activities.vehicles_deployed', v === '' ? '' : Number(v))}
-                      />
+                      /> */}
 
-                      <Input label="Persons Deployed"
+                      <Input label="Owned E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.owned_e_rickshaws} onChange={(v) => update('vehicle_assets.owned_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Owned Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.owned_motorized_vehicles} onChange={(v) => update('vehicle_assets.owned_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Contractor E-Rickshaws" type="number" min={0} value={form.vehicle_assets?.contractor_e_rickshaws} onChange={(v) => update('vehicle_assets.contractor_e_rickshaws', v === '' ? '' : Number(v))} disabled={saving} />
+                      <Input label="Contractor Motorized Vehicles" type="number" min={0} value={form.vehicle_assets?.contractor_motorized_vehicles} onChange={(v) => update('vehicle_assets.contractor_motorized_vehicles', v === '' ? '' : Number(v))} disabled={saving} />
+
+
+                      <Input label={t('table:PERSONS_DEPLOYED')}
                         type="number" min={0}
                         value={form.d2d_activities?.persons_deployed}
                         onChange={(v) => update('d2d_activities.persons_deployed', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label="Households Covered"
+                      <Input label={t('table:HOUSEHOLDS_COVERED')}
                         type="number" min={0}
                         value={form.d2d_activities?.households_covered}
                         onChange={(v) => update('d2d_activities.households_covered', v === '' ? '' : Number(v))}
                       />
-
-                      <Input label="Work Start"
+                      {/*  */}
+                      <Input label={t('table:not_started')}
                         type="number" min={0}
                         value={form.d2d_activities?.status_start}
                         onChange={(v) => update('d2d_activities.status_start', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label="Work Running"
+                      <Input label={t('table:WORK_RUNNING')}
                         type="number" min={0}
                         value={form.d2d_activities?.status_running}
                         onChange={(v) => update('d2d_activities.status_running', v === '' ? '' : Number(v))}
                       />
 
-                      <Input label="Work Completed"
+                      <Select
+                        label={t('table:WORK_FREQUENCY') || 'Work Frequency'}
+                        value={form.d2d_activities?.work_frequency}
+                        onChange={(v) => update('d2d_activities.work_frequency', v)}
+                        options={[
+                          { value: 'daily', label: 'Daily' },
+                          { value: 'weekly', label: 'Weekly' },
+                          { value: '15 days', label: '15 Days' },
+                          { value: 'monthly', label: 'Monthly' }
+                        ]}
+                        disabled={saving}
+                      />
+
+                      {/* <Input label={t('table:WORK_COMPLETED')}
                         type="number" min={0}
                         value={form.d2d_activities?.status_completed}
                         onChange={(v) => update('d2d_activities.status_completed', v === '' ? '' : Number(v))}
-                      />
+                      /> */}
 
                     </div>
                   )}
@@ -1402,40 +1523,32 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               ))}
 
 
-              {/* {section('SBMG targets', (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                  {['ihhl', 'csc', 'rrc', 'pwmu', 'soak_pit', 'magic_pit', 'leach_pit', 'wsp', 'dewats'].map((k) => (
-                    <Input key={k} label={k.replace(/_/g, ' ')} type="number" min={0} value={form.sbmg_targets?.[k]} onChange={(v) => update(`sbmg_targets.${k}`, v === '' ? '' : Number(v))} disabled={saving} />
-                  ))}
-                </div>
-              ))} */}
-
-              {section('Village data', (
+              {section((t('table:VILLAGE_DATA')), (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {(form.village_data || []).map((v, i) => (
                     <div key={i} style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px', backgroundColor: '#fafafa' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Village {i + 1}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{t('table:VILLAGE')} {i + 1}</span>
                         <button type="button" onClick={() => removeVillage(i)} disabled={saving || (form.village_data?.length || 0) <= 1} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#dc2626' }}>
                           <Trash2 size={16} />
                         </button>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                        <Input label="Village name" value={v.village_name} onChange={(val) => updateVillage(i, 'village_name', val)} disabled={saving} />
-                        <Input label="Population" type="number" min={0} value={v.population ?? ''} onChange={(val) => updateVillage(i, 'population', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="Number of households" type="number" min={0} value={v.num_households ?? ''} onChange={(val) => updateVillage(i, 'num_households', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="SBMG IHHL" type="number" min={0} value={v.sbmg_assets?.ihhl ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.ihhl', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="SBMG CSC" type="number" min={0} value={v.sbmg_assets?.csc ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.csc', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="Soak pit" type="number" min={0} value={v.gwm_assets?.soak_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.soak_pit', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="Magic pit" type="number" min={0} value={v.gwm_assets?.magic_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.magic_pit', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="Leach pit" type="number" min={0} value={v.gwm_assets?.leach_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.leach_pit', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="WSP" type="number" min={0} value={v.gwm_assets?.wsp ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.wsp', val === '' ? '' : Number(val))} disabled={saving} />
-                        <Input label="DEWATS" type="number" min={0} value={v.gwm_assets?.dewats ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.dewats', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:VILLAGE_NAME')} value={v.village_name} onChange={(val) => updateVillage(i, 'village_name', val)} disabled={saving} />
+                        <Input label={t('table:POPULATION')} type="number" min={0} value={v.population ?? ''} onChange={(val) => updateVillage(i, 'population', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:NUMBER_OF_HOUSEHOLDS')} type="number" min={0} value={v.num_households ?? ''} onChange={(val) => updateVillage(i, 'num_households', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:SBMG_IHHL')} type="number" min={0} value={v.sbmg_assets?.ihhl ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.ihhl', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:SBMG_CSC')} type="number" min={0} value={v.sbmg_assets?.csc ?? ''} onChange={(val) => updateVillage(i, 'sbmg_assets.csc', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:SOAK_PIT')} type="number" min={0} value={v.gwm_assets?.soak_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.soak_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:MAGIC_PIT')} type="number" min={0} value={v.gwm_assets?.magic_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.magic_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:LEACH_PIT')} type="number" min={0} value={v.gwm_assets?.leach_pit ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.leach_pit', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:WSP')} type="number" min={0} value={v.gwm_assets?.wsp ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.wsp', val === '' ? '' : Number(val))} disabled={saving} />
+                        <Input label={t('table:DEWATS')} type="number" min={0} value={v.gwm_assets?.dewats ?? ''} onChange={(val) => updateVillage(i, 'gwm_assets.dewats', val === '' ? '' : Number(val))} disabled={saving} />
                       </div>
                     </div>
                   ))}
                   <button type="button" onClick={addVillage} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <Plus size={16} /> Add village
+                    <Plus size={16} /> {t('table:ADD_VILLAGE')}
                   </button>
                 </div>
               ))}
@@ -1447,10 +1560,10 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         {!loading && form && (
           <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
             <button onClick={handleOverlayClick} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>
-              Cancel
+              {t('table:CANCEL')}
             </button>
             <button onClick={handleSubmit} disabled={saving} style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px', fontWeight: '500', cursor: saving ? 'not-allowed' : 'pointer' }}>
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? (t('table:SAVING')) : (t('table:SAVE'))}
             </button>
           </div>
         )}
@@ -1485,7 +1598,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
             }}
           >
-            <h3 style={{ marginBottom: "15px" }}>Create Agency</h3>
+            <h3 style={{ marginBottom: "15px" }}>{t('table:CREATE_AGENCY')}</h3>
 
             {errorInagency && !loading && (
               <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: '13px', marginBottom: '16px' }}>
@@ -1494,7 +1607,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
             )}
 
             <Input
-              label="Agency Name"
+              label={t('table:AGENCY_NAME')}
               value={agencyForm.name}
               onChange={(v) =>
                 setAgencyForm((prev) => ({ ...prev, name: v }))
@@ -1502,7 +1615,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
             />
 
             <Input
-              label="Email"
+              label={t('table:email')}
               value={agencyForm.email}
               onChange={(v) =>
                 setAgencyForm((prev) => ({ ...prev, email: v }))
@@ -1510,7 +1623,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
             />
 
             <Input
-              label="Contact Number"
+              label={t('table:CONTACT_NUMBER')}
               value={agencyForm.contact_number}
               onChange={(v) =>
                 setAgencyForm((prev) => ({
@@ -1520,7 +1633,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
               }
             />
             <Input
-              label="Address"
+              label={t('table:ADDRESS')}
               value={agencyForm.address}
               onChange={(v) =>
                 setAgencyForm((prev) => ({ ...prev, address: v }))
@@ -1538,7 +1651,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   cursor: "pointer"
                 }}
               >
-                Cancel
+                {t('table:CANCEL')}
               </button>
 
               <button
@@ -1553,7 +1666,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   cursor: "pointer"
                 }}
               >
-                {loading ? "Saving..." : "Save"}
+                {loading ? (t('table:SAVING')) : (t('table:SAVE'))}
               </button>
             </div>
           </div>

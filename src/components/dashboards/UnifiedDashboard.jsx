@@ -12,7 +12,8 @@ import {
   CreditCard,
   MessageSquare,
   Building,
-  Menu
+  Menu,
+  UsersRound
 } from 'lucide-react';
 import swachLogo from '../../assets/logos/swach.png';
 import Header from '../common/Header';
@@ -26,9 +27,12 @@ import SchemesContent from './SchemesContent';
 import EventsContent from './EventsContent';
 import NotoficationContent from './NoticeContent';
 import GpsTrackingContent from './GpsTrackingContent';
-import PaymentsContent from './PaymentsContent';
 import FeedbacksContent from './FeedbacksContent';
 import ContractorDetails from './ContractorDetails';
+import ReconfirmationWarningBanner from '../common/ReconfirmationWarningBanner';
+import ReconfirmationLockOverlay from '../common/ReconfirmationLockOverlay';
+import { useTranslation } from "react-i18next";
+import Volunteer from './Volunteer';
 
 const useMediaQuery = (query) => {
   const [matches, setMatches] = useState(() =>
@@ -45,22 +49,23 @@ const useMediaQuery = (query) => {
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => {
   const handleItemClick = (item) => {
-    setActiveItem(item.name);
+    setActiveItem(item.key);
     onItemSelect?.();
   };
+  const { t } = useTranslation();
   const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard },
-    { name: 'Complaints', icon: FileText },
-    { name: 'CSC Cleaning', icon: CheckCircle },
-    { name: 'Inspection', icon: ListChecks },
-    { name: 'GP Master Data', icon: Database },
-    { name: 'Contractor Details', icon: Building },
-    { name: 'Schemes', icon: Briefcase },
-    { name: 'Events', icon: Calendar },
-    { name: 'GPS Tracking', icon: Truck },
-    { name: 'Payments', icon: CreditCard },
-    { name: 'Notices', icon: Bell },
-    { name: 'Feedbacks', icon: MessageSquare }
+    { key: 'dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { key: 'complaints', label: t('complaints'), icon: FileText },
+    { key: 'cscCleaning', label: t('cscCleaning'), icon: CheckCircle },
+    { key: 'inspection', label: t('inspection'), icon: ListChecks },
+    { key: 'gpMasterData', label: t('gpMasterData'), icon: Database },
+    { key: 'contractorDetails', label: t('contractorDetails'), icon: Building },
+    { key: 'schemes', label: t('schemes'), icon: Briefcase },
+    { key: 'events', label: t('events'), icon: Calendar },
+    { key: 'gpsTracking', label: t('gpsTracking'), icon: Truck },
+    { key: 'beAVolunteer', label: t('beAVolunteer'), icon: UsersRound },
+    { key: 'notices', label: t('notices'), icon: Bell },
+    { key: 'feedbacks', label: t('feedbacks'), icon: MessageSquare }
   ];
 
   return (
@@ -143,13 +148,13 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
         }}>
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = item.name === activeItem;
+            const isActive = item.key === activeItem;
 
             return (
-              <li key={item.name} style={{ marginTop: '10px' }}>
+              <li key={item.key} style={{ marginTop: '10px' }}>
                 <button
                   onClick={() => handleItemClick(item)}
-                  title={!isSidebarOpen ? item.name : ''}
+                  title={!isSidebarOpen ? item.label : ''}
                   style={{
                     width: '100%',
                     display: 'flex',
@@ -179,7 +184,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
                       fontSize: '14px',
                       fontWeight: '500',
                       whiteSpace: 'nowrap'
-                    }}>{item.name}</span>
+                    }}>{item.label}</span>
                   )}
                 </button>
               </li>
@@ -193,9 +198,11 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen, onItemSelect }) => 
 
 const UnifiedDashboard = () => {
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const [activeItem, setActiveItem] = useState('Dashboard');
+  const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
+
+  const { t, i18n } = useTranslation();
 
   const scrollToMainTable = (scrollTarget = 'default') => {
     // Scroll to the main data table after waiting for content to render
@@ -219,43 +226,43 @@ const UnifiedDashboard = () => {
 
   const handleNavigateToComplaints = (filter) => {
     setComplaintsInitialFilter(filter);
-    setActiveItem('Complaints');
+    setActiveItem('complaints');
     scrollToMainTable('complaints-list');
   };
 
   const handleNavigateToAttendance = () => {
-    setActiveItem('CSC Cleaning');
+    setActiveItem('cscCleaning');
     scrollToMainTable();
   };
 
   const handleNavigateToGPMasterData = () => {
-    setActiveItem('GP Master Data');
+    setActiveItem('gpMasterData');
     scrollToMainTable();
   };
 
   const handleNavigateToGPSTracking = () => {
-    setActiveItem('GPS Tracking');
+    setActiveItem('gpsTracking');
     scrollToMainTable();
   };
 
   const handleNavigateToContractorDetails = () => {
-    setActiveItem('Contractor Details');
+    setActiveItem('contractorDetails');
     scrollToMainTable();
   };
 
   const handleNavigateToInspection = () => {
-    setActiveItem('Inspection');
+    setActiveItem('inspection');
     scrollToMainTable();
   };
 
   const handleNavigateToSchemes = () => {
-    setActiveItem('Schemes');
+    setActiveItem('schemes');
     // Scroll to top to prevent auto-scrolling to bottom
     window.scrollTo(0, 0);
   };
 
   const handleNavigateToEvents = () => {
-    setActiveItem('Events');
+    setActiveItem('events');
     // Scroll to top to prevent auto-scrolling to bottom
     window.scrollTo(0, 0);
   };
@@ -272,29 +279,29 @@ const UnifiedDashboard = () => {
 
   const renderContent = () => {
     switch (activeItem) {
-      case 'Dashboard':
+      case 'dashboard':
         return <DashboardContent onNavigateToComplaints={handleNavigateToComplaints} onNavigateToAttendance={handleNavigateToAttendance} onNavigateToGPMasterData={handleNavigateToGPMasterData} onNavigateToGPSTracking={handleNavigateToGPSTracking} onNavigateToContractorDetails={handleNavigateToContractorDetails} onNavigateToInspection={handleNavigateToInspection} onNavigateToSchemes={handleNavigateToSchemes} onNavigateToEvents={handleNavigateToEvents} />;
-      case 'Complaints':
+      case 'complaints':
         return <ComplaintsContent initialFilter={complaintsInitialFilter} onFilterConsumed={() => setComplaintsInitialFilter(undefined)} />;
-      case 'CSC Cleaning':
+      case 'cscCleaning':
         return <AttendanceContent />;
-      case 'Inspection':
+      case 'inspection':
         return <InspectionContent />;
-      case 'GP Master Data':
+      case 'gpMasterData':
         return <VillageMasterContent />;
-      case 'Contractor Details':
+      case 'contractorDetails':
         return <ContractorDetails />;
-      case 'Schemes':
+      case 'schemes':
         return <SchemesContent />;
-      case 'Events':
+      case 'events':
         return <EventsContent />;
-      case 'GPS Tracking':
+      case 'gpsTracking':
         return <GpsTrackingContent />;
-      case 'Payments':
-        return <PaymentsContent />;
-      case 'Notices':
+      case 'beAVolunteer':
+        return <Volunteer />;
+      case 'notices':
         return <NotoficationContent />;
-      case 'Feedbacks':
+      case 'feedbacks':
         return <FeedbacksContent />;
       default:
         return (
@@ -319,7 +326,12 @@ const UnifiedDashboard = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ReconfirmationLockOverlay
+        onNavigateToReconfirm={handleNavigateToGPMasterData}
+        activeItem={activeItem}
+      />
       <TopHeaderBar />
+      <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
@@ -377,9 +389,9 @@ const UnifiedDashboard = () => {
           overflow: 'hidden'
         }}>
           <Header
-            pageTitle={activeItem}
+            pageTitle={t(activeItem)}
             onMenuClick={handleMenuClick}
-            onNotificationsClick={() => setActiveItem('Notices')}
+            onNotificationsClick={() => setActiveItem('notices')}
             isMobile={isMobile}
           />
           <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>

@@ -1,4 +1,21 @@
+import { useTranslation } from "react-i18next";
+
 const DashBoardCards = ({ title, value, bgColorOverlay, textColor, bgImg, border, onClick, width = "270px", }) => {
+
+    const { t } = useTranslation("dashboard");
+
+    const labelMap = {
+        "Tender": "contractorsThroughTender",
+        "Self GP": "gpThroughPlacementAgency",
+        "CSR/NGO": "gpThroughCSR",
+        "SHG": "gpThroughSHG",
+        "Mixed Model": "mixedModel",
+
+        "Start": "start",
+        "Running": "running",
+        "Completed": "completed",
+    };
+
     const formatNumber = (val) => {
         if (val === "" || val === null || val === undefined) return "-";
 
@@ -12,6 +29,7 @@ const DashBoardCards = ({ title, value, bgColorOverlay, textColor, bgImg, border
 
         return num.toLocaleString("en-IN");
     };
+
     return (
         <div onClick={onClick}
             className={`relative rounded-xl    overflow-hidden p-4! border cursor-pointer flex flex-col justify-between`}
@@ -47,14 +65,18 @@ const DashBoardCards = ({ title, value, bgColorOverlay, textColor, bgImg, border
                 {/* ✅ CASE 2: Multiple values (array) */}
                 {Array.isArray(value) && (
                     <div className="flex gap-8 mt-1">
-                        {value.map((item, i) => (
-                            <div key={i}>
-                                <h1 className="text-lg font-semibold text-gray-900">
-                                    {formatNumber(item.value)}
-                                </h1>
-                                <p className="text-xs text-gray-600">{item.label}</p>
-                            </div>
-                        ))}
+                        {value.map((item, i) => {
+                            return (
+                                <div key={i}>
+                                    <h1 className="text-lg font-semibold text-gray-900">
+                                        {formatNumber(item.value)}
+                                    </h1>
+                                    <p className="text-[10px] text-gray-600">
+                                        {t(`assets.${labelMap[item.label] || item.label}`)}
+                                    </p>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
 
@@ -67,7 +89,7 @@ const DashBoardCards = ({ title, value, bgColorOverlay, textColor, bgImg, border
                                     {formatNumber(val)}
                                 </h1>
                                 <p className="text-xs text-gray-600 capitalize">
-                                    {key}
+                                    {t(`assets.${key}`)}
                                 </p>
                             </div>
                         ))}

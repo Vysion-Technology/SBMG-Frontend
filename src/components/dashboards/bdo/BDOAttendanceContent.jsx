@@ -6,6 +6,7 @@ import { useBDOLocation } from '../../../context/BDOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
@@ -166,6 +167,9 @@ const BDOAttendanceContent = () => {
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useBDOLocation();
 
+  const { t } = useTranslation(['table', 'common', 'cscCleaning']);
+
+
   // BDO: District and Block are fixed from /me API
   const selectedDistrictId = bdoDistrictId;
   const selectedBlockId = bdoBlockId;
@@ -194,7 +198,7 @@ const BDOAttendanceContent = () => {
   // Attendance specific state
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activePerformance, setActivePerformance] = useState('Time');
+  const [activePerformance, setActivePerformance] = useState('time');
   const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
   const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
 
@@ -300,7 +304,7 @@ const BDOAttendanceContent = () => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
-  const [top3Period, setTop3Period] = useState('Month');
+  const [top3Period, setTop3Period] = useState('monthly');
   const [top3SelectedMonth, setTop3SelectedMonth] = useState(new Date().getMonth() + 1);
   const [top3SelectedYear, setTop3SelectedYear] = useState(new Date().getFullYear());
   const [showTop3PeriodDropdown, setShowTop3PeriodDropdown] = useState(false);
@@ -336,10 +340,10 @@ const BDOAttendanceContent = () => {
   };
 
   const scopeButtons = ['GPs']; // BDO: Only Blocks and GPs (no State or Districts)
-  const performanceButtons = ['Time', 'Location'];
+  const performanceButtons = ['time', 'location'];
   const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
   const top3ScopeOptions = ['Block', 'GP']; // BDO: Only Block and GP (no District)
-  const top3PeriodButtons = ['Month', 'Year'];
+  const top3PeriodButtons = ['monthly', 'yearly'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -1748,7 +1752,7 @@ const BDOAttendanceContent = () => {
 
     console.log('📊 Average Attendance Rate:', averageRate + '%');
 
-    if (activePerformance === 'Time') {
+    if (activePerformance === 'time') {
       // Time tab - check if data has month field (new APIs) or date field (old API)
       const hasMonthField = safeArray.length > 0 && safeArray[0].hasOwnProperty('month');
 
@@ -2004,18 +2008,18 @@ const BDOAttendanceContent = () => {
       //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
       // },
       {
-        title: 'CSC Cleaned',
+        title: t('csc:cscCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserCheck,
         color: '#10b981',
-        tooltipText: 'Number of vendors and supervisors who marked attendance as present for the selected date/period.'
+        tooltipText: t('csc:presentAttendanceDescription')
       },
       {
-        title: 'CSC Not Cleaned',
+        title: t('csc:cscNotCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
-        tooltipText: 'Number of vendors and supervisors who were absent or did not mark attendance for the selected date/period.'
+        tooltipText: t('csc:absentAttendanceDescription')
       }
     ];
   };
@@ -2220,7 +2224,7 @@ const BDOAttendanceContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            CSC Cleaning
+            {t('common:cscCleaning')}
           </h1>
         </div>
 
@@ -2409,7 +2413,7 @@ const BDOAttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -2758,7 +2762,7 @@ const BDOAttendanceContent = () => {
                   marginTop: '4px',
                   marginLeft: '20px'
                 }}>
-                  Loading...
+                  {t('table:loading')}
                 </div>
               )}
 
@@ -2846,7 +2850,7 @@ const BDOAttendanceContent = () => {
                       marginTop: '4px',
                       marginLeft: '20px'
                     }}>
-                      Loading...
+                      {t('table:loading')}
                     </div>
                   )}
 
@@ -2901,7 +2905,7 @@ const BDOAttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                CSC Cleaning
+                {t('csc:cscCleaning')}
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -2926,7 +2930,7 @@ const BDOAttendanceContent = () => {
                   <div>
                     <SegmentedGauge
                       percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
-                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
+                      label={loadingAnalytics ? t('table:loading') : t('csc:cscCleaned')}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -2973,10 +2977,10 @@ const BDOAttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Top 3
+                  {t('csc:top3')}
                 </h2>
                 <InfoTooltip
-                  text="Top 3 performers ranked by CSC Cleaning score. Monthly score = CSC Cleaning % for selected month. Yearly score = average CSC Cleaning % across all months in the selected year."
+                  text={t('csc:topPerformersDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3082,7 +3086,7 @@ const BDOAttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {period}
+                      {t(`csc:${period}`)}
                     </button>
                   ))}
                 </div>
@@ -3121,7 +3125,7 @@ const BDOAttendanceContent = () => {
                       flex: 1,
                       textAlign: 'left'
                     }}>
-                      {top3Period === 'Month'
+                      {top3Period === 'monthly'
                         ? (() => {
                           const month = months.find(m => m.value === top3SelectedMonth);
                           return month ? (
@@ -3155,7 +3159,7 @@ const BDOAttendanceContent = () => {
                         overflowY: 'auto'
                       }}
                     >
-                      {top3Period === 'Month' ? (
+                      {top3Period === 'monthly' ? (
                         // Show months
                         months.map((month) => (
                           <div
@@ -3223,9 +3227,9 @@ const BDOAttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {activeScope === 'State' ? 'District' :
-                        activeScope === 'Districts' ? 'Block' :
-                          activeScope === 'Blocks' ? 'GP' : 'GP'}
+                      {activeScope === 'State' ? t('table:district') :
+                        activeScope === 'Districts' ? t('table:block') :
+                          activeScope === 'Blocks' ? t('table:gps') : t('table:gp')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3234,7 +3238,7 @@ const BDOAttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
+                      {top3Period === 'Month' ? t('csc:monthlyScore') : t('csc:yearlyScore')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3243,7 +3247,7 @@ const BDOAttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Rank
+                      {t('csc:rank')}
                     </th>
                   </tr>
                 </thead>
@@ -3256,7 +3260,7 @@ const BDOAttendanceContent = () => {
                         fontSize: '14px',
                         color: '#6b7280'
                       }}>
-                        Loading top 3 data...
+                        {t('table:loading')}
                       </td>
                     </tr>
                   ) : (top3Error || top3Data.length === 0) ? (
@@ -3342,12 +3346,12 @@ const BDOAttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {activeScope === 'State' ? 'State performance score' :
-                    activeScope === 'Districts' ? 'District performance score' :
-                      activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
+                  {activeScope === 'State' ? t('csc:statePerformanceScore') :
+                    activeScope === 'Districts' ? t('csc:districtPerformanceScore') :
+                      activeScope === 'Blocks' ? t('csc:blockPerformanceScore') : t('csc:gpPerformanceScore')}
                 </h2>
                 <InfoTooltip
-                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned count / Total count) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  text={t('csc:performanceScoreDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3381,7 +3385,7 @@ const BDOAttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {scope}
+                      {t(`csc:${scope}`)}
                     </button>
                   ))}
                 </div>
@@ -3482,7 +3486,7 @@ const BDOAttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Below state average
+                  {t('csc:belowStateAverage')}
                 </span>
               </div>
               <div style={{
@@ -3500,7 +3504,7 @@ const BDOAttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Above state average
+                  {t('csc:aboveStateAverage')}
                 </span>
               </div>
             </div>
@@ -3528,7 +3532,7 @@ const BDOAttendanceContent = () => {
                       color: '#6b7280',
                       fontSize: '14px'
                     }}>
-                      Loading chart data...
+                      {t('table:loading')}
                     </div>
                   );
                 }
@@ -3655,7 +3659,7 @@ const BDOAttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              CSC Cleaning History
+              {t('csc:cscHistory')}
             </h2>
             <div
               onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
@@ -3814,7 +3818,7 @@ const BDOAttendanceContent = () => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={historySearchTerm}
                 onChange={(e) => setHistorySearchTerm(e.target.value)}
                 style={{
@@ -3874,10 +3878,10 @@ const BDOAttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Date' :
-                    activeScope === 'State' ? 'District name' :
-                      activeScope === 'Districts' ? 'Block name' :
-                        activeScope === 'Blocks' ? 'GP name' : 'Village name'}
+                  {activeScope === 'GPs' ? (t('table:date')) :
+                    activeScope === 'State' ? (t('table:districtName')) :
+                      activeScope === 'Districts' ? (t('table:blockName')) :
+                        activeScope === 'Blocks' ? (t('table:gpName')) : (t('table:villageName'))}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -3897,7 +3901,7 @@ const BDOAttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaning (%)'}
+                  {activeScope === 'GPs' ? 'Status' : `${t('csc:cscCleaned')} (%)`}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -3916,7 +3920,7 @@ const BDOAttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  Action
+                  {t('table:action')}
                 </th>
               </tr>
             </thead>

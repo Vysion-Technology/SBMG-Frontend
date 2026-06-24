@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import visualsImg from '../../../assets/header/visuals.png';
 import LocationHierarchyPopup from './LocationHierarchyPopup';
+import { useTranslation } from 'react-i18next';
 
 const OverviewBanner = ({
   districtsCount = 0,
@@ -11,11 +12,12 @@ const OverviewBanner = ({
 }) => {
 
   const [openPopup, setOpenPopup] = useState(false);
+  const { i18n, t } = useTranslation()
 
   const metrics = [
-    { value: districtsCount, label: 'Districts', color: '#2563eb' },
-    { value: blocksCount, label: 'Blocks', color: '#ea580c' },
-    { value: villagesCount, label: 'GPs', color: '#9333ea' }
+    { value: districtsCount, label: t("district"), color: '#2563eb' },
+    { value: blocksCount, label: t('block'), color: '#ea580c' },
+    { value: villagesCount, label: t('gps'), color: '#9333ea' }
   ];
 
   return (

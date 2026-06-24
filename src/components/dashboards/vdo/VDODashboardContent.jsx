@@ -12,6 +12,7 @@ import OverviewBanner from '../common/OverviewBanner';
 import DashBoardCards from '../common/DashBoardCards';
 import { assetsSections } from '../../../config/assetsConfig';
 import { mapAssetsApiToUI } from '../../../utils/assetsMapper';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -208,6 +209,9 @@ const VDODashboardContent = () => {
     vdoGPName,
     getLocationPath,
   } = useVDOLocation();
+
+  // Language translation
+  const { t } = useTranslation('dashboard');
 
   // VDO: Always works at villages level (no geo tabs)
   const activeScope = 'GPs';
@@ -1946,12 +1950,19 @@ const VDODashboardContent = () => {
   }, []);
 
 
-  const formatValue = (key, value) => {
+ const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
       if (isNaN(num)) return "-";
       return `${(num / 1000).toFixed(2)} kms`;
     }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value;
   };
 
@@ -2002,7 +2013,7 @@ const VDODashboardContent = () => {
             marginBottom: "16px",
           }}
         >
-          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>{t("assets.assets")}</h1>
         </div>
 
         {/* Sections */}
@@ -2018,7 +2029,7 @@ const VDODashboardContent = () => {
                 color: "#374151",
               }}
             >
-              {section.title}
+              {t(`assets.${section.title}`)}
             </h2>
 
             {/* Cards */}
@@ -2033,7 +2044,7 @@ const VDODashboardContent = () => {
 
               {section.cards.map((card, j) => (
                 <DashBoardCards
-                  title={card.label}
+                  title={t(`assets.${card.label}`)}
                   value={
                     loading
                       ? "..."

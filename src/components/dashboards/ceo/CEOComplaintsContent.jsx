@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Plus, X, Star, User, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import { useCEOLocation } from '../../../context/CEOLocationContext';
 import apiClient, { noticesAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 import NoDataFound from '../common/NoDataFound';
 import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
+import SLABadge from '../common/SLABadge';
+import { useTranslation } from 'react-i18next';
 
 const CEOComplaintsContent = () => {
   // Shared location state via context
@@ -32,6 +34,9 @@ const CEOComplaintsContent = () => {
     ceoDistrictName,
     loadingCEOData
   } = useCEOLocation();
+
+  const { t } = useTranslation(['table', 'complaints', 'common']);
+
 
   // CEO always uses their district ID from /me API
   const selectedDistrictId = ceoDistrictId || null;
@@ -89,6 +94,38 @@ const CEOComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
+  const [sortConfig, setSortConfig] = useState({
+    key: null,
+    direction: 'asc'
+  });
+
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return {
+          key,
+          direction: prev.direction === 'asc' ? 'desc' : 'asc'
+        };
+      } else {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+    });
+  };
+
+  const SortIcon = ({ col }) => {
+    if (sortConfig.key !== col) {
+      return <ChevronsUpDown style={{ width: '14px', height: '14px', marginLeft: '4px', display: 'inline' }} />;
+    }
+    return sortConfig.direction === 'asc' ? (
+      <ChevronUp style={{ width: '14px', height: '14px', marginLeft: '4px', display: 'inline' }} />
+    ) : (
+      <ChevronDown style={{ width: '14px', height: '14px', marginLeft: '4px', display: 'inline' }} />
+    );
+  };
 
   // Raise Complaint Modal state
   const [showComplaintModal, setShowComplaintModal] = useState(false);
@@ -967,12 +1004,12 @@ const CEOComplaintsContent = () => {
 
     return [
       {
-        title: 'Total Complaints',
+        title: t('complaints:totalComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.total),
         icon: List,
         color: '#9ca3af',
         trend: 'up',
-        tooltipText: 'Total complaints logged for the selected scope and period.',
+        tooltipText: t('complaints:totalComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.total * 0.8, counts.total * 0.9, counts.total * 0.95, counts.total]
@@ -1022,12 +1059,12 @@ const CEOComplaintsContent = () => {
         }
       },
       {
-        title: 'Open Complaints',
+        title: t('complaints:openComplaints'),
         value: loadingAnalytics ? '...' : formatNumber(counts.open),
         icon: List,
         color: '#ef4444',
         trend: 'up',
-        tooltipText: 'Complaints that are currently open and awaiting action.',
+        tooltipText: t('complaints:openComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.open * 0.85, counts.open * 0.92, counts.open * 0.97, counts.open]
@@ -1061,12 +1098,12 @@ const CEOComplaintsContent = () => {
         }
       },
       {
-        title: 'Resolved',
+        title: t('complaints:resolved'),
         value: loadingAnalytics ? '...' : formatNumber(counts.resolved),
         icon: List,
         color: '#8b5cf6',
         trend: 'up',
-        tooltipText: 'Complaints resolved after action was taken.',
+        tooltipText: t('complaints:resolvedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.resolved * 0.8, counts.resolved * 0.88, counts.resolved * 0.92, counts.resolved]
@@ -1100,12 +1137,12 @@ const CEOComplaintsContent = () => {
         }
       },
       {
-        title: 'Verified',
+        title: t('complaints:verify'),
         value: loadingAnalytics ? '...' : formatNumber(counts.verified),
         icon: List,
         color: '#f59e0b',
         trend: 'up',
-        tooltipText: 'Complaints verified by the VDO.',
+        tooltipText: t('complaints:verifiedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.verified * 0.82, counts.verified * 0.89, counts.verified * 0.93, counts.verified]
@@ -1140,12 +1177,12 @@ const CEOComplaintsContent = () => {
       },
 
       {
-        title: 'Disposed',
+        title: t('complaints:disposed'),
         value: loadingAnalytics ? '...' : formatNumber(counts.disposed),
         icon: List,
         color: '#14b8a6',
         trend: 'up',
-        tooltipText: 'Complaints closed after final disposal or resolution confirmation.',
+        tooltipText: t('complaints:disposedComplaintsDescription'),
         chartData: {
           series: [{
             data: [counts.disposed * 0.75, counts.disposed * 0.85, counts.disposed * 0.9, counts.disposed]
@@ -1362,7 +1399,8 @@ const CEOComplaintsContent = () => {
       lat: complaint.lat,
       long: complaint.long,
       media: complaint.media_urls || [],
-      comments: complaint.comments || []
+      comments: complaint.comments || [],
+      last_sla_breach_level: complaint.last_sla_breach_level || null
     };
   });
 
@@ -1423,6 +1461,10 @@ const CEOComplaintsContent = () => {
       ? complaintStatusNormalized === normalizedFilterStatus
       : true; // if no filter selected, show all
 
+    const matchesSlaFilter = showOnlyEscalated
+      ? complaint.last_sla_breach_level === 'BLOCK'
+      : true;
+
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
@@ -1437,7 +1479,50 @@ const CEOComplaintsContent = () => {
       (complaint.block || '').toLowerCase().includes(q) ||
       (complaint.district || '').toLowerCase().includes(q);
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSlaFilter && matchesSearch;
+  });
+
+  const sortedComplaints = [...filteredComplaints].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+
+    let valA = a[sortConfig.key];
+    let valB = b[sortConfig.key];
+
+    // ✅ ESCALATION SORT
+    if (sortConfig.key === 'last_sla_breach_level') {
+      const getEscalationWeight = (level) => {
+        if (level === 'DISTRICT') return 3;
+        if (level === 'BLOCK') return 2;
+        if (level === 'GP') return 1;
+        return 0;
+      };
+      const wA = getEscalationWeight(a.last_sla_breach_level);
+      const wB = getEscalationWeight(b.last_sla_breach_level);
+      return sortConfig.direction === 'asc' ? wA - wB : wB - wA;
+    }
+
+    if (sortConfig.key === 'statusDisplay') {
+      const statusOrder = { open: 1, resolved: 2, verified: 3, closed: 4 };
+      const sA = (a.statusDisplay || a.status || '').toLowerCase();
+      const sB = (b.statusDisplay || b.status || '').toLowerCase();
+      return sortConfig.direction === 'asc'
+        ? (statusOrder[sA] || 0) - (statusOrder[sB] || 0)
+        : (statusOrder[sB] || 0) - (statusOrder[sA] || 0);
+    }
+
+    if (sortConfig.key === 'submittedDate') {
+      return sortConfig.direction === 'asc'
+        ? new Date(a.created_at) - new Date(b.created_at)
+        : new Date(b.created_at) - new Date(a.created_at);
+    }
+
+    if (typeof valA === 'string') {
+      return sortConfig.direction === 'asc'
+        ? valA.localeCompare(valB)
+        : valB.localeCompare(valA);
+    }
+
+    return 0;
   });
 
   // Debug logging with detailed filter analysis
@@ -1623,7 +1708,7 @@ const CEOComplaintsContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            Complaints
+            {t('common:complaints')}
           </h1>
         </div>
 
@@ -1861,7 +1946,7 @@ const CEOComplaintsContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -2256,7 +2341,7 @@ const CEOComplaintsContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Complaints
+              {t('common:complaints')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -2330,6 +2415,35 @@ const CEOComplaintsContent = () => {
                 </div>
               )}
             </div>
+
+            {/* Show Escalated Button */}
+            <button
+              onClick={() => setShowOnlyEscalated(!showOnlyEscalated)}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: showOnlyEscalated ? '#dc2626' : '#fee2e2',
+                color: showOnlyEscalated ? '#ffffff' : '#b91c1c',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease-in-out',
+                boxShadow: showOnlyEscalated ? '0 2px 4px rgba(220, 38, 38, 0.2)' : 'none'
+              }}
+            >
+              <span style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
+                display: 'inline-block'
+              }} />
+              {showOnlyEscalated ? 'Showing BLOCK' : 'BLOCK'}
+            </button>
           </div>
 
           <div style={{
@@ -2353,7 +2467,7 @@ const CEOComplaintsContent = () => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -2414,24 +2528,106 @@ const CEOComplaintsContent = () => {
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  User
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('submittedBy')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:userNumber')}
+                    <SortIcon col="submittedBy" />
+                  </div>
+                </th>
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('location')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:addressGP')}
+                    <SortIcon col="location" />
+                  </div>
+                </th>
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('title')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:typeOfComplaint')}
+                    <SortIcon col="title" />
+                  </div>
+                </th>
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('submittedDate')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:dateOfComplaint')}
+                    <SortIcon col="submittedDate" />
+                  </div>
+                </th>
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('statusDisplay')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:status')}
+                    <SortIcon col="statusDisplay" />
+                  </div>
+                </th>
+                <th 
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('last_sla_breach_level')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:slaEscalation') || 'SLA Escalation'}
+                    <SortIcon col="last_sla_breach_level" />
                   </div>
                 </th>
                 <th style={{
@@ -2442,101 +2638,31 @@ const CEOComplaintsContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  Address(GP)
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  Type of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  Date of complaint
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  Status
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
+                  {t('table:action')}
                 </th>
               </tr>
             </thead>
             <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
-                  <td colSpan="5" style={{
+                  <td colSpan="7" style={{
                     padding: '40px',
                     textAlign: 'center',
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading complaints...
+                    {t('table:loadingComplaints')}
                   </td>
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: 0 }}>
+                  <td colSpan="7" style={{ padding: 0 }}>
                     <NoDataFound size="small" />
                   </td>
                 </tr>
               ) : (() => {
                 console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
-                return filteredComplaints.map((complaint, index) => (
+                return sortedComplaints.map((complaint, index) => (
                   <tr
                     onClick={() => handleOpenComplaintDetails(complaint.ids)}
                     className='hover:bg-gray-50 cursor-pointer'
@@ -2607,21 +2733,32 @@ const CEOComplaintsContent = () => {
                         }} title={complaint.status || 'N/A'}>
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
-                        <button
-                          onClick={() => handleOpenNoticeModal(complaint)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: 'transparent',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            color: '#374151',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Send notice
-                        </button>
                       </div>
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px'
+                    }}>
+                      <SLABadge level={complaint.last_sla_breach_level} />
+                    </td>
+                    <td>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // row click ko prevent karega
+                          handleOpenNoticeModal(complaint);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: 'transparent',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {t('table:sendNotice')}
+                      </button>
                     </td>
                   </tr>
                 ));
@@ -2644,7 +2781,7 @@ const CEOComplaintsContent = () => {
             color: '#6b7280'
           }}>
             <span>
-              {filteredComplaints.length} complaint{filteredComplaints.length !== 1 ? 's' : ''} total
+              {filteredComplaints.length}  {t('table:complaintsTotal')}
             </span>
             <div style={{
               display: 'flex',
@@ -2653,7 +2790,7 @@ const CEOComplaintsContent = () => {
               fontSize: '12px',
               color: '#9ca3af'
             }}>
-              <span>Scroll to see all</span>
+              <span>{t('table:scrollToSee')}</span>
               <div style={{
                 width: '16px',
                 height: '16px',
@@ -2674,605 +2811,7 @@ const CEOComplaintsContent = () => {
         complaintId={selectedComplaint}
       />
 
-      {/* Raise Complaint Modal */}
-      {showComplaintModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
-        }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowComplaintModal(false);
-            }
-          }}
-        >
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '800px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px',
-            position: 'relative'
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '24px'
-            }}>
-              <h2 style={{
-                fontSize: '20px',
-                fontWeight: '600',
-                color: '#111827',
-                margin: 0
-              }}>
-                Raise Complaint
-              </h2>
-              <button
-                onClick={() => setShowComplaintModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-              </button>
-            </div>
 
-            {/* Complaint Type */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Select Type of Complaint
-              </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={complaintForm.complaintTypeId}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, complaintTypeId: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151',
-                    backgroundColor: 'white',
-                    appearance: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="">Select option</option>
-                  {complaintCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-            </div>
-
-            {/* Details */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Details
-              </label>
-              <textarea
-                value={complaintForm.details}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value.length <= 100) {
-                    setComplaintForm(prev => ({ ...prev, details: value }));
-                  }
-                }}
-                placeholder="Details"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151',
-                  minHeight: '80px',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-              />
-              <div style={{
-                fontSize: '12px',
-                color: '#6b7280',
-                marginTop: '4px',
-                textAlign: 'right'
-              }}>
-                {complaintForm.details.length}/100
-              </div>
-            </div>
-
-            {/* Phone Number */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Phone Number <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="tel"
-                value={complaintForm.phone_number}
-                onChange={(e) => setComplaintForm(prev => ({ ...prev, phone_number: e.target.value }))}
-                placeholder="Phone number"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              />
-            </div>
-
-            {/* District and Block */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '20px'
-            }}>
-              {/* District */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  District
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={complaintForm.districtId}
-                    onChange={(e) => {
-                      const districtId = e.target.value;
-                      setComplaintForm(prev => ({
-                        ...prev,
-                        districtId,
-                        blockId: '',
-                        gpId: '',
-                        village: ''
-                      }));
-                      if (districtId) {
-                        fetchBlocks(districtId);
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: '#374151',
-                      backgroundColor: 'white',
-                      appearance: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value="">Select District</option>
-                    {districts.map(district => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af',
-                    pointerEvents: 'none'
-                  }} />
-                </div>
-              </div>
-
-              {/* Block */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Block
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <select
-                    value={complaintForm.blockId}
-                    onChange={(e) => {
-                      const blockId = e.target.value;
-                      setComplaintForm(prev => ({
-                        ...prev,
-                        blockId,
-                        gpId: '',
-                        village: ''
-                      }));
-                      if (blockId && complaintForm.districtId) {
-                        fetchGramPanchayats(complaintForm.districtId, blockId);
-                      }
-                    }}
-                    disabled={!complaintForm.districtId}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      color: complaintForm.districtId ? '#374151' : '#9ca3af',
-                      backgroundColor: complaintForm.districtId ? 'white' : '#f9fafb',
-                      appearance: 'none',
-                      cursor: complaintForm.districtId ? 'pointer' : 'not-allowed'
-                    }}
-                  >
-                    <option value="">Select Block</option>
-                    {blocks.filter(b => b.district_id === parseInt(complaintForm.districtId)).map(block => (
-                      <option key={block.id} value={block.id}>
-                        {block.name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    width: '16px',
-                    height: '16px',
-                    color: '#9ca3af',
-                    pointerEvents: 'none'
-                  }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Gram Panchayat */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                Gram Panchayat
-              </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={complaintForm.gpId}
-                  onChange={(e) => {
-                    const gpId = e.target.value;
-                    setComplaintForm(prev => ({
-                      ...prev,
-                      gpId,
-                      village: ''
-                    }));
-                    if (gpId) {
-                      fetchVillages(gpId);
-                    }
-                  }}
-                  disabled={!complaintForm.blockId}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: complaintForm.blockId ? '#374151' : '#9ca3af',
-                    backgroundColor: complaintForm.blockId ? 'white' : '#f9fafb',
-                    appearance: 'none',
-                    cursor: complaintForm.blockId ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  <option value="">Select Gram Panchayat</option>
-                  {gramPanchayats.filter(gp => gp.block_id === parseInt(complaintForm.blockId)).map(gp => (
-                    <option key={gp.id} value={gp.id}>
-                      {gp.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-            </div>
-
-            {/* Village and Ward/Area */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '16px',
-              marginBottom: '24px'
-            }}>
-              {/* Village */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Village
-                </label>
-                <input
-                  type="text"
-                  value={complaintForm.village}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, village: e.target.value }))}
-                  placeholder="Enter Village"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151'
-                  }}
-                />
-              </div>
-
-              {/* Ward/Area */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Ward/Area
-                </label>
-                <input
-                  type="text"
-                  value={complaintForm.wardArea}
-                  onChange={(e) => setComplaintForm(prev => ({ ...prev, wardArea: e.target.value }))}
-                  placeholder="Enter Ward/Area"
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: '#374151'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '24px'
-            }}>
-              <button
-                onClick={() => {
-                  setShowComplaintModal(false);
-                  setComplaintForm({
-                    complaintTypeId: '',
-                    details: '',
-                    phone_number: '',
-                    districtId: '',
-                    blockId: '',
-                    gpId: '',
-                    village: '',
-                    wardArea: ''
-                  });
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    setSubmittingComplaint(true);
-
-                    const location = [complaintForm.village, complaintForm.wardArea].filter(Boolean).join(', ');
-                    const params = {
-                      phone_number: complaintForm.phone_number,
-                      description: complaintForm.details,
-                      complaint_type_id: complaintForm.complaintTypeId,
-                      gp_id: complaintForm.gpId,
-                      location
-                    };
-                    const body = new URLSearchParams(params).toString();
-
-                    await apiClient.post('/complaints/smd/complaints', body, {
-                      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                    });
-
-                    setComplaintForm({
-                      complaintTypeId: '',
-                      details: '',
-                      phone_number: '',
-                      districtId: '',
-                      blockId: '',
-                      gpId: '',
-                      village: '',
-                      wardArea: ''
-                    });
-                    setShowComplaintModal(false);
-                    setShowSuccessDialog(true);
-                    fetchComplaintsData();
-                  } catch (error) {
-                    console.error('Error submitting complaint:', error);
-                    alert('Failed to submit complaint. Please try again.');
-                  } finally {
-                    setSubmittingComplaint(false);
-                  }
-                }}
-                disabled={submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? '#d1d5db' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 'not-allowed' : 'pointer',
-                  opacity: (submittingComplaint || !complaintForm.complaintTypeId || !complaintForm.details || !complaintForm.phone_number || !complaintForm.gpId || !(complaintForm.village || complaintForm.wardArea)) ? 0.6 : 1
-                }}
-              >
-                {submittingComplaint ? 'Submitting...' : 'Add'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Success Dialog */}
-      {showSuccessDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10001,
-          padding: '20px'
-        }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowSuccessDialog(false);
-            }
-          }}
-        >
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '32px',
-            maxWidth: '400px',
-            width: '100%',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)'
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Star Icon */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              marginBottom: '20px'
-            }}>
-              <Star style={{
-                width: '48px',
-                height: '48px',
-                color: '#f97316',
-                fill: '#f97316'
-              }} />
-            </div>
-
-            {/* Success Message */}
-            <div style={{
-              fontSize: '18px',
-              fontWeight: '700',
-              color: '#374151',
-              marginBottom: '24px',
-              lineHeight: '1.4'
-            }}>
-              Your Complaint has been
-              <br />
-              submitted successfully
-            </div>
-
-            {/* Close Button */}
-            <button
-              onClick={() => setShowSuccessDialog(false)}
-              style={{
-                padding: '12px 32px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '16px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                width: '100%',
-                maxWidth: '200px'
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Notice Location Modal */}
       {showNoticeModal && (
@@ -3325,7 +2864,7 @@ const CEOComplaintsContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Notice Location
+                  {(t("table:location"))}
                 </h2>
                 <div style={{
                   width: '32px',
@@ -3364,7 +2903,7 @@ const CEOComplaintsContent = () => {
               fontSize: '14px',
               color: '#374151'
             }}>
-              <strong>To:</strong> {noticeForm.to}
+              <strong>{(t("table:to"))} :</strong> {noticeForm.to}
             </div>
 
             {/* Subject Field */}
@@ -3376,7 +2915,7 @@ const CEOComplaintsContent = () => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Subject
+                {(t("table:subject"))}
               </label>
               <input
                 type="text"
@@ -3403,7 +2942,7 @@ const CEOComplaintsContent = () => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Category
+                {(t("table:category"))}
               </label>
               <div style={{ position: 'relative' }}>
                 <select
@@ -3472,7 +3011,7 @@ const CEOComplaintsContent = () => {
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                Details
+                {(t("table:details"))}
               </label>
               <textarea
                 value={noticeForm.details}
@@ -3521,7 +3060,7 @@ const CEOComplaintsContent = () => {
                   cursor: 'pointer'
                 }}
               >
-                Cancel
+                {(t("table:cancel"))}
               </button>
               <button
                 onClick={async () => {
@@ -3584,7 +3123,7 @@ const CEOComplaintsContent = () => {
                   opacity: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 0.6 : 1
                 }}
               >
-                {sendingNotice ? 'Sending...' : 'Send'}
+                {sendingNotice ? (t("table:sending")) : (t("table:send"))}
               </button>
             </div>
           </div>

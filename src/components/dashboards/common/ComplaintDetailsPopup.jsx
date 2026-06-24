@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer, ShieldAlert } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
 import ResolutionPopup from "./ResolutionPopup";
+import { useAuth } from '../../../context/AuthContext.jsx';
 
 
 const styles = {
@@ -28,15 +29,21 @@ const styles = {
         width: "500px",
         height: "100%",
         borderRadius: "0px",
-        padding: "20px",
+        // padding: "20px",
         overflowY: "auto",
-        boxShadow: "-10px 0 30px rgba(0,0,0,0.1)" // 🔥 depth feel
+        boxShadow: "-10px 0 30px rgba(0,0,0,0.1)", // 🔥 depth feel
+        display: "flex",
+        flexDirection: "column"
     },
 
     header: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "center"
+        alignItems: "center",
+        background: '#f3f4f6',
+        padding: '15px',
+        boxShadow: "0 0px 2px #3c3838",
+        fontSize: '18px'
     },
 
     statusCard: {
@@ -150,6 +157,7 @@ const styles = {
         background: "#009B56",
         color: "#fff",
         cursor: "pointer",
+        justifyItems: 'center'
     }
 
 
@@ -164,6 +172,25 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
     const [complaint, setComplaint] = useState(null);
     const [loading, setLoading] = useState(false);
     const [fullAddress, setFullAddress] = useState("");
+
+    const [closing, setClosing] = useState(false);
+
+    const { user } = useAuth();
+
+    const canCloseComplaint =
+        ["ADMIN", "CEO", "BDO", "SMD"].includes(
+            user?.role?.toUpperCase()
+        ) &&
+        !complaint?.closed_at;
+
+
+    console.log("Role:", user?.role);
+    console.log("Can Close:", canCloseComplaint);
+
+
+
+
+
 
     // complain type & heading 
     const [complaintTypes, setComplaintTypes] = useState([]);
@@ -239,6 +266,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                 const res = await apiClient.get(`/public/${complaintId}/details`);
 
                 setComplaint(res.data);
+                console.log(res.data);
 
             } catch (err) {
 
@@ -298,7 +326,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
         complaint?.closed_at && {
             status: "Closed",
-            role: "Admin",
+            role: complaint?.closed_by_info || "Citizen",
             date: complaint?.closed_at,
             data: complaint?.comments?.[complaint?.comments?.length - 1],
             showImages: false
@@ -314,6 +342,42 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
             hour: "2-digit",
             minute: "2-digit"
         });
+
+
+    const handleCloseComplaint = async () => {
+        if (!complaintId) return;
+
+        // ADD THIS ↓
+        const confirmed = window.confirm(
+            "Are you sure you want to close this complaint?"
+        );
+        if (!confirmed) return;
+        // ADD THIS ↑
+
+        try {
+            setClosing(true);
+
+            await apiClient.patch(
+                `/complaints/${complaint.id}/status`,
+                {
+                    status_name: "CLOSED"
+                }
+            );
+
+            // UI refresh
+            const res = await apiClient.get(
+                `/public/${complaint.id}/details`
+            );
+
+            setComplaint(res.data);
+
+        } catch (error) {
+            console.error("Close complaint error:", error);
+            alert("Failed to close complaint");
+        } finally {
+            setClosing(false);
+        }
+    };
 
     return (
 
@@ -332,248 +396,394 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                 transition={{ duration: 0.3 }}
                             >
 
-                                {loading ? (
-                                    <div style={{
-                                        display: "flex",
-                                        justifyContent: "center",
-                                        alignItems: "center",
-                                        height: "80vh",
-                                        flexDirection: "column",
-                                        gap: "10px"
-                                    }}>
-                                        <Loader className="animate-spin" />
-                                        <p style={{ color: "#666" }}>Loading complaint details...</p>
-                                    </div>
-                                ) : !complaint ? (
-                                    <div style={{
-                                        textAlign: "center",
-                                        marginTop: "50px",
-                                        color: "#999"
-                                    }}>
-                                        No complaint data
-                                    </div>
-                                ) : (
-
-
-                                    <>
-                                        {/* complaint id */}
-                                        <div style={styles.header}>
-                                            <h2>Complaint ID: {complaint?.id}</h2>
-                                            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-
-                                                <button
-                                                    onClick={() => window.print()}
-                                                    style={styles.printBtn}
-                                                >
-                                                    <Printer size={18} />
-                                                </button>
-
-                                                <span
-                                                    style={{ cursor: "pointer" }}
-                                                    onClick={onClose}
-                                                >
-                                                    ✕
-                                                </span>
-                                            </div>
+                                <div style={{ flex: 1 }}>
+                                    {loading ? (
+                                        <div style={{
+                                            display: "flex",
+                                            justifyContent: "center",
+                                            alignItems: "center",
+                                            height: "80vh",
+                                            flexDirection: "column",
+                                            gap: "10px"
+                                        }}>
+                                            <Loader className="animate-spin" />
+                                            <p style={{ color: "#666" }}>Loading complaint details...</p>
                                         </div>
+                                    ) : !complaint ? (
+                                        <div style={{
+                                            textAlign: "center",
+                                            marginTop: "50px",
+                                            color: "#999"
+                                        }}>
+                                            No complaint data
+                                        </div>
+                                    ) : (
 
-                                        {/* location dis block gps.. */}
-                                        <p style={{ color: "#666", fontSize: "13px" }}>
-                                            {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
-                                        </p>
 
-                                        {/* Complaint actions type */}
-                                        <div
-                                            style={{
-                                                ...styles.statusCard,
-                                                backgroundColor: complaint?.closed_at
-                                                    ? "#F0FDF4"
-                                                    : complaint?.verified_at
-                                                        ? "#FFF7ED"
-                                                        : complaint?.resolved_at
-                                                            ? "#FAF5FF"
-                                                            : "#FEF2F2",
-                                                color: complaint?.closed_at
-                                                    ? "#11B981"
-                                                    : complaint?.verified_at
-                                                        ? "#F9781E"
-                                                        : complaint?.resolved_at
-                                                            ? "#8B5CF6"
-                                                            : "#EF4A4A",
-                                                borderColor: complaint?.closed_at
-                                                    ? "#31CA9C"
-                                                    : complaint?.verified_at
-                                                        ? "#F9781E"
-                                                        : complaint?.resolved_at
-                                                            ? "#8B5CF6"
-                                                            : "#EF4A4A",
+                                        <>
+                                            {/* complaint id */}
+                                            <div style={styles.header}>
+                                                <h2>Complaint ID: {complaint?.id}</h2>
+                                                <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
 
-                                            }}
-                                        >
-                                            {complaint?.closed_at
-                                                ? <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                    <span style={{ backgroundColor: '#00BE7D', padding: '5px', borderRadius: '50%' }}>
-                                                        <Check color={'white'} width={'16px'} height={'16px'} />
+                                                    <button
+                                                        onClick={() => window.print()}
+                                                        style={styles.printBtn}
+                                                    >
+                                                        <Printer size={18} />
+                                                    </button>
+
+                                                    <span
+                                                        style={{ cursor: "pointer" }}
+                                                        onClick={onClose}
+                                                    >
+                                                        ✕
                                                     </span>
+                                                </div>
+                                            </div>
 
-                                                    <div>
-                                                        <p style={{ fontWeight: '500', color: '#03B77B', fontSize: '18px' }}>
-                                                            Complaint has been Closed</p>
-                                                        <p style={{ color: '#666' }}> Closed <span style={{ fontSize: '12px' }}>{formatDate(complaint?.closed_at)} </span> </p>
-                                                    </div>
+                                            <div className="!p-5">
+                                                {/* location dis block gps.. */}
+                                                <p style={{ color: "#666", fontSize: "13px" }}>
+                                                    {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
+                                                </p>
+
+                                                {/* Complaint actions type */}
+                                                <div
+                                                    style={{
+                                                        ...styles.statusCard,
+                                                        backgroundColor: complaint?.closed_at
+                                                            ? "#F0FDF4"
+                                                            : complaint?.verified_at
+                                                                ? "#FFF7ED"
+                                                                : complaint?.resolved_at
+                                                                    ? "#FAF5FF"
+                                                                    : "#FEF2F2",
+                                                        color: complaint?.closed_at
+                                                            ? "#11B981"
+                                                            : complaint?.verified_at
+                                                                ? "#F9781E"
+                                                                : complaint?.resolved_at
+                                                                    ? "#8B5CF6"
+                                                                    : "#EF4A4A",
+                                                        borderColor: complaint?.closed_at
+                                                            ? "#31CA9C"
+                                                            : complaint?.verified_at
+                                                                ? "#F9781E"
+                                                                : complaint?.resolved_at
+                                                                    ? "#8B5CF6"
+                                                                    : "#EF4A4A",
+
+                                                    }}
+                                                >
+                                                    {complaint?.closed_at
+                                                        ? <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                            <span style={{ backgroundColor: '#00BE7D', padding: '5px', borderRadius: '50%' }}>
+                                                                <Check color={'white'} width={'16px'} height={'16px'} />
+                                                            </span>
+
+                                                            <div>
+                                                                <p style={{ fontWeight: '500', color: '#03B77B', fontSize: '18px' }}>
+                                                                    Complaint has been Closed</p>
+                                                                <p style={{ color: '#666' }}> Closed <span style={{ fontSize: '12px' }}>{formatDate(complaint?.closed_at)} </span> </p>
+                                                            </div>
+                                                        </div>
+
+                                                        : complaint?.verified_at
+                                                            ?
+                                                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }} >
+                                                                <span style={{ backgroundColor: '#ffcc8c', padding: '5px', borderRadius: '50%' }}>
+                                                                    <Clock width={'16px'} height={'16px'} />
+                                                                </span>
+                                                                <div>
+                                                                    <p style={{ fontWeight: '500', color: '#ffa93d', fontSize: '18px' }}>
+                                                                        Awaiting for citizen to close complaint</p>
+                                                                    <p style={{ color: '#666' }}> Verified <span style={{ fontSize: '12px' }}>{formatDate(complaint?.verified_at)} </span> </p>
+                                                                </div>
+
+                                                            </div>
+
+                                                            :
+                                                            complaint?.resolved_at
+                                                                ?
+                                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }} >
+                                                                    <span style={{ backgroundColor: '#ebd8ff', padding: '5px', borderRadius: '50%' }}>
+                                                                        <Clock width={'16px'} height={'16px'} />
+                                                                    </span>
+                                                                    <div>
+                                                                        <p style={{ fontWeight: '500', color: '#9855da', fontSize: '18px' }}>
+                                                                            Awaiting for VDO to verify</p>
+                                                                        <p style={{ color: '#666' }}> Resolved <span style={{ fontSize: '12px' }}>{formatDate(complaint?.resolved_at)} </span> </p>
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                                :
+                                                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                                                    <span style={{ backgroundColor: '#ffaeae', padding: '5px', borderRadius: '50%' }}>
+                                                                        <Loader width={'16px'} height={'16px'} />
+                                                                    </span>
+                                                                    <div>
+                                                                        <p style={{ fontWeight: '500', color: '#ff4343', fontSize: '18px' }}>
+                                                                            Awaiting for supervisor to take action</p>
+                                                                        <p style={{ color: '#666' }}> Open <span style={{ fontSize: '12px' }}>{formatDate(complaint?.created_at)} </span></p>
+                                                                    </div>
+
+
+                                                                </div>}
                                                 </div>
 
-                                                : complaint?.verified_at
-                                                    ?
-                                                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }} >
-                                                        <span style={{ backgroundColor: '#ffcc8c', padding: '5px', borderRadius: '50%' }}>
-                                                            <Clock width={'16px'} height={'16px'} />
-                                                        </span>
+
+                                                {/* SLA Breach Banner */}
+                                                {complaint?.last_sla_breach_level && (
+                                                    <div style={{
+                                                        marginTop: '12px',
+                                                        padding: '12px 14px',
+                                                        borderRadius: '6px',
+                                                        borderLeft: `4px solid ${complaint.last_sla_breach_level === 'DISTRICT' ? '#ef4444' :
+                                                            complaint.last_sla_breach_level === 'BLOCK' ? '#f97316' : '#eab308'
+                                                            }`,
+                                                        backgroundColor:
+                                                            complaint.last_sla_breach_level === 'DISTRICT' ? '#fef2f2' :
+                                                                complaint.last_sla_breach_level === 'BLOCK' ? '#fff7ed' : '#fefce8',
+                                                        display: 'flex',
+                                                        gap: '10px',
+                                                        alignItems: 'flex-start'
+                                                    }}>
+                                                        <span style={{ fontSize: '18px' }}>⚠️</span>
                                                         <div>
-                                                            <p style={{ fontWeight: '500', color: '#ffa93d', fontSize: '18px' }}>
-                                                                Awaiting for citizen to close complaint</p>
-                                                            <p style={{ color: '#666' }}> Verified <span style={{ fontSize: '12px' }}>{formatDate(complaint?.verified_at)} </span> </p>
+                                                            <p style={{
+                                                                fontWeight: 600,
+                                                                fontSize: '13px',
+                                                                color:
+                                                                    complaint.last_sla_breach_level === 'DISTRICT' ? '#991b1b' :
+                                                                        complaint.last_sla_breach_level === 'BLOCK' ? '#9a3412' : '#854d0e',
+                                                                margin: 0
+                                                            }}>
+                                                                SLA Breach — {
+                                                                    complaint.last_sla_breach_level === 'GP' ? 'VDO Level (7+ days)' :
+                                                                        complaint.last_sla_breach_level === 'BLOCK' ? 'Block Level (15+ days)' :
+                                                                            'District Level (30+ days)'
+                                                                }
+                                                            </p>
+                                                            <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                                                                {complaint.last_sla_breach_level === 'GP' && 'Unresolved for 7+ days. Escalated to VDO.'}
+                                                                {complaint.last_sla_breach_level === 'BLOCK' && 'Unresolved for 15+ days. Escalated to Block Officer.'}
+                                                                {complaint.last_sla_breach_level === 'DISTRICT' && 'Unresolved for 30+ days. Escalated to District / SMD Admin.'}
+                                                            </p>
                                                         </div>
-
                                                     </div>
+                                                )}
 
-                                                    :
-                                                    complaint?.resolved_at
-                                                        ?
-                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }} >
-                                                            <span style={{ backgroundColor: '#ebd8ff', padding: '5px', borderRadius: '50%' }}>
-                                                                <Clock width={'16px'} height={'16px'} />
-                                                            </span>
-                                                            <div>
-                                                                <p style={{ fontWeight: '500', color: '#9855da', fontSize: '18px' }}>
-                                                                    Awaiting for VDO to verify</p>
-                                                                <p style={{ color: '#666' }}> Resolved <span style={{ fontSize: '12px' }}>{formatDate(complaint?.resolved_at)} </span> </p>
-                                                            </div>
-
-                                                        </div>
+                                                {/* Complaint Img */}
+                                                <div style={styles.images}>
+                                                    {complaint?.media?.slice(0, 2).map((img, i) => (
+                                                        <img
+                                                            key={i}
+                                                            src={`${MEDIA_BASE_URL}/${img.media_url}`}
+                                                            style={styles.img}
+                                                            onClick={() => setSelectedImage(`${MEDIA_BASE_URL}/${img.media_url}`)}
+                                                        />
+                                                    ))}
+                                                </div>
 
 
-                                                        :
-                                                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                            <span style={{ backgroundColor: '#ffaeae', padding: '5px', borderRadius: '50%' }}>
-                                                                <Loader width={'16px'} height={'16px'} />
-                                                            </span>
-                                                            <div>
-                                                                <p style={{ fontWeight: '500', color: '#ff4343', fontSize: '18px' }}>
-                                                                    Awaiting for supervisor to take action</p>
-                                                                <p style={{ color: '#666' }}> Open <span style={{ fontSize: '12px' }}>{formatDate(complaint?.created_at)} </span></p>
-                                                            </div>
 
-
-                                                        </div>}
-                                        </div>
-
-                                        {/* Complaint Img */}
-                                        <div style={styles.images}>
-                                            {complaint?.media?.slice(0, 2).map((img, i) => (
-                                                <img
-                                                    key={i}
-                                                    src={`${MEDIA_BASE_URL}/${img.media_url}`}
-                                                    style={styles.img}
-                                                    onClick={() => setSelectedImage(`${MEDIA_BASE_URL}/${img.media_url}`)}
-                                                />
-                                            ))}
-                                        </div>
-
-                                        {/* Headin & Date */}
-                                        <div style={{ display: "flex", justifyContent: 'space-between', marginTop: '10px' }}>
-                                            <h3 style={{ fontSize: '16px', fontWeight: 500 }}>
-                                                {complaintTypeMap[complaint?.complaint_type_id] || "Complaint"}
-                                            </h3>
-                                            <h4
-                                                style={{ fontSize: '11px', padding: '5px 8px', background: '#F3F4F6', borderRadius: '8px' }}
-                                            >
-                                                {formatDate(complaint?.created_at)}
-                                            </h4>
-                                        </div>
-
-                                        {/* Location */}
-                                        <p style={{ fontSize: "13px", color: "#666", display: 'flex', gap: '5px', alignItems: "center" }}>
-                                            <span  ><MapPin style={{
-                                                fontSize: "13px", color: "#666", width: "15",
-                                                height: "15"
-                                            }} /></span> {fullAddress || complaint.location}
-                                        </p>
-
-                                        {/* Complain description */}
-                                        <p style={{ fontSize: "14px", marginTop: "8px" }}>
-                                            {complaint.description}
-                                        </p>
-
-                                        {/* timeline */}
-                                        <h4 style={{ marginTop: "20px" }}>Timeline</h4>
-                                        <div
-                                            style={{
-                                                backgroundColor: '#F3F4F6',
-                                                padding: "5px 15px",
-                                                borderRadius: "8px",
-                                            }}
-                                        >
-                                            <div style={styles.timeline}>
-
-                                                {timeline.map((item, i) => (
-
-                                                    <div
-                                                        key={i}
-                                                        style={styles.timelineItem}
-                                                        onClick={() => {
-
-                                                            setPopupData({
-                                                                status: item.status,
-                                                                message: item.data?.comment || "No message available",
-                                                                images: item.showImages ? complaint.media : []
-                                                            });
-
-                                                        }}
+                                                {/* Headin & Date */}
+                                                <div style={{ display: "flex", justifyContent: 'space-between', marginTop: '10px' }}>
+                                                    <h3 style={{ fontSize: '16px', fontWeight: 500 }}>
+                                                        {complaintTypeMap[complaint?.complaint_type_id] || "Complaint"}
+                                                    </h3>
+                                                    <h4
+                                                        style={{ fontSize: '11px', padding: '5px 8px', background: '#F3F4F6', borderRadius: '8px' }}
                                                     >
+                                                        {formatDate(complaint?.created_at)}
+                                                    </h4>
+                                                </div>
 
-                                                        <div style={styles.dot}></div>
+                                                <div style={{ display: "flex", justifyContent: 'space-between', margin: '5px 0px' }}>
+                                                    <h4
+                                                        style={{ fontSize: '11px', padding: '5px 5px', background: '#F3F4F6', borderRadius: '8px' }}
+                                                    >
+                                                        +91{(complaint?.mobile_number)}
+                                                    </h4>
+                                                </div>
 
-                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                            <div >
+                                                {/* Location */}
+                                                <p style={{ fontSize: "13px", color: "#666", display: 'flex', gap: '5px', alignItems: "center" }}>
+                                                    <span  ><MapPin style={{
+                                                        fontSize: "13px", color: "#666", width: "15",
+                                                        height: "15"
+                                                    }} /></span> {fullAddress || complaint.location}
+                                                </p>
 
-                                                                <p style={{ fontWeight: 500 }}>
-                                                                    {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
-                                                                </p>
+                                                {/* Complain description */}
+                                                <p style={{ fontSize: "14px", marginTop: "8px" }}>
+                                                    {complaint.description}
+                                                </p>
 
-                                                                <p style={{ fontSize: "12px", color: "#777" }}>
-                                                                    {item.role} • {formatDate(item.date)}
-                                                                </p>
+                                                {/* timeline */}
+                                                <h4 style={{ marginTop: "20px" }}>Timeline</h4>
+                                                <div
+                                                    style={{
+                                                        backgroundColor: '#F3F4F6',
+                                                        padding: "5px 15px",
+                                                        borderRadius: "8px",
+                                                    }}
+                                                >
+                                                    <div style={styles.timeline}>
+
+                                                        {timeline.map((item, i) => (
+
+                                                            <div
+                                                                key={i}
+                                                                style={styles.timelineItem}
+                                                                onClick={() => {
+
+                                                                    setPopupData({
+                                                                        status: item.status,
+                                                                        message: item.data?.comment || "No message available",
+                                                                        images: item.showImages ? complaint.media : []
+                                                                    });
+
+                                                                }}
+                                                            >
+
+                                                                <div style={styles.dot}></div>
+
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                    <div >
+
+                                                                        <p style={{ fontWeight: 500 }}>
+                                                                            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                                                                        </p>
+
+                                                                        <p style={{ fontSize: "12px", color: "#777" }}>
+                                                                            {item.role} • {formatDate(item.date)}
+                                                                        </p>
+
+                                                                    </div>
+                                                                    <div>
+                                                                        <ArrowRight width={'16px'} height={'16px'} />
+                                                                    </div>
+                                                                </div>
 
                                                             </div>
-                                                            <div>
-                                                                <ArrowRight width={'16px'} height={'16px'} />
+
+                                                        ))}
+
+                                                        {/* System Generated SLA Comments — YAHAN ANDAR */}
+                                                        {complaint?.comments?.filter(c => c.is_system_generated).map((c, i) => (
+                                                            <div key={`sys-${i}`} style={{
+                                                                marginBottom: '12px',
+                                                                position: 'relative',
+                                                                paddingLeft: '10px',
+                                                                cursor: 'default'
+                                                            }}>
+                                                                <div style={{
+                                                                    width: '14px', height: '14px',
+                                                                    backgroundColor: '#9ca3af',
+                                                                    borderRadius: '50%',
+                                                                    position: 'absolute',
+                                                                    left: '-21px', top: '14px',
+                                                                    border: '3px solid #e5e7eb'
+                                                                }} />
+                                                                <div style={{
+                                                                    backgroundColor: '#f3f4f6',
+                                                                    border: '1px solid #e5e7eb',
+                                                                    borderRadius: '8px',
+                                                                    padding: '10px 12px',
+                                                                    display: 'flex',
+                                                                    gap: '10px',
+                                                                    alignItems: 'flex-start'
+                                                                }}>
+                                                                    <span style={{ display: 'inline-flex', alignItems: 'center', color: '#4b5563', marginTop: '2px' }}>
+                                                                        <ShieldAlert size={16} />
+                                                                    </span>
+                                                                    <div>
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                                                            <span style={{
+                                                                                fontSize: '11px', fontWeight: 600,
+                                                                                color: '#4b5563',
+                                                                                textTransform: 'uppercase', letterSpacing: '0.05em'
+                                                                            }}>
+                                                                                SLA Event
+                                                                            </span>
+                                                                            <span style={{
+                                                                                backgroundColor: '#e5e7eb',
+                                                                                color: '#374151',
+                                                                                fontSize: '10px',
+                                                                                fontWeight: '600',
+                                                                                padding: '2px 6px',
+                                                                                borderRadius: '4px',
+                                                                                textTransform: 'uppercase'
+                                                                            }}>
+                                                                                System Notification
+                                                                            </span>
+                                                                        </div>
+                                                                        <p style={{ fontSize: '13px', color: '#374151', margin: '6px 0 0 0', lineHeight: '1.4' }}>
+                                                                            {c.comment}
+                                                                        </p>
+                                                                        {c.created_at && (
+                                                                            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>
+                                                                                {formatDate(c.created_at)}
+                                                                            </p>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        ))}
+
+
 
                                                     </div>
 
-                                                ))}
+
+                                                </div>
+
 
                                             </div>
+
+
+                                        </>
+                                    )
+                                    }
+                                </div>
+
+                                {canCloseComplaint && (
+                                    <div className='flex items-center justify-end gap-3 border-t border-[#D6D9DE]  bg-white'>
+
+                                        <div className="!p-2">
+                                            <button
+                                                onClick={handleCloseComplaint}
+                                                disabled={closing}
+                                                style={{
+                                                    background: "#16a34a",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    padding: "10px 20px",
+                                                    cursor: closing ? "not-allowed" : "pointer",
+                                                    opacity: closing ? 0.7 : 1,
+                                                    fontWeight: 500
+                                                }}
+                                            >
+                                                {closing ? (
+                                                    <>
+                                                        <Loader
+                                                            size={16}
+                                                            className="animate-spin"
+                                                        />
+                                                        Closing...
+                                                    </>
+                                                ) : (
+                                                    "Close Complaint"
+                                                )}
+                                            </button>
                                         </div>
-
-
-                                        {/* <div style={styles.buttons}>
-
-                        <button style={styles.notBtn}>
-                            Not satisfied
-                        </button>
-
-                        <button style={styles.completeBtn}>
-                            Mark Completed
-                        </button>
-
-                    </div> */}
-
-                                    </>
-                                )
-                                }
+                                    </div>
+                                )}
 
                             </motion.div>
 

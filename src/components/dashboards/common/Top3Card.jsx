@@ -5,6 +5,7 @@ import number1 from '../../../assets/images/number1.png';
 import number2 from '../../../assets/images/nnumber2.png';
 import number3 from '../../../assets/images/number3.png';
 import { inspectionsAPI } from '../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -22,6 +23,8 @@ const Top3Card = ({
 }) => {
   const [showDistrictDropdown, setShowDistrictDropdown] = useState(false);
   const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+
+  const { t } = useTranslation(['dashboard', 'common']);
 
   const DropdownButton = ({ label, open, onToggle }) => (
     <button
@@ -59,7 +62,7 @@ const Top3Card = ({
     }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>Top 3</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>{t('top3')}</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         {/* <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -77,9 +80,9 @@ const Top3Card = ({
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 1 }}>
             <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Rank</th>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>District</th>
-              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Score</th>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>{t('rank')}</th>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>{t('district')}</th>
+              <th style={{ padding: '10px 8px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>{t('score')}</th>
               <th style={{ padding: '10px 8px', width: 32 }} />
             </tr>
           </thead>
@@ -96,7 +99,7 @@ const Top3Card = ({
                 <td style={{ padding: '10px 8px', color: '#374151' }}>{row.geography_name}</td>
                 <td style={{ padding: '10px 8px', color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
                   {row.average_score.toFixed(0)}%
-                  <MoreVertical size={14} color="#9ca3af" style={{ cursor: 'pointer' }} />
+                  {/* <MoreVertical size={14} color="#9ca3af" style={{ cursor: 'pointer' }} /> */}
                 </td>
                 <td style={{ padding: '10px 8px' }} />
               </tr>
