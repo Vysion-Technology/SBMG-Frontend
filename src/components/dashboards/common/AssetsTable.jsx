@@ -1,5 +1,88 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import SlideDrawer from "../../common/SideDrawer";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { FileSpreadsheet, Printer } from "lucide-react";
+
+
+const exportToExcel = (
+    data,
+    cards,
+    nameKey,
+    fileName = "Assets_Report"
+) => {
+    if (!data?.length) return;
+
+    const excelData = data.map((row) => {
+        const obj = {
+            [nameKey]: getName(row),
+        };
+
+        cards.forEach((card) => {
+            const value = row[card.key];
+
+            // Array data
+            if (Array.isArray(value) && card.subLabels?.length) {
+                value.forEach((item, index) => {
+                    obj[
+                        `${card.label} - ${card.subLabels[index] || `Value ${index + 1}`
+                        }`
+                    ] = item?.value ?? "-";
+                });
+            }
+
+            // Object data
+            else if (
+                typeof value === "object" &&
+                value !== null &&
+                card.subLabels?.length
+            ) {
+                Object.values(value).forEach((val, index) => {
+                    obj[
+                        `${card.label} - ${card.subLabels[index] || `Value ${index + 1}`
+                        }`
+                    ] = val ?? "-";
+                });
+            }
+
+            // Simple value
+            else {
+                obj[card.label] = formatCellValue(value);
+            }
+        });
+
+        return obj;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+
+    // Column widths
+    const headers = Object.keys(excelData[0] || {});
+
+    worksheet["!cols"] = headers.map((header, index) => ({
+        wch: index === 0 ? 35 : 25,
+    }));
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        "Assets"
+    );
+
+    const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+    });
+
+    const file = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(file, `${fileName}.xlsx`);
+};
 
 const getId = (item) => {
     if (!item) return null;
@@ -20,7 +103,12 @@ const getName = (item) => {
     return item.name || item.geography_name || item.districtName || item.blockName || item.gpName || "";
 };
 
-const formatCellValue = (value) => {
+const formatCellValue = (value, key) => {
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+        const num = Number(value);
+        return isNaN(num) ? "-" : `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     if (Array.isArray(value)) {
         return value.map((v) => v.value).join(" | ");
     }
@@ -39,15 +127,21 @@ const formatValue = (key, value) => {
         return `${(num / 1000).toFixed(2)} kms`;
     }
 
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+        const num = Number(value);
+        if (isNaN(num)) return "-";
+        return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value ?? "-";
 };
 
 const renderCellContent = (key, value, subLabels = []) => {
     if (Array.isArray(value)) {
         return (
-            <div className="flex gap-4">
+            <div className="flex gap-5">
                 {value.map((item, index) => (
-                    <div key={index} className="flex flex-col items-center min-w-[50px]">
+                    <div key={index} className="flex flex-col items-center w-[80px]">
                         <span className="font-semibold text-gray-700">
                             {formatValue(key, item.value)}
                         </span>
@@ -59,9 +153,9 @@ const renderCellContent = (key, value, subLabels = []) => {
 
     if (typeof value === "object" && value !== null) {
         return (
-            <div className="flex gap-4">
+            <div className="flex flex gap-5">
                 {Object.entries(value).map(([objKey, val], index) => (
-                    <div key={index} className="flex flex-col items-center min-w-[50px]">
+                    <div key={index} className="flex flex-col items-center w-[80px]">
                         <span className="font-semibold text-gray-700">
                             {formatValue(key, val)}
                         </span>
@@ -85,8 +179,12 @@ const CommonTable = ({
     showBack = false,
 }) => {
     const getColumnWidth = (card) => {
-        if (card.key === "Total_Work_Sanctioned_Status") return "minmax(350px, 3fr)";
+        if (card.key === "Total_Work_Sanctioned_Status") return "minmax(450px, 550px)";
         if (card.key === "FSTPs") return "minmax(300px, 2fr)";
+        if (card.key === "OWNED_VEHICLES") return "minmax(250px, 200px)";
+        if (card.key === "CONTRACTOR_VEHICLES") return "minmax(250px, 200px)";
+        if (card.key === "WORK_FREQUENCY") return "minmax(250px, 200px)";
+        if (card.key === "work_status") return "minmax(250px, 200px)";
         return "minmax(120px, 200px)";
     };
 
@@ -94,22 +192,234 @@ const CommonTable = ({
         display: "grid",
         gridTemplateColumns: `200px ${cards.map((card) => getColumnWidth(card)).join(" ")}`,
     };
+    const { t } = useTranslation(['dashboard', 'common']);
+
+    // const printRef = useRef(null);
+
+    const handlePrint = () => {
+        const headers = cards.map((card) => {
+            const subHeaders = card.subLabels?.length
+                ? `
+    <div style="
+        display:flex;
+        justify-content:center;
+        margin-top:4px;
+    ">
+        ${card.subLabels.map(label => `
+            <span style="
+                width:100px;
+                display:inline-block;
+                text-align:center;
+            ">
+                ${t(`assets.${label}`)}
+            </span>
+        `).join("")}
+    </div>
+`
+                : "";
+
+            return `
+            <th>
+                ${t(`assets.${card.label}`)}
+                ${subHeaders}
+            </th>
+        `;
+        }).join("");
+
+        const rows = data.map((row) => {
+            const cols = cards.map((card) => {
+                let value = row[card.key];
+                if (Array.isArray(value) && card.subLabels?.length) {
+                    value = `
+        <div style="
+            display:flex;
+            justify-content:center;
+            gap:0;
+            width:100%;
+        ">
+            ${value.map(item => `
+                <span style="
+                    width:100px;
+                    display:inline-block;
+                    text-align:center;
+                ">
+                    ${item?.value ?? "-"}
+                </span>
+            `).join("")}
+        </div>
+    `;
+                }
+                else if (typeof value === "object" && value !== null && card.subLabels?.length) {
+                    value = `
+        <div style="
+            display:flex;
+            justify-content:center;
+            gap:0;
+            width:100%;
+        ">
+            ${Object.values(value).map(val => `
+                <span style="
+                    width:80px;
+                    display:inline-block;
+                    text-align:center;
+                ">
+                    ${val ?? "-"}
+                </span>
+            `).join("")}
+        </div>
+    `;
+                }
+                else {
+                    value = value ?? "-";
+                }
+
+                return `<td style="text-align:center;">${value}</td>`;
+            }).join("");
+
+            return `
+            <tr>
+                <td>${getName(row) || "-"}</td>
+                ${cols}
+            </tr>
+        `;
+        }).join("");
+
+        const printWindow = window.open("", "_blank");
+
+        printWindow.document.write(`
+        <html>
+        <head>
+            <title>${title}</title>
+
+            <style>
+                body{
+                    font-family: Arial, sans-serif;
+                    padding:20px;
+                }
+
+                @page {
+                    size: A4 landscape;
+                    margin: 10mm;
+                }
+
+                h2{
+                    margin-bottom:20px;
+                    text-align:center;
+                }
+
+                table{
+    width:max-content;
+    min-width:100%;
+    border-collapse:collapse;
+}
+
+               th,td{
+                    border:1px solid #ddd;
+                    padding:6px;
+                    text-align:center;
+                    vertical-align:middle;
+                    min-width:90px;
+                }
+                    th:nth-child(3),
+                td:nth-child(3){
+                    min-width:250px;
+}
+                th{
+                    background:#f3f4f6;
+                    font-size:12px;
+                    font-weight:bold;
+                }
+
+                td{
+                    font-size:11px;
+                }
+
+                @media print{
+                    @page{
+                        size: landscape;
+                        margin:10mm;
+                    }
+
+                    body{
+                        padding:0;
+                    }
+
+                    table{
+                        font-size:10px;
+                    }
+                }
+            </style>
+        </head>
+
+        <body>
+            <h2>${title}</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>${t(nameKey)}</th>
+                        ${headers}
+                    </tr>
+                </thead>
+
+                <tbody>
+                    ${rows}
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `);
+
+        printWindow.document.close();
+        printWindow.focus();
+
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    };
 
     return (
         <>
 
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 text-sm">
                 <div className="flex items-center justify-between gap-3 !p-3">
-                    <h3 className="text-md font-bold text-gray-800 uppercase">{title}</h3>
-                    {showBack && (
-                        <button
-                            type="button"
-                            className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
-                            onClick={onBack}
+                    <h3 className="text-md font-bold text-gray-800 uppercase">
+                        {t(`assets.${title}`, title)}
+                    </h3>
+
+                    <div className="flex items-center gap-2">
+
+                        {/* <button
+                            onClick={handlePrint}
+                            className="!px-3 !py-1.5 cursor-pointer bg-[#009B56] hover:bg-green-500 transition-all text-white rounded-lg"
                         >
-                            Back
+                            <Printer size={18} />
+                        </button> */}
+
+                        <button
+                            onClick={() =>
+                                exportToExcel(
+                                    data,
+                                    cards,
+                                    t(nameKey),
+                                    title.replace(/\s+/g, "_")
+                                )
+                            }
+                            className="!px-3 !py-1.5 cursor-pointer transition-all bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+                        >
+                            <FileSpreadsheet size={18} />
                         </button>
-                    )}
+
+                        {showBack && (
+                            <button
+                                type="button"
+                                className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700 hover:bg-slate-200"
+                                onClick={onBack}
+                            >
+                                Back
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 <div className="max-h-[400px] overflow-auto">
@@ -117,17 +427,17 @@ const CommonTable = ({
                         <thead className="sticky top-0 z-20 bg-white">
                             <tr style={gridStyle} className="border-b border-gray-200">
                                 <th className="!p-4 font-bold text-gray-600 text-left sticky left-0 bg-white z-30 shadow-[5px_0_10px_-5px_rgba(0,0,0,0.15)]">
-                                    {nameKey.toUpperCase()}
+                                    {t(nameKey)}
                                 </th>
                                 {cards.map((card) => (
-                                    <th key={card.key} className="!p-4 font-bold text-gray-600 text-left">
+                                    <th key={card.key} className="!p-4 font-bold text-gray-600 ">
                                         <div>
-                                            <p className="font-bold uppercase">{card.label}</p>
+                                            <p className="font-bold uppercase"> {t(`assets.${card.label}`)}</p>
                                             {card.subLabels && (
-                                                <div className="flex !mt-1">
+                                                <div className="flex gap-5 !mt-1 ">
                                                     {card.subLabels.map((label, index) => (
-                                                        <div key={index} className="min-w-[70px] text-[11px] font-medium text-gray-400">
-                                                            {label}
+                                                        <div key={index} className=" text-center w-[80px]  text-[11px] font-medium text-gray-400">
+                                                            {t(`assets.${label}`)}
                                                         </div>
                                                     ))}
                                                 </div>
@@ -155,7 +465,7 @@ const CommonTable = ({
                                         </td>
                                         {cards.map((card) => (
                                             <td key={card.key} className="!p-4 text-gray-700 whitespace-nowrap text-left">
-                                               {renderCellContent(card.key, row[card.key], card.subLabels)}
+                                                {renderCellContent(card.key, row[card.key], card.subLabels)}
                                             </td>
                                         ))}
                                     </tr>
@@ -172,8 +482,8 @@ const CommonTable = ({
                 </div>
 
             </div>
-            <p className="bg-[#D8E6FD] !p-4 !mt-5 text-sm select-none text-[#3B82F6] rounded-2xl">This table will be open on the click of any card from assets. on the click of card table will show data of same category.
-                Table headers will be changed based on click of the selected category.
+            <p className="bg-[#D8E6FD] !p-4 !mt-5 text-sm select-none text-[#3B82F6] rounded-2xl">
+                {t("assets.tableFooterContent")}
             </p>
         </>
     );
@@ -207,6 +517,9 @@ const AssetsTable = ({
     const [error, setError] = useState(null);
     const [isBlockDrawerOpen, setIsBlockDrawerOpen] = useState(false);
     const [isGpDrawerOpen, setIsGpDrawerOpen] = useState(false);
+
+    const { t, i18n } = useTranslation(['dashboard', 'common']);
+
 
     const loadDistrictData = async () => {
         if (Array.isArray(apiData) && apiData.length > 0) {
@@ -394,11 +707,7 @@ const AssetsTable = ({
     const handleRowClick = async (row) => {
         if (level === "district") {
             const districtId = getId(row);
-            console.log("🏘️ District row clicked - districtId:", districtId, "row:", row);
-            if (!districtId) {
-                console.error("❌ No districtId found in row:", row);
-                return;
-            }
+            if (!districtId) return;
 
             setDistrict(row);
             setIsBlockDrawerOpen(true);
@@ -421,18 +730,7 @@ const AssetsTable = ({
             const districtId = getId(district);
             // Extract blockId from row - prefer block-specific fields
             const blockId = row.block_id || row.blockId || row.geography_id || row.id;
-            console.log("🔗 Block row clicked from main table");
-            console.log("   Row object:", row);
-            console.log("   districtId:", districtId);
-            console.log("   blockId (block_id first):", blockId);
-            if (!districtId || !blockId) {
-                console.error("❌ Missing districtId or blockId", { districtId, blockId, row });
-                return;
-            }
-
-            if (districtId === blockId) {
-                console.warn("⚠️  WARNING: districtId and blockId are the SAME! Check row data:", row);
-            }
+            if (!districtId || !blockId) return;
 
             setBlock(row);
             setIsGpDrawerOpen(true);
@@ -455,18 +753,7 @@ const AssetsTable = ({
         const districtId = getId(district);
         // Extract blockId from row - prefer block-specific fields
         const blockId = row.block_id || row.blockId || row.geography_id || row.id;
-        console.log("🔗 Block row clicked from drawer");
-        console.log("   Row object:", row);
-        console.log("   districtId:", districtId);
-        console.log("   blockId (block_id first):", blockId);
-        if (!districtId || !blockId) {
-            console.error("❌ Missing districtId or blockId", { districtId, blockId, row });
-            return;
-        }
-
-        if (districtId === blockId) {
-            console.warn("⚠️  WARNING: districtId and blockId are the SAME! Check row data:", row);
-        }
+        if (!districtId || !blockId) return;
 
         setBlock(row);
         setIsGpDrawerOpen(true);
@@ -485,7 +772,6 @@ const AssetsTable = ({
     };
 
     const handleCloseAll = () => {
-        console.log("🔐 Closing all drawers and resetting data - INCLUDING PARENT");
         setIsBlockDrawerOpen(false);
         setIsGpDrawerOpen(false);
         setBlocksData([]);
@@ -495,16 +781,15 @@ const AssetsTable = ({
         setError(null);
         // Close parent district-level drawer too
         if (typeof closeParentDrawer === "function") {
-            console.log("🚪 Closing parent drawer");
             closeParentDrawer();
         }
     };
 
     const titleByLevel = {
-        district: "DISTRICT",
-        block: "BLOCK",
-        gp: "GRAM PANCHAYAT",
-    }[level] || "DISTRICT";
+        district: "district",
+        block: "block",
+        gp: "gps",
+    }[level];
 
     const descriptionByLevel = {
         district: "Click a district to view its blocks in the nested drawer.",
@@ -512,21 +797,21 @@ const AssetsTable = ({
         gp: "Showing GPs for the selected block.",
     }[level] || "Click a district to view its blocks in the nested drawer.";
 
-    const currentLoading = level === "district" ? loadingDistricts : level === "block" ? loadingBlocks : loadingGps;
+    const currentLoading =
+        level === "district"
+            ? loadingDis || loadingDistricts
+            : level === "block"
+                ? loadingBlocks
+                : loadingGps;
+
 
     return (
         <>
             <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3 rounded-lg bg-white !px-4 !py-3 shadow-sm border border-gray-200">
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900">{titleByLevel} {section}</h2>
-                        <p className="text-sm text-slate-500">{descriptionByLevel}</p>
-                    </div>
-                </div>
 
                 <CommonTable
-                    title={`${titleByLevel} ${section}`}
-                    nameKey={titleByLevel}
+                    title={`${t(`common:${titleByLevel}`)} - ${t(`assets.${section}`)}`}
+                    nameKey={`common:${titleByLevel}`}
                     data={currentData}
                     cards={cards}
                     loading={currentLoading}
@@ -544,7 +829,7 @@ const AssetsTable = ({
             <SlideDrawer
                 open={isBlockDrawerOpen}
                 onClose={handleCloseAll}
-                title={section}
+                title={t(`assets.${section}`)}
                 width="md:w-[90%] w-full"
                 showBack={true}
                 onBack={() => {
@@ -555,8 +840,8 @@ const AssetsTable = ({
                 }}
             >
                 <CommonTable
-                    title="BLOCK"
-                    nameKey="Block"
+                    title={t("common:block")}
+                    nameKey="common:block"
                     data={blocksData}
                     cards={cards}
                     loading={loadingBlocks}
@@ -568,7 +853,7 @@ const AssetsTable = ({
             <SlideDrawer
                 open={isGpDrawerOpen}
                 onClose={handleCloseAll}
-                title={section}
+                title={t(`assets.${section}`)}
                 width="md:w-[80%] w-full"
                 showBack={true}
                 onBack={() => {
@@ -577,8 +862,8 @@ const AssetsTable = ({
                 }}
             >
                 <CommonTable
-                    title="GRAM PANCHAYAT"
-                    nameKey="Gram Panchayat"
+                    title={t("common:gps")}
+                    nameKey="common:gps"
                     data={gpsData}
                     cards={cards}
                     loading={loadingGps}

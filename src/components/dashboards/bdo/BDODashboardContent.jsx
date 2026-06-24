@@ -14,6 +14,7 @@ import DashBoardCards from '../common/DashBoardCards';
 import NoDataFound from '../common/NoDataFound';
 import OverviewBanner from '../common/OverviewBanner';
 import SendNoticeModal from '../common/SendNoticeModal';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -228,6 +229,8 @@ const BDODashboardContent = () => {
     bdoBlockName,
     loadingBDOData
   } = useBDOLocation();
+
+  const { t } = useTranslation(['dashboard','common'])
 
   // BDO always uses their district ID and block ID from /me API
   const selectedDistrictId = bdoDistrictId || null;
@@ -2123,6 +2126,13 @@ const BDODashboardContent = () => {
       if (isNaN(num)) return "-";
       return `${(num / 1000).toFixed(2)} kms`;
     }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value;
   };
 
@@ -2159,7 +2169,7 @@ const BDODashboardContent = () => {
           color: '#111827',
           margin: '0 0 16px 0'
         }}>
-          Overview {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+          {t("common:overview")} {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
         </h2>
         <div style={{ marginBottom: '24px' }}>
           <OverviewBanner
@@ -2191,7 +2201,7 @@ const BDODashboardContent = () => {
             marginBottom: "16px",
           }}
         >
-          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>{t("assets.assets")}</h1>
         </div>
 
         {/* Sections */}
@@ -2207,7 +2217,7 @@ const BDODashboardContent = () => {
                 color: "#374151",
               }}
             >
-              {section.title}
+              {t(`assets.${section.title}`)}
             </h2>
 
             {/* Cards */}
@@ -2222,13 +2232,13 @@ const BDODashboardContent = () => {
               {section.cards.map((card, j) => (
                 <SlideDrawer
                   key={j}
-                  title={`${section.title} - ${card.label}`}
+                  title={`${t(`assets.${section.title}`)}`}
                   clickFunction={() => {
                     console.log("API call", card.key);
                   }}
                   trigger={
                     <DashBoardCards
-                      title={card.label}
+                      title={t(`assets.${card.label}`)}
                       value={
                         loading
                           ? "..."

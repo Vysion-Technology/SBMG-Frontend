@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext';
 import { GoogleMapsProvider } from './context/GoogleMapsProvider.jsx';
 import './index.css';
+import "./i18n";
 
 // Create a client for React Query
 const queryClient = new QueryClient({

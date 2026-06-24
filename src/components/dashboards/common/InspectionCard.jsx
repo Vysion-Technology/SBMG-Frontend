@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const accentColor = '#EF773E';
 const labelColor = accentColor;
@@ -18,11 +19,14 @@ const InspectionCard = ({
   loading = false,
   error = null
 }) => {
+  const { t } = useTranslation(['dashboard', 'common']);
+
   const metrics = [
-    { value: `${averageScore}`, label: 'Statewide average score' },
-    { value: totalInspections, label: 'Total Inspections' },
-    { value: villageCovered, label: 'Village covered' }
+    { value: `${averageScore}`, label: t('statewideAverageScore') },
+    { value: totalInspections, label:  t('totalInspections')  },
+    { value: villageCovered, label: t('villageCovered') }
   ];
+
 
   return (
     <div className="inspection-card" style={{
@@ -39,7 +43,7 @@ const InspectionCard = ({
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: accentColor, margin: 0 }}>Inspection</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: accentColor, margin: 0 }}>{t('inspection')}</h3>
           <InfoTooltip text={tooltipText} size={14} color={accentColor} />
         </div>
         {/* <button

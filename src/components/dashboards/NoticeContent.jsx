@@ -4,8 +4,13 @@ import * as XLSX from 'xlsx';
 import apiClient from '../../services/api';
 import { InfoTooltip } from '../common/Tooltip';
 import NoDataFound from './common/NoDataFound';
+import { useTranslation } from 'react-i18next';
 
 const NotoficationContent = () => {
+
+  // Language 
+  const { t } = useTranslation(['common', 'noFB', 'table'])
+
   const [sentNotices, setSentNotices] = useState([]);
   const [receivedNotices, setReceivedNotices] = useState([]);
   const [loadingSent, setLoadingSent] = useState(true);
@@ -127,7 +132,7 @@ const NotoficationContent = () => {
 
   const noticesSource = viewMode === 'sent' ? sentNotices : receivedNotices;
 
-  const getAssignedLabel = () => (viewMode === 'received' ? 'Assigned From' : 'Assigned To');
+  const getAssignedLabel = () => (viewMode === 'received' ? (t('noFB:assignedFrom')) : (t('noFB:assignedTo')));
 
   const mapNoticeForTable = (notice) => {
     console.log("Notices data", notice)
@@ -475,7 +480,7 @@ const NotoficationContent = () => {
             color: '#374151',
             margin: '0 0 8px 0'
           }}>
-            Total Notices Sent
+            {(t('noFB:totalNoticesSent'))}
           </h3>
           <div style={{
             fontSize: '32px',
@@ -515,7 +520,7 @@ const NotoficationContent = () => {
               color: '#374151',
               margin: 0
             }}>
-              Total Notices Received
+              {(t('noFB:totalNoticesReceived'))}
             </h3>
           </div>
           <div style={{
@@ -558,7 +563,7 @@ const NotoficationContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Notices
+                {(t('common:notices'))}
               </h2>
 
             </div>
@@ -588,7 +593,7 @@ const NotoficationContent = () => {
                 style={getToggleButtonStyle(viewMode === 'sent')}
               >
                 <ArrowUpRight style={{ width: '18px', height: '18px', color: viewMode === 'sent' ? '#ffffff' : '#6b7280' }} />
-                Sent
+                {(t('noFB:sent'))}
               </button>
               <button
                 onClick={() => {
@@ -599,7 +604,7 @@ const NotoficationContent = () => {
                 style={getToggleButtonStyle(viewMode === 'received' || typeof viewMode === 'undefined')}
               >
                 <ArrowDownLeft style={{ width: '18px', height: '18px', color: (viewMode === 'received' || typeof viewMode === 'undefined') ? '#ffffff' : '#6b7280' }} />
-                Received
+                {(t('noFB:received'))}
               </button>
             </div>
 
@@ -650,7 +655,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Notice ID
+                    {t('noFB:noticeId')}
                     <SortIcon col="noticeId" />
                   </div>
                 </th>
@@ -667,7 +672,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Date
+                    {(t('noFB:date'))}
                     <SortIcon col="date" />
                   </div>
                 </th>
@@ -701,7 +706,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Category
+                    {(t('noFB:category'))}
                     <SortIcon col="category" />
                   </div>
                 </th>
@@ -718,7 +723,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Subject
+                    {(t('noFB:subject'))}
                     <SortIcon col="subject" />
                   </div>
                 </th>
@@ -735,7 +740,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Status
+                    {(t('noFB:status'))}
                     <SortIcon col="status" />
                   </div>
                 </th>
@@ -747,8 +752,7 @@ const NotoficationContent = () => {
                   color: '#374151'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    Action
-                    <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af' }} />
+                    {(t('noFB:action'))}
                   </div>
                 </th>
               </tr>
@@ -757,7 +761,7 @@ const NotoficationContent = () => {
               {(viewMode === 'received' ? loadingReceived : loadingSent) ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                    Loading notices...
+                    {(t('noFB:loadingNotices'))}
                   </td>
                 </tr>
               ) : ((viewMode === 'received' ? errorReceived : errorSent) || sortedNotices.length === 0) ? (
@@ -987,7 +991,7 @@ const NotoficationContent = () => {
               event.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            View Notice
+            {(t('noFB:viewNotice'))}
           </button>
           <button
             onClick={() => openRepliesModal(actionMenu.notice)}
@@ -1012,7 +1016,7 @@ const NotoficationContent = () => {
               event.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
-            See Reply
+            {(t('noFB:seeReply'))}
           </button>
         </div>
       )}
@@ -1049,8 +1053,8 @@ const NotoficationContent = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#111827' }}>Notice Details</h2>
-                <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: '14px' }}>Read-only view of the selected notice</p>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#111827' }}> {(t('noFB:noticeDetails'))}</h2>
+                <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: '14px' }}> {(t('noFB:noticeReadOnlyDescription'))}</p>
               </div>
               <button
                 onClick={closeViewNoticeModal}
@@ -1070,7 +1074,7 @@ const NotoficationContent = () => {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Category</span>
+                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>{(t('noFB:category'))}</span>
                 <div style={{
                   padding: '12px',
                   borderRadius: '10px',
@@ -1084,7 +1088,7 @@ const NotoficationContent = () => {
               </div>
 
               <div>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Subject</span>
+                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>{(t('noFB:subject'))}</span>
                 <div style={{
                   padding: '12px',
                   borderRadius: '10px',
@@ -1098,7 +1102,7 @@ const NotoficationContent = () => {
               </div>
 
               <div>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Details</span>
+                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>{(t('noFB:details'))}</span>
                 <div style={{
                   padding: '12px',
                   borderRadius: '10px',
@@ -1117,11 +1121,11 @@ const NotoficationContent = () => {
             {/* Reply Section - Only for received notices */}
             {viewMode === 'received' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '12px', borderTop: '1px solid #e5e7eb' }}>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>Reply to Notice</span>
+                <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '4px' }}>{(t('noFB:replyToNotice'))}</span>
                 <textarea
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Enter your reply..."
+                  placeholder={(t('noFB:enterYourReply'))}
                   style={{
                     width: '100%',
                     minHeight: '100px',
@@ -1152,7 +1156,7 @@ const NotoficationContent = () => {
                       opacity: submittingReply ? 0.6 : 1
                     }}
                   >
-                    Cancel
+                    {(t('noFB:cancel'))}
                   </button>
                   <button
                     onClick={() => handleReplySubmit(viewNoticeModal.notice.raw || viewNoticeModal.notice)}
@@ -1168,7 +1172,7 @@ const NotoficationContent = () => {
                       cursor: submittingReply || !replyText.trim() ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {submittingReply ? 'Submitting...' : 'Submit Reply'}
+                    {submittingReply ? (t('noFB:submitting')) : (t('noFB:submitReply'))}
                   </button>
                 </div>
               </div>
@@ -1189,7 +1193,7 @@ const NotoficationContent = () => {
                     cursor: 'pointer'
                   }}
                 >
-                  Close
+                  {(t('noFB:close'))}
                 </button>
               </div>
             )}
@@ -1229,8 +1233,8 @@ const NotoficationContent = () => {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#111827' }}>Replies</h2>
-                <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: '14px' }}>Latest responses for this notice</p>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#111827' }}>{(t('noFB:replies'))}</h2>
+                <p style={{ margin: '6px 0 0', color: '#6b7280', fontSize: '14px' }}>{(t('noFB:latestResponsesForNotice'))}</p>
               </div>
               <button
                 onClick={closeRepliesModal}
@@ -1258,7 +1262,7 @@ const NotoficationContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 600, color: '#111827' }}>Reply</span>
+                    <span style={{ fontWeight: 600, color: '#111827' }}> {(t('noFB:reply'))}</span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(reply.reply_datetime || reply.replyDatetime || reply.created_at || reply.createdAt)}</span>
                   </div>
                   <div style={{ color: '#374151', fontSize: '14px', lineHeight: 1.6 }}>{reply.reply_text || reply.replyText || reply.text}</div>
@@ -1280,7 +1284,7 @@ const NotoficationContent = () => {
                   cursor: 'pointer'
                 }}
               >
-                Close
+                {(t('noFB:close'))}
               </button>
             </div>
           </div>

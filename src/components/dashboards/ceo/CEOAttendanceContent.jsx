@@ -6,6 +6,7 @@ import { useCEOLocation } from '../../../context/CEOLocationContext';
 import SendNoticeModal from '../common/SendNoticeModal';
 import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const SegmentedGauge = ({ percentage, label = "CSC Cleaned", absentDays = 0 }) => {
   // Calculate the arc path for percentage fill with circular ends
@@ -166,6 +167,9 @@ const AttendanceContent = () => {
     getCurrentLocationInfo: contextGetCurrentLocationInfo
   } = useCEOLocation();
 
+  const { t } = useTranslation(['table', 'common', 'cscCleaning']);
+
+
   // CEO: District is fixed from /me API
   const selectedDistrictId = ceoDistrictId;
   const selectedDistrictForHierarchy = useMemo(
@@ -187,7 +191,7 @@ const AttendanceContent = () => {
   // Attendance specific state
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activePerformance, setActivePerformance] = useState('Time');
+  const [activePerformance, setActivePerformance] = useState('time');
   const [performanceSelectedYear, setPerformanceSelectedYear] = useState(new Date().getFullYear());
   const [showPerformanceYearDropdown, setShowPerformanceYearDropdown] = useState(false);
 
@@ -293,7 +297,7 @@ const AttendanceContent = () => {
   const [loadingTop3, setLoadingTop3] = useState(false);
   const [top3Error, setTop3Error] = useState(null);
   const [showTop3Dropdown, setShowTop3Dropdown] = useState(false);
-  const [top3Period, setTop3Period] = useState('Month');
+  const [top3Period, setTop3Period] = useState('monthly');
   const [top3SelectedMonth, setTop3SelectedMonth] = useState(new Date().getMonth() + 1);
   const [top3SelectedYear, setTop3SelectedYear] = useState(new Date().getFullYear());
   const [showTop3PeriodDropdown, setShowTop3PeriodDropdown] = useState(false);
@@ -329,10 +333,10 @@ const AttendanceContent = () => {
   };
 
   const scopeButtons = ['Blocks', 'GPs']; // CEO: Only Blocks and GPs (no State or Districts)
-  const performanceButtons = ['Time', 'Location'];
+  const performanceButtons = ['time', 'location'];
   const filterButtons = ['All', 'Present', 'Absent', 'Leave', 'Holiday'];
   const top3ScopeOptions = ['Block', 'GP']; // CEO: Only Block and GP (no District)
-  const top3PeriodButtons = ['Month', 'Year'];
+  const top3PeriodButtons = ['monthly', 'yearly'];
 
   // Predefined date ranges
   const dateRanges = [
@@ -431,7 +435,6 @@ const AttendanceContent = () => {
           limit: 100
         }
       });
-      console.log('Blocks API Response:', response.data);
       const raw = response.data;
       setBlocks(Array.isArray(raw) ? raw : (raw?.data ?? raw?.blocks ?? []));
     } catch (error) {
@@ -451,7 +454,6 @@ const AttendanceContent = () => {
 
     try {
       setLoadingGPs(true);
-      console.log('🔄 Fetching GPs...');
       const response = await apiClient.get('/geography/grampanchayats', {
         params: {
           district_id: districtId,
@@ -460,7 +462,6 @@ const AttendanceContent = () => {
           limit: 100
         }
       });
-      console.log('✅ GPs API Response:', response.data);
       const raw = response.data;
       const arr = Array.isArray(raw) ? raw : (raw?.data ?? raw?.grampanchayats ?? raw?.gram_panchayats ?? []);
       console.log('📊 Number of GPs fetched:', arr?.length || 0);
@@ -475,7 +476,6 @@ const AttendanceContent = () => {
 
   // Handle scope change
   const handleScopeChange = async (scope) => {
-    console.log('Scope changed to:', scope);
     trackTabChange(scope);
     setActiveScope(scope);
     setShowLocationDropdown(false);
@@ -503,13 +503,11 @@ const AttendanceContent = () => {
       setSelectedBlockForHierarchy(null);
     } else if (scope === 'Blocks') {
       // CEO: For Blocks tab, show "Select Block"
-      console.log('🔄 CEO: Scope changed to Blocks');
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       contextTrackTabChange(scope);
     } else if (scope === 'GPs') {
       // CEO: For GPs tab, show "Select GP"
-      console.log('🔄 CEO: Scope changed to GPs');
       setSelectedLocation('Select GP');
       setDropdownLevel('blocks'); // Start with blocks to load GPs
       contextTrackTabChange(scope);
@@ -724,7 +722,6 @@ const AttendanceContent = () => {
   const fetchTop3Data = useCallback(async () => {
     // Prevent duplicate calls
     if (top3CallInProgress.current) {
-      console.log('⏸️ Top 3 API call already in progress, skipping...');
       return;
     }
 
@@ -787,14 +784,11 @@ const AttendanceContent = () => {
       // Add date range
       params.append('start_date', periodStartDate);
       params.append('end_date', periodEndDate);
-      console.log('📅 Start Date:', periodStartDate);
-      console.log('📅 End Date:', periodEndDate);
 
       // Add n=3 for top 3 results
       params.append('n', '3');
 
       const url = `/attendance/top-n-geo?${params.toString()}`;
-      console.log('🌐 Top 3 API URL:', url);
 
       const response = await apiClient.get(url);
 
@@ -806,9 +800,6 @@ const AttendanceContent = () => {
       // Process and rank the data
       const processedData = processTop3Data(response.data);
       setTop3Data(processedData);
-
-      console.log('📈 Top 3 Processed Data:', processedData);
-      console.log('🔄 ===== END TOP 3 API CALL =====\n');
 
     } catch (error) {
       console.error('❌ ===== TOP 3 API ERROR =====');
@@ -1053,7 +1044,6 @@ const AttendanceContent = () => {
   useEffect(() => {
     // CEO: Auto-fetch blocks using ceoDistrictId
     if (ceoDistrictId) {
-      console.log('🔄 CEO: Auto-fetching blocks for district:', ceoDistrictId);
       fetchBlocks(ceoDistrictId);
     }
   }, [ceoDistrictId]);
@@ -1068,7 +1058,6 @@ const AttendanceContent = () => {
   // Log current location info whenever it changes
   useEffect(() => {
     const locationInfo = getCurrentLocationInfo();
-    console.log('Current Location Info:', locationInfo);
   }, [activeScope, selectedLocation, selectedLocationId, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   // CEO: Fetch analytics data when scope, location, or date range changes
@@ -1077,20 +1066,12 @@ const AttendanceContent = () => {
 
     // When Custom is selected, do NOT call API until user picks dates and clicks Apply
     if (isCustomRange && (!startDate || !endDate)) {
-      console.log('⏸️ CEO: Custom selected without dates – skipping API until Apply');
       setAnalyticsError('Select start and end dates, then click Apply');
       setAnalyticsData(null);
       return;
     }
 
-    console.log('🔄 CEO Analytics useEffect triggered:', {
-      activeScope,
-      ceoDistrictId,
-      selectedBlockId,
-      selectedGPId,
-      startDate,
-      endDate
-    });
+
 
     // CEO only has Blocks and GPs scopes
     if (activeScope === 'Blocks') {
@@ -1110,13 +1091,6 @@ const AttendanceContent = () => {
 
   // Fetch Top 3 data when scope, period, or date selection changes
   useEffect(() => {
-    console.log('🔄 Top 3 useEffect triggered:', {
-      top3Scope,
-      top3Period,
-      top3SelectedMonth,
-      top3SelectedYear
-    });
-
     fetchTop3Data();
   }, [top3Scope, top3Period, top3SelectedMonth, top3SelectedYear, fetchTop3Data]);
 
@@ -1214,12 +1188,7 @@ const AttendanceContent = () => {
     // Use attendance_rate directly from API (it's already a percentage)
     const presentPercentage = Math.round(metrics.attendance_rate);
 
-    console.log('📅 Attendance Calculation:', {
-      attendance_rate: metrics.attendance_rate,
-      presentPercentage,
-      presentCount: metrics.present_count,
-      absentCount: metrics.absent_count
-    });
+
 
     return {
       presentPercentage: Math.min(presentPercentage, 100), // Cap at 100%
@@ -1448,10 +1417,8 @@ const AttendanceContent = () => {
       params.append('limit', '500');
 
       const url = `/attendance/analytics?${params.toString()}`;
-      console.log('🌐 History API URL:', url);
 
       const response = await apiClient.get(url);
-      console.log('✅ History API Response:', response.data);
 
       // Process the data
       const processedData = processAttendanceHistoryData(response.data);
@@ -1634,7 +1601,6 @@ const AttendanceContent = () => {
       link.click();
       document.body.removeChild(link);
 
-      console.log(`✅ Exported ${dataToExport.length} attendance records to ${filename}`);
     } catch (error) {
       console.error('Error exporting to CSV:', error);
       alert('Failed to export data. Please try again.');
@@ -1767,7 +1733,7 @@ const AttendanceContent = () => {
 
     console.log('📊 Average Attendance Rate:', averageRate + '%');
 
-    if (activePerformance === 'Time') {
+    if (activePerformance === 'time') {
       // Time tab - check if data has month field (new APIs) or date field (old API)
       const hasMonthField = safeArray.length > 0 && safeArray[0].hasOwnProperty('month');
 
@@ -2023,18 +1989,18 @@ const AttendanceContent = () => {
       //   tooltipText: 'Total number of vendors/supervisors registered in the selected area.'
       // },
       {
-        title: 'CSC Cleaned',
+        title: t('csc:cscCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.present_count),
         icon: UserCheck,
         color: '#10b981',
-        tooltipText: 'Number of vendors and supervisors who marked CSC Cleaning as present for the selected date/period.'
+        tooltipText: t('csc:presentAttendanceDescription')
       },
       {
-        title: 'CSC Not Cleaned',
+        title: t('csc:cscNotCleaned'),
         value: loadingAnalytics ? '...' : formatNumber(metrics.absent_count),
         icon: UserX,
         color: '#ef4444',
-        tooltipText: 'Number of vendors and supervisors who were absent or did not mark CSC Cleaning for the selected date/period.'
+        tooltipText: t('csc:absentAttendanceDescription')
       }
     ];
   };
@@ -2250,7 +2216,7 @@ const AttendanceContent = () => {
             color: '#374151',
             margin: 0
           }}>
-            CSC Cleaning
+            {t('common:cscCleaning')}
           </h1>
         </div>
 
@@ -2486,7 +2452,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              Overview
+              {t('common:overview')}
             </h2>
             <span style={{
               fontSize: '14px',
@@ -2841,7 +2807,7 @@ const AttendanceContent = () => {
                   marginTop: '4px',
                   marginLeft: '20px'
                 }}>
-                  Loading...
+                  {t('table:loading')}
                 </div>
               )}
 
@@ -2929,7 +2895,7 @@ const AttendanceContent = () => {
                       marginTop: '4px',
                       marginLeft: '20px'
                     }}>
-                      Loading...
+                      {t('table:loading')}
                     </div>
                   )}
 
@@ -2965,7 +2931,7 @@ const AttendanceContent = () => {
               right: '12px'
             }}>
               <InfoTooltip
-                text="Overall CSC Cleaning statistics for CSC Cleaned  in the selected date/period and location."
+                text={t('csc:totalAttendanceDescription')}
                 size={16}
                 color="#9ca3af"
               />
@@ -2984,7 +2950,7 @@ const AttendanceContent = () => {
                 color: '#111827',
                 margin: 0,
               }}>
-                CSC Cleaning
+                {t('csc:cscCleaning')}
               </h3>
               <span style={{
                 fontSize: '14px',
@@ -3009,7 +2975,7 @@ const AttendanceContent = () => {
                   <div>
                     <SegmentedGauge
                       percentage={loadingAnalytics ? 0 : attendanceData.presentPercentage}
-                      label={loadingAnalytics ? "Loading..." : "CSC Cleaned"}
+                      label={loadingAnalytics ? t('table:loading') : t('csc:cscCleaned')}
                       absentDays={loadingAnalytics ? 0 : attendanceData.absentDays}
                     />
                   </div>
@@ -3056,10 +3022,10 @@ const AttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  Top 3
+                  {t('csc:top3')}
                 </h2>
                 <InfoTooltip
-                  text="Top 3 performers ranked by CSC Cleaning score. Monthly score = CSC Cleaning % for selected month. Yearly score = average CSC Cleaning % across all months in the selected year."
+                  text={t('csc:topPerformersDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3165,7 +3131,7 @@ const AttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {period}
+                      {t(`csc:${period}`)}
                     </button>
                   ))}
                 </div>
@@ -3204,7 +3170,7 @@ const AttendanceContent = () => {
                       flex: 1,
                       textAlign: 'left'
                     }}>
-                      {top3Period === 'Month'
+                      {top3Period === 'monthly'
                         ? (() => {
                           const month = months.find(m => m.value === top3SelectedMonth);
                           return month ? (
@@ -3238,7 +3204,7 @@ const AttendanceContent = () => {
                         overflowY: 'auto'
                       }}
                     >
-                      {top3Period === 'Month' ? (
+                      {top3Period === 'monthly' ? (
                         // Show months
                         months.map((month) => (
                           <div
@@ -3306,9 +3272,9 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {activeScope === 'State' ? 'District' :
-                        activeScope === 'Districts' ? 'Block' :
-                          activeScope === 'Blocks' ? 'GP' : 'GP'}
+                      {activeScope === 'State' ? t('table:district') :
+                        activeScope === 'Districts' ? t('table:block') :
+                          activeScope === 'Blocks' ? t('table:gps') : t('table:gps')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3317,7 +3283,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      {top3Period === 'Month' ? 'Monthly Score' : 'Yearly Score'}
+                      {top3Period === 'Month' ? t('csc:monthlyScore') : t('csc:yearlyScore')}
                     </th>
                     <th style={{
                       padding: '12px',
@@ -3326,7 +3292,7 @@ const AttendanceContent = () => {
                       fontWeight: '600',
                       color: '#374151'
                     }}>
-                      Rank
+                      {t('csc:rank')}
                     </th>
                   </tr>
                 </thead>
@@ -3339,7 +3305,7 @@ const AttendanceContent = () => {
                         fontSize: '14px',
                         color: '#6b7280'
                       }}>
-                        Loading top 3 data...
+                        {t('table:loading')}
                       </td>
                     </tr>
                   ) : (top3Error || top3Data.length === 0) ? (
@@ -3425,12 +3391,12 @@ const AttendanceContent = () => {
                   color: '#111827',
                   margin: 0
                 }}>
-                  {activeScope === 'State' ? 'State performance score' :
-                    activeScope === 'Districts' ? 'District performance score' :
-                      activeScope === 'Blocks' ? 'Block performance score' : 'GP performance score'}
+                   {activeScope === 'State' ? t('csc:statePerformanceScore') :
+                    activeScope === 'Districts' ? t('csc:districtPerformanceScore') :
+                      activeScope === 'Blocks' ? t('csc:blockPerformanceScore') : t('csc:gpPerformanceScore')}
                 </h2>
                 <InfoTooltip
-                  text="Performance score is calculated based on CSC Cleaning percentage: (CSC Cleaned / Total CSCs) × 100. Score is shown for each location over the selected time period (monthly or yearly)."
+                  text= {t('csc:performanceScoreDescription')}
                   size={16}
                   color="#9ca3af"
                 />
@@ -3464,7 +3430,7 @@ const AttendanceContent = () => {
                         transition: 'all 0.2s'
                       }}
                     >
-                      {scope}
+                      {t(`csc:${scope}`)}
                     </button>
                   ))}
                 </div>
@@ -3565,7 +3531,7 @@ const AttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Below state average
+                  {t('csc:belowStateAverage')}
                 </span>
               </div>
               <div style={{
@@ -3583,7 +3549,7 @@ const AttendanceContent = () => {
                   fontSize: '12px',
                   color: '#6b7280'
                 }}>
-                  Above state average
+                  {t('csc:aboveStateAverage')}
                 </span>
               </div>
             </div>
@@ -3611,7 +3577,7 @@ const AttendanceContent = () => {
                       color: '#6b7280',
                       fontSize: '14px'
                     }}>
-                      Loading chart data...
+                      {t('table:loading')}
                     </div>
                   );
                 }
@@ -3738,7 +3704,7 @@ const AttendanceContent = () => {
               color: '#111827',
               margin: 0
             }}>
-              CSC Cleaning History
+              {t('csc:cscHistory')}
             </h2>
             <div
               onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
@@ -3897,7 +3863,7 @@ const AttendanceContent = () => {
               }} />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder={t('table:search')}
                 value={historySearchTerm}
                 onChange={(e) => setHistorySearchTerm(e.target.value)}
                 style={{
@@ -3957,10 +3923,10 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Date' :
-                    activeScope === 'State' ? 'District name' :
-                      activeScope === 'Districts' ? 'Block name' :
-                        activeScope === 'Blocks' ? 'GP name' : 'Village name'}
+                  {activeScope === 'GPs' ? (t('table:date')) :
+                    activeScope === 'State' ? (t('table:districtName')) :
+                      activeScope === 'Districts' ? (t('table:blockName')) :
+                        activeScope === 'Blocks' ? (t('table:gpName')) : (t('table:villageName'))}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -3980,7 +3946,7 @@ const AttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : 'CSC Cleaning (%)'}
+                  {activeScope === 'GPs' ? 'Status' : `${t('csc:cscCleaned')} (%)`}
                   <div style={{
                     position: 'absolute',
                     right: '8px',
@@ -3999,7 +3965,7 @@ const AttendanceContent = () => {
                   fontWeight: '600',
                   color: '#374151'
                 }}>
-                  Action
+                  {t('table:action')}
                 </th>
               </tr>
             </thead>
@@ -4012,7 +3978,7 @@ const AttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading  history...
+                    {t('table:loading')}
                   </td>
                 </tr>
               ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
@@ -4062,7 +4028,7 @@ const AttendanceContent = () => {
                           color: '#374151',
                           cursor: 'pointer'
                         }}>
-                        Send notice
+                        {t('table:sendNotice')}
                       </button>
                     </td>
                   </tr>

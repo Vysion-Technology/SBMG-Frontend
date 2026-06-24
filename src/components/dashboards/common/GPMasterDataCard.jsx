@@ -1,6 +1,7 @@
 import React from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const formatNumber = (n) => {
   if (typeof n === 'number') return n.toLocaleString();
@@ -19,10 +20,11 @@ const GPMasterDataCard = ({
   loading = false,
   error = null
 }) => {
+  const { t } = useTranslation(['dashboard', 'common']);
   const metrics = [
-    { value: formatNumber(total), label: 'Total GP Master Data', color: '#111827' },
-    { value: `${villageCoveragePercent}%`, label: 'GP Data Coverage', color: '#22c55e' },
-    { value: `${totalFundsSanctioned}`, label: 'Total funds sanctioned', color: '#ef4444' }
+    { value: formatNumber(total), label: t('totalGpMasterData'), color: '#111827' },
+    { value: `${villageCoveragePercent}%`, label: t('gpDataCoverage'), color: '#22c55e' },
+    { value: `${totalFundsSanctioned}`, label: t('totalFundsSanctioned'), color: '#ef4444' }
   ];
 
   return (
@@ -39,7 +41,7 @@ const GPMasterDataCard = ({
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>GP Master Data</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827', margin: 0 }}>{t('common:gpMasterData')}</h3>
           <InfoTooltip text={tooltipText} size={14} color="#9ca3af" />
         </div>
         {/* <button

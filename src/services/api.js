@@ -45,20 +45,27 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for handling 401 errors
+// Add response interceptor for handling 401 and 412 errors
 apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
-      // Clear stored tokens and user data
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('user');
+    if (error.response) {
+      if (error.response.status === 401) {
+        // Clear stored tokens and user data
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
 
-      // Redirect to login page
-      // window.location.href = '/login';
+        // Redirect to login page
+        // window.location.href = '/login';
+      } else if (error.response.status === 412) {
+        // GP Reconfirmation Required
+        if (error.response.data?.detail === "GP_RECONFIRMATION_REQUIRED") {
+          window.dispatchEvent(new CustomEvent('gp-reconfirmation-required'));
+        }
+      }
     }
     return Promise.reject(error);
   }
@@ -195,6 +202,7 @@ export const annualSurveysAPI = {
   getSurvey: (id) => apiClient.get(`/annual-surveys/${id}`),
   addsurvey: (data) => apiClient.post('/annual-surveys/fill', data),
   updateSurvey: (id, data) => apiClient.put(`/annual-surveys/${id}`, data),
+  reconfirmSurvey: (id) => apiClient.patch(`/annual-surveys/${id}/reconfirm`),
   listSurveys: (params = {}) => {
     const q = new URLSearchParams();
     if (params.skip != null) q.append('skip', params.skip);
@@ -288,6 +296,28 @@ export const contractorAnalyticsAPI = {
   getDistrict: (districtId) => apiClient.get(`/contractor-analytics/analytics/district/${districtId}`),
   getBlock: (blockId) => apiClient.get(`/contractor-analytics/analytics/block/${blockId}`),
   getGP: (gpId) => apiClient.get(`/contractor-analytics/analytics/gp/${gpId}`),
+};
+
+export const circularAPI = {
+  getCirculars: () =>
+    apiClient.get("circulars/"),
+
+  createCircular: (formData) =>
+    apiClient.post("circulars/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  updateCircular: (id, formData) =>
+    apiClient.put(`circulars/${id}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
+
+  deleteCircular: (id) =>
+    apiClient.delete(`circulars/${id}`),
 };
 
 

@@ -4,6 +4,7 @@ import Chart from 'react-apexcharts';
 import { useAuth } from '../../../context/AuthContext';
 import { feedbackAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const BDOFeedbackContent = () => {
   const { user } = useAuth();
@@ -12,17 +13,20 @@ const BDOFeedbackContent = () => {
   const [feedback, setFeedback] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userFilter, setUserFilter] = useState('All');
-  
+
+  // Language 
+  const { t } = useTranslation(['common', 'noFB', 'table'])
+
   // Stats state
   const [stats, setStats] = useState(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsError, setStatsError] = useState(null);
-  
+
   // Feedbacks list state
   const [feedbacks, setFeedbacks] = useState([]);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
   const [feedbacksError, setFeedbacksError] = useState(null);
-  
+
   // User's own feedback state
   const [myFeedback, setMyFeedback] = useState(null);
   const [loadingMyFeedback, setLoadingMyFeedback] = useState(true); // Start as true to show initial loading
@@ -94,19 +98,19 @@ const BDOFeedbackContent = () => {
       try {
         setLoadingFeedbacks(true);
         setFeedbacksError(null);
-        
+
         // Fetch all feedbacks using pagination (max 999 per request)
         let allFeedbacks = [];
         let skip = 0;
         const limit = 100; // API max is 100
         let hasMore = true;
-        
+
         while (hasMore) {
           const params = {
             skip,
             limit
           };
-          
+
           // Map user filter to feedback_source
           if (userFilter === 'AUTH_USER') {
             params.feedback_source = 'AUTH_USER';
@@ -114,11 +118,11 @@ const BDOFeedbackContent = () => {
             params.feedback_source = 'PUBLIC_USER';
           }
           // If 'All', don't add feedback_source filter
-          
+
           const response = await feedbackAPI.getFeedbacks(params);
           const fetchedFeedbacks = response.data || [];
           allFeedbacks = [...allFeedbacks, ...fetchedFeedbacks];
-          
+
           // If we got fewer than the limit, we've reached the end
           if (fetchedFeedbacks.length < limit) {
             hasMore = false;
@@ -126,7 +130,7 @@ const BDOFeedbackContent = () => {
             skip += limit;
           }
         }
-        
+
         setFeedbacks(allFeedbacks);
       } catch (error) {
         console.error('Error fetching feedbacks:', error);
@@ -157,7 +161,7 @@ const BDOFeedbackContent = () => {
   const ratingDistribution = useMemo(() => {
     if (!feedbacks || feedbacks.length === 0) {
       return [
-        { label: '5 Star', value: 0, color: '#10B981' },
+        { label: `5 Star`, value: 0, color: '#10B981' },
         { label: '4 Star', value: 0, color: '#34D399' },
         { label: '3 Star', value: 0, color: '#FBBF24' },
         { label: '2 Star', value: 0, color: '#F97316' },
@@ -182,7 +186,7 @@ const BDOFeedbackContent = () => {
     };
 
     return [5, 4, 3, 2, 1].map(rating => ({
-      label: `${rating} Star`,
+      label: `${rating} ${t('noFB:star')}`,
       value: total > 0 ? Math.round((ratingCounts[rating] / total) * 100) : 0,
       color: colors[rating]
     }));
@@ -216,12 +220,12 @@ const BDOFeedbackContent = () => {
 
     return [
       {
-        label: 'Authority Users',
+        label: t('noFB:authorityUsers'),
         value: total > 0 ? Math.round((authUserCount / total) * 100) : 0,
         color: colors.auth
       },
       {
-        label: 'Public Users',
+        label: t('noFB:publicUsers'),
         value: total > 0 ? Math.round((publicUserCount / total) * 100) : 0,
         color: colors.public
       }
@@ -231,18 +235,18 @@ const BDOFeedbackContent = () => {
   // Filter reviews based on search query
   const filteredReviews = useMemo(() => {
     if (!feedbacks) return [];
-    
+
     let filtered = feedbacks;
-    
+
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(fb => 
+      filtered = filtered.filter(fb =>
         (fb.comment && fb.comment.toLowerCase().includes(query)) ||
         (fb.id && fb.id.toString().includes(query))
       );
     }
-    
+
     return filtered;
   }, [feedbacks, searchQuery]);
 
@@ -329,7 +333,7 @@ const BDOFeedbackContent = () => {
 
     try {
       setSavingFeedback(true);
-      
+
       // If user already has feedback, always update it (users can only have one feedback)
       if (myFeedback) {
         // Update existing feedback using PUT
@@ -350,20 +354,20 @@ const BDOFeedbackContent = () => {
           setMyFeedback(response.data);
         } catch (createError) {
           // If user already has feedback but we didn't know about it
-          if (createError.response?.status === 400 && 
-              (createError.response?.data?.message?.includes('already exists') ||
-               createError.response?.data?.detail?.includes('already exists'))) {
+          if (createError.response?.status === 400 &&
+            (createError.response?.data?.message?.includes('already exists') ||
+              createError.response?.data?.detail?.includes('already exists'))) {
             // Fetch the user's existing feedback
             const existingFeedbackResponse = await feedbackAPI.getMyFeedback();
             setMyFeedback(existingFeedbackResponse.data);
-            
+
             // Update the existing feedback instead
             const response = await feedbackAPI.updateMyFeedback({
               comment: feedback,
               rating: selectedRating
             });
             setMyFeedback(response.data);
-            
+
             alert('You already have a review. Your review has been updated.');
           } else {
             throw createError; // Re-throw if it's a different error
@@ -374,39 +378,39 @@ const BDOFeedbackContent = () => {
       // Refresh stats
       const statsResponse = await feedbackAPI.getStats();
       setStats(statsResponse.data);
-      
+
       // Refresh feedbacks using pagination
       let allFeedbacks = [];
       let skip = 0;
       const limit = 100; // API max is 100
       let hasMore = true;
-      
+
       while (hasMore) {
         const params = {
           skip,
           limit
         };
-        
+
         // Apply current filter
         if (userFilter === 'AUTH_USER') {
           params.feedback_source = 'AUTH_USER';
         } else if (userFilter === 'PUBLIC_USER') {
           params.feedback_source = 'PUBLIC_USER';
         }
-        
+
         const feedbacksResponse = await feedbackAPI.getFeedbacks(params);
         const fetchedFeedbacks = feedbacksResponse.data || [];
         allFeedbacks = [...allFeedbacks, ...fetchedFeedbacks];
-        
+
         if (fetchedFeedbacks.length < limit) {
           hasMore = false;
         } else {
           skip += limit;
         }
       }
-      
+
       setFeedbacks(allFeedbacks);
-      
+
       handleCloseModal();
     } catch (error) {
       console.error('Error saving feedback:', error);
@@ -498,75 +502,57 @@ const BDOFeedbackContent = () => {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
 
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '24px'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Feedback
-          </h1>
-        </div>
-      </div>
-
-      {/* Title Section */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px', marginLeft: '16px', marginRight: '16px' }}>
-        <div>
-          <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Rajasthan / All</p>
-        </div>
-        <button
-          onClick={handleOpenModal}
-          disabled={loadingMyFeedback}
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#059669',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: loadingMyFeedback ? 'wait' : 'pointer',
-            opacity: loadingMyFeedback ? 0.6 : 1
-          }}
-        >
-          {loadingMyFeedback 
-            ? 'Loading...' 
-            : myFeedback 
-              ? 'Change Review' 
-              : 'Give Review'}
-        </button>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
         borderRadius: '12px',
         padding: '24px',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        marginTop: '10px',
         marginBottom: '32px',
         marginLeft: '16px',
         marginRight: '16px'
       }}>
-        {/* Overview Heading */}
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, marginBottom: '24px' }}>
-          Overview
-        </h2>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
+
+          }}
+        >
+          {/* Overview Heading */}
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0, }}>
+            {t('common:overview')}
+          </h2>
+          <button
+            onClick={handleOpenModal}
+            disabled={loadingMyFeedback}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#059669',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: loadingMyFeedback ? 'wait' : 'pointer',
+              opacity: loadingMyFeedback ? 0.6 : 1,
+            }}
+          >
+            {loadingMyFeedback
+              ? t('noFB:loading')
+              : myFeedback
+                ? t('noFB:changeReview')
+                : t('noFB:giveReview')}
+          </button>
+        </div>
+
 
         {loadingStats ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>Loading statistics...</p>
+            <p style={{ color: '#6B7280' }}>{(t('noFB:loadingStatistics'))}</p>
           </div>
         ) : statsError ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -582,7 +568,7 @@ const BDOFeedbackContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Average Rating</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:averageRating')}</h3>
                 <InfoTooltip
                   tooltipKey="AVERAGE_RATING"
                   size={16}
@@ -623,7 +609,7 @@ const BDOFeedbackContent = () => {
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Total Ratings</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:totalRatings')}</h3>
                 <InfoTooltip
                   tooltipKey="TOTAL_RATINGS"
                   size={16}
@@ -669,7 +655,7 @@ const BDOFeedbackContent = () => {
         marginRight: '16px'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Reviews</h3>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>{t('noFB:reviews')}</h3>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {/* Search Input */}
             <div style={{ position: 'relative' }}>
@@ -678,7 +664,7 @@ const BDOFeedbackContent = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search reviews..."
+                placeholder={t('noFB:searchReviews')}
                 style={{
                   padding: '8px 12px 8px 36px',
                   border: '1px solid #D1D5DB',
@@ -705,9 +691,9 @@ const BDOFeedbackContent = () => {
                   outline: 'none'
                 }}
               >
-                <option value="All">All</option>
-                <option value="AUTH_USER">Authority Users</option>
-                <option value="PUBLIC_USER">Public Users</option>
+                <option value="All">{t('noFB:all')}</option>
+                <option value="AUTH_USER">{t('noFB:authorityUsers')}</option>
+                <option value="PUBLIC_USER">{t('noFB:publicUsers')}</option>
               </select>
               <ChevronDown size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#9CA3AF' }} />
             </div>
@@ -717,7 +703,7 @@ const BDOFeedbackContent = () => {
         {/* Table */}
         {loadingFeedbacks ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>Loading reviews...</p>
+            <p style={{ color: '#6B7280' }}>{t('noFB:loadingReviews')}</p>
           </div>
         ) : feedbacksError ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -725,7 +711,7 @@ const BDOFeedbackContent = () => {
           </div>
         ) : filteredReviews.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px' }}>
-            <p style={{ color: '#6B7280' }}>No reviews found</p>
+            <p style={{ color: '#6B7280' }}>{t('noFB:noReviewsFound')}</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -737,7 +723,7 @@ const BDOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      User
+                      {t('noFB:user')}
                       <SortIcon col="user" />
                     </div>
                   </th>
@@ -746,7 +732,7 @@ const BDOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Review
+                      {t('noFB:reviews')}
                       <SortIcon col="review" />
                     </div>
                   </th>
@@ -755,7 +741,7 @@ const BDOFeedbackContent = () => {
                     style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '500', color: '#6B7280', cursor: 'pointer', userSelect: 'none' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Rating
+                      {t('noFB:rating')}
                       <SortIcon col="rating" />
                     </div>
                   </th>
@@ -771,7 +757,7 @@ const BDOFeedbackContent = () => {
                       {review.comment || '-'}
                     </td>
                     <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
-                      {review.rating} Star
+                      {review.rating}  {t('feedback:star')}
                     </td>
                   </tr>
                 ))}
@@ -782,159 +768,161 @@ const BDOFeedbackContent = () => {
       </div>
 
       {/* Review Modal */}
-      {showReviewModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }} onClick={handleCloseModal}>
+      {
+        showReviewModal && (
           <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            width: '90%',
-            maxWidth: '500px',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
-          }} onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
-                {myFeedback ? 'Change Review' : 'My Review'}
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                disabled={savingFeedback}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                  padding: '4px',
-                  opacity: savingFeedback ? 0.5 : 1
-                }}
-              >
-                <X size={20} color="#6B7280" />
-              </button>
-            </div>
-
-            {loadingMyFeedback ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <p style={{ color: '#6B7280' }}>Loading...</p>
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000
+          }} onClick={handleCloseModal}>
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              width: '90%',
+              maxWidth: '500px',
+              boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
+            }} onClick={(e) => e.stopPropagation()}>
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827', margin: 0 }}>
+                  {myFeedback ? (t('noFB:changeReview')) : (t('noFB:myReview'))}
+                </h2>
+                <button
+                  onClick={handleCloseModal}
+                  disabled={savingFeedback}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: savingFeedback ? 'not-allowed' : 'pointer',
+                    padding: '4px',
+                    opacity: savingFeedback ? 0.5 : 1
+                  }}
+                >
+                  <X size={20} color="#6B7280" />
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Question */}
-                <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
-                  How was your experience with the app?
-                </p>
 
-                {/* Emoji Rating */}
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', justifyContent: 'center' }}>
-                  {emojiRatings.map((emoji) => (
-                    <button
-                      key={emoji.value}
-                      onClick={() => setSelectedRating(emoji.value)}
+              {loadingMyFeedback ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <p style={{ color: '#6B7280' }}> {(t('noFB:loading'))}  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Question */}
+                  <p style={{ fontSize: '16px', color: '#111827', marginBottom: '20px' }}>
+                    {(t('noFB:appExperienceQuestion'))}
+                  </p>
+
+                  {/* Emoji Rating */}
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', justifyContent: 'center' }}>
+                    {emojiRatings.map((emoji) => (
+                      <button
+                        key={emoji.value}
+                        onClick={() => setSelectedRating(emoji.value)}
+                        disabled={savingFeedback}
+                        style={{
+                          fontSize: '48px',
+                          background: 'none',
+                          border: 'none',
+                          cursor: savingFeedback ? 'not-allowed' : 'pointer',
+                          padding: '8px',
+                          borderRadius: '8px',
+                          transform: selectedRating === emoji.value ? 'scale(1.2)' : 'scale(1)',
+                          transition: 'transform 0.2s',
+                          filter: selectedRating === emoji.value ? 'brightness(1.2)' : 'brightness(1)',
+                          boxShadow: selectedRating === emoji.value ? '0 4px 8px rgba(0, 0, 0, 0.2)' : 'none',
+                          opacity: savingFeedback ? 0.5 : 1
+                        }}
+                      >
+                        {emoji.emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
+                    {selectedRating} {(t('noFB:star'))}
+                  </p>
+
+                  {/* Feedback Input */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
+                      {(t('noFB:feedback'))}
+                    </label>
+                    <textarea
+                      value={feedback}
+                      onChange={(e) => setFeedback(e.target.value)}
+                      placeholder="Your feedback"
+                      maxLength={100}
                       disabled={savingFeedback}
                       style={{
-                        fontSize: '48px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                        padding: '8px',
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '12px',
+                        border: '1px solid #D1D5DB',
                         borderRadius: '8px',
-                        transform: selectedRating === emoji.value ? 'scale(1.2)' : 'scale(1)',
-                        transition: 'transform 0.2s',
-                        filter: selectedRating === emoji.value ? 'brightness(1.2)' : 'brightness(1)',
-                        boxShadow: selectedRating === emoji.value ? '0 4px 8px rgba(0, 0, 0, 0.2)' : 'none',
+                        fontSize: '14px',
+                        fontFamily: 'inherit',
+                        resize: 'vertical',
+                        outline: 'none',
+                        boxSizing: 'border-box',
+                        opacity: savingFeedback ? 0.5 : 1,
+                        cursor: savingFeedback ? 'not-allowed' : 'text'
+                      }}
+                    />
+                    <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px', textAlign: 'right' }}>
+                      {feedback.length}/100
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <button
+                      onClick={handleCloseModal}
+                      disabled={savingFeedback}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: '#F3F4F6',
+                        color: '#374151',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: savingFeedback ? 'not-allowed' : 'pointer',
                         opacity: savingFeedback ? 0.5 : 1
                       }}
                     >
-                      {emoji.emoji}
+                      {(t('noFB:cancel'))}
                     </button>
-                  ))}
-                </div>
-                <p style={{ fontSize: '14px', color: '#6B7280', textAlign: 'center', marginBottom: '24px' }}>
-                  {selectedRating} Star
-                </p>
-
-                {/* Feedback Input */}
-                <div style={{ marginBottom: '24px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#111827', marginBottom: '8px' }}>
-                    Feedback
-                  </label>
-                  <textarea
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="Your feedback"
-                    maxLength={100}
-                    disabled={savingFeedback}
-                    style={{
-                      width: '100%',
-                      minHeight: '120px',
-                      padding: '12px',
-                      border: '1px solid #D1D5DB',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontFamily: 'inherit',
-                      resize: 'vertical',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      opacity: savingFeedback ? 0.5 : 1,
-                      cursor: savingFeedback ? 'not-allowed' : 'text'
-                    }}
-                  />
-                  <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px', textAlign: 'right' }}>
-                    {feedback.length}/100
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                  <button
-                    onClick={handleCloseModal}
-                    disabled={savingFeedback}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: '#F3F4F6',
-                      color: '#374151',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: savingFeedback ? 'not-allowed' : 'pointer',
-                      opacity: savingFeedback ? 0.5 : 1
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSaveReview}
-                    disabled={savingFeedback}
-                    style={{
-                      padding: '10px 20px',
-                      backgroundColor: savingFeedback ? '#9CA3AF' : '#059669',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: savingFeedback ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {savingFeedback ? 'Saving...' : 'Save'}
-                  </button>
-                </div>
-              </>
-            )}
+                    <button
+                      onClick={handleSaveReview}
+                      disabled={savingFeedback}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: savingFeedback ? '#9CA3AF' : '#059669',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: savingFeedback ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {savingFeedback ? (t('noFB:saving')) : (t('noFB:save'))}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
     </div>
   );
 };

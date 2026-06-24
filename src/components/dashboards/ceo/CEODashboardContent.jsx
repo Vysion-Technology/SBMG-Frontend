@@ -14,6 +14,7 @@ import DashBoardCards from '../common/DashBoardCards';
 import NoDataFound from '../common/NoDataFound';
 import OverviewBanner from '../common/OverviewBanner';
 import SendNoticeModal from '../common/SendNoticeModal';
+import { useTranslation } from 'react-i18next';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -233,6 +234,8 @@ const CEODashboardContent = () => {
   const selectedDistrictId = ceoDistrictId || null;
   const selectedDistrictForHierarchy = ceoDistrictId ? { id: ceoDistrictId, name: ceoDistrictName } : null;
   const setSelectedDistrictForHierarchy = () => { }; // No-op for CEO
+
+  const { t } = useTranslation('dashboard')
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -2196,12 +2199,19 @@ const CEODashboardContent = () => {
   }, []);
 
 
-  const formatValue = (key, value) => {
+ const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
       if (isNaN(num)) return "-";
       return `${(num / 1000).toFixed(2)} kms`;
     }
+
+    if (key === "REVENUE_OF_BARTAN_BANK") {
+      const num = Number(value);
+      if (isNaN(num)) return "-";
+      return `${(num / 100000).toFixed(2)} Lac`;
+    }
+
     return value;
   };
 
@@ -2244,7 +2254,7 @@ const CEODashboardContent = () => {
           color: '#111827',
           margin: '0 0 16px 0'
         }}>
-          Overview {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
+          {t('common:overview')} {MONTH_NAMES[new Date().getMonth()]} {new Date().getFullYear()}
         </h2>
 
         {/* Overview Banner - Districts, Blocks, Villages */}
@@ -2279,7 +2289,7 @@ const CEODashboardContent = () => {
             marginBottom: "16px",
           }}
         >
-          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>Assets</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: "600" }}>{t("assets.assets")}</h1>
         </div>
 
         {/* Sections */}
@@ -2295,7 +2305,7 @@ const CEODashboardContent = () => {
                 color: "#374151",
               }}
             >
-              {section.title}
+              {t(`assets.${section.title}`)}
             </h2>
 
             {/* Cards */}
@@ -2310,13 +2320,13 @@ const CEODashboardContent = () => {
               {section.cards.map((card, j) => (
                 <SlideDrawer
                   key={j}
-                  title={`${section.title} - ${card.label}`}
+                  title={`${t(`assets.${section.title}`)}`}
                   clickFunction={() => {
                     console.log("API call", card.key);
                   }}
                   trigger={
                     <DashBoardCards
-                      title={card.label}
+                      title={t(`assets.${card.label}`)}
                       value={
                         loading
                           ? "..."
@@ -2340,8 +2350,8 @@ const CEODashboardContent = () => {
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={
                         activeScope === 'Blocks' ? 'block' :
-                        activeScope === 'GPs' ? 'gp' :
-                        'district'
+                          activeScope === 'GPs' ? 'gp' :
+                            'district'
                       }
                       selectedDistrict={selectedDistrictForHierarchy}
                       selectedDistrictId={selectedDistrictId}
@@ -2390,7 +2400,7 @@ const CEODashboardContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                Contractor details
+                {t("common:contractorDetails")}
               </h2>
               <InfoTooltip
                 text="Shows the active vendor’s profile and contract details for this location."
@@ -2410,7 +2420,7 @@ const CEODashboardContent = () => {
                 color: '#6b7280',
                 fontSize: '14px'
               }}>
-                Loading Contractor details...
+                {t("table:loadingContractorData")}
               </div>
             )}
 
@@ -2444,7 +2454,7 @@ const CEODashboardContent = () => {
                       color: '#6b7280',
                       marginBottom: '4px'
                     }}>
-                      Name
+                       {t("table:name")}
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -2462,7 +2472,7 @@ const CEODashboardContent = () => {
                       color: '#6b7280',
                       marginBottom: '4px'
                     }}>
-                      Annual contract amount
+                       {t("table:annualContractAmount")}
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -2480,7 +2490,7 @@ const CEODashboardContent = () => {
                       color: '#6b7280',
                       marginBottom: '4px'
                     }}>
-                      Frequency of work
+                      {t("table:frequencyOfWork")}
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -2501,7 +2511,7 @@ const CEODashboardContent = () => {
                       color: '#6b7280',
                       marginBottom: '4px'
                     }}>
-                      Work order date
+                     {t("table:workOrderDate")}
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -2519,7 +2529,7 @@ const CEODashboardContent = () => {
                       color: '#6b7280',
                       marginBottom: '4px'
                     }}>
-                      Duration of work
+                      {t("table:durationOfWork")}
                     </div>
                     <div style={{
                       fontSize: '16px',
@@ -2543,7 +2553,7 @@ const CEODashboardContent = () => {
                 color: '#6b7280',
                 fontSize: '14px'
               }}>
-                No vendor details available for this Gram Panchayat
+                {t("table:noVendorDetailsAvailableForThisGramPanchayat")}
               </div>
             )}
           </div>

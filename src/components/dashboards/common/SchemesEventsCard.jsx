@@ -1,5 +1,6 @@
 import React from 'react';
 import { InfoTooltip } from '../../common/Tooltip';
+import { useTranslation } from 'react-i18next';
 
 const formatCount = (n) => (n < 10 ? `0${n}` : String(n));
 
@@ -26,10 +27,11 @@ const SchemesEventsCard = ({
   loading = false,
   error = null
 }) => {
+   const { t } = useTranslation(['dashboard', 'common']);
   const metrics = [
-    { value: total, label: 'Total', color: '#3B82F6' },
-    { value: active, label: 'Active', color: '#22C55E' },
-    { value: inactive, label: 'Inactive', color: '#EF4444' }
+    { value: total, label: t('total'), color: '#3B82F6' },
+    { value: active, label: t('active'), color: '#22C55E' },
+    { value: inactive, label: t('inactive'), color: '#EF4444' }
   ];
 
   return (

@@ -4,6 +4,7 @@ import RightDrawer from '../../common/rightDrawer';
 import apiClient, { attendanceAPI, contractorAnalyticsAPI, vehiclesAPI, inspectionsAPI } from '../../../services/api';
 import { useLocation } from '../../../context/LocationContext';
 import { ins } from 'framer-motion/client';
+import { useTranslation } from 'react-i18next';
 
 /** Dark tooltip with list of items (dot + label + count) - uses fixed positioning to escape scroll containers */
 const TooltipPopover = ({ children, items, show }) => {
@@ -397,6 +398,8 @@ const ListOfDistrictsTable = ({
     setActiveScope,
     setDropdownLevel
   } = locationContext || {};
+  // 
+  const { t } = useTranslation("dashboard");
 
   const [sortBy, setSortBy] = useState('district');
   const [sortDir, setSortDir] = useState('asc');
@@ -1237,7 +1240,7 @@ const ListOfDistrictsTable = ({
           color: '#111827',
           margin: 0
         }}>
-          List of Districts
+          {t("listOfDistricts")}
         </h2>
         {/* <button
           onClick={onDateClick}
@@ -1278,7 +1281,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('district')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>District <SortIcon col="district" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("district")} <SortIcon col="district" /></span>
               </th>
               <th
                 style={{
@@ -1292,7 +1295,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('block')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Block <SortIcon col="block" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("block")} <SortIcon col="block" /></span>
               </th>
               <th
                 style={{
@@ -1306,7 +1309,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('gps')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPs <SortIcon col="gps" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gps")} <SortIcon col="gps" /></span>
               </th>
               <th
                 style={{
@@ -1320,7 +1323,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('complaints')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints <SortIcon col="complaints" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("complaints")} <SortIcon col="complaints" /></span>
               </th>
               <th
                 style={{
@@ -1334,7 +1337,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('CSC Cleaning')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning <SortIcon col="attendance" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("cscCleaning")} <SortIcon col="attendance" /></span>
               </th>
               <th
                 style={{
@@ -1348,7 +1351,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('gpCoverage')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Coverage <SortIcon col="gpCoverage" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpDataCoverage")}<SortIcon col="gpCoverage" /></span>
               </th>
               <th
                 style={{
@@ -1362,7 +1365,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('contr')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Filled <SortIcon col="contr" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("contractorDataFilled")}<SortIcon col="contr" /></span>
               </th>
               <th
                 style={{
@@ -1376,7 +1379,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('inspection')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score <SortIcon col="inspection" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("inspectionAvgScore")} <SortIcon col="inspection" /></span>
               </th>
               <th
                 style={{
@@ -1390,7 +1393,7 @@ const ListOfDistrictsTable = ({
                 }}
                 onClick={() => handleSort('gpsTrack')}
               >
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking <SortIcon col="gpsTrack" /></span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpsTracking")} <SortIcon col="gpsTrack" /></span>
               </th>
             </tr>
           </thead>
@@ -1439,7 +1442,7 @@ const ListOfDistrictsTable = ({
                       {/* Everything here appears inside the drawer */}
                       <div className="blocksContentDrawer">
                         <div className={`p-4! border rounded-xl space-base mb-4! border-[#D1D5DB]`}>
-                          <h3 className="text-lg font-semibold text-gray-800 mb-2">Block-wise Details</h3>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">{t("blockWiseDetails")}</h3>
                           <div className="table-scroll-container  [&::-webkit-scrollbar]:w-[8px]  [&::-webkit-scrollbar]:h-[8px] [&::-webkit-scrollbar-track]:bg-transparent 
   [&::-webkit-scrollbar-thumb]:bg-gray-300 
   [&::-webkit-scrollbar-thumb]:rounded-full " style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 320, WebkitOverflowScrolling: 'touch', width: '100%', maxWidth: '100%', minWidth: 0 }}>
@@ -1457,7 +1460,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Block</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("block")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1470,7 +1473,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPs</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gps")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1483,7 +1486,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("complaints")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1496,7 +1499,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("cscCleaning")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1509,7 +1512,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Coverage</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpDataCoverage")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1522,7 +1525,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Filled</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("contractorDataFilled")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1535,7 +1538,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("inspectionAvgScore")}</span>
                                   </th>
                                   <th
                                     style={{
@@ -1548,7 +1551,7 @@ const ListOfDistrictsTable = ({
                                       whiteSpace: 'nowrap'
                                     }}
                                   >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpsTracking")}</span>
                                   </th>
                                   <th style={{ padding: '12px 16px', width: 40 }} />
                                 </tr>
@@ -1618,7 +1621,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gps")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1630,7 +1633,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Complaints</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("complaints")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1642,7 +1645,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>CSC Cleaning</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("cscCleaning")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1654,7 +1657,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Inspection Avg. Score</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("inspectionAvgScore")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1666,7 +1669,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GPS Tracking</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpsTracking")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1678,7 +1681,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>GP Data Status</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("gpDataStatus")}</span>
                                                         </th>
                                                         <th
                                                           style={{
@@ -1690,7 +1693,7 @@ const ListOfDistrictsTable = ({
                                                             whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>Contractor Data Status</span>
+                                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{t("contractorDataStatus")}</span>
                                                         </th>
                                                         <th style={{ padding: '12px 16px', width: 40 }} />
                                                       </tr>
@@ -1797,7 +1800,7 @@ const ListOfDistrictsTable = ({
                                                   </table>
                                                 </div>
                                               </div>
-                                              <p className={`text-[#3B82F6] p-4! bg-[#D8E6FD] rounded-lg text-[16px]`}>Click on a GP to view detailed analysis and KPIs.</p>
+                                              <p className={`text-[#3B82F6] p-4! bg-[#D8E6FD] rounded-lg text-[16px]`}>{t('gpDetailedAnalysisMessage')}</p>
                                             </div>
                                           </RightDrawer>
                                         </td>
@@ -1863,7 +1866,7 @@ const ListOfDistrictsTable = ({
                             </table>
                           </div>
                         </div>
-                        <p className={`text-[#3B82F6] p-4! bg-[#D8E6FD] rounded-lg text-[16px]`}>Based on KPI Data Click of respective District/block/GP user will be redirected to detailed analysis/monitoring page of that particular KPI.</p>
+                        <p className={`text-[#3B82F6] p-4! bg-[#D8E6FD] rounded-lg text-[16px]`}>{t('kpiRedirectMessage')}</p>
                       </div>
                     </RightDrawer>
                   </td>

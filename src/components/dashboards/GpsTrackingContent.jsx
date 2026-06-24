@@ -1,5 +1,6 @@
-import { ArrowUpDown, ChevronDown, ChevronsUpDown, ChevronUp, Plus } from 'lucide-react';
+import { ChevronDown, ChevronsUpDown, ChevronUp, Plus } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { useAddVehicle, useDeleteVehicle, useUpdateVehicle } from '../../hooks/useAddVehicle';
 import { useVehicleDetails } from '../../hooks/useVehicleDetails';
 import { filterVehiclesByStatus, searchVehicles, useVehicles } from '../../hooks/useVehicles';
@@ -12,7 +13,7 @@ import VehicleDetailsPanel from './gps/VehicleDetailsPanel';
 
 const GpsTrackingContent = () => {
   const [activeScope, setActiveScope] = useState('All');
-  const [activeFleetTab, setActiveFleetTab] = useState('All(00)');
+  const [activeFleetTab, setActiveFleetTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyFlagged, setShowOnlyFlagged] = useState(false);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -24,6 +25,8 @@ const GpsTrackingContent = () => {
     blockId: null,
     gpId: null
   });
+
+  const { t } = useTranslation(['common', 'table', 'gps']);
 
   // GPS Analytics state
   const [gpsAnalyticsData, setGpsAnalyticsData] = useState(null);
@@ -252,10 +255,10 @@ const GpsTrackingContent = () => {
 
   // Update fleet tabs with real counts
   const [fleetTabsState, setFleetTabsState] = useState([
-    'All(00)',
-    'Active(00)',
-    'Running(00)',
-    'Stopped(00)'
+    { key: 'all', label: t('gps:all'), count: 0 },
+    { key: 'active', label: t('gps:active'), count: 0 },
+    { key: 'running', label: t('gps:running'), count: 0 },
+    { key: 'stopped', label: t('gps:stopped'), count: 0 }
   ]);
   // const [activeFleetTab, setActiveFleetTab] = useState(fleetTabsState[0]);
 
@@ -266,23 +269,22 @@ const GpsTrackingContent = () => {
     const stopped = vehiclesData.filter(v => (v.status || '').toString().toLowerCase() === 'stopped').length;
 
     const updatedTabs = [
-      `All(${String(all).padStart(2, '0')})`,
-      `Active(${String(active).padStart(2, '0')})`,
-      `Running(${String(running).padStart(2, '0')})`,
-      `Stopped(${String(stopped).padStart(2, '0')})`,
+      { key: 'all', label: t('gps:all'), count: all },
+      { key: 'active', label: t('gps:active'), count: active },
+      { key: 'running', label: t('gps:running'), count: running },
+      { key: 'stopped', label: t('gps:stopped'), count: stopped }
     ];
 
     setFleetTabsState(updatedTabs);
 
-    // Sync active tab
+    // Sync active tab key
     setActiveFleetTab(prev => {
-      const prevStr = typeof prev === 'string' ? prev : 'All(00)';
-      const statusKey = prevStr.split('(')[0]; // "All", "Active", etc.
-      const newTab = updatedTabs.find(t => t.startsWith(statusKey));
-      return newTab || updatedTabs[0];
+      const prevKey = typeof prev === 'string' ? prev.split('(')[0].toLowerCase() : 'all';
+      const newTab = updatedTabs.find(tab => tab.key === prevKey);
+      return newTab?.key || updatedTabs[0].key;
     });
 
-  }, [vehiclesData]);
+  }, [vehiclesData, t]);
 
   const flaggedCount = vehiclesData.filter(v => v.isFlagged).length;
 
@@ -330,9 +332,7 @@ const GpsTrackingContent = () => {
   const handleVehicleSelect = (vehicle) => {
     setSelectedVehicle(vehicle);
   };
-  console.log('🟢 fleetTabsState:', fleetTabsState);
-  console.log('🟢 activeFleetTab:', activeFleetTab);
-  console.log('🟢 filteredVehicles:', filteredVehicles);
+
 
 
   // utils.js or inside your component
@@ -439,7 +439,7 @@ const GpsTrackingContent = () => {
               }}
             >
               <Plus style={{ width: '18px', height: '18px' }} />
-              Add Vehicle
+              {t('gps:addVehicle')}
             </button>
           </div>
 
@@ -453,7 +453,7 @@ const GpsTrackingContent = () => {
               backgroundColor: '#f3f4f6',
             }}>
               <div style={{ fontSize: '14px', color: '#6b7280' }}>
-                Loading vehicles...
+                {t('gps:loadingVehicle')}
               </div>
             </div>
           ) : vehiclesError ? (
@@ -465,7 +465,7 @@ const GpsTrackingContent = () => {
               backgroundColor: '#f3f4f6',
             }}>
               <div style={{ fontSize: '14px', color: '#ef4444' }}>
-                Error loading vehicles: {vehiclesError.message}
+                {t('gps:errorLoadingVehicles')}: {vehiclesError.message}
               </div>
             </div>
           ) : (
@@ -526,7 +526,7 @@ const GpsTrackingContent = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Wise GPS Tracking Coverage
+                {activeScope === 'All' ? (t('table:district')) : activeScope === 'Districts' ? (t('table:block')) : (t('table:gps'))} {t('table:wiseGPSTrackingCoverage')}
               </h3>
               {(activeScope === 'Blocks' || activeScope === 'GPs') && (
                 <button
@@ -552,7 +552,7 @@ const GpsTrackingContent = () => {
                   onMouseEnter={() => setBackButtonHover(true)}
                   onMouseLeave={() => setBackButtonHover(false)}
                 >
-                  {activeScope === 'Blocks' ? '← Back to Districts' : '← Back to Blocks'}
+                  {activeScope === 'Blocks' ? `←${(t('table:backToDistricts'))}` : `←${(t('table:backToBlocks'))}`}
                 </button>
               )}
             </div>
@@ -587,7 +587,7 @@ const GpsTrackingContent = () => {
                     color: '#374151'
                   }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      {activeScope === 'All' ? 'District' : activeScope === 'Districts' ? 'Block' : 'GP'} Name
+                      {activeScope === 'All' ? t('table:districtName') : activeScope === 'Districts' ? t('table:blockName') : t('table:gpName')}
                       <span
                         style={{ cursor: 'pointer', }}
                         onClick={() => handleSort('geography_name')}>
@@ -603,7 +603,7 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Total Vehicles
+                    {t('table:totalVehicles')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('total_vehicles')}>
@@ -618,7 +618,7 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Active Vehicles
+                     {t('table:activeVehicles')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('active_vehicles')}>
@@ -633,7 +633,7 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Running Vehicles
+                    {t('table:runningVehicles')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('running_vehicles')}>
@@ -648,7 +648,7 @@ const GpsTrackingContent = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    Stopped Vehicles
+                    {t('table:stoppedVehicles')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('stopped_vehicles')}>
