@@ -98,6 +98,7 @@ const VDOComplaintsContent = () => {
 
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
+  const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({
     key: null,
@@ -1351,6 +1352,10 @@ const VDOComplaintsContent = () => {
       ? complaintStatusNormalized === normalizedFilterStatus
       : true; // if no filter selected, show all
 
+    const matchesSlaFilter = showOnlyEscalated
+      ? complaint.last_sla_breach_level === 'GP'
+      : true;
+
     const q = searchTerm?.toLowerCase() || '';
     const matchesSearch =
       complaint.title.toLowerCase().includes(q) ||
@@ -1365,7 +1370,7 @@ const VDOComplaintsContent = () => {
       (complaint.block || '').toLowerCase().includes(q) ||
       (complaint.district || '').toLowerCase().includes(q);
 
-    return matchesFilter && matchesSearch;
+    return matchesFilter && matchesSlaFilter && matchesSearch;
   });
 
   const sortedComplaints = [...filteredComplaints].sort((a, b) => {
@@ -2087,6 +2092,8 @@ const VDOComplaintsContent = () => {
             </div>
           </div>
 
+
+
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -2169,7 +2176,7 @@ const VDOComplaintsContent = () => {
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2186,7 +2193,7 @@ const VDOComplaintsContent = () => {
                     <SortIcon col="submittedBy" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2203,7 +2210,7 @@ const VDOComplaintsContent = () => {
                     <SortIcon col="location" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2220,7 +2227,7 @@ const VDOComplaintsContent = () => {
                     <SortIcon col="title" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2237,7 +2244,7 @@ const VDOComplaintsContent = () => {
                     <SortIcon col="submittedDate" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2254,7 +2261,7 @@ const VDOComplaintsContent = () => {
                     <SortIcon col="statusDisplay" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2423,7 +2430,7 @@ const VDOComplaintsContent = () => {
         complaintId={selectedComplaint}
       />
 
-      
+
 
       {/* Success Dialog */}
       {showSuccessDialog && (

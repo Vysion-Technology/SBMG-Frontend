@@ -2403,7 +2403,7 @@ const BDOComplaintsContent = () => {
                 backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
                 display: 'inline-block'
               }} />
-              {showOnlyEscalated ? 'Showing GP Escalation' : 'GP Escalation'}
+              {showOnlyEscalated ? 'Block Escalation' : 'Block Escalation'}
             </button>
           </div>
 

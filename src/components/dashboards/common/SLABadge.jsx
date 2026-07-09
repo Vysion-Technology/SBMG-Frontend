@@ -2,7 +2,7 @@ import React from 'react';
 
 const config = {
   GP: {
-    label: "GP Escalated (7+ Days)",
+    label: "Block Escalated (7+ Days)",
     classes: "bg-yellow-50 text-yellow-800 border-yellow-200",
     dotClass: "bg-yellow-500",
     tooltip: "Escalated to GP level: unresolved for more than 7 days.",
@@ -13,7 +13,7 @@ const config = {
     }
   },
   BLOCK: {
-    label: "Block Escalated (15+ Days)",
+    label: "District Escalated (15+ Days)",
     classes: "bg-orange-50 text-orange-800 border-orange-200",
     dotClass: "bg-orange-500",
     tooltip: "Escalated to Block level: unresolved for more than 15 days.",
@@ -24,7 +24,7 @@ const config = {
     }
   },
   DISTRICT: {
-    label: "District Escalated (30+ Days)",
+    label: "State Escalated (30+ Days)",
     classes: "bg-red-50 text-red-800 border-red-200 animate-pulse",
     dotClass: "bg-red-500",
     tooltip: "Critical breach: escalated to District level, unresolved for more than 30 days.",
@@ -35,7 +35,7 @@ const config = {
     }
   },
   NONE: {
-    label: "Within SLA",
+    label: "No Escalation",
     classes: "bg-green-50 text-green-700 border-green-200",
     dotClass: "bg-green-500",
     tooltip: "Complaint is on track and within standard SLA resolution timelines.",
