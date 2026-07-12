@@ -3530,7 +3530,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
                 display: 'inline-block'
               }} />
-              {showOnlyEscalated ? 'Showing DISTRCT' : 'DISTRCT'}
+              {showOnlyEscalated ? 'State Escalation' : 'State Escalation'}
             </button>
           </div>
 
@@ -3752,7 +3752,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:slaEscalation') || 'SLA Escalation'}
+                    {t('table:escalation')}
                     <span
                       style={{ cursor: 'pointer', }}
                       onClick={() => handleSort('last_sla_breach_level')}>
@@ -4526,7 +4526,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             }}>
               {(t("table:complaintSubmittedSuccessfully"))}
               <br />
-               {(t("table:complaintSubmittedSuccessfully1"))}
+              {(t("table:complaintSubmittedSuccessfully1"))}
             </div>
 
             {/* Close Button */}
@@ -4545,7 +4545,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 maxWidth: '200px'
               }}
             >
-               {(t("table:close"))}
+              {(t("table:close"))}
             </button>
           </div>
         </div>
@@ -4798,7 +4798,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   cursor: 'pointer'
                 }}
               >
-                 {(t("table:cancel"))}
+                {(t("table:cancel"))}
               </button>
               <button
                 onClick={async () => {
@@ -4861,7 +4861,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   opacity: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 0.6 : 1
                 }}
               >
-                {sendingNotice ?  (t("table:sending")) : (t("table:send"))}
+                {sendingNotice ? (t("table:sending")) : (t("table:send"))}
               </button>
             </div>
           </div>

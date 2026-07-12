@@ -261,5 +261,7 @@
   "RETROFITTED_TOILETS": "No. of Retrofitted Toilets",
   "MECHANIZED_DESLUDGING": "Mechanized De-Sludging",
   "FSTPS_RURAL": "No. of FSTPs (Rural)",
-  "FSTPS_URBAN": "No. of FSTPs (Urban)"
+  "FSTPS_URBAN": "No. of FSTPs (Urban)",
+  "escalated": "Escalated",
+  "escalation": "Escalation"
 }

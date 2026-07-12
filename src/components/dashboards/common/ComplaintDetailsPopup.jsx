@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer, ShieldAlert } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useAuth } from '../../../context/AuthContext.jsx';
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
 import ResolutionPopup from "./ResolutionPopup";
-import { useAuth } from '../../../context/AuthContext.jsx';
+import SLABadge from "./SLABadge.jsx";
 
 
 const styles = {
@@ -444,9 +445,12 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
                                             <div className="!p-5">
                                                 {/* location dis block gps.. */}
-                                                <p style={{ color: "#666", fontSize: "13px" }}>
-                                                    {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
-                                                </p>
+                                                <div className="flex  justify-between">
+                                                    <p style={{ color: "#666", fontSize: "13px" }}>
+                                                        {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
+                                                    </p>
+                                                    <SLABadge level={complaint.last_sla_breach_level} />
+                                                </div>
 
                                                 {/* Complaint actions type */}
                                                 <div
@@ -534,48 +538,6 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                                 </div>}
                                                 </div>
 
-
-                                                {/* SLA Breach Banner */}
-                                                {complaint?.last_sla_breach_level && (
-                                                    <div style={{
-                                                        marginTop: '12px',
-                                                        padding: '12px 14px',
-                                                        borderRadius: '6px',
-                                                        borderLeft: `4px solid ${complaint.last_sla_breach_level === 'DISTRICT' ? '#ef4444' :
-                                                            complaint.last_sla_breach_level === 'BLOCK' ? '#f97316' : '#eab308'
-                                                            }`,
-                                                        backgroundColor:
-                                                            complaint.last_sla_breach_level === 'DISTRICT' ? '#fef2f2' :
-                                                                complaint.last_sla_breach_level === 'BLOCK' ? '#fff7ed' : '#fefce8',
-                                                        display: 'flex',
-                                                        gap: '10px',
-                                                        alignItems: 'flex-start'
-                                                    }}>
-                                                        <span style={{ fontSize: '18px' }}>⚠️</span>
-                                                        <div>
-                                                            <p style={{
-                                                                fontWeight: 600,
-                                                                fontSize: '13px',
-                                                                color:
-                                                                    complaint.last_sla_breach_level === 'DISTRICT' ? '#991b1b' :
-                                                                        complaint.last_sla_breach_level === 'BLOCK' ? '#9a3412' : '#854d0e',
-                                                                margin: 0
-                                                            }}>
-                                                                SLA Breach — {
-                                                                    complaint.last_sla_breach_level === 'GP' ? 'VDO Level (7+ days)' :
-                                                                        complaint.last_sla_breach_level === 'BLOCK' ? 'Block Level (15+ days)' :
-                                                                            'District Level (30+ days)'
-                                                                }
-                                                            </p>
-                                                            <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                                                                {complaint.last_sla_breach_level === 'GP' && 'Unresolved for 7+ days. Escalated to VDO.'}
-                                                                {complaint.last_sla_breach_level === 'BLOCK' && 'Unresolved for 15+ days. Escalated to Block Officer.'}
-                                                                {complaint.last_sla_breach_level === 'DISTRICT' && 'Unresolved for 30+ days. Escalated to District / SMD Admin.'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
-
                                                 {/* Complaint Img */}
                                                 <div style={styles.images}>
                                                     {complaint?.media?.slice(0, 2).map((img, i) => (
@@ -600,6 +562,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                     >
                                                         {formatDate(complaint?.created_at)}
                                                     </h4>
+
                                                 </div>
 
                                                 <div style={{ display: "flex", justifyContent: 'space-between', margin: '5px 0px' }}>
@@ -672,80 +635,9 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                             </div>
 
                                                         ))}
-
-                                                        {/* System Generated SLA Comments — YAHAN ANDAR */}
-                                                        {complaint?.comments?.filter(c => c.is_system_generated).map((c, i) => (
-                                                            <div key={`sys-${i}`} style={{
-                                                                marginBottom: '12px',
-                                                                position: 'relative',
-                                                                paddingLeft: '10px',
-                                                                cursor: 'default'
-                                                            }}>
-                                                                <div style={{
-                                                                    width: '14px', height: '14px',
-                                                                    backgroundColor: '#9ca3af',
-                                                                    borderRadius: '50%',
-                                                                    position: 'absolute',
-                                                                    left: '-21px', top: '14px',
-                                                                    border: '3px solid #e5e7eb'
-                                                                }} />
-                                                                <div style={{
-                                                                    backgroundColor: '#f3f4f6',
-                                                                    border: '1px solid #e5e7eb',
-                                                                    borderRadius: '8px',
-                                                                    padding: '10px 12px',
-                                                                    display: 'flex',
-                                                                    gap: '10px',
-                                                                    alignItems: 'flex-start'
-                                                                }}>
-                                                                    <span style={{ display: 'inline-flex', alignItems: 'center', color: '#4b5563', marginTop: '2px' }}>
-                                                                        <ShieldAlert size={16} />
-                                                                    </span>
-                                                                    <div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                                            <span style={{
-                                                                                fontSize: '11px', fontWeight: 600,
-                                                                                color: '#4b5563',
-                                                                                textTransform: 'uppercase', letterSpacing: '0.05em'
-                                                                            }}>
-                                                                                SLA Event
-                                                                            </span>
-                                                                            <span style={{
-                                                                                backgroundColor: '#e5e7eb',
-                                                                                color: '#374151',
-                                                                                fontSize: '10px',
-                                                                                fontWeight: '600',
-                                                                                padding: '2px 6px',
-                                                                                borderRadius: '4px',
-                                                                                textTransform: 'uppercase'
-                                                                            }}>
-                                                                                System Notification
-                                                                            </span>
-                                                                        </div>
-                                                                        <p style={{ fontSize: '13px', color: '#374151', margin: '6px 0 0 0', lineHeight: '1.4' }}>
-                                                                            {c.comment}
-                                                                        </p>
-                                                                        {c.created_at && (
-                                                                            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>
-                                                                                {formatDate(c.created_at)}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-
-
-
                                                     </div>
-
-
                                                 </div>
-
-
                                             </div>
-
-
                                         </>
                                     )
                                     }
