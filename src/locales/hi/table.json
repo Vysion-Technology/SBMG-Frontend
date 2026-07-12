@@ -261,5 +261,7 @@
   "RETROFITTED_TOILETS": "रेट्रोफिटेड शौचालयों की संख्या",
   "MECHANIZED_DESLUDGING": "मशीनीकृत डी-स्लजिंग",
   "FSTPS_RURAL": "ग्रामीण FSTP की संख्या",
-  "FSTPS_URBAN": "शहरी FSTP की संख्या"
+  "FSTPS_URBAN": "शहरी FSTP की संख्या",
+  "escalated": "एस्केलेटेड",
+  "escalation": "एस्केलेशन"
 }

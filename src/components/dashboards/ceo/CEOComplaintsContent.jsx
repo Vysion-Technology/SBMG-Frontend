@@ -2442,7 +2442,7 @@ const CEOComplaintsContent = () => {
                 backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
                 display: 'inline-block'
               }} />
-              {showOnlyEscalated ? 'Showing BLOCK' : 'BLOCK'}
+              {showOnlyEscalated ? 'District Escalation' : 'District Escalation'}
             </button>
           </div>
 
@@ -2528,7 +2528,7 @@ const CEOComplaintsContent = () => {
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2545,7 +2545,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="submittedBy" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2562,7 +2562,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="location" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2579,7 +2579,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="title" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2596,7 +2596,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="submittedDate" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2613,7 +2613,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="statusDisplay" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
