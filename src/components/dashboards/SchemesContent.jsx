@@ -151,10 +151,17 @@ const SchemesContent = () => {
   };
 
   // const allItems = [...schemes, ...circulars];
+  const filteredCirculars = circulars.filter(c => {
+    const isActive = c.is_active ?? true;
+    if (schemeFilter === 'active') return isActive === true;
+    if (schemeFilter === 'inactive') return isActive === false;
+    return true;
+  });
+
   const displayedItems =
     listTab === "schemes"
       ? schemes
-      : circulars;
+      : filteredCirculars;
 
 
   // Helper function to format date
@@ -253,7 +260,8 @@ const SchemesContent = () => {
 
         const circularData = {
           title: formData.name,
-          description: formData.description
+          description: formData.description,
+          is_active: true
         };
 
         const fd = new FormData();
@@ -388,7 +396,7 @@ const SchemesContent = () => {
       description: scheme.description || "",
       eligibility: scheme.eligibility || "",
       benefits: scheme.benefits || "",
-      active: scheme.active ?? true
+      active: isCircular ? (scheme.is_active ?? true) : (scheme.active ?? true)
     });
 
     // Existing Image
@@ -481,7 +489,7 @@ const SchemesContent = () => {
         const circularData = {
           title: editFormData.name,
           description: editFormData.description,
-          active: editFormData.active
+          is_active: editFormData.active
         };
 
         const fd = new FormData();
@@ -763,7 +771,7 @@ const SchemesContent = () => {
                   : "#374151"
             }}
           >
-            📄 Circulars ({circulars.length})
+            📄 Circulars ({filteredCirculars.length})
           </button>
         </div>
 
@@ -841,14 +849,14 @@ const SchemesContent = () => {
                         position: 'absolute',
                         top: '12px',
                         right: '12px',
-                        backgroundColor: scheme.active ? '#10b981' : '#ef4444',
+                        backgroundColor: (isCircular ? (scheme.is_active ?? true) : (scheme.active ?? true)) ? '#10b981' : '#ef4444',
                         color: 'white',
                         padding: '4px 8px',
                         borderRadius: '12px',
                         fontSize: '12px',
                         fontWeight: '500'
                       }}>
-                        {scheme.active ? 'Active' : 'Inactive'}
+                        {(isCircular ? (scheme.is_active ?? true) : (scheme.active ?? true)) ? 'Active' : 'Inactive'}
                       </div>
                       {/* Media count indicator if multiple images */}
                       {scheme.media && scheme.media.length > 1 && (
