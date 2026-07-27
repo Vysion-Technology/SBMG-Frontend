@@ -1991,13 +1991,14 @@ const SchemesContent = () => {
                             </div>
                           </div>
                         </div>
-
                         <div style={{ display: "flex", gap: "8px" }}>
                           <button
                             onClick={() => {
                               const link = document.createElement('a');
                               link.href = getPdfUrl(selectedScheme);
-                              link.download = selectedScheme?.title || selectedScheme?.name || 'circular.pdf';
+                              const rawName = selectedScheme?.title || selectedScheme?.name || 'circular';
+                              const filename = rawName.toLowerCase().endsWith('.pdf') ? rawName : `${rawName}.pdf`;
+                              link.download = filename;
                               document.body.appendChild(link);
                               link.click();
                               document.body.removeChild(link);
