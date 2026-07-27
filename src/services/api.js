@@ -142,7 +142,8 @@ apiClient.interceptors.response.use(
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
-        windows.alert("session timed out");
+        localStorage.removeItem('userRole');
+        window.alert("session timed out");
         // Redirect to login page
         window.location.href = '/login';
       } else if (error.response.status === 412) {
