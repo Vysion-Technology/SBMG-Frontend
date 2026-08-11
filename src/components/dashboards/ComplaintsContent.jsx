@@ -216,6 +216,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Ref for auto-scrolling to complaints table when filter is applied
   const complaintsTableRef = useRef(null);
   const hasScrolledRef = useRef(false);
+  const initialHierarchyInitializedRef = useRef(false);
 
   const handleOpenComplaintDetails = (id) => {
     setSelectedComplaint(id);
@@ -1365,7 +1366,6 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       viewingGPComplaints
     });
 
-    // Reset viewing flags when scope changes to State
     if (activeScope === 'State') {
       setViewingBlocksForDistrict(false);
       setViewingGPsForBlock(false);
@@ -1373,11 +1373,36 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       return;
     }
 
-    // When District scope is active and a district is selected, show blocks for that district
+    const hasSelectedGP = activeScope === 'GPs' && Boolean(selectedGPId);
+
+    if (hasSelectedGP) {
+      const matchedGP = gramPanchayats.find((gp) => String(gp.id) === String(selectedGPId))
+        || (selectedGPForComplaints?.id === selectedGPId ? selectedGPForComplaints : null)
+        || {
+          id: selectedGPId,
+          name: selectedLocation || 'Selected GP'
+        };
+
+      const gpComplaints = allComplaintsData.filter((complaint) => {
+        const complaintVillage = String(complaint.village_name || complaint.gp_name || complaint.block_name || '').toLowerCase();
+        const matchedName = String(matchedGP.name || '').toLowerCase();
+        return complaintVillage.includes(matchedName) || matchedName.includes(complaintVillage);
+      });
+
+      setViewingBlocksForDistrict(false);
+      setViewingGPsForBlock(false);
+      setSelectedGPForComplaints({
+        ...matchedGP,
+        complaints: gpComplaints
+      });
+      setViewingGPComplaints(true);
+      return;
+    }
+
+    setViewingGPComplaints(false);
+
     if (activeScope === 'Districts' && selectedDistrictId) {
       const selectedDistrict = districts.find(d => d.id === selectedDistrictId);
-
-      // Check if we need to fetch blocks for a different district
       if (selectedDistrict && selectedDistrictForBlocks?.id !== selectedDistrictId) {
         console.log('📊 Districts scope: Fetching blocks for', selectedDistrict.name);
         fetchBlocksSummaryData(selectedDistrict);
@@ -1385,16 +1410,25 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       return;
     }
 
-    // Reset viewing flags for districts/blocks when not in those scopes
     if (activeScope !== 'Districts' && viewingBlocksForDistrict) {
       setViewingBlocksForDistrict(false);
     }
 
-    // When Blocks scope is active and a block is selected, show GPs for that block
+    if (selectedBlockId || selectedBlockForHierarchy) {
+      const selectedBlock = blocks.find(b => b.id === selectedBlockId) || selectedBlockForHierarchy;
+      if (selectedBlock) {
+        setViewingBlocksForDistrict(false);
+        setViewingGPsForBlock(true);
+        if (selectedBlockForGPs?.id !== selectedBlock.id) {
+          console.log('📊 Header block selected: Fetching GPs for', selectedBlock.name);
+          fetchGPsSummaryData(selectedBlock);
+        }
+      }
+      return;
+    }
+
     if (activeScope === 'Blocks' && selectedBlockId) {
       const selectedBlock = blocks.find(b => b.id === selectedBlockId);
-
-      // Check if we need to fetch GPs for a different block
       if (selectedBlock && selectedBlockForGPs?.id !== selectedBlockId) {
         console.log('📊 Blocks scope: Fetching GPs for', selectedBlock.name);
         fetchGPsSummaryData(selectedBlock);
@@ -1402,38 +1436,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       return;
     }
 
-    // Reset viewing flags for blocks when not in that scope
     if (activeScope !== 'Blocks' && viewingGPsForBlock) {
       setViewingGPsForBlock(false);
     }
-
-    // When GPs scope is active and a GP is selected, show complaints for that GP
-    if (activeScope === 'GPs' && selectedGPId) {
-      const selectedGP = gramPanchayats.find(gp => gp.id === selectedGPId);
-
-      // Check if we need to show complaints for a different GP
-      if (selectedGP && selectedGPForComplaints?.id !== selectedGPId && allComplaintsData.length > 0) {
-        console.log('📊 GPs scope: Showing complaints for GP', selectedGP.name);
-
-        // Create GP object with complaints data
-        const gpComplaints = allComplaintsData.filter(
-          complaint => complaint.village_name?.toLowerCase() === selectedGP.name?.toLowerCase()
-        );
-
-        setSelectedGPForComplaints({
-          ...selectedGP,
-          complaints: gpComplaints
-        });
-        setViewingGPComplaints(true);
-      }
-      return;
-    }
-
-    // Reset viewing flag for GPs when not in that scope
-    if (activeScope !== 'GPs' && viewingGPComplaints) {
-      setViewingGPComplaints(false);
-    }
-  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, districts, blocks, gramPanchayats, selectedDistrictForBlocks, selectedBlockForGPs, selectedGPForComplaints, viewingBlocksForDistrict, viewingGPsForBlock, viewingGPComplaints, fetchBlocksSummaryData, fetchGPsSummaryData, allComplaintsData]);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId, selectedBlockForHierarchy, districts, blocks, gramPanchayats, selectedDistrictForBlocks, selectedBlockForGPs, selectedGPForComplaints, viewingBlocksForDistrict, viewingGPsForBlock, viewingGPComplaints, fetchBlocksSummaryData, fetchGPsSummaryData, allComplaintsData]);
 
   // Date range functions
   const generateYears = () => {
@@ -2343,26 +2349,60 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     fetchAllComplaintsData();
   }, [fetchAllComplaintsData]);
 
+  useEffect(() => {
+    if (initialHierarchyInitializedRef.current) return;
+    if (
+      viewingBlocksForDistrict ||
+      viewingGPsForBlock ||
+      viewingGPComplaints ||
+      !districts.length ||
+      !allComplaintsData.length
+    ) {
+      return;
+    }
+
+    const preferredDistrict = districts.find((district) => district.id === selectedDistrictId) || districts[0];
+    if (!preferredDistrict) return;
+
+    const preferredBlock = blocks.find((block) => block.district_id === preferredDistrict.id);
+    if (!preferredBlock) return;
+
+    initialHierarchyInitializedRef.current = true;
+    setSelectedDistrictForBlocks(preferredDistrict);
+    setSelectedBlockForGPs(preferredBlock);
+    setSelectedDistrictForHierarchy(preferredDistrict);
+    setSelectedBlockForHierarchy(preferredBlock);
+    setSelectedBlockId(preferredBlock.id);
+    setSelectedLocation(preferredBlock.name);
+    setSelectedLocationId(preferredBlock.id);
+    setViewingGPsForBlock(true);
+    fetchGPsSummaryData(preferredBlock);
+  }, [allComplaintsData.length, blocks, districts, fetchGPsSummaryData, selectedDistrictId, viewingBlocksForDistrict, viewingGPComplaints, viewingGPsForBlock]);
+
   return (
-    <div>
+    <div style={{ width: '100%', maxWidth: '100%', overflow: 'hidden', boxSizing: 'border-box', padding: '0 16px 24px', minWidth: 0 }}>
 
 
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
-        padding: '24px',
-        marginLeft: '16px',
-        marginRight: '16px',
+        padding: '24px 16px',
         marginTop: '6px',
         borderRadius: '8px',
-        border: '1px solid lightgray'
+        border: '1px solid lightgray',
+        width: '100%',
+        boxSizing: 'border-box',
+        overflowX: 'hidden',
+        minWidth: 0
       }}>
         {/* Overview Header */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '24px'
+          marginBottom: '24px',
+          flexWrap: 'wrap',
+          gap: '12px'
         }}>
           <div style={{
             display: 'flex',
@@ -2400,7 +2440,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               backgroundColor: 'white',
               cursor: 'pointer',
               position: 'relative',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              maxWidth: '100%'
             }}
           >
             <Calendar style={{ width: '16px', height: '16px' }} />
@@ -2421,8 +2462,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
                   zIndex: 1000,
                   marginTop: '8px',
-                  width: '600px',
-                  maxWidth: '90vw',
+                  width: 'min(600px, calc(100vw - 32px))',
+                  maxWidth: 'calc(100vw - 32px)',
                   display: 'flex',
                   overflow: 'hidden'
                 }}
@@ -2644,17 +2685,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         {/* Metrics Cards */}
         <div style={{
           display: 'flex',
-          gap: '48px',
+          gap: '16px',
           width: '100%',
           justifyContent: 'flex-start',
-          flexWrap: 'nowrap'
+          flexWrap: 'wrap',
+          overflowX: 'hidden',
+          minWidth: 0
         }}>
           {complaintMetrics.map((item, index) => (
             <div
               key={`${item.title}-${index}`}
               style={{
-                flex: '0 1 17%',
+                flex: '1 1 min(220px, 100%)',
                 maxWidth: '250px',
+                minWidth: 0,
                 backgroundColor: 'white',
                 padding: '18px',
                 borderRadius: '8px',
@@ -2749,7 +2793,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         marginRight: '16px',
         marginTop: '16px',
         borderRadius: '8px',
-        border: '1px solid lightgray'
+        border: '1px solid lightgray',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflowX: 'hidden'
       }}>
         {/* Table Header */}
         <div style={{
@@ -2801,8 +2848,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             <button
               onClick={() => {
                 setSelectedGPForComplaints(null);
+                setSelectedGPId(null);
                 setViewingGPComplaints(false);
                 setViewingGPsForBlock(true);
+                setSelectedLocation(selectedBlockForGPs?.name || selectedLocation);
+                setSelectedLocationId(selectedBlockForGPs?.id || selectedLocationId);
                 // Update breadcrumb - back to GPs list level
                 setActiveScope('Blocks');
               }}
@@ -2827,6 +2877,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             <button
               onClick={() => {
                 setViewingGPsForBlock(false);
+                setSelectedGPId(null);
                 setSelectedBlockForGPs(null);
                 setGpsSummaryData([]);
                 setViewingBlocksForDistrict(true);
@@ -2887,16 +2938,21 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         </div>
 
         {/* District Table or GP Complaints Table */}
-        <div style={{
+        <div className="table-responsive complaints-table-wrapper" style={{
           overflowX: 'auto',
-          maxHeight: '400px',
+          maxHeight: 'min(400px, calc(100vh - 320px))',
           overflowY: 'auto',
           border: '1px solid #e5e7eb',
-          borderRadius: '8px'
+          borderRadius: '8px',
+          width: '100%',
+          minWidth: 0,
+          boxSizing: 'border-box',
+          maxWidth: '100%'
         }}>
-          <table style={{
+          <table className="complaints-table" style={{
             width: '100%',
-            borderCollapse: 'collapse'
+            borderCollapse: 'collapse',
+            tableLayout: 'fixed'
           }}>
             <thead style={{
               position: 'sticky',
@@ -3409,7 +3465,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         marginRight: '16px',
         marginTop: '16px',
         borderRadius: '8px',
-        border: '1px solid lightgray'
+        border: '1px solid lightgray',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
+        overflowX: 'hidden'
       }}>
         {/* Table Header */}
         <div style={{

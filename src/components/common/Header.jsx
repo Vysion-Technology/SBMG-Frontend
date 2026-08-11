@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, LayoutDashboard, Loader2, LogOut, Menu, Search, User, UserRound } from 'lucide-react';
+import { Bell, ChevronDown, Loader2, LogOut, Menu, Search, User } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -8,1524 +8,382 @@ import { useLocation } from '../../context/LocationContext';
 import { useVDOLocation } from '../../context/VDOLocationContext';
 import apiClient from '../../services/api';
 import { ROLES } from '../../utils/roleConfig';
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 import Profile from '../dashboards/common/Profile';
 
-const buildSubtitle = (typeLabel, meta) => {
-  if (typeLabel === 'District') {
-    return 'District';
-  }
-  if (typeLabel === 'Block') {
-    const district = meta?.districtName ? `District: ${meta.districtName}` : null;
-    return district ? `Block · ${district}` : 'Block';
-  }
-  if (typeLabel === 'Gram Panchayat') {
-    const parts = [];
-    if (meta?.blockName) {
-      parts.push(`Block: ${meta.blockName}`);
-    }
-    if (meta?.districtName) {
-      parts.push(`District: ${meta.districtName}`);
-    }
-    return parts.length > 0 ? `Gram Panchayat · ${parts.join(' · ')}` : 'Gram Panchayat';
-  }
-  return typeLabel;
-};
-
-
-const IndiaFlag = ({ size = 20 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 20 20"
-    style={{ borderRadius: "50%", display: "block" }}
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    {/* Saffron */}
-    <rect width="20" height="6.66" y="0" fill="#FF9933" />
-    {/* White */}
-    <rect width="20" height="6.66" y="6.66" fill="#FFFFFF" />
-    {/* Green */}
-    <rect width="20" height="6.68" y="13.32" fill="#138808" />
-
-    {/* Ashoka Chakra (Blue wheel) */}
-    <circle cx="10" cy="10" r="2.8" fill="none" stroke="#000080" strokeWidth="0.5" />
-    <circle cx="10" cy="10" r="0.5" fill="#000080" />
-
-    {/* 24 spokes */}
-    {Array.from({ length: 24 }).map((_, i) => {
-      const angle = (i * 360) / 24;
-      const rad = (angle * Math.PI) / 180;
-      const x1 = 10 + 0.5 * Math.cos(rad);
-      const y1 = 10 + 0.5 * Math.sin(rad);
-      const x2 = 10 + 2.8 * Math.cos(rad);
-      const y2 = 10 + 2.8 * Math.sin(rad);
-      return (
-        <line
-          key={i}
-          x1={x1} y1={y1}
-          x2={x2} y2={y2}
-          stroke="#000080"
-          strokeWidth="0.4"
-        />
-      );
-    })}
-  </svg>
-);
-
-const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, pageTitle = 'dashboard', isMobile = false }) => {
+const Header = ({ onMenuClick = () => {}, pageTitle = 'Dashboard' }) => {
   const navigate = useNavigate();
-  const { role, logout } = useAuth();
-  const isCEO = role === ROLES.CEO;
+  const { user, logout, role } = useAuth();
+  const bdoCtx = useBDOLocation() || {};
+  const ceoCtx = useCEOLocation() || {};
+  const vdoCtx = useVDOLocation() || {};
+  const genericLoc = useLocation() || {};
   const isBDO = role === ROLES.BDO;
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const userDropdownRef = useRef(null);
-
-  // Try all contexts - one will be available based on which dashboard we're in
-  const locationContextSMD = useLocation();
-  const locationContextCEO = useCEOLocation();
-  const locationContextBDO = useBDOLocation();
-  const locationContextVDO = useVDOLocation();
-
-  // Use whichever context is available
-  const locationContext = locationContextCEO || locationContextBDO || locationContextVDO || locationContextSMD || {
-    updateLocationSelection: () => { },
-    setActiveScope: () => { },
-    setDropdownLevel: () => { },
-    setSelectedDistrictForHierarchy: () => { },
-    setSelectedBlockForHierarchy: () => { }
-  };
+  const isCEO = role === ROLES.CEO;
+  const loc = isBDO ? bdoCtx : (isCEO ? ceoCtx : genericLoc);
 
   const {
+    activeScope = 'State',
+    selectedLocation = 'Rajasthan',
+    selectedDistrictId,
+    selectedBlockId,
+    selectedGPId,
+    selectedDistrictForHierarchy,
+    selectedBlockForHierarchy,
     updateLocationSelection,
-    setActiveScope,
     setDropdownLevel,
     setSelectedDistrictForHierarchy,
     setSelectedBlockForHierarchy,
-    activeScope,
-    selectedLocation,
-    selectedDistrictForHierarchy,
-    selectedBlockForHierarchy,
-    openBreadcrumbDropdown,
-    setOpenBreadcrumbDropdown,
-    breadcrumbDistricts,
+    setSelectedGPId,
+    setSelectedGPForHierarchy,
+    breadcrumbDistricts = [],
+    breadcrumbBlocks = [],
+    breadcrumbGps = [],
     setBreadcrumbDistricts,
-    breadcrumbBlocks,
     setBreadcrumbBlocks,
-    breadcrumbGps,
     setBreadcrumbGps,
-    loadingBreadcrumb,
     setLoadingBreadcrumb,
-    ceoDistrictName,
     bdoDistrictName,
     bdoBlockName,
-    vdoGPName
-  } = locationContext || {};
+    selectedGPForHierarchy
+  } = loc;
 
-  const gpName = activeScope === 'GPs' ? selectedLocation : null;
+  const ceoDistrictName = ceoCtx?.ceoDistrictName;
+  const vdoGPName = vdoCtx?.vdoGPName;
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const districtLabel = selectedDistrictForHierarchy?.name || ceoDistrictName || bdoDistrictName || (activeScope === 'Districts' && selectedLocation ? selectedLocation : 'All');
+  const gpLabel = vdoGPName || selectedGPForHierarchy?.name || (activeScope === 'GPs' && selectedLocation ? selectedLocation : 'All');
 
-  const [showProfile, setShowProfile] = useState(false)
+  const hasDistrictSelection = Boolean(selectedDistrictForHierarchy?.id || selectedDistrictId);
+  const hasBlockSelection = Boolean(selectedBlockForHierarchy?.id || selectedBlockId);
 
-  // Language selection
-  const { i18n, t } = useTranslation();
+  const districtDisplayLabel = districtLabel && districtLabel !== 'All' && districtLabel !== 'Select District' ? districtLabel : 'All';
+  const blockDisplayLabel = selectedBlockForHierarchy?.name || bdoBlockName || (hasDistrictSelection ? 'Select' : 'All');
+  const gpDisplayLabel = selectedGPId || selectedGPForHierarchy?.id ? gpLabel : (isBDO ? 'Select GP' : (hasBlockSelection ? 'Select' : 'All'));
 
+  const { t } = useTranslation();
 
-  const changeLanguage = (lang) => {
-    i18n.changeLanguage(lang);
-    localStorage.setItem("language", lang);
-  };
-
-  const searchTimeoutRef = useRef(null);
-  const activeRequestRef = useRef(0);
-  const inputRef = useRef(null);
-  const containerRef = useRef(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [breadcrumbMenu, setBreadcrumbMenu] = useState({ type: null, items: [], loading: false });
+  const userDropdownRef = useRef(null);
   const breadcrumbDropdownRef = useRef(null);
-  const suggestionCache = useRef(new Map());
-  const userInteractedRef = useRef(false);
-  const districtCache = useRef(new Map());
-  const blockCache = useRef(new Map());
-
-  const clearSearchTimeout = () => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-      searchTimeoutRef.current = null;
-    }
-  };
-
-  const getDistrictName = async (id) => {
-    if (!id) return '';
-    if (districtCache.current.has(id)) return districtCache.current.get(id);
-    try {
-      const response = await apiClient.get('/geography/districts', { params: { skip: 0, limit: 100 } });
-      response.data.forEach(d => districtCache.current.set(d.id, d.name || 'Unnamed'));
-      return districtCache.current.get(id) || 'Unknown District';
-    } catch (error) {
-      console.error('Failed to fetch districts:', error);
-      return 'Unknown District';
-    }
-  };
-
-  const getBlockName = async (id) => {
-    if (!id) return '';
-    if (blockCache.current.has(id)) return blockCache.current.get(id);
-    try {
-      const response = await apiClient.get('/geography/blocks', { params: { skip: 0, limit: 100 } });
-      response.data.forEach(b => blockCache.current.set(b.id, b.name || 'Unnamed'));
-      return blockCache.current.get(id) || 'Unknown Block';
-    } catch (error) {
-      console.error('Failed to fetch blocks:', error);
-      return 'Unknown Block';
-    }
-  };
-
-  const fetchGeographySuggestions = useCallback(async (term) => {
-    const trimmedTerm = term.trim();
-    if (!trimmedTerm) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setSearchError(null);
-      setHighlightedIndex(-1);
-      userInteractedRef.current = false;
-      return;
-    }
-
-    const cacheKey = trimmedTerm.toLowerCase();
-    if (suggestionCache.current.has(cacheKey)) {
-      const cached = suggestionCache.current.get(cacheKey);
-      setSuggestions(cached.suggestions);
-      setShowSuggestions(true);
-      setSearchError(cached.error);
-      if (!userInteractedRef.current) {
-        setHighlightedIndex(cached.suggestions.length > 0 ? 0 : -1);
-      }
-      setIsSearching(false);
-      return;
-    }
-
-    const requestId = Date.now();
-    activeRequestRef.current = requestId;
-
-    setIsSearching(true);
-    setSearchError(null);
-
-    const commonParams = {
-      params: {
-        skip: 0,
-        limit: 100, // Backend limit is 100
-        search: trimmedTerm
-      }
-    };
-
-    try {
-      // CEO only searches blocks and GPs, not districts
-      // BDO only searches GPs, not districts or blocks
-      const searchPromises = isBDO
-        ? [
-          Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for BDO
-          Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip blocks for BDO
-          apiClient.get('/geography/grampanchayats', commonParams)
-        ]
-        : isCEO
-          ? [
-            Promise.resolve({ status: 'fulfilled', value: { data: [] } }), // Skip districts for CEO
-            apiClient.get('/geography/blocks', commonParams),
-            apiClient.get('/geography/grampanchayats', commonParams)
-          ]
-          : [
-            apiClient.get('/geography/districts', commonParams),
-            apiClient.get('/geography/blocks', commonParams),
-            apiClient.get('/geography/grampanchayats', commonParams)
-          ];
-
-      const [districtResult, blockResult, gpResult] = await Promise.allSettled(searchPromises);
-
-      if (activeRequestRef.current !== requestId) {
-        return;
-      }
-
-      const nextSuggestions = [];
-
-      // Only process district results for non-CEO and non-BDO users
-      if (!isCEO && !isBDO && districtResult.status === 'fulfilled' && Array.isArray(districtResult.value?.data)) {
-        districtResult.value.data.forEach((district) => {
-          if (!district) return;
-          const name = district.name || district.district_name || district.districtName || 'Unnamed District';
-          nextSuggestions.push({
-            id: district.id ?? district.district_id ?? name,
-            name,
-            type: 'district',
-            typeLabel: 'District',
-            raw: district,
-            meta: {
-              districtId: district.id ?? district.district_id ?? null,
-              districtName: name
-            },
-            subtitle: buildSubtitle('District', { districtName: name })
-          });
-        });
-      } else if (districtResult.status === 'rejected') {
-        console.error('Failed to fetch districts for search:', districtResult.reason);
-      }
-
-      // Only process block results for non-BDO users
-      if (!isBDO && blockResult.status === 'fulfilled' && Array.isArray(blockResult.value?.data)) {
-        for (const block of blockResult.value.data) {
-          if (!block) continue;
-          const name = block.name || block.block_name || block.blockName || 'Unnamed Block';
-          const districtId = block.district_id ?? block.district?.id ?? null;
-          const districtName = await getDistrictName(districtId);
-          nextSuggestions.push({
-            id: block.id ?? block.block_id ?? name,
-            name,
-            type: 'block',
-            typeLabel: 'Block',
-            raw: block,
-            meta: {
-              districtId,
-              districtName: districtName || undefined
-            },
-            subtitle: buildSubtitle('Block', {
-              districtName: districtName || undefined
-            })
-          });
-        }
-      } else if (blockResult.status === 'rejected') {
-        console.error('Failed to fetch blocks for search:', blockResult.reason);
-      }
-
-      if (gpResult.status === 'fulfilled' && Array.isArray(gpResult.value?.data)) {
-        for (const gp of gpResult.value.data) {
-          if (!gp) continue;
-          const name = gp.name || gp.gp_name || gp.gpName || 'Unnamed GP';
-          const districtId = gp.district_id ?? gp.district?.id ?? null;
-          const blockId = gp.block_id ?? gp.block?.id ?? null;
-          const districtName = await getDistrictName(districtId);
-          const blockName = await getBlockName(blockId);
-          nextSuggestions.push({
-            id: gp.id ?? gp.gp_id ?? name,
-            name,
-            type: 'gp',
-            typeLabel: 'Gram Panchayat',
-            raw: gp,
-            meta: {
-              blockId,
-              blockName: blockName || undefined,
-              districtId,
-              districtName: districtName || undefined
-            },
-            subtitle: buildSubtitle('Gram Panchayat', {
-              blockName: blockName || undefined,
-              districtName: districtName || undefined
-            })
-          });
-        }
-      } else if (gpResult.status === 'rejected') {
-        console.error('Failed to fetch gram panchayats for search:', gpResult.reason);
-      }
-
-      const filteredSuggestions = nextSuggestions.filter((suggestion) => {
-        return suggestion?.name?.toLowerCase().includes(trimmedTerm.toLowerCase());
-      });
-
-      filteredSuggestions.sort((a, b) => {
-        if (a.name.toLowerCase() === b.name.toLowerCase()) {
-          return a.typeLabel.localeCompare(b.typeLabel);
-        }
-        return a.name.localeCompare(b.name);
-      });
-
-      const errorMessage = filteredSuggestions.length === 0 ? 'No matching locations found.' : null;
-
-      suggestionCache.current.set(cacheKey, {
-        suggestions: filteredSuggestions,
-        error: errorMessage
-      });
-
-      setSuggestions(filteredSuggestions);
-      setShowSuggestions(true);
-      setSearchError(errorMessage);
-      if (!userInteractedRef.current) {
-        setHighlightedIndex(filteredSuggestions.length > 0 ? 0 : -1);
-      }
-    } catch (error) {
-      if (activeRequestRef.current !== requestId) {
-        return;
-      }
-      console.error('Unexpected error during geography search:', error);
-      const fallbackError = 'Unable to search locations right now.';
-      suggestionCache.current.set(cacheKey, {
-        suggestions: [],
-        error: fallbackError
-      });
-      setSearchError(fallbackError);
-      setSuggestions([]);
-      setShowSuggestions(true);
-      if (!userInteractedRef.current) {
-        setHighlightedIndex(-1);
-      }
-    } finally {
-      if (activeRequestRef.current === requestId) {
-        setIsSearching(false);
-      }
-    }
-  }, []);
-
-  // Fetch districts for breadcrumb
-  const fetchBreadcrumbDistricts = useCallback(async () => {
-    setLoadingBreadcrumb(true);
-    try {
-      const response = await apiClient.get('/geography/districts', {
-        params: { skip: 0, limit: 100 }
-      });
-      if (Array.isArray(response.data)) {
-        const districts = response.data.map(d => ({
-          id: d.id ?? d.district_id,
-          name: d.name || d.district_name || 'Unnamed'
-        }));
-        setBreadcrumbDistricts(districts.sort((a, b) => a.name.localeCompare(b.name)));
-      }
-    } catch (error) {
-      console.error('Failed to fetch districts for breadcrumb:', error);
-      setBreadcrumbDistricts([]);
-    } finally {
-      setLoadingBreadcrumb(false);
-    }
-  }, []);
-
-  // Fetch blocks for breadcrumb
-  const fetchBreadcrumbBlocks = useCallback(async (districtId) => {
-    setLoadingBreadcrumb(true);
-    try {
-      const response = await apiClient.get('/geography/blocks', {
-        params: { skip: 0, limit: 100, district_id: districtId }
-      });
-      if (Array.isArray(response.data)) {
-        const blocks = response.data.map(b => ({
-          id: b.id ?? b.block_id,
-          name: b.name || b.block_name || 'Unnamed',
-          district_id: b.district_id ?? districtId
-        }));
-        setBreadcrumbBlocks(blocks.sort((a, b) => a.name.localeCompare(b.name)));
-      }
-    } catch (error) {
-      console.error('Failed to fetch blocks for breadcrumb:', error);
-      setBreadcrumbBlocks([]);
-    } finally {
-      setLoadingBreadcrumb(false);
-    }
-  }, []);
-
-  // Fetch GPs for breadcrumb
-  const fetchBreadcrumbGps = useCallback(async (districtId, blockId) => {
-    setLoadingBreadcrumb(true);
-    try {
-      const params = { skip: 0, limit: 100 };
-      if (blockId) params.block_id = blockId;
-      if (districtId && !blockId) params.district_id = districtId;
-
-      const response = await apiClient.get('/geography/grampanchayats', { params });
-      if (Array.isArray(response.data)) {
-        const gps = response.data.map(g => ({
-          id: g.id ?? g.gp_id,
-          name: g.name || g.gp_name || 'Unnamed',
-          block_id: g.block_id ?? blockId,
-          district_id: g.district_id ?? districtId
-        }));
-        setBreadcrumbGps(gps.sort((a, b) => a.name.localeCompare(b.name)));
-      }
-    } catch (error) {
-      console.error('Failed to fetch GPs for breadcrumb:', error);
-      setBreadcrumbGps([]);
-    } finally {
-      setLoadingBreadcrumb(false);
-    }
-  }, []);
 
   useEffect(() => {
-    clearSearchTimeout();
-
-    if (!searchTerm.trim()) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      setSearchError(null);
-      setHighlightedIndex(-1);
-      return () => { };
-    }
-
-    searchTimeoutRef.current = setTimeout(() => {
-      fetchGeographySuggestions(searchTerm);
-    }, 300);
-
-    return () => {
-      clearSearchTimeout();
-    };
-  }, [searchTerm, fetchGeographySuggestions]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (!showSuggestions) return;
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
-        setShowSuggestions(false);
-        setHighlightedIndex(-1);
+    const handler = (e) => {
+      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(e.target)) {
+        setShowUserDropdown(false);
+      }
+      if (breadcrumbMenu.type && breadcrumbDropdownRef.current && !breadcrumbDropdownRef.current.contains(e.target)) {
+        setBreadcrumbMenu({ type: null, items: [], loading: false });
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSuggestions]);
-
-  useEffect(() => () => clearSearchTimeout(), []);
-
-  const resetSearchState = useCallback(() => {
-    setSearchTerm('');
-    setSuggestions([]);
-    setShowSuggestions(false);
-    setSearchError(null);
-    setHighlightedIndex(-1);
-    userInteractedRef.current = false;
-  }, []);
-
-  const ensureDistrictObject = (suggestion) => {
-    const districtId = suggestion.meta?.districtId ?? suggestion.raw?.district_id ?? suggestion.raw?.districtId ?? null;
-    const districtName = suggestion.meta?.districtName || suggestion.raw?.district?.name || suggestion.raw?.district_name || suggestion.raw?.districtName || suggestion.name;
-    return districtId
-      ? { ...suggestion.raw?.district, id: districtId, name: districtName }
-      : suggestion.raw?.district ?? (districtName ? { name: districtName } : null);
-  };
-
-  const ensureBlockObject = (suggestion) => {
-    const blockId = suggestion.meta?.blockId ?? suggestion.raw?.block_id ?? suggestion.raw?.blockId ?? suggestion.id;
-    const blockName = suggestion.meta?.blockName || suggestion.raw?.block?.name || suggestion.raw?.name || suggestion.name;
-    const districtId = suggestion.meta?.districtId ?? suggestion.raw?.district_id ?? suggestion.raw?.districtId ?? suggestion.raw?.block?.district_id ?? null;
-    return {
-      ...suggestion.raw,
-      id: blockId,
-      name: blockName,
-      district_id: districtId
-    };
-  };
-
-  const handleSuggestionSelect = useCallback((suggestion) => {
-    if (!suggestion) {
-      return;
-    }
-
-    resetSearchState();
-    userInteractedRef.current = false;
-
-    if (inputRef.current) {
-      inputRef.current.blur();
-    }
-
-    const name = suggestion.name;
-
-    if (suggestion.type === 'district') {
-      const district = suggestion.raw || { id: suggestion.id, name };
-      const districtId = district.id ?? suggestion.meta?.districtId ?? suggestion.id;
-      setActiveScope('Districts');
-      setDropdownLevel('blocks');
-      setSelectedDistrictForHierarchy({ ...district, id: districtId, name });
-      setSelectedBlockForHierarchy(null);
-      setSelectedGP(null);
-      updateLocationSelection('Districts', name, districtId, districtId, null, null, 'global_search');
-    } else if (suggestion.type === 'block') {
-      const district = ensureDistrictObject(suggestion);
-      const block = ensureBlockObject(suggestion);
-      const districtId = district?.id ?? suggestion.meta?.districtId ?? null;
-      const blockId = block?.id ?? suggestion.id;
-
-      setActiveScope('Blocks');
-      setDropdownLevel('gps');
-      setSelectedDistrictForHierarchy(district || null);
-      setSelectedBlockForHierarchy(block || null);
-      setSelectedGP(null);
-      updateLocationSelection('Blocks', block.name || name, blockId, districtId, blockId, null, 'global_search');
-    } else if (suggestion.type === 'gp') {
-      const district = ensureDistrictObject(suggestion);
-      const block = ensureBlockObject({
-        ...suggestion,
-        meta: {
-          ...suggestion.meta,
-          districtId: suggestion.meta?.districtId ?? district?.id ?? null
-        }
-      });
-      const gp = suggestion.raw || { id: suggestion.id, name };
-      const districtId = district?.id ?? suggestion.meta?.districtId ?? null;
-      const blockId = block?.id ?? suggestion.meta?.blockId ?? null;
-      const gpId = gp.id ?? suggestion.id;
-
-      setActiveScope('GPs');
-      setDropdownLevel('gps');
-      setSelectedDistrictForHierarchy(district || null);
-      setSelectedBlockForHierarchy(block || null);
-      updateLocationSelection('GPs', gp.name || name, gpId, districtId, blockId, gpId, 'global_search');
-    }
-
-    try {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (error) {
-      console.error('Failed to scroll after global search selection:', error);
-    }
-  }, [ensureDistrictObject, ensureBlockObject, resetSearchState, setActiveScope, setDropdownLevel, setSelectedDistrictForHierarchy, setSelectedBlockForHierarchy, updateLocationSelection]);
-
-  const handleInputChange = (event) => {
-    setSearchTerm(event.target.value);
-    setShowSuggestions(true);
-    userInteractedRef.current = false;
-  };
-
-  const handleInputFocus = () => {
-    if (suggestions.length > 0) {
-      setShowSuggestions(true);
-    }
-  };
-
-  const handleKeyDown = (event) => {
-    if (!showSuggestions) {
-      return;
-    }
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      if (suggestions.length === 0) return;
-      userInteractedRef.current = true;
-      setHighlightedIndex((prev) => {
-        const next = prev + 1;
-        return next >= suggestions.length ? 0 : next;
-      });
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      if (suggestions.length === 0) return;
-      userInteractedRef.current = true;
-      setHighlightedIndex((prev) => {
-        const next = prev - 1;
-        return next < 0 ? suggestions.length - 1 : next;
-      });
-    } else if (event.key === 'Enter') {
-      if (suggestions.length === 0) return;
-      event.preventDefault();
-      userInteractedRef.current = true;
-      const selected = highlightedIndex >= 0 ? suggestions[highlightedIndex] : suggestions[0];
-      handleSuggestionSelect(selected);
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      resetSearchState();
-    }
-  };
-
-  const handleClearSearch = () => {
-    resetSearchState();
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserDropdown, breadcrumbMenu.type]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const toggleUserDropdown = () => {
-    setShowUserDropdown(!showUserDropdown);
-  };
-
-  // Breadcrumb dropdown handlers
-  const handleDistrictDropdownOpen = () => {
-    if (!isBDO) {
-      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'district' ? null : 'district');
-      if (openBreadcrumbDropdown !== 'district') {
-        fetchBreadcrumbDistricts();
-      }
-    }
-  };
-
-  const handleBlockDropdownOpen = () => {
-    if (!isCEO && selectedDistrictForHierarchy) {
-      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'block' ? null : 'block');
-      if (openBreadcrumbDropdown !== 'block') {
-        fetchBreadcrumbBlocks(selectedDistrictForHierarchy.id);
-      }
-    }
-  };
-
-  const handleGpDropdownOpen = () => {
-    if (selectedDistrictForHierarchy || selectedBlockForHierarchy) {
-      setOpenBreadcrumbDropdown(openBreadcrumbDropdown === 'gp' ? null : 'gp');
-      if (openBreadcrumbDropdown !== 'gp') {
-        fetchBreadcrumbGps(selectedDistrictForHierarchy?.id, selectedBlockForHierarchy?.id);
-      }
-    }
-  };
-
-  const handleDistrictSelect = (district) => {
-    setSelectedDistrictForHierarchy(district);
-    setSelectedBlockForHierarchy(null);
-    setActiveScope('Districts');
-    setDropdownLevel('blocks');
-    updateLocationSelection('Districts', '', district.id, district.id, null, null, 'breadcrumb');
-    // Fetch blocks for the selected district
-    fetchBreadcrumbBlocks(district.id);
-    setOpenBreadcrumbDropdown(null);
-  };
-
-  const handleBlockSelect = (block) => {
-    setSelectedBlockForHierarchy(block);
-    setActiveScope('Blocks');
-    setDropdownLevel('gps');
-    updateLocationSelection('Blocks', '', block.id, block.district_id, block.id, null, 'breadcrumb');
-    setOpenBreadcrumbDropdown(null);
-  };
-
-  const handleGpSelect = (gp) => {
-    setActiveScope('GPs');
-    setDropdownLevel('gps');
-    updateLocationSelection('GPs', gp.name, gp.id, gp.district_id, gp.block_id, gp.id, 'breadcrumb');
-    setOpenBreadcrumbDropdown(null);
-  };
-
   const handleRajasthanClick = () => {
-    // Reset all hierarchical selections
-    setSelectedDistrictForHierarchy(null);
-    setSelectedBlockForHierarchy(null);
-
-    // Reset scope back to State (initial state) to match fresh dashboard load
-    setActiveScope('State');
-    setDropdownLevel('districts');
-
-    // Clear all location selections to force a fresh start
-    // This will reset district, block, and GP IDs to null, showing state-level data
-    updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'breadcrumb');
-    setOpenBreadcrumbDropdown(null);
+    if (updateLocationSelection) {
+      updateLocationSelection('State', 'Rajasthan', null, null, null, null, 'breadcrumb');
+      setDropdownLevel?.('districts');
+      setSelectedDistrictForHierarchy?.(null);
+      setSelectedBlockForHierarchy?.(null);
+      setSelectedGPId?.(null);
+      setSelectedGPForHierarchy?.(null);
+    }
   };
 
-  // Close breadcrumb dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openBreadcrumbDropdown && breadcrumbDropdownRef.current && !breadcrumbDropdownRef.current.contains(event.target)) {
-        setOpenBreadcrumbDropdown(null);
+  const resetGpBreadcrumb = useCallback(() => {
+    setSelectedGPId?.(null);
+    setSelectedGPForHierarchy?.(null);
+    setBreadcrumbGps?.([]);
+    setBreadcrumbMenu({ type: null, items: [], loading: false });
+  }, [setSelectedGPId, setSelectedGPForHierarchy, setBreadcrumbGps]);
+
+  const handleBlockLabelClick = () => {
+    if (isBDO) return;
+    resetGpBreadcrumb();
+    openBreadcrumbMenu('block');
+  };
+
+  const fetchBreadcrumbDistricts = useCallback(async () => {
+    try {
+      setLoadingBreadcrumb?.(true);
+      const response = await apiClient.get('/geography/districts?skip=0&limit=100');
+      const payload = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.districts || []);
+      setBreadcrumbDistricts?.(payload);
+      return payload;
+    } catch (error) {
+      console.error('Error fetching breadcrumb districts:', error);
+      setBreadcrumbDistricts?.([]);
+      return [];
+    } finally {
+      setLoadingBreadcrumb?.(false);
+    }
+  }, [setBreadcrumbDistricts, setLoadingBreadcrumb]);
+
+  const fetchBreadcrumbBlocks = useCallback(async (districtId) => {
+    if (!districtId) {
+      setBreadcrumbBlocks?.([]);
+      return [];
+    }
+
+    try {
+      setLoadingBreadcrumb?.(true);
+      const response = await apiClient.get('/geography/blocks', {
+        params: { district_id: districtId, skip: 0, limit: 100 }
+      });
+      const payload = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.blocks || []);
+      setBreadcrumbBlocks?.(payload);
+      return payload;
+    } catch (error) {
+      console.error('Error fetching breadcrumb blocks:', error);
+      setBreadcrumbBlocks?.([]);
+      return [];
+    } finally {
+      setLoadingBreadcrumb?.(false);
+    }
+  }, [setBreadcrumbBlocks, setLoadingBreadcrumb]);
+
+  const fetchBreadcrumbGps = useCallback(async (districtId, blockId) => {
+    if (!districtId || !blockId) {
+      setBreadcrumbGps?.([]);
+      return [];
+    }
+
+    try {
+      setLoadingBreadcrumb?.(true);
+      const response = await apiClient.get('/geography/grampanchayats', {
+        params: { district_id: districtId, block_id: blockId, skip: 0, limit: 100 }
+      });
+      const payload = Array.isArray(response.data) ? response.data : (response.data?.data || response.data?.grampanchayats || []);
+      setBreadcrumbGps?.(payload);
+      return payload;
+    } catch (error) {
+      console.error('Error fetching breadcrumb GPs:', error);
+      setBreadcrumbGps?.([]);
+      return [];
+    } finally {
+      setLoadingBreadcrumb?.(false);
+    }
+  }, [setBreadcrumbGps, setLoadingBreadcrumb]);
+
+  const openBreadcrumbMenu = useCallback(async (type) => {
+    if (breadcrumbMenu.type === type) {
+      setBreadcrumbMenu({ type: null, items: [], loading: false });
+      return;
+    }
+
+    setBreadcrumbMenu({ type, items: [], loading: true });
+
+    try {
+      if (type === 'district') {
+        const districts = breadcrumbDistricts.length > 0 ? breadcrumbDistricts : await fetchBreadcrumbDistricts();
+        setBreadcrumbMenu({ type, items: districts, loading: false });
+      } else if (type === 'block') {
+        const districtId = selectedDistrictForHierarchy?.id || selectedDistrictId || null;
+        if (!districtId) {
+          setBreadcrumbMenu({ type: null, items: [], loading: false });
+          return;
+        }
+        const blocks = breadcrumbBlocks.length > 0 ? breadcrumbBlocks : await fetchBreadcrumbBlocks(districtId);
+        setBreadcrumbMenu({ type, items: blocks, loading: false });
+      } else if (type === 'gp') {
+        const districtId = selectedDistrictForHierarchy?.id || selectedDistrictId || null;
+        const blockId = selectedBlockForHierarchy?.id || selectedBlockId || null;
+        if (!districtId || !blockId) {
+          setBreadcrumbMenu({ type: null, items: [], loading: false });
+          return;
+        }
+        const gps = breadcrumbGps.length > 0 ? breadcrumbGps : await fetchBreadcrumbGps(districtId, blockId);
+        setBreadcrumbMenu({ type, items: gps, loading: false });
       }
-    };
+    } catch (error) {
+      console.error('Error opening breadcrumb menu:', error);
+      setBreadcrumbMenu({ type: null, items: [], loading: false });
+    }
+  }, [breadcrumbDistricts, breadcrumbBlocks, breadcrumbGps, fetchBreadcrumbDistricts, fetchBreadcrumbBlocks, fetchBreadcrumbGps, breadcrumbMenu.type, selectedDistrictForHierarchy, selectedDistrictId, selectedBlockForHierarchy, selectedBlockId]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [openBreadcrumbDropdown]);
+  const handleBreadcrumbSelect = useCallback((type, item) => {
+    if (!updateLocationSelection) return;
 
-  // Close user dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showUserDropdown && userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
-        setShowUserDropdown(false);
-      }
-    };
+    if (type === 'district') {
+      if (isBDO) return;
+      setSelectedDistrictForHierarchy?.(item);
+      setSelectedBlockForHierarchy?.(null);
+      setSelectedGPId?.(null);
+      setSelectedGPForHierarchy?.(null);
+      setBreadcrumbBlocks?.([]);
+      setBreadcrumbGps?.([]);
+      setDropdownLevel?.('districts');
+      updateLocationSelection('Districts', item.name, item.id, item.id, null, null, 'breadcrumb');
+    } else if (type === 'block') {
+      if (isBDO) return;
+      const districtId = selectedDistrictForHierarchy?.id || selectedDistrictId || null;
+      setSelectedBlockForHierarchy?.(item);
+      setSelectedGPId?.(null);
+      setSelectedGPForHierarchy?.(null);
+      setBreadcrumbGps?.([]);
+      setDropdownLevel?.('blocks');
+      updateLocationSelection('Blocks', item.name, item.id, districtId, item.id, null, 'breadcrumb');
+    } else if (type === 'gp') {
+      const districtId = selectedDistrictForHierarchy?.id || selectedDistrictId || null;
+      const blockId = selectedBlockForHierarchy?.id || selectedBlockId || null;
+      setSelectedGPId?.(item.id);
+      setSelectedGPForHierarchy?.(item);
+      setDropdownLevel?.('gps');
+      updateLocationSelection('GPs', item.name, item.id, districtId || bdoDistrictId ? (districtId || bdoDistrictId) : null, blockId || bdoBlockId ? (blockId || bdoBlockId) : null, item.id, 'breadcrumb');
+    }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showUserDropdown]);
+    setBreadcrumbMenu({ type: null, items: [], loading: false });
+  }, [updateLocationSelection, setSelectedDistrictForHierarchy, setSelectedBlockForHierarchy, setSelectedGPId, setSelectedGPForHierarchy, setDropdownLevel, setBreadcrumbBlocks, setBreadcrumbGps, selectedDistrictForHierarchy, selectedDistrictId, selectedBlockForHierarchy, selectedBlockId, isBDO, bdoDistrictName, bdoBlockName]);
 
   return (
-    <header className="app-header"
-      style={{
-        width: '100%',
-
-        maxWidth: '100%',
-        minWidth: 0,
-        boxSizing: 'border-box',
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '6px 0px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 8,
-        position: 'sticky',
-        top: 0,
-        zIndex: 35,
-        paddingRight: '24px',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-      {/* Left side - Dashboard icon + title + breadcrumb */}
-      <div className="app-header-left" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: '1 1 auto', minWidth: 0 }}>
-        <button onClick={onMenuClick} style={{
-          padding: 8,
-          marginLeft: 8,
-          backgroundColor: 'transparent',
-          border: 'none',
-          borderRadius: 8,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0
-        }}>
-          {isMobile ? (
+    <header className="app-header" style={{ width: '100%', boxSizing: 'border-box', backgroundColor: 'white', borderBottom: '1px solid #e5e7eb', padding: '8px 16px', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <button onClick={onMenuClick} style={{ padding: 8, background: 'transparent', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
             <Menu style={{ width: 22, height: 22, color: '#6b7280' }} />
-          ) : (
-            // <LayoutDashboard style={{ width: 22, height: 22, color: '#6b7280' }} />
-            <Menu style={{ width: 22, height: 22, color: '#6b7280' }} />
-          )}
-        </button>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
-          <h1 style={{
-            fontSize: 20,
-            fontWeight: 600,
-            color: '#111827',
-            margin: 0,
-            lineHeight: 1.2
-          }}>
-            {pageTitle}
-          </h1>
-          <div className="breadcrumb-text" ref={breadcrumbDropdownRef} style={{
-            fontSize: 14,
-            color: '#6b7280',
-            fontWeight: 500,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            flexWrap: 'wrap'
-          }}>
-            {/* Rajasthan */}
-            <button
-              onClick={handleRajasthanClick}
-              style={{
-                border: 'none',
-                background: 'none',
-                color: '#6b7280',
-                cursor: 'pointer',
-                // padding: '2px 6px',
-                borderRadius: '4px',
-                fontSize: '14px',
-                fontWeight: 500,
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
-            >
-              Rajasthan
-            </button>
-
-            {/* District Dropdown */}
-            {!isBDO && (
-              <>
-                <span style={{ color: '#d1d5db' }}>{'/'}</span>
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={handleDistrictDropdownOpen}
-                    style={{
-                      border: 'none',
-                      background: openBreadcrumbDropdown === 'district' ? '#e5e7eb' : 'none',
-                      color: selectedDistrictForHierarchy?.name ? '#111827' : '#9ca3af',
-                      cursor: 'pointer',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      fontWeight: selectedDistrictForHierarchy?.name ? 600 : 500,
-                      transition: 'background-color 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'district' && (e.target.style.backgroundColor = '#f3f4f6')}
-                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'district' && (e.target.style.backgroundColor = 'transparent')}
-                  >
-                    {selectedDistrictForHierarchy?.name || 'All'}
-                    <ChevronDown style={{ width: 16, height: 16 }} />
-                  </button>
-
-                  {openBreadcrumbDropdown === 'district' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      backgroundColor: '#ffffff',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                      border: '1px solid #e5e7eb',
-                      zIndex: 1100,
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                      minWidth: '200px'
-                    }}>
-                      {loadingBreadcrumb ? (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
-                      ) : breadcrumbDistricts.length > 0 ? (
-                        breadcrumbDistricts.map((district) => (
-                          <button
-                            key={district.id}
-                            onClick={() => handleDistrictSelect(district)}
-                            style={{
-                              width: '100%',
-                              border: 'none',
-                              backgroundColor: selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : 'transparent',
-                              textAlign: 'left',
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#111827',
-                              fontWeight: selectedDistrictForHierarchy?.id === district.id ? 600 : 400,
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : '#f9fafb'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedDistrictForHierarchy?.id === district.id ? '#dcfce7' : 'transparent'}
-                          >
-                            {district.name}
-                          </button>
-                        ))
-                      ) : (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No districts found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Block Dropdown */}
-            {!isCEO && selectedDistrictForHierarchy && (
-              <>
-                <span style={{ color: '#d1d5db' }}>{'/'}</span>
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={handleBlockDropdownOpen}
-                    style={{
-                      border: 'none',
-                      background: openBreadcrumbDropdown === 'block' ? '#e5e7eb' : 'none',
-                      color: selectedBlockForHierarchy?.name ? '#111827' : '#9ca3af',
-                      cursor: 'pointer',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      fontWeight: selectedBlockForHierarchy?.name ? 600 : 500,
-                      transition: 'background-color 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'block' && (e.target.style.backgroundColor = '#f3f4f6')}
-                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'block' && (e.target.style.backgroundColor = 'transparent')}
-                  >
-                    {selectedBlockForHierarchy?.name || 'All'}
-                    <ChevronDown style={{ width: 16, height: 16 }} />
-                  </button>
-
-                  {openBreadcrumbDropdown === 'block' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      backgroundColor: '#ffffff',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                      border: '1px solid #e5e7eb',
-                      zIndex: 1100,
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                      minWidth: '200px'
-                    }}>
-                      {loadingBreadcrumb ? (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
-                      ) : breadcrumbBlocks.length > 0 ? (
-                        breadcrumbBlocks.map((block) => (
-                          <button
-                            key={block.id}
-                            onClick={() => handleBlockSelect(block)}
-                            style={{
-                              width: '100%',
-                              border: 'none',
-                              backgroundColor: selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : 'transparent',
-                              textAlign: 'left',
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#111827',
-                              fontWeight: selectedBlockForHierarchy?.id === block.id ? 600 : 400,
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : '#f9fafb'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = selectedBlockForHierarchy?.id === block.id ? '#dcfce7' : 'transparent'}
-                          >
-                            {block.name}
-                          </button>
-                        ))
-                      ) : (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No blocks found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* GP Dropdown */}
-            {selectedBlockForHierarchy && (
-              <>
-                <span style={{ color: '#d1d5db' }}>{'/'}</span>
-                <div style={{ position: 'relative' }}>
-                  <button
-                    onClick={handleGpDropdownOpen}
-                    style={{
-                      border: 'none',
-                      background: openBreadcrumbDropdown === 'gp' ? '#e5e7eb' : 'none',
-                      color: gpName ? '#111827' : '#9ca3af',
-                      cursor: 'pointer',
-                      padding: '2px 6px',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      fontWeight: gpName ? 600 : 500,
-                      transition: 'background-color 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                    onMouseEnter={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = '#f3f4f6')}
-                    onMouseLeave={(e) => openBreadcrumbDropdown !== 'gp' && (e.target.style.backgroundColor = 'transparent')}
-                  >
-                    {gpName || 'All'}
-                    <ChevronDown style={{ width: 16, height: 16 }} />
-                  </button>
-
-                  {openBreadcrumbDropdown === 'gp' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      backgroundColor: '#ffffff',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                      border: '1px solid #e5e7eb',
-                      zIndex: 1100,
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                      minWidth: '200px'
-                    }}>
-                      {loadingBreadcrumb ? (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>Loading...</div>
-                      ) : breadcrumbGps.length > 0 ? (
-                        breadcrumbGps.map((gp) => (
-                          <button
-                            key={gp.id}
-                            onClick={() => handleGpSelect(gp)}
-                            style={{
-                              width: '100%',
-                              border: 'none',
-                              backgroundColor: gpName === gp.name ? '#dcfce7' : 'transparent',
-                              textAlign: 'left',
-                              padding: '10px 16px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              color: '#111827',
-                              fontWeight: gpName === gp.name ? 600 : 400,
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.target.style.backgroundColor = gpName === gp.name ? '#dcfce7' : '#f9fafb'}
-                            onMouseLeave={(e) => e.target.style.backgroundColor = gpName === gp.name ? '#dcfce7' : 'transparent'}
-                          >
-                            {gp.name}
-                          </button>
-                        ))
-                      ) : (
-                        <div style={{ padding: '12px 16px', color: '#6b7280' }}>No GPs found</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Right side - Search bar, Notifications and Profile */}
-      <div className="app-header-right" style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: isMobile ? 8 : 16
-      }}>
-        {/* Search bar - hidden for VDO */}
-        {showLocationSearch && (
-          <div ref={containerRef} className="app-header-search" style={{
-            position: 'relative',
-            width: 320,
-            minWidth: 120
-          }}>
-            <Search style={{
-              position: 'absolute',
-              left: '12px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: '16px',
-              height: '16px',
-              color: '#9ca3af'
-            }} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchTerm}
-              placeholder={isBDO ? t("searchGps") : isCEO ? t("searchBlocksOrGps") : t("searchDistrictsBlocksOrGps")}
-              onChange={handleInputChange}
-              onFocus={handleInputFocus}
-              onKeyDown={handleKeyDown}
-              className="w-full pl-10 pr-12 py-1.5 border border-gray-300 rounded-full outline-none text-sm md:text-base"
-              style={{
-                width: '100%',
-                paddingLeft: '40px',
-                paddingRight: '48px',
-                paddingTop: '7px',
-                paddingBottom: '7px',
-                border: '1px solid #d1d5db',
-                borderRadius: '28px',
-                outline: 'none',
-                fontSize: '14px'
-              }}
-            />
-            {(searchTerm || isSearching || showSuggestions) && (
-              <button
-                type="button"
-                onClick={handleClearSearch}
-                style={{
-                  position: 'absolute',
-                  right: '36px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#9ca3af',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-                aria-label="Clear search"
-              >
-                <span style={{ fontSize: '14px' }}>×</span>
-              </button>
-            )}
-            {isSearching && (
-              <Loader2
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af'
-                }}
-              />
-            )}
-            {!isSearching && !searchTerm && showSuggestions && suggestions.length === 0 && (
-              <div style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '16px',
-                height: '16px',
-                color: '#9ca3af'
-              }}>
-                <Search style={{ width: '16px', height: '16px' }} />
-              </div>
-            )}
-            {showSuggestions && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                left: 0,
-                width: '100%',
-                backgroundColor: '#ffffff',
-                borderRadius: '14px',
-                boxShadow: '0 16px 32px -20px rgba(15, 23, 42, 0.4)',
-                border: '1px solid rgba(226, 232, 240, 0.9)',
-                zIndex: 1200,
-                maxHeight: '320px',
-                overflowY: 'auto'
-              }}>
-                {isSearching ? (
-                  <div style={{ padding: '16px', fontSize: '14px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Loader2 style={{ width: '16px', height: '16px' }} />
-                    Searching locations...
-                  </div>
-                ) : (
-                  <>
-                    {suggestions.map((suggestion, index) => {
-                      const isActive = index === highlightedIndex;
-                      return (
-                        <button
-                          key={`${suggestion.type}-${suggestion.id}-${index}`}
-                          type="button"
-                          onMouseEnter={() => {
-                            userInteractedRef.current = true;
-                            setHighlightedIndex(index);
-                          }}
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => handleSuggestionSelect(suggestion)}
-                          style={{
-                            width: '100%',
-                            border: 'none',
-                            backgroundColor: isActive ? '#f0fdf4' : 'transparent',
-                            textAlign: 'left',
-                            padding: '12px 16px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '4px'
-                          }}
-                        >
-                          <span style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
-                            {suggestion.name} <span style={{ color: '#059669', fontWeight: 500 }}>({suggestion.typeLabel})</span>
-                          </span>
-                          {suggestion.subtitle && (
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>{suggestion.subtitle}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                    {searchError && (
-                      <div style={{ padding: '14px 16px', fontSize: '13px', color: '#b91c1c', borderTop: suggestions.length > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                        {searchError}
-                      </div>
+          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#111827', lineHeight: 1.2 }}>{pageTitle}</h1>
+            <div ref={breadcrumbDropdownRef} style={{ fontSize: 13, color: '#6b7280', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', position: 'relative' }}>
+              {isBDO ? (
+                <button type="button" onClick={handleRajasthanClick} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0 }}>Rajasthan</button>
+              ) : (
+                <button type="button" onClick={handleRajasthanClick} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', padding: 0 }}>Rajasthan</button>
+              )}
+              <span style={{ color: '#d1d5db' }}>/</span>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isBDO) {
+                      resetGpBreadcrumb();
+                    } else {
+                      resetGpBreadcrumb();
+                      openBreadcrumbMenu('district');
+                    }
+                  }}
+                  style={{ background: 'none', border: 'none', color: districtDisplayLabel !== 'All' ? '#111827' : '#9ca3af', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                >
+                  {districtDisplayLabel}
+                </button>
+                {breadcrumbMenu.type === 'district' && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 220, maxHeight: 280, overflowY: 'auto', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)', zIndex: 1000 }}>
+                    {breadcrumbMenu.loading ? (
+                      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#6b7280' }}><Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />Loading...</div>
+                    ) : breadcrumbMenu.items.length > 0 ? breadcrumbMenu.items.map((item) => (
+                      <button key={item.id || item.name} onClick={() => handleBreadcrumbSelect('district', item)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', background: 'white', cursor: 'pointer', color: '#374151' }}>
+                        {item.name}
+                      </button>
+                    )) : (
+                      <div style={{ padding: '10px 12px', color: '#6b7280' }}>No districts available</div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Language Change */}
-        <div
-          onClick={() => changeLanguage(i18n.language === "en" ? "hi" : "en")}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            width: "90px",
-            height: "40px",
-            borderRadius: "22px",
-            background: "#e0e0e0",
-            boxShadow: "inset 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 3px rgba(0,0,0,0.15)",
-            cursor: "pointer",
-            position: "relative",
-            padding: "4px",
-            boxSizing: "border-box",
-            userSelect: "none"
-          }}
-        >
-          {/* Sliding pill */}
-          <div
-            style={{
-              position: "absolute",
-              width: "39px",
-              height: "32px",
-              borderRadius: "18px",
-              background: "linear-gradient(145deg, #ffffff, #f0f0f0)",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1)",
-              transition: "left 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              left: i18n.language === "en" ? "6px" : "45px",
-              top: "4px",
-              zIndex: 1
-            }}
-          />
-
-          {/* EN side */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "4px",
-              width: "40px",
-              height: "30px",
-              borderRadius: "18px",
-              position: "relative",
-              zIndex: 2,
-              transition: "opacity 0.3s"
-            }}
-          >
-            {i18n.language === "en" ? (
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", letterSpacing: "0.5px" }}>EN</span>
-            ) : (
-              <span style={{ fontSize: "10px", fontWeight: "600", color: "#999", letterSpacing: "0.5px" }}>EN</span>
-            )}
-          </div>
-
-          {/* HI side */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "4px",
-              width: "45px",
-              height: "30px",
-              borderRadius: "18px",
-              position: "relative",
-              zIndex: 2,
-              transition: "opacity 0.3s"
-            }}
-          >
-            {i18n.language === "hi" ? (
-              <span style={{ fontSize: "12px", fontWeight: "700", color: "#555", letterSpacing: "0.5px" }}>HI</span>
-            ) : (
-              <span style={{ fontSize: "10px", fontWeight: "600", color: "#999", letterSpacing: "0.5px" }}>HI</span>
-            )}
+              <span style={{ color: '#d1d5db' }}>/</span>
+              <div style={{ position: 'relative' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isBDO) {
+                      resetGpBreadcrumb();
+                    } else {
+                      handleBlockLabelClick();
+                    }
+                  }}
+                  disabled={!hasDistrictSelection && !isBDO}
+                  style={{ background: 'none', border: 'none', color: blockDisplayLabel !== 'All' ? '#111827' : '#9ca3af', cursor: (hasDistrictSelection || isBDO) ? 'pointer' : 'default', padding: 0, opacity: (hasDistrictSelection || isBDO) ? 1 : 0.7 }}
+                >
+                  {blockDisplayLabel}
+                </button>
+                {breadcrumbMenu.type === 'block' && (
+                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 220, maxHeight: 280, overflowY: 'auto', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)', zIndex: 1000 }}>
+                    {breadcrumbMenu.loading ? (
+                      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#6b7280' }}><Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />Loading...</div>
+                    ) : breadcrumbMenu.items.length > 0 ? breadcrumbMenu.items.map((item) => (
+                      <button key={item.id || item.name} onClick={() => handleBreadcrumbSelect('block', item)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', background: 'white', cursor: 'pointer', color: '#374151' }}>
+                        {item.name}
+                      </button>
+                    )) : (
+                      <div style={{ padding: '10px 12px', color: '#6b7280' }}>No blocks available</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {gpLabel && (
+                <>
+                  <span style={{ color: '#d1d5db' }}>/</span>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      onClick={() => openBreadcrumbMenu('gp')}
+                      disabled={!hasBlockSelection && !isBDO}
+                      style={{ background: 'none', border: 'none', color: gpDisplayLabel !== 'All' ? '#111827' : '#9ca3af', cursor: (hasBlockSelection || isBDO) ? 'pointer' : 'default', padding: 0, opacity: (hasBlockSelection || isBDO) ? 1 : 0.7 }}>
+                      {gpDisplayLabel}
+                    </button>
+                    {breadcrumbMenu.type === 'gp' && (
+                      <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, minWidth: 220, maxHeight: 280, overflowY: 'auto', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.12)', zIndex: 1000 }}>
+                        {breadcrumbMenu.loading ? (
+                          <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#6b7280' }}><Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />Loading...</div>
+                        ) : breadcrumbMenu.items.length > 0 ? breadcrumbMenu.items.map((item) => (
+                          <button key={item.id || item.name} onClick={() => handleBreadcrumbSelect('gp', item)} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', border: 'none', background: 'white', cursor: 'pointer', color: '#374151' }}>
+                            {item.name}
+                          </button>
+                        )) : (
+                          <div style={{ padding: '10px 12px', color: '#6b7280' }}>No GPs available</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <div style={{ position: 'relative', width: 'clamp(140px, 28vw, 320px)', minWidth: 0 }}>
+            <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: '#9ca3af' }} />
+            <input placeholder={isBDO ? t('searchGps') : isCEO ? t('searchBlocksOrGps') : t('searchDistrictsBlocksOrGps')} style={{ width: '100%', padding: '8px 12px 8px 36px', borderRadius: 999, border: '1px solid #e5e7eb', outline: 'none', fontSize: 14 }} />
+          </div>
 
-        {/* Notification bell - Separate container */}
-        <div style={{
-          backgroundColor: '#f3f4f6',
-          padding: '1px',
-          borderRadius: '20px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <button
-            style={{
-              padding: '6px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              position: 'relative',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            aria-label="Open notices"
-            onClick={() => {
-              if (typeof onNotificationsClick === 'function') {
-                onNotificationsClick();
-              } else {
-                try {
-                  const target = document.querySelector('[data-dashboard-section="notices"]');
-                  if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                } catch (error) {
-                  console.error('Failed to focus notices section:', error);
-                }
-              }
-            }}
-          >
-            <Bell style={{ width: '18px', height: '18px', color: '#6b7280' }} />
-          </button>
-        </div>
-
-        {/* User profile - Separate container */}
-        <div ref={userDropdownRef} style={{ position: 'relative' }}>
-          <button
-            onClick={toggleUserDropdown}
-            style={{
-              backgroundColor: '#f3f4f6',
-              padding: '4px 12px',
-              borderRadius: '30px',
-              border: '1px solid #e5e7eb',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              cursor: 'pointer',
-              outline: 'none',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {/* Profile Image / Initials */}
-            <div style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: '#d1d5db',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyChild: 'center',
-              overflow: 'hidden', justifyContent: 'center'
-            }}>
-              {/* Agar user photo available ho toh <img> lagayein, nahi toh initials */}
-              <span style={{ fontSize: '14px', fontWeight: '600', color: '#4b5563', textAlign: 'center' }}>
-                <User style={{ width: '24px', height: '24px', color: '#6b7280' }} />
-              </span>
-            </div>
-
-            {/* User Info Text */}
-            <div style={{ textAlign: 'left', marginRight: '4px' }}>
-              <div style={{
-                fontSize: '13px',
-                fontWeight: '700',
-                color: '#111827',
-                lineHeight: '1.2'
-              }}>
-                {/* Role and Area Mapping */}
-                {role === ROLES.VDO && ('VDO')}
-                {role === ROLES.BDO && ('BDO')}
-                {role === ROLES.CEO && ('CEO')}
-                {role === ROLES.SMD && ('SMD')}
-
-              </div>
-              <div style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                fontWeight: '500'
-              }}>
-                {/* Role and Area Mapping */}
-                {role === ROLES.VDO && (vdoGPName || 'VDO')}
-                {role === ROLES.BDO && (bdoBlockName || 'BDO')}
-                {role === ROLES.CEO && (ceoDistrictName || 'CEO')}
-                {role === ROLES.SMD && (ceoDistrictName || 'Rajasthan')}
-              </div>
-            </div>
-
-            <ChevronDown style={{
-              width: '16px',
-              height: '16px',
-              color: '#6b7280',
-              transform: showUserDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s'
-            }} />
+          <button title="Notifications" style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+            <Bell style={{ width: 18, height: 18, color: '#6b7280' }} />
           </button>
 
-          {/* Dropdown Menu remains the same with handleLogout */}
-          {showUserDropdown && (
-            <div style={{
-              position: 'absolute',
-              top: 'calc(100% + 8px)',
-              right: 0,
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-              border: '1px solid #e5e7eb',
-              minWidth: '200px',
-              zIndex: 1000,
-              overflow: 'hidden'
-            }}>
-              {/* User Info Section */}
-              <div style={{
-                padding: '16px',
-                borderBottom: '1px solid #e5e7eb',
-                backgroundColor: '#f9fafb'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <div style={{
-                    width: '48px',
-                    height: '48px',
-                    backgroundColor: '#d1d5db',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <User style={{ width: '24px', height: '24px', color: '#6b7280' }} />
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '15px',
-                      fontWeight: '600',
-                      color: '#111827',
-                      marginBottom: '4px',
-                    }}>
-                      {/* Role and Area Mapping */}
-                      {role === ROLES.VDO && ('VDO')}
-                      {role === ROLES.BDO && ('BDO')}
-                      {role === ROLES.CEO && ('CEO')}
-                      {role === ROLES.SMD && ('SMD')}
-                    </div>
-                    <div style={{
-                      fontSize: '13px',
-                      color: '#6b7280',
-                    }}>
-                      {/* Role and Area Mapping */}
-                      {role === ROLES.VDO && (vdoGPName || 'VDO')}
-                      {role === ROLES.BDO && (bdoBlockName || 'BDO')}
-                      {role === ROLES.CEO && (ceoDistrictName || 'CEO')}
-                      {role === ROLES.SMD && (ceoDistrictName || 'Rajasthan')}
-                    </div>
-                  </div>
+          <div ref={userDropdownRef} style={{ position: 'relative' }}>
+            <button onClick={() => setShowUserDropdown((s) => !s)} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 18, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <User style={{ width: 18, height: 18, color: '#6b7280' }} />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{role}</div>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>{role === ROLES.BDO ? (bdoBlockName || 'BDO') : role === ROLES.CEO ? (ceoDistrictName || 'CEO') : role === ROLES.VDO ? (vdoGPName || 'VDO') : ''}</div>
+              </div>
+            </button>
+
+            {showUserDropdown && (
+              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', minWidth: 200, zIndex: 1000, overflow: 'hidden' }}>
+                <div style={{ padding: 12, borderBottom: '1px solid #f3f4f6' }}>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{user?.name || role}</div>
+                  <div style={{ fontSize: 12, color: '#6b7280' }}>{role}</div>
                 </div>
+                <button onClick={() => setShowProfile(true)} style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'white', cursor: 'pointer' }}>{t('profile')}</button>
+                <button onClick={handleLogout} style={{ width: '100%', padding: '10px 12px', textAlign: 'left', border: 'none', background: 'white', cursor: 'pointer', color: '#ef4444' }}>{t('logOut')}</button>
               </div>
+            )}
+          </div>
 
-              <button
-                onClick={() => setShowProfile(true)}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  border: 'none',
-                  backgroundColor: 'white',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                }}
-              >
-                <UserRound style={{ width: '20px', height: '20px', color: 'black' }} />
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: 'black'
-                }}>
-                  {t('profile')}
-                </span>
-              </button>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  border: 'none',
-                  backgroundColor: 'white',
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#fef2f2';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                }}
-              >
-                <LogOut style={{ width: '20px', height: '20px', color: '#ef4444' }} />
-                <span style={{
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: '#ef4444'
-                }}>
-                  {t('logOut')}
-                </span>
-              </button>
-            </div>
-          )}
+          <Profile open={showProfile} onClose={() => setShowProfile(false)} />
         </div>
-
-        <Profile
-          open={showProfile}
-          onClose={() => setShowProfile(false)}
-        />
       </div>
     </header>
   );

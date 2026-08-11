@@ -410,6 +410,23 @@ const BDOAttendanceContent = () => {
     }
   }, [contextUpdateLocationSelection]);
 
+  const isGpDetailView = Boolean(selectedGPId || selectedGPForHierarchy?.id);
+
+  const handleSelectGpFromTable = useCallback((gp) => {
+    const gpId = gp?.id ?? null;
+    const gpName = gp?.name ?? '';
+    trackDropdownChange(gpName, gpId, bdoDistrictId, bdoBlockId, gpId);
+    updateLocationSelection('GPs', gpName, gpId, bdoDistrictId, bdoBlockId, gpId, 'table_click');
+    setShowLocationDropdown(false);
+  }, [bdoDistrictId, bdoBlockId, trackDropdownChange, updateLocationSelection]);
+
+  const handleBackToGpList = useCallback(() => {
+    setSelectedGPId(null);
+    setSelectedGPForHierarchy(null);
+    updateLocationSelection('GPs', 'Select GP', null, bdoDistrictId, bdoBlockId, null, 'selection');
+    setShowLocationDropdown(false);
+  }, [bdoDistrictId, bdoBlockId, setSelectedGPId, setSelectedGPForHierarchy, updateLocationSelection]);
+
   // Fetch districts from API
   const fetchDistricts = async () => {
     try {
@@ -2207,184 +2224,6 @@ const BDOAttendanceContent = () => {
           }
         }
       `}</style>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            {t('common:cscCleaning')}
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => handleScopeChange(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div
-            data-location-dropdown
-            style={{
-              position: 'relative',
-              minWidth: '200px'
-            }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
-            {showLocationDropdown && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  minWidth: '280px'
-                }}
-              >
-                {/* BDO: Simple GP list from assigned block */}
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {loadingGPs ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading GPs...
-                    </div>
-                  ) : gramPanchayats.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No GPs found for your block
-                    </div>
-                  ) : (
-                    gramPanchayats.map((gp) => {
-                      const isSelectedGP = selectedLocation === gp.name;
-                      return (
-                        <div
-                          key={`gp-${gp.id}`}
-                          onClick={() => handleGPClick(gp)}
-                          style={getMenuItemStyles(isSelectedGP)}
-                        >
-                          <span>{gp.name}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            const rawDistrict = (bdoDistrictName || '').trim();
-            const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
-              return parts.join(' / ');
-            } else if (activeScope === 'GPs') {
-              const gpName = (selectedLocation || '').trim();
-              const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
-              return parts.join(' / ');
-            }
-            return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-          })()}
-        </span>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -3661,27 +3500,46 @@ const BDOAttendanceContent = () => {
             }}>
               {t('csc:cscHistory')}
             </h2>
-            <div
-              onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
-              data-history-date-dropdown
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: '#6b7280',
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '10px',
+              flexWrap: 'wrap'
+            }}>
+              <div
+                onClick={() => setShowHistoryDateDropdown(!showHistoryDateDropdown)}
+                data-history-date-dropdown
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  color: '#6b7280',
+                  fontSize: '14px',
+                  padding: '4px 8px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  cursor: 'pointer',
+                  width: 'fit-content'
+                }}
+              >
+                <Calendar style={{ width: '16px', height: '16px' }} />
+                <span>{getHistoryDateDisplayText()}</span>
+                <ChevronDown style={{ width: '16px', height: '16px' }} />
+              </div>
+              <div style={{
                 fontSize: '14px',
-                marginTop: '14px',
+                color: '#6b7280',
                 padding: '4px 8px',
-                border: '1px solid #d1d5db',
                 borderRadius: '6px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                width: 'fit-content'
-              }}
-            >
-              <Calendar style={{ width: '16px', height: '16px' }} />
-              <span>{getHistoryDateDisplayText()}</span>
-              <ChevronDown style={{ width: '16px', height: '16px' }} />
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb'
+              }}>
+                {isGpDetailView
+                  ? `${bdoBlockName || 'Block'} / ${selectedGPForHierarchy?.name || selectedLocation || 'GP'}`
+                  : `${bdoBlockName || 'Block'} / Select GP`}
+              </div>
             </div>
 
             {/* History Date Dropdown */}
@@ -3783,6 +3641,24 @@ const BDOAttendanceContent = () => {
             alignItems: 'center',
             gap: '12px'
           }}>
+            {isGpDetailView && (
+              <button
+                onClick={handleBackToGpList}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  backgroundColor: 'white',
+                  color: '#374151',
+                  cursor: 'pointer'
+                }}
+              >
+                ← View GP list
+              </button>
+            )}
             {/* Sort Button */}
             <button
               onClick={toggleHistorySortOrder}
@@ -3860,13 +3736,21 @@ const BDOAttendanceContent = () => {
         <div style={{
           overflowX: 'auto',
           maxHeight: '1000px',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          backgroundColor: 'white'
         }}>
           <table style={{
             width: '100%',
             borderCollapse: 'collapse'
           }}>
-            <thead>
+            <thead style={{
+              position: 'sticky',
+              top: 0,
+              backgroundColor: 'white',
+              zIndex: 10
+            }}>
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
@@ -3878,20 +3762,7 @@ const BDOAttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? (t('table:date')) :
-                    activeScope === 'State' ? (t('table:districtName')) :
-                      activeScope === 'Districts' ? (t('table:blockName')) :
-                        activeScope === 'Blocks' ? (t('table:gpName')) : (t('table:villageName'))}
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
+                  {isGpDetailView ? t('table:date') : t('table:gpName')}
                 </th>
                 <th style={{
                   padding: '12px',
@@ -3901,17 +3772,7 @@ const BDOAttendanceContent = () => {
                   color: '#374151',
                   position: 'relative'
                 }}>
-                  {activeScope === 'GPs' ? 'Status' : `${t('csc:cscCleaned')} (%)`}
-                  <div style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '12px',
-                    color: '#9ca3af'
-                  }}>
-                    ↕
-                  </div>
+                  {isGpDetailView ? 'Status' : 'Action'}
                 </th>
                 <th style={{
                   padding: '12px',
@@ -3925,7 +3786,7 @@ const BDOAttendanceContent = () => {
               </tr>
             </thead>
             <tbody>
-              {loadingHistory ? (
+              {loadingHistory && !isGpDetailView ? (
                 <tr>
                   <td colSpan="3" style={{
                     padding: '40px',
@@ -3933,61 +3794,130 @@ const BDOAttendanceContent = () => {
                     fontSize: '14px',
                     color: '#6b7280'
                   }}>
-                    Loading  history...
+                    Loading GP list...
                   </td>
                 </tr>
-              ) : (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
-                <tr>
-                  <td colSpan="3" style={{ padding: 0 }}>
-                    <NoDataFound size="small" />
-                  </td>
-                </tr>
-              ) : (
-                getFilteredAndSortedHistoryData().map((item, index) => (
-                  <tr key={item.id || index} style={{
-                    borderBottom: '1px solid #f3f4f6'
-                  }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {activeScope === 'GPs' ? (
-                        // Format date as DD/MM/YYYY
-                        item.date ? new Date(item.date).toLocaleDateString('en-GB') : item.date
-                      ) : (
-                        item.name || '-'
-                      )}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: activeScope === 'GPs'
-                        ? (item.status === 'CSC Cleaned' ? '#10b981' : '#ef4444')
-                        : '#374151'
-                    }}>
-                      {activeScope === 'GPs' ? (item.status || '-') : `${item.attendancePercentage || 0}%`}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      textAlign: 'right'
-                    }}>
-                      <button
-                        onClick={() => handleOpenNoticeModal(item)}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'transparent',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer'
-                        }}>
-                        Send notice
-                      </button>
+              ) : isGpDetailView ? (
+                (historyError || getFilteredAndSortedHistoryData().length === 0) ? (
+                  <tr>
+                    <td colSpan="3" style={{ padding: 0 }}>
+                      <NoDataFound size="small" />
                     </td>
                   </tr>
-                ))
+                ) : (
+                  getFilteredAndSortedHistoryData().map((item, index) => (
+                    <tr key={item.id || index} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {item.date ? new Date(item.date).toLocaleDateString('en-GB') : item.date}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: item.status === 'CSC Cleaned' ? '#10b981' : '#ef4444'
+                      }}>
+                        {item.status || '-'}
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'right'
+                      }}>
+                        <button
+                          onClick={() => handleOpenNoticeModal(item)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer'
+                          }}>
+                          Send notice
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )
+              ) : (
+                gramPanchayats.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" style={{ padding: 0 }}>
+                      <NoDataFound size="small" />
+                    </td>
+                  </tr>
+                ) : (
+                  gramPanchayats.map((gp, index) => (
+                    <tr key={gp.id || index} style={{
+                      borderBottom: '1px solid #f3f4f6'
+                    }}>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: '#374151',
+                        fontWeight: '500'
+                      }}>
+                        <div
+                          onClick={() => handleSelectGpFromTable(gp)}
+                          style={{
+                            cursor: 'pointer',
+                            color: '#10b981',
+                            textDecoration: 'none',
+                            transition: 'color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.color = '#10b981';
+                            e.target.style.textDecoration = 'underline';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.color = '#10b981';
+                            e.target.style.textDecoration = 'none';
+                          }}
+                        >
+                          {gp.name || '-'}
+                        </div>
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          marginTop: '4px'
+                        }}>
+                          Click to view CSC cleaning history
+                        </div>
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        fontSize: '14px',
+                        color: '#6b7280'
+                      }}>
+                        GP history
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'right'
+                      }}>
+                        <button
+                          onClick={() => handleSelectGpFromTable(gp)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#10b981',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                          }}>
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )
               )}
             </tbody>
           </table>

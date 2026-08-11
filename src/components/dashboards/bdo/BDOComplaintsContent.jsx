@@ -84,6 +84,7 @@ const BDOComplaintsContent = () => {
   // Ref for auto-scrolling to complaints table when filter is applied
   const complaintsTableRef = useRef(null);
   const hasScrolledRef = useRef(false);
+  const hasInitializedBDOSelection = useRef(false);
 
   // Local state for UI controls
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
@@ -181,6 +182,31 @@ const BDOComplaintsContent = () => {
   const [complaintsListData, setComplaintsListData] = useState([]);
   const [loadingComplaints, setLoadingComplaints] = useState(false);
   const [complaintsError, setComplaintsError] = useState(null);
+
+  // Hierarchy summary states for BDO complaints drill-down
+  const [allComplaintsData, setAllComplaintsData] = useState([]);
+  const [loadingAllComplaints, setLoadingAllComplaints] = useState(false);
+  const [allComplaintsError, setAllComplaintsError] = useState(null);
+
+  const [districtSummaryData, setDistrictSummaryData] = useState([]);
+  const [loadingDistrictSummary, setLoadingDistrictSummary] = useState(false);
+  const [districtSummaryError, setDistrictSummaryError] = useState(null);
+
+  const [blocksSummaryData, setBlocksSummaryData] = useState([]);
+  const [loadingBlocksSummary, setLoadingBlocksSummary] = useState(false);
+  const [blocksSummaryError, setBlocksSummaryError] = useState(null);
+  const [selectedDistrictForBlocks, setSelectedDistrictForBlocks] = useState(null);
+  const [viewingBlocksForDistrict, setViewingBlocksForDistrict] = useState(false);
+
+  const [gpsSummaryData, setGpsSummaryData] = useState([]);
+  const [loadingGpsSummary, setLoadingGpsSummary] = useState(false);
+  const [gpsSummaryError, setGpsSummaryError] = useState(null);
+  const [selectedBlockForGPs, setSelectedBlockForGPs] = useState(null);
+  const [viewingGPsForBlock, setViewingGPsForBlock] = useState(false);
+
+  const [selectedGPForComplaints, setSelectedGPForComplaints] = useState(null);
+  const [viewingGPComplaints, setViewingGPComplaints] = useState(false);
+  const isGpDetailView = Boolean(selectedGPId || selectedGPForHierarchy?.id || selectedGPForComplaints?.id || viewingGPComplaints);
 
   // Date selection state
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -533,13 +559,26 @@ const BDOComplaintsContent = () => {
   // Fetch data immediately when complaints tab is selected
   useEffect(() => {
     console.log('🚀 Complaints tab selected - fetching initial data');
-    // For State scope, we can call API immediately
     if (activeScope === 'State') {
       console.log('📡 Calling initial API for State scope');
       fetchAnalyticsData();
       fetchComplaintsData();
     }
-  }, []); // Empty dependency array means this runs only once when component mounts
+
+    if (!hasInitializedBDOSelection.current && bdoDistrictId && bdoBlockId) {
+      hasInitializedBDOSelection.current = true;
+
+      if (!(selectedGPId || selectedGPForHierarchy?.id)) {
+        updateLocationSelection('GPs', bdoBlockName || 'Select GP', bdoBlockId, bdoDistrictId, bdoBlockId, null, 'initial_load');
+      }
+
+      setDropdownLevel('gps');
+      setSelectedDistrictForHierarchy({ id: bdoDistrictId, name: bdoDistrictName || 'Assigned District' });
+      setSelectedBlockForHierarchy({ id: bdoBlockId, name: bdoBlockName || 'Assigned Block' });
+      fetchBlocks(bdoDistrictId);
+      fetchGramPanchayats(bdoDistrictId, bdoBlockId);
+    }
+  }, [activeScope, bdoDistrictId, bdoBlockId, bdoDistrictName, bdoBlockName, updateLocationSelection, fetchBlocks, fetchGramPanchayats]);
 
   // Load additional data based on scope
   useEffect(() => {
@@ -597,6 +636,209 @@ const BDOComplaintsContent = () => {
     // Display whole numbers with commas for thousands
     return num.toLocaleString();
   };
+
+  // Fetch all complaints once for hierarchy summaries
+  const fetchAllComplaintsData = useCallback(async () => {
+    try {
+      setLoadingAllComplaints(true);
+      setAllComplaintsError(null);
+
+      const response = await apiClient.get('/complaints', {
+        params: { limit: 1000, order_by: 'newest' }
+      });
+
+      setAllComplaintsData(response.data || []);
+    } catch (error) {
+      console.error('Error fetching all complaints for BDO hierarchy:', error);
+      setAllComplaintsError(error.message || 'Failed to fetch hierarchy data');
+      setAllComplaintsData([]);
+    } finally {
+      setLoadingAllComplaints(false);
+    }
+  }, []);
+
+  // Fetch district summary data for the BDO's assigned district
+  const fetchDistrictSummaryData = useCallback(async () => {
+    if (!bdoDistrictId && !bdoDistrictName) {
+      setDistrictSummaryData([]);
+      return;
+    }
+
+    try {
+      setLoadingDistrictSummary(true);
+      setDistrictSummaryError(null);
+
+      const districtComplaints = (allComplaintsData || []).filter((complaint) => {
+        const matchesDistrictId = bdoDistrictId && complaint.district_id
+          ? Number(complaint.district_id) === Number(bdoDistrictId)
+          : false;
+        const matchesDistrictName = (complaint.district_name || '').toLowerCase() === (bdoDistrictName || '').toLowerCase();
+        return matchesDistrictId || matchesDistrictName;
+      });
+
+      const totalComplaints = districtComplaints.length;
+      const openComplaints = districtComplaints.filter((c) => String(c.status || '').toUpperCase() === 'OPEN').length;
+      const verifiedComplaints = districtComplaints.filter((c) => String(c.status || '').toUpperCase() === 'VERIFIED').length;
+      const resolvedComplaints = districtComplaints.filter((c) => String(c.status || '').toUpperCase() === 'RESOLVED').length;
+      const disposedComplaints = districtComplaints.filter((c) => ['CLOSED', 'DISPOSED'].includes(String(c.status || '').toUpperCase())).length;
+
+      const resolutionTimes = districtComplaints.filter((c) => c.created_at && c.resolved_at).map((c) => {
+        const createdDate = new Date(c.created_at);
+        const resolvedDate = new Date(c.resolved_at);
+        return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+      });
+      const avgResolution = resolutionTimes.length > 0 ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1) : 'N/A';
+      const closedPercent = totalComplaints > 0 ? ((disposedComplaints / totalComplaints) * 100).toFixed(1) : 0;
+      const status = parseFloat(closedPercent) > 50 ? 'Star Performer' : 'Under Performer';
+
+      setDistrictSummaryData([{
+        id: bdoDistrictId,
+        name: bdoDistrictName || 'Assigned District',
+        totalComplaints,
+        openComplaints,
+        verifiedComplaints,
+        resolvedComplaints,
+        disposedComplaints,
+        avgResolution,
+        closedPercent,
+        status,
+        complaints: districtComplaints
+      }]);
+      setSelectedDistrictForBlocks({ id: bdoDistrictId, name: bdoDistrictName || 'Assigned District' });
+    } catch (error) {
+      console.error('Error fetching district summary data:', error);
+      setDistrictSummaryError(error.message || 'Failed to fetch district summary');
+      setDistrictSummaryData([]);
+    } finally {
+      setLoadingDistrictSummary(false);
+    }
+  }, [allComplaintsData, bdoDistrictId, bdoDistrictName]);
+
+  // Fetch block summary data for the BDO's assigned block
+  const fetchBlocksSummaryData = useCallback(async (district) => {
+    if (!district?.id && !bdoDistrictId) {
+      setBlocksSummaryData([]);
+      return;
+    }
+
+    try {
+      setLoadingBlocksSummary(true);
+      setBlocksSummaryError(null);
+
+      const blockComplaints = (allComplaintsData || []).filter((complaint) => {
+        const matchesDistrictId = district?.id && complaint.district_id
+          ? Number(complaint.district_id) === Number(district.id)
+          : false;
+        const matchesDistrictName = (complaint.district_name || '').toLowerCase() === (district?.name || '').toLowerCase();
+        const matchesBlockId = bdoBlockId && complaint.block_id ? Number(complaint.block_id) === Number(bdoBlockId) : false;
+        const matchesBlockName = (complaint.block_name || '').toLowerCase() === (bdoBlockName || '').toLowerCase();
+        return (matchesDistrictId || matchesDistrictName) && (matchesBlockId || matchesBlockName);
+      });
+
+      const totalComplaints = blockComplaints.length;
+      const openComplaints = blockComplaints.filter((c) => String(c.status || '').toUpperCase() === 'OPEN').length;
+      const verifiedComplaints = blockComplaints.filter((c) => String(c.status || '').toUpperCase() === 'VERIFIED').length;
+      const resolvedComplaints = blockComplaints.filter((c) => String(c.status || '').toUpperCase() === 'RESOLVED').length;
+      const disposedComplaints = blockComplaints.filter((c) => ['CLOSED', 'DISPOSED'].includes(String(c.status || '').toUpperCase())).length;
+
+      const resolutionTimes = blockComplaints.filter((c) => c.created_at && c.resolved_at).map((c) => {
+        const createdDate = new Date(c.created_at);
+        const resolvedDate = new Date(c.resolved_at);
+        return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+      });
+      const avgResolution = resolutionTimes.length > 0 ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1) : 'N/A';
+      const closedPercent = totalComplaints > 0 ? ((disposedComplaints / totalComplaints) * 100).toFixed(1) : 0;
+      const status = parseFloat(closedPercent) > 50 ? 'Star Performer' : 'Under Performer';
+
+      setBlocksSummaryData([{
+        id: bdoBlockId,
+        name: bdoBlockName || 'Assigned Block',
+        totalComplaints,
+        openComplaints,
+        verifiedComplaints,
+        resolvedComplaints,
+        disposedComplaints,
+        avgResolution,
+        closedPercent,
+        status,
+        complaints: blockComplaints
+      }]);
+      setSelectedDistrictForBlocks(district);
+      setViewingBlocksForDistrict(true);
+    } catch (error) {
+      console.error('Error fetching block summary data:', error);
+      setBlocksSummaryError(error.message || 'Failed to fetch block summary');
+      setBlocksSummaryData([]);
+    } finally {
+      setLoadingBlocksSummary(false);
+    }
+  }, [allComplaintsData, bdoBlockId, bdoBlockName]);
+
+  // Fetch GP summary data for the selected block
+  const fetchGPsSummaryData = useCallback(async (block) => {
+    if (!block?.id) {
+      setGpsSummaryData([]);
+      return;
+    }
+
+    try {
+      setLoadingGpsSummary(true);
+      setGpsSummaryError(null);
+
+      const response = await apiClient.get('/geography/grampanchayats', {
+        params: { block_id: block.id, skip: 0, limit: 100 }
+      });
+      const allGPs = response.data || [];
+
+      const enrichedGPs = allGPs.map((gp) => {
+        const gpComplaints = (allComplaintsData || []).filter((complaint) => {
+          const matchesGpId = gp?.id && complaint.gp_id ? Number(complaint.gp_id) === Number(gp.id) : false;
+          const complaintGpName = (complaint.gp_name || complaint.village_name || complaint.location || '').toLowerCase();
+          const gpName = (gp.name || '').toLowerCase();
+          return matchesGpId || complaintGpName.includes(gpName) || gpName.includes(complaintGpName);
+        });
+
+        const totalComplaints = gpComplaints.length;
+        const openComplaints = gpComplaints.filter((c) => String(c.status || '').toUpperCase() === 'OPEN').length;
+        const verifiedComplaints = gpComplaints.filter((c) => String(c.status || '').toUpperCase() === 'VERIFIED').length;
+        const resolvedComplaints = gpComplaints.filter((c) => String(c.status || '').toUpperCase() === 'RESOLVED').length;
+        const disposedComplaints = gpComplaints.filter((c) => ['CLOSED', 'DISPOSED'].includes(String(c.status || '').toUpperCase())).length;
+
+        const resolutionTimes = gpComplaints.filter((c) => c.created_at && c.resolved_at).map((c) => {
+          const createdDate = new Date(c.created_at);
+          const resolvedDate = new Date(c.resolved_at);
+          return Math.ceil((resolvedDate - createdDate) / (1000 * 60 * 60 * 24));
+        });
+        const avgResolution = resolutionTimes.length > 0 ? (resolutionTimes.reduce((a, b) => a + b, 0) / resolutionTimes.length).toFixed(1) : 'N/A';
+        const closedPercent = totalComplaints > 0 ? ((disposedComplaints / totalComplaints) * 100).toFixed(1) : 0;
+        const status = parseFloat(closedPercent) > 50 ? 'Star Performer' : 'Under Performer';
+
+        return {
+          id: gp.id,
+          name: gp.name,
+          totalComplaints,
+          openComplaints,
+          verifiedComplaints,
+          resolvedComplaints,
+          disposedComplaints,
+          avgResolution,
+          closedPercent,
+          status,
+          complaints: gpComplaints
+        };
+      });
+
+      setGpsSummaryData(enrichedGPs);
+      setSelectedBlockForGPs(block);
+      setViewingGPsForBlock(true);
+    } catch (error) {
+      console.error('Error fetching GP summary data:', error);
+      setGpsSummaryError(error.message || 'Failed to fetch GP summary');
+      setGpsSummaryData([]);
+    } finally {
+      setLoadingGpsSummary(false);
+    }
+  }, [allComplaintsData]);
 
   // Fetch complaints list from API
   const fetchComplaintsData = useCallback(async () => {
@@ -779,6 +1021,57 @@ const BDOComplaintsContent = () => {
       setLoadingAnalytics(false);
     }
   }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate]);
+
+  useEffect(() => {
+    fetchAllComplaintsData();
+  }, [fetchAllComplaintsData]);
+
+  useEffect(() => {
+    if (allComplaintsData.length > 0 && (bdoDistrictId || bdoDistrictName)) {
+      const assignedDistrict = bdoDistrictId ? { id: bdoDistrictId, name: bdoDistrictName || 'Assigned District' } : null;
+      const assignedBlock = bdoBlockId ? { id: bdoBlockId, name: bdoBlockName || 'Assigned Block' } : null;
+
+      if (selectedGPId || selectedGPForHierarchy?.id) {
+        return;
+      }
+
+      if (assignedDistrict && assignedBlock) {
+        setViewingBlocksForDistrict(false);
+        setViewingGPsForBlock(true);
+        setViewingGPComplaints(false);
+        setSelectedGPForComplaints(null);
+        setSelectedDistrictForBlocks(assignedDistrict);
+        setSelectedBlockForGPs(assignedBlock);
+        setBlocksSummaryData([]);
+        setGpsSummaryData([]);
+        fetchGPsSummaryData(assignedBlock);
+        return;
+      }
+
+      if (assignedDistrict) {
+        fetchDistrictSummaryData();
+      }
+    }
+  }, [allComplaintsData, bdoDistrictId, bdoDistrictName, bdoBlockId, bdoBlockName, fetchDistrictSummaryData, fetchGPsSummaryData, selectedGPId, selectedGPForHierarchy]);
+
+  useEffect(() => {
+    if (selectedGPId) {
+      const matchedGP = gpsSummaryData.find((item) => Number(item.id) === Number(selectedGPId))
+        || (selectedGPForHierarchy ? { id: selectedGPForHierarchy.id, name: selectedGPForHierarchy.name } : null)
+        || { id: selectedGPId, name: selectedLocation || 'Selected GP' };
+
+      setSelectedGPForComplaints(matchedGP);
+      setViewingGPComplaints(true);
+      setViewingGPsForBlock(false);
+      setViewingBlocksForDistrict(false);
+      return;
+    }
+
+    setSelectedGPForComplaints(null);
+    setViewingGPComplaints(false);
+    setViewingGPsForBlock(true);
+    setViewingBlocksForDistrict(false);
+  }, [selectedGPId, selectedGPForHierarchy, gpsSummaryData, selectedLocation]);
 
   // Fetch analytics data for overview section when scope, location, or date range changes
   useEffect(() => {
@@ -1565,6 +1858,60 @@ const BDOComplaintsContent = () => {
     ? gramPanchayats.filter(gp => gp.block_id === activeHierarchyBlock.id)
     : [];
 
+  const handleDistrictHierarchyClick = (district) => {
+    setViewingBlocksForDistrict(true);
+    setViewingGPsForBlock(false);
+    setViewingGPComplaints(false);
+    setSelectedGPId(null);
+    setSelectedGPForHierarchy(null);
+    setSelectedGPForComplaints(null);
+    fetchBlocksSummaryData(district);
+  };
+
+  const handleBlockHierarchyClick = (block) => {
+    setViewingGPsForBlock(true);
+    setViewingGPComplaints(false);
+    setSelectedGPId(null);
+    setSelectedGPForHierarchy(null);
+    setSelectedGPForComplaints(null);
+    fetchGPsSummaryData(block);
+  };
+
+  const handleGPHierarchyClick = (gp) => {
+    trackDropdownChange(gp.name, gp.id, bdoDistrictId, bdoBlockId, gp.id);
+    setSelectedGPId(gp.id);
+    setSelectedGPForHierarchy({ id: gp.id, name: gp.name });
+    updateLocationSelection('GPs', gp.name, gp.id, bdoDistrictId, bdoBlockId, gp.id, 'table_click');
+    setSelectedGPForComplaints(gp);
+    setViewingGPComplaints(true);
+    setViewingGPsForBlock(false);
+    setViewingBlocksForDistrict(false);
+    setShowLocationDropdown(false);
+  };
+
+  const handleBackToDistricts = () => {
+    setViewingBlocksForDistrict(false);
+    setViewingGPsForBlock(false);
+    setViewingGPComplaints(false);
+    setSelectedGPId(null);
+    setSelectedGPForHierarchy(null);
+    setSelectedBlockForGPs(null);
+    setSelectedGPForComplaints(null);
+    setBlocksSummaryData([]);
+    setGpsSummaryData([]);
+    setSelectedDistrictForBlocks(null);
+  };
+
+  const handleBackToBlocks = () => {
+    setViewingGPsForBlock(false);
+    setViewingGPComplaints(false);
+    setSelectedGPId(null);
+    setSelectedGPForHierarchy(null);
+    setSelectedGPForComplaints(null);
+    setGpsSummaryData([]);
+    setSelectedBlockForGPs(null);
+  };
+
   const getMenuItemStyles = (isActive) => ({
     padding: '8px 12px',
     cursor: 'pointer',
@@ -1701,184 +2048,6 @@ const BDOComplaintsContent = () => {
 
   return (
     <div>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            {t('common:complaints')}
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => handleScopeChange(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div
-            data-location-dropdown
-            style={{
-              position: 'relative',
-              minWidth: '200px'
-            }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
-            {showLocationDropdown && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  minWidth: '280px'
-                }}
-              >
-                {/* BDO: Simple GP list from assigned block */}
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {loadingGPs ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading GPs...
-                    </div>
-                  ) : gramPanchayats.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No GPs found for your block
-                    </div>
-                  ) : (
-                    gramPanchayats.map((gp) => {
-                      const isSelectedGP = selectedLocation === gp.name;
-                      return (
-                        <div
-                          key={`gp-${gp.id}`}
-                          onClick={() => handleGPClick(gp)}
-                          style={getMenuItemStyles(isSelectedGP)}
-                        >
-                          <span>{gp.name}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            const rawDistrict = (bdoDistrictName || '').trim();
-            const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
-              return parts.join(' / ');
-            } else if (activeScope === 'GPs') {
-              const gpName = (selectedLocation || '').trim();
-              const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
-              return parts.join(' / ');
-            }
-            return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-          })()}
-        </span>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2284,485 +2453,635 @@ const BDOComplaintsContent = () => {
         borderRadius: '8px',
         border: '1px solid lightgray'
       }}>
-        {/* Table Header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: '20px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            <h2 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: '#111827',
-              margin: 0
-            }}>
-              {t('common:complaints')}
-            </h2>
-            <span style={{
-              fontSize: '14px',
-              color: '#6b7280'
-            }}>
-              {getDateDisplayText()}
-            </span>
-
-            {/* Status Filter */}
-            <div
-              data-filter-dropdown
-              style={{
-                position: 'relative',
-                minWidth: '140px'
-              }}
-            >
-              <button
-                onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  backgroundColor: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              >
-                <span>{activeFilter}</span>
-                <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-              </button>
-
-              {/* Filter Dropdown */}
-              {showFilterDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: '100%',
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  zIndex: 1000,
-                  marginTop: '4px'
-                }}>
-                  {filterButtons.map((filter) => (
-                    <div
-                      key={filter}
-                      onClick={() => {
-                        console.log('🎯 Filter clicked:', filter, 'Normalized:', normalizeStatusForFilter(filter));
-                        setActiveFilter(filter);
-                        setShowFilterDropdown(false);
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        color: '#374151',
-                        backgroundColor: activeFilter === filter ? '#f3f4f6' : 'transparent',
-                        borderBottom: filter !== filterButtons[filterButtons.length - 1] ? '1px solid #f3f4f6' : 'none'
-                      }}
-                    >
-                      {filter}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Show Escalated Button */}
-            <button
-              onClick={() => setShowOnlyEscalated(!showOnlyEscalated)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: showOnlyEscalated ? '#dc2626' : '#fee2e2',
-                color: showOnlyEscalated ? '#ffffff' : '#b91c1c',
-                border: '1px solid #fca5a5',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease-in-out',
-                boxShadow: showOnlyEscalated ? '0 2px 4px rgba(220, 38, 38, 0.2)' : 'none'
-              }}
-            >
-              <span style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
-                display: 'inline-block'
-              }} />
-              {showOnlyEscalated ? 'Block Escalation' : 'Block Escalation'}
-            </button>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '16px'
-          }}>
-            {/* Search Bar */}
-            <div style={{
-              position: 'relative',
-              width: '200px'
-            }}>
-              <Search style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                width: '16px',
-                height: '16px',
-                color: '#9ca3af'
-              }} />
-              <input
-                type="text"
-                placeholder={t('table:search')}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  paddingLeft: '40px',
-                  paddingRight: '12px',
-                  paddingTop: '8px',
-                  paddingBottom: '8px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  outline: 'none',
-                  fontSize: '14px'
-                }}
-              />
-            </div>
-
-            <button
-              onClick={exportToCSV}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Download style={{ width: '16px', height: '16px' }} />
-
-            </button>
-
-          </div>
-        </div>
-
-        {/* Complaints Table */}
-        <div style={{
-          overflowX: 'auto',
-          maxHeight: '300px',
-          overflowY: 'auto',
-          border: '1px solid #e5e7eb',
-          borderRadius: '8px'
-        }}>
-          <table style={{
-            width: '100%',
-            borderCollapse: 'collapse'
-          }}>
-            <thead style={{
-              position: 'sticky',
-              top: 0,
-              backgroundColor: 'white',
-              zIndex: 10
-            }}>
-              <tr style={{
-                borderBottom: '2px solid #e5e7eb'
-              }}>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('submittedBy')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:userNumber')}
-                    <SortIcon col="submittedBy" />
-                  </div>
-                </th>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('location')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:addressGP')}
-                    <SortIcon col="location" />
-                  </div>
-                </th>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('title')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:typeOfComplaint')}
-                    <SortIcon col="title" />
-                  </div>
-                </th>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('submittedDate')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:dateOfComplaint')}
-                    <SortIcon col="submittedDate" />
-                  </div>
-                </th>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('statusDisplay')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:status')}
-                    <SortIcon col="statusDisplay" />
-                  </div>
-                </th>
-                <th 
-                  style={{
-                    padding: '12px',
-                    textAlign: 'left',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#374151',
-                    position: 'relative',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => handleSort('last_sla_breach_level')}
-                >
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:slaEscalation') || 'SLA Escalation'}
-                    <SortIcon col="last_sla_breach_level" />
-                  </div>
-                </th>
-                <th style={{
-                  padding: '12px',
-                  textAlign: 'left',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  position: 'relative'
-                }}>
-                  {t('table:action')}
-                </th>
-              </tr>
-            </thead>
-            <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
-              {loadingComplaints ? (
-                <tr>
-                  <td colSpan="7" style={{
-                    padding: '40px',
-                    textAlign: 'center',
-                    fontSize: '14px',
-                    color: '#6b7280'
-                  }}>
-                    Loading complaints...
-                  </td>
-                </tr>
-              ) : (complaintsError || filteredComplaints.length === 0) ? (
-                <tr>
-                  <td colSpan="7" style={{ padding: 0 }}>
-                    <NoDataFound size="small" />
-                  </td>
-                </tr>
-              ) : (() => {
-                console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
-                return sortedComplaints.map((complaint, index) => (
-                  <tr
-                    onClick={() => handleOpenComplaintDetails(complaint.ids)}
-                    className='hover:bg-gray-50 cursor-pointer'
-                    key={complaint.id || `complaint-${index}`} style={{
-                      borderBottom: '1px solid #f3f4f6'
-                    }}>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      <div>
-                        <div style={{
-                          fontWeight: '500',
-                          marginBottom: '2px'
-                        }}>
-                          {complaint.submittedBy || 'N/A'}
-                        </div>
-                        <div style={{
-                          fontSize: '12px',
-                          color: '#6b7280'
-                        }}>
-                          {complaint.submittedBy || 'N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {complaint.location || 'N/A'}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {complaint.title || 'N/A'}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px',
-                      color: '#374151'
-                    }}>
-                      {complaint.submittedDate || 'N/A'}
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px'
-                    }}>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '90%'
-                      }}>
-                        <div style={{
-                          display: 'inline-block',
-                          backgroundColor: complaint.statusColor === '#ef4444' ? '#fef2f2' :
-                            complaint.statusColor === '#f97316' ? '#fff7ed' :
-                              complaint.statusColor === '#8b5cf6' ? '#faf5ff' : '#f0fdf4',
-                          color: complaint.statusColor,
-                          padding: '4px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }} title={complaint.status || 'N/A'}>
-                          {complaint.statusDisplay || complaint.status || 'N/A'}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{
-                      padding: '12px',
-                      fontSize: '14px'
-                    }}>
-                      <SLABadge level={complaint.last_sla_breach_level} />
-                    </td>
-                    <td>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation(); // row click ko prevent karega
-                          handleOpenNoticeModal(complaint);
-                        }}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: 'transparent',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '12px',
-                          color: '#374151',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {t('table:sendNotice')}
-                      </button>
-                    </td>
-                  </tr>
-                ));
-              })()}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Scroll Indicator */}
-        {filteredComplaints.length > 0 && (
-          <div style={{
-            padding: '12px 16px',
-            backgroundColor: '#f9fafb',
-            borderTop: '1px solid #e5e7eb',
-            borderRadius: '0 0 8px 8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '14px',
-            color: '#6b7280'
-          }}>
-            <span>
-              {filteredComplaints.length} {t('table:complaintsTotal')}
-            </span>
+        {!isGpDetailView && (
+          <div style={{ marginBottom: '20px' }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              fontSize: '12px',
-              color: '#9ca3af'
+              justifyContent: 'space-between',
+              marginBottom: '16px'
             }}>
-              <span>{t('table:scrollToSee')}</span>
-              <div style={{
-                width: '16px',
-                height: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                ↕
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  {viewingGPsForBlock ? 'GPs in selected block' : viewingBlocksForDistrict ? 'Blocks in selected district' : 'Districts'}
+                </h2>
+                <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
+                  {viewingGPsForBlock
+                    ? 'Select a GP to view its complaints.'
+                    : viewingBlocksForDistrict
+                      ? 'Select the assigned block to view its GPs.'
+                      : 'BDO view is restricted to the assigned district, block and its GPs.'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {viewingGPsForBlock ? (
+                  <button onClick={handleBackToBlocks} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer' }}>
+                    Back to blocks
+                  </button>
+                ) : viewingBlocksForDistrict ? (
+                  <button onClick={handleBackToDistricts} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer' }}>
+                    Back to districts
+                  </button>
+                ) : null}
               </div>
             </div>
+
+            <div style={{ overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead style={{ backgroundColor: '#f9fafb' }}>
+                  <tr>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      {viewingGPsForBlock ? 'GP Name' : viewingBlocksForDistrict ? 'Block Name' : 'District Name'}
+                    </th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Total Complaints
+                    </th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Open
+                    </th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                      Resolved
+                    </th>
+                    {viewingGPsForBlock && (
+                      <th style={{ padding: '12px', textAlign: 'right', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                        Action
+                      </th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loadingDistrictSummary || loadingBlocksSummary || loadingGpsSummary ? (
+                    <tr>
+                      <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                        Loading {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data...
+                      </td>
+                    </tr>
+                  ) : (() => {
+                    const dataToDisplay = viewingGPsForBlock ? gpsSummaryData : viewingBlocksForDistrict ? blocksSummaryData : districtSummaryData;
+                    if (!dataToDisplay || dataToDisplay.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                            No {viewingGPsForBlock ? 'GP' : viewingBlocksForDistrict ? 'block' : 'district'} data available
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return dataToDisplay.map((item) => (
+                      <tr key={item.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '12px', fontSize: '14px', color: '#374151', fontWeight: '500' }}>
+                          {viewingGPsForBlock ? (
+                            <div
+                              onClick={() => handleGPHierarchyClick(item)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                color: '#10b981',
+                                fontWeight: '600',
+                                transition: 'opacity 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.opacity = '0.8';
+                                e.target.style.textDecoration = 'underline';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.opacity = '1';
+                                e.target.style.textDecoration = 'none';
+                              }}
+                            >
+                              <span>{item.name}</span>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                if (viewingBlocksForDistrict) {
+                                  handleBlockHierarchyClick(item);
+                                } else {
+                                  handleDistrictHierarchyClick(item);
+                                }
+                              }}
+                              style={{ cursor: 'pointer', color: '#374151' }}
+                            >
+                              {item.name}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: '#374151' }}>{item.totalComplaints}</td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: '#374151' }}>{item.openComplaints}</td>
+                        <td style={{ padding: '12px', fontSize: '14px', color: '#374151' }}>{item.resolvedComplaints}</td>
+                        {viewingGPsForBlock && (
+                          <td style={{ padding: '12px', textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleGPHierarchyClick(item)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontWeight: '600',
+                                fontSize: '12px'
+                              }}
+                            >
+                              View
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
+
+        {isGpDetailView && (
+          <>
+            {/* Table Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '20px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px'
+              }}>
+                <h2 style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: 0
+                }}>
+                  {t('common:complaints')}
+                </h2>
+                <span style={{
+                  fontSize: '14px',
+                  color: '#6b7280'
+                }}>
+                  {getDateDisplayText()}
+                </span>
+
+                {/* Status Filter */}
+                <div
+                  data-filter-dropdown
+                  style={{
+                    position: 'relative',
+                    minWidth: '140px'
+                  }}
+                >
+                  <button
+                    onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      backgroundColor: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}
+                  >
+                    <span>{activeFilter}</span>
+                    <ChevronDown style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
+                  </button>
+
+                  {/* Filter Dropdown */}
+                  {showFilterDropdown && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                      zIndex: 1000,
+                      marginTop: '4px'
+                    }}>
+                      {filterButtons.map((filter) => (
+                        <div
+                          key={filter}
+                          onClick={() => {
+                            console.log('🎯 Filter clicked:', filter, 'Normalized:', normalizeStatusForFilter(filter));
+                            setActiveFilter(filter);
+                            setShowFilterDropdown(false);
+                          }}
+                          style={{
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: '#374151',
+                            backgroundColor: activeFilter === filter ? '#f3f4f6' : 'transparent',
+                            borderBottom: filter !== filterButtons[filterButtons.length - 1] ? '1px solid #f3f4f6' : 'none'
+                          }}
+                        >
+                          {filter}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Show Escalated Button */}
+                <button
+                  onClick={() => setShowOnlyEscalated(!showOnlyEscalated)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: showOnlyEscalated ? '#dc2626' : '#fee2e2',
+                    color: showOnlyEscalated ? '#ffffff' : '#b91c1c',
+                    border: '1px solid #fca5a5',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    transition: 'all 0.2s ease-in-out',
+                    boxShadow: showOnlyEscalated ? '0 2px 4px rgba(220, 38, 38, 0.2)' : 'none'
+                  }}
+                >
+                  <span style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
+                    display: 'inline-block'
+                  }} />
+                  {showOnlyEscalated ? 'Showing GP Escalation' : 'GP Escalation'}
+                </button>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px'
+              }}>
+                {/* Search Bar */}
+                <div style={{
+                  position: 'relative',
+                  width: '200px'
+                }}>
+                  <Search style={{
+                    position: 'absolute',
+                    left: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    color: '#9ca3af'
+                  }} />
+                  <input
+                    type="text"
+                    placeholder={t('table:search')}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    style={{
+                      width: '100%',
+                      paddingLeft: '40px',
+                      paddingRight: '12px',
+                      paddingTop: '8px',
+                      paddingBottom: '8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+
+                <button
+                  onClick={exportToCSV}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Download style={{ width: '16px', height: '16px' }} />
+
+                </button>
+
+              </div>
+            </div>
+
+            {/* Complaints Table */}
+            <div style={{
+              overflowX: 'auto',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px'
+            }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse'
+              }}>
+                <thead style={{
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 10
+                }}>
+                  <tr style={{
+                    borderBottom: '2px solid #e5e7eb'
+                  }}>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('submittedBy')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:userNumber')}
+                        <SortIcon col="submittedBy" />
+                      </div>
+                    </th>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('location')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:addressGP')}
+                        <SortIcon col="location" />
+                      </div>
+                    </th>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('title')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:typeOfComplaint')}
+                        <SortIcon col="title" />
+                      </div>
+                    </th>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('submittedDate')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:dateOfComplaint')}
+                        <SortIcon col="submittedDate" />
+                      </div>
+                    </th>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('statusDisplay')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:status')}
+                        <SortIcon col="statusDisplay" />
+                      </div>
+                    </th>
+                    <th 
+                      style={{
+                        padding: '12px',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#374151',
+                        position: 'relative',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => handleSort('last_sla_breach_level')}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        {t('table:slaEscalation') || 'SLA Escalation'}
+                        <SortIcon col="last_sla_breach_level" />
+                      </div>
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      position: 'relative'
+                    }}>
+                      {t('table:action')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
+                  {loadingComplaints ? (
+                    <tr>
+                      <td colSpan="7" style={{
+                        padding: '40px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#6b7280'
+                      }}>
+                        Loading complaints...
+                      </td>
+                    </tr>
+                  ) : (complaintsError || filteredComplaints.length === 0) ? (
+                    <tr>
+                      <td colSpan="7" style={{ padding: 0 }}>
+                        <NoDataFound size="small" />
+                      </td>
+                    </tr>
+                  ) : (() => {
+                    console.log('📊 Rendering table with', filteredComplaints.length, 'complaints. Active filter:', activeFilter, 'Sample statuses:', filteredComplaints.slice(0, 3).map(c => ({ id: c.id, status: c.statusDisplay })));
+                    return sortedComplaints.map((complaint, index) => (
+                      <tr
+                        onClick={() => handleOpenComplaintDetails(complaint.ids)}
+                        className='hover:bg-gray-50 cursor-pointer'
+                        key={complaint.id || `complaint-${index}`} style={{
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          <div>
+                            <div style={{
+                              fontWeight: '500',
+                              marginBottom: '2px'
+                            }}>
+                              {complaint.submittedBy || 'N/A'}
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: '#6b7280'
+                            }}>
+                              {complaint.submittedBy || 'N/A'}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {complaint.location || 'N/A'}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {complaint.title || 'N/A'}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px',
+                          color: '#374151'
+                        }}>
+                          {complaint.submittedDate || 'N/A'}
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px'
+                        }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            width: '90%'
+                          }}>
+                            <div style={{
+                              display: 'inline-block',
+                              backgroundColor: complaint.statusColor === '#ef4444' ? '#fef2f2' :
+                                complaint.statusColor === '#f97316' ? '#fff7ed' :
+                                  complaint.statusColor === '#8b5cf6' ? '#faf5ff' : '#f0fdf4',
+                              color: complaint.statusColor,
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              fontWeight: '500'
+                            }} title={complaint.status || 'N/A'}>
+                              {complaint.statusDisplay || complaint.status || 'N/A'}
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{
+                          padding: '12px',
+                          fontSize: '14px'
+                        }}>
+                          <SLABadge level={complaint.last_sla_breach_level} />
+                        </td>
+                        <td>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation(); // row click ko prevent karega
+                              handleOpenNoticeModal(complaint);
+                            }}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: 'transparent',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              fontSize: '12px',
+                              color: '#374151',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t('table:sendNotice')}
+                          </button>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Scroll Indicator */}
+            {filteredComplaints.length > 0 && (
+              <div style={{
+                padding: '12px 16px',
+                backgroundColor: '#f9fafb',
+                borderTop: '1px solid #e5e7eb',
+                borderRadius: '0 0 8px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '14px',
+                color: '#6b7280'
+              }}>
+                <span>
+                  {filteredComplaints.length} {t('table:complaintsTotal')}
+                </span>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '12px',
+                  color: '#9ca3af'
+                }}>
+                  <span>{t('table:scrollToSee')}</span>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    ↕
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

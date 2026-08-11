@@ -32,6 +32,7 @@ import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
 import SchemesContent from '../SchemesContent';
+import BDONavigationHeader from './BDONavigationHeader';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -191,6 +192,12 @@ const UnifiedDashboardBDO = () => {
 
   const { t } = useTranslation(['common', 'dashboard']);
 
+  const handleScopeChange = (scope) => {
+    if (bdoLocation?.setActiveScope) {
+      bdoLocation.setActiveScope(scope);
+    }
+  };
+
 
   // Show loading screen while BDO data is being fetched
   if (!bdoLocation || bdoLocation.loadingBDOData || !bdoLocation.bdoDistrictId || !bdoLocation.bdoBlockId) {
@@ -296,6 +303,13 @@ const UnifiedDashboardBDO = () => {
             pageTitle={t(activeItem)}
             onMenuClick={() => setIsSidebarOpen(prev => !prev)}
             onNotificationsClick={() => setActiveItem('notices')}
+          />
+          <BDONavigationHeader
+            activeScope={bdoLocation?.activeScope || 'GPs'}
+            onScopeChange={handleScopeChange}
+            districtName={bdoLocation?.bdoDistrictName || 'District'}
+            blockName={bdoLocation?.bdoBlockName || 'Block'}
+            moduleName={t(activeItem)}
           />
           <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
             {renderContent()}

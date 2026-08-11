@@ -325,20 +325,15 @@ const BDOInspectionContent = () => {
 
   const handleDistrictClick = (district) => {
     if (activeScope === 'Districts') {
-      setSelectedDistrictId?.(district.id);
       setSelectedLocation(district.name);
-      setSelectedLocationId?.(district.id);
+      setSelectedLocationId(district.id);
       fetchBlocks(district.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'Blocks') {
-      setSelectedDistrictForHierarchy?.(district);
-      setSelectedBlockForHierarchy?.(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       fetchBlocks(district.id);
     } else if (activeScope === 'GPs') {
-      setSelectedDistrictForHierarchy?.(district);
-      setSelectedBlockForHierarchy?.(null);
       setSelectedLocation('Select Block');
       setDropdownLevel('blocks');
       fetchBlocks(district.id);
@@ -359,17 +354,13 @@ const BDOInspectionContent = () => {
     if (activeScope === 'Blocks') {
       const district = districts.find(d => d.id === (block.district_id || selectedDistrictForHierarchy?.id)) || selectedDistrictForHierarchy;
       if (district) {
-        setSelectedDistrictId?.(district.id);
-        setSelectedDistrictForHierarchy?.(district);
+        setSelectedLocation(block.name);
       }
-      setSelectedBlockId?.(block.id);
-      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation(block.name);
-      setSelectedLocationId?.(block.id);
+      setSelectedLocationId(block.id);
       fetchGramPanchayats(district?.id, block.id);
       setShowLocationDropdown(false);
     } else if (activeScope === 'GPs') {
-      setSelectedBlockForHierarchy?.(block);
       setSelectedLocation('Select GP');
       setDropdownLevel('gps');
       fetchGramPanchayats(selectedDistrictForHierarchy?.id || selectedDistrictId, block.id);
@@ -380,18 +371,9 @@ const BDOInspectionContent = () => {
     const block = blocks.find(b => b.id === (gp.block_id || selectedBlockForHierarchy?.id || selectedBlockId)) || selectedBlockForHierarchy;
     const district = districts.find(d => d.id === (block?.district_id || selectedDistrictForHierarchy?.id || selectedDistrictId)) || selectedDistrictForHierarchy;
 
-    if (district) {
-      setSelectedDistrictId?.(district.id);
-      setSelectedDistrictForHierarchy?.(district);
-    }
-    if (block) {
-      setSelectedBlockId?.(block.id);
-      setSelectedBlockForHierarchy?.(block);
-    }
-
     setSelectedGPId(gp.id);
     setSelectedLocation(gp.name);
-    setSelectedLocationId?.(gp.id);
+    setSelectedLocationId(gp.id);
     fetchGramPanchayats(district?.id, block?.id || gp.block_id);
     setShowLocationDropdown(false);
   };
@@ -1719,235 +1701,6 @@ const BDOInspectionContent = () => {
 
   return (
     <div>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Inspection
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => setActiveScope(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div style={{
-            position: 'relative',
-            minWidth: '200px'
-          }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
-            {showLocationDropdown && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  minWidth: '280px'
-                }}
-              >
-                {/* BDO: Simple GP list from assigned block */}
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {loadingGPs ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading GPs...
-                    </div>
-                  ) : gramPanchayats.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No GPs found for your block
-                    </div>
-                  ) : (
-                    gramPanchayats.map((gp) => {
-                      const isSelectedGP = selectedLocation === gp.name;
-                      return (
-                        <div
-                          key={`gp-${gp.id}`}
-                          onClick={() => handleGPClick(gp)}
-                          style={getMenuItemStyles(isSelectedGP)}
-                        >
-                          <span>{gp.name}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
-      {activeScope !== 'GPs' && (
-        !showMyInspections ? (
-          <div style={{
-            padding: '10px 16px 0px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between'
-          }}>
-            <span style={{
-              fontSize: '14px',
-              color: '#6B7280',
-              fontWeight: '600'
-            }}>
-              {(() => {
-                const rawDistrict = (bdoDistrictName || '').trim();
-                const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-                const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-                const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
-                if (activeScope === 'State') {
-                  return selectedLocation;
-                } else if (activeScope === 'Districts') {
-                  return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-                } else if (activeScope === 'Blocks') {
-                  const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
-                  return parts.join(' / ');
-                } else if (activeScope === 'GPs') {
-                  const gpName = (selectedLocation || '').trim();
-                  const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
-                  return parts.join(' / ');
-                }
-                return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-              })()}
-            </span>
-
-            {/* My Inspections Button */}
-            <button
-              onClick={() => setShowMyInspections(true)}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#10b981',
-                color: 'white',
-                border: 'none',
-                borderRadius: '20px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
-              }}
-            >
-              My inspections ({yourInspectionsData?.total || '0'})
-            </button>
-          </div>
-        ) : (
-          <div style={{
-            padding: '10px 16px 0px 16px',
-          }}>
-            <button
-              onClick={() => setShowMyInspections(false)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '16px',
-                color: '#374151',
-                cursor: 'pointer',
-                fontWeight: '500'
-              }}
-            >
-              <ChevronRight style={{ width: '18px', height: '18px', transform: 'rotate(180deg)' }} />
-              Back
-            </button>
-          </div>
-        )
-      )}
-
       {/* Overview Section - Hide when My Inspections is active (except in GP view) */}
       {(!showMyInspections || activeScope === 'GPs') && (
         <div style={{

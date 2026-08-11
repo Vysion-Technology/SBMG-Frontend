@@ -296,6 +296,20 @@ code {
   overflow: hidden;
 }
 
+/* Complaints table defensive rules to avoid expanding layout from long text */
+.complaints-table {
+  table-layout: fixed;
+  width: 100%;
+  box-sizing: border-box;
+}
+.complaints-table th,
+.complaints-table td {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  min-width: 0;
+}
+
 /* Complaints dashboard responsive */
 @media (max-width: 640px) {
   .complaints-dashboard .apexcharts-canvas {

@@ -25,6 +25,13 @@ export const BDOLocationProvider = ({ children }) => {
 
   // Global state for location selection (BDO can only select GPs within their block)
   const [activeScope, setActiveScope] = useState('GPs'); // Default to GPs for BDO
+
+  const enforceBlockScope = useCallback((scope) => {
+    if (scope === 'Districts' || scope === 'State') {
+      return 'GPs';
+    }
+    return scope || 'GPs';
+  }, []);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
 
@@ -101,6 +108,7 @@ export const BDOLocationProvider = ({ children }) => {
 
   // Update location selection with change tracking
   const updateLocationSelection = useCallback((scope, location, locationId, districtId = null, blockId = null, gpId = null, changeType = 'selection') => {
+    const safeScope = enforceBlockScope(scope);
     const timestamp = new Date().toISOString();
     const changeData = {
       timestamp,
@@ -114,7 +122,7 @@ export const BDOLocationProvider = ({ children }) => {
         gpId: selectedGPId
       },
       current: {
-        scope,
+        scope: safeScope,
         location,
         locationId,
         districtId: districtId || bdoDistrictId, // Always use BDO's district
@@ -124,12 +132,13 @@ export const BDOLocationProvider = ({ children }) => {
     };
 
     // Update state (always maintain BDO's district and block)
-    setActiveScope(scope);
+    setActiveScope(safeScope);
     setSelectedLocation(location);
     setSelectedLocationId(locationId);
     setSelectedDistrictId(districtId || bdoDistrictId); // Ensure we always have BDO's district
     setSelectedBlockId(blockId || bdoBlockId); // Ensure we always have BDO's block
     setSelectedGPId(gpId);
+    setSelectedGPForHierarchy(gpId ? { id: gpId, name: location } : null);
 
     // Track the change
     setLastChange(changeData);
@@ -141,6 +150,7 @@ export const BDOLocationProvider = ({ children }) => {
 
   // Track tab changes specifically
   const trackTabChange = useCallback((newScope) => {
+    const safeScope = enforceBlockScope(newScope);
     const timestamp = new Date().toISOString();
     const changeData = {
       timestamp,
@@ -154,7 +164,7 @@ export const BDOLocationProvider = ({ children }) => {
         gpId: selectedGPId
       },
       current: {
-        scope: newScope,
+        scope: safeScope,
         location: selectedLocation,
         locationId: selectedLocationId,
         districtId: bdoDistrictId, // Always maintain BDO's district
@@ -299,7 +309,7 @@ export const BDOLocationProvider = ({ children }) => {
     loadingBDOData, // BDO-specific
 
     // Setters
-    setActiveScope,
+    setActiveScope: (scope) => setActiveScope(enforceBlockScope(scope)),
     setSelectedLocation,
     setSelectedLocationId,
     setSelectedGPId,
