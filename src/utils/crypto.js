@@ -11,9 +11,12 @@ export async function rsaEncrypt(pemKey, plaintext) {
     // 1. Parse the PEM public key into a forge public key object
     const publicKey = forge.pki.publicKeyFromPem(pemKey);
 
+    // Convert UTF-16 JavaScript string to UTF-8 binary string
+    const utf8Plaintext = forge.util.encodeUtf8(plaintext);
+
     // 2. Encrypt using RSA-OAEP with SHA-256
     // The configuration matches standard Web Crypto API and Node.js defaults
-    const encrypted = publicKey.encrypt(plaintext, 'RSA-OAEP', {
+    const encrypted = publicKey.encrypt(utf8Plaintext, 'RSA-OAEP', {
       md: forge.md.sha256.create(),
       mgf1: {
         md: forge.md.sha256.create()
