@@ -20,5 +20,8 @@
     "openComplaintsDescription": "Complaints that are currently open and awaiting action.",
     "resolvedComplaintsDescription": "Complaints resolved after action was taken.",
     "verifiedComplaintsDescription": "Complaints verified by the VDO.",
-    "disposedComplaintsDescription": "Complaints closed after final disposal or resolution confirmation."
+    "disposedComplaintsDescription": "Complaints closed after final disposal or resolution confirmation.",
+    "complainantName": "Complainant Name",
+    "enterComplainantName": "Enter Complainant Name",
+    "complainant": "Complainant"
 }

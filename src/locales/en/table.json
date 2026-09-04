@@ -9,6 +9,8 @@
   "avgResolutionDays": "Avg. Resolution (Days)",
   "complaintsClosedPercent": "Complaints Closed",
   "complaintId": "Complaint ID",
+  "complainantName": "Complainant Name",
+  "enterComplainantName": "Enter Complainant Name",
   "complaintType": "Complaint Type",
   "createdDate": "Created Date",
   "resolvedDate": "Resolved Date",

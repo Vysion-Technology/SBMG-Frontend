@@ -9,6 +9,8 @@
   "avgResolutionDays": "औसत समाधान समय (दिन)",
   "complaintsClosedPercent": "बंद शिकायतें",
   "complaintId": "शिकायत आईडी",
+  "complainantName": "शिकायतकर्ता का नाम",
+  "enterComplainantName": "शिकायतकर्ता का नाम दर्ज करें",
   "complaintType": "शिकायत का प्रकार",
   "createdDate": "निर्माण तिथि",
   "resolvedDate": "समाधान तिथि",

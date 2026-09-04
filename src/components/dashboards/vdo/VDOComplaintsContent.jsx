@@ -1285,6 +1285,7 @@ const VDOComplaintsContent = () => {
       priority: 'Medium', // API doesn't provide priority, using default
       location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
       submittedBy: complaint.mobile_number || 'N/A',
+      complainant_name: complaint.complainant_name || null,
       submittedDate: complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
       assignedTo: complaint.assigned_worker || 'Unassigned',
       statusColor,
@@ -1363,6 +1364,7 @@ const VDOComplaintsContent = () => {
       complaint.id.toLowerCase().includes(q) ||
       (complaint.location || '').toLowerCase().includes(q) ||
       (complaint.submittedBy || '').toLowerCase().includes(q) ||
+      (complaint.complainant_name || '').toLowerCase().includes(q) ||
       (complaint.submittedDate || '').toLowerCase().includes(q) ||
       (complaint.statusDisplay || complaint.status || '').toLowerCase().includes(q) ||
       (complaint.assignedTo || '').toLowerCase().includes(q) ||
@@ -1378,6 +1380,13 @@ const VDOComplaintsContent = () => {
 
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
+
+    // ✅ ID SORT
+    if (sortConfig.key === 'id' || sortConfig.key === 'ids') {
+      const numA = Number(a.ids) || 0;
+      const numB = Number(b.ids) || 0;
+      return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+    }
 
     // ✅ ESCALATION SORT
     if (sortConfig.key === 'last_sla_breach_level') {
@@ -2186,11 +2195,11 @@ const VDOComplaintsContent = () => {
                     position: 'relative',
                     cursor: 'pointer'
                   }}
-                  onClick={() => handleSort('submittedBy')}
+                  onClick={() => handleSort('ids')}
                 >
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:userNumber')}
-                    <SortIcon col="submittedBy" />
+                    {t('table:complaintId')}
+                    <SortIcon col="ids" />
                   </div>
                 </th>
                 <th
@@ -2317,8 +2326,18 @@ const VDOComplaintsContent = () => {
                           fontWeight: '500',
                           marginBottom: '2px'
                         }}>
-                          {complaint.submittedBy || 'N/A'}
+                          {complaint.id || (complaint.ids ? `COMP-${complaint.ids}` : 'N/A')}
                         </div>
+                        {complaint.complainant_name && (
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#111827',
+                            marginBottom: '1px'
+                          }}>
+                            {complaint.complainant_name}
+                          </div>
+                        )}
                         <div style={{
                           fontSize: '12px',
                           color: '#6b7280'

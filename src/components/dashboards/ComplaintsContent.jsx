@@ -118,6 +118,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
     complaintTypeId: '',
     details: '',
     phone_number: '',
+    complainantName: '',
     districtId: '',
     blockId: '',
     gpId: '',
@@ -1938,6 +1939,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       priority: 'Medium', // API doesn't provide priority, using default
       location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
       submittedBy: complaint.mobile_number || 'N/A',
+      complainant_name: complaint.complainant_name || null,
       submittedDate: complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
       assignedTo: complaint.assigned_worker || 'Unassigned',
       statusColor,
@@ -2009,6 +2011,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       complaint.id.toLowerCase().includes(q) ||
       (complaint.location || '').toLowerCase().includes(q) ||
       (complaint.submittedBy || '').toLowerCase().includes(q) ||
+      (complaint.complainant_name || '').toLowerCase().includes(q) ||
       (complaint.submittedDate || '').toLowerCase().includes(q) ||
       (complaint.status || '').toLowerCase().includes(q) ||
       (complaint.assignedTo || '').toLowerCase().includes(q) ||
@@ -2024,6 +2027,13 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
 
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
+
+    // ✅ ID SORT
+    if (sortConfig.key === 'id' || sortConfig.key === 'ids') {
+      const numA = Number(a.ids) || 0;
+      const numB = Number(b.ids) || 0;
+      return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+    }
 
     // ✅ ESCALATION SORT
     if (sortConfig.key === 'last_sla_breach_level') {
@@ -3649,11 +3659,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                   position: 'relative'
                 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:userNumber')}
+                    {t('table:complaintId')}
                     <span
                       style={{ cursor: 'pointer', }}
-                      onClick={() => handleSort('submittedBy')}>
-                      <SortIcon col="submittedBy" />
+                      onClick={() => handleSort('ids')}>
+                      <SortIcon col="ids" />
                     </span>
                   </div>
 
@@ -3810,8 +3820,18 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                           fontWeight: '500',
                           marginBottom: '2px'
                         }}>
-                          {complaint.submittedBy || 'N/A'}
+                          {complaint.id || (complaint.ids ? `COMP-${complaint.ids}` : 'N/A')}
                         </div>
+                        {complaint.complainant_name && (
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#111827',
+                            marginBottom: '1px'
+                          }}>
+                            {complaint.complainant_name}
+                          </div>
+                        )}
                         <div style={{
                           fontSize: '12px',
                           color: '#6b7280'
@@ -3949,6 +3969,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         open={showComplaintDetails}
         onClose={() => setShowComplaintDetails(false)}
         complaintId={selectedComplaint}
+        onSendNotice={(complaint) => handleOpenNoticeModal(complaint)}
       />
 
       {/* Raise Complaint Modal */}
@@ -4102,6 +4123,33 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               }}>
                 {complaintForm.details.length}/100
               </div>
+            </div>
+
+            {/* Complainant Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
+                {(t("table:complainantName") || t("complaints:complainantName") || "Complainant Name")}
+              </label>
+              <input
+                type="text"
+                value={complaintForm.complainantName}
+                onChange={(e) => setComplaintForm(prev => ({ ...prev, complainantName: e.target.value }))}
+                placeholder={(t("table:enterComplainantName") || t("complaints:enterComplainantName") || "Enter Complainant Name")}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  color: '#374151'
+                }}
+              />
             </div>
 
             {/* Phone Number */}
@@ -4391,6 +4439,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     complaintTypeId: '',
                     details: '',
                     phone_number: '',
+                    complainantName: '',
                     districtId: '',
                     blockId: '',
                     gpId: '',
@@ -4424,6 +4473,9 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       gp_id: complaintForm.gpId,
                       location
                     };
+                    if (complaintForm.complainantName?.trim()) {
+                      params.complainant_name = complaintForm.complainantName.trim();
+                    }
                     const body = new URLSearchParams(params).toString();
 
                     await apiClient.post('/complaints/smd/complaints', body, {
@@ -4434,6 +4486,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                       complaintTypeId: '',
                       details: '',
                       phone_number: '',
+                      complainantName: '',
                       districtId: '',
                       blockId: '',
                       gpId: '',
