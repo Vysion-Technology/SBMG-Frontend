@@ -1,0 +1,47 @@
+name: Deploy Frontend (rags-development)
+
+on:
+  push:
+    branches:
+      - rags-development
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Frontend to Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH and Deploy to Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST || secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -e
+            PROJECT_DIR="${{ secrets.SERVER_PROJECT_PATH_FRONTEND || secrets.SERVER_PROJECT_PATH }}"
+            if [ -z "$PROJECT_DIR" ]; then
+              if [ -d "$HOME/SBMG-Frontend" ]; then
+                PROJECT_DIR="$HOME/SBMG-Frontend"
+              elif [ -d "/root/SBMG-Frontend" ]; then
+                PROJECT_DIR="/root/SBMG-Frontend"
+              elif [ -d "/var/www/SBMG-Frontend" ]; then
+                PROJECT_DIR="/var/www/SBMG-Frontend"
+              else
+                PROJECT_DIR="SBMG-Frontend"
+              fi
+            fi
+
+            echo "📂 Target Directory: $PROJECT_DIR"
+            cd "$PROJECT_DIR"
+
+            echo "📥 Fetching and pulling latest code..."
+            git fetch origin rags-development
+            git checkout rags-development
+            git pull origin rags-development
+
+            chmod +x ./scripts/deploy.sh
+            ./scripts/deploy.sh

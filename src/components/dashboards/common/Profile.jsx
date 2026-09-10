@@ -42,7 +42,7 @@ const styles = {
 
 const Profile = ({ open, onClose }) => {
 
-    const { user } = useAuth();
+    const { user, refreshMe } = useAuth();
 
     const [loading, setLoading] = useState(false);
 
@@ -56,10 +56,10 @@ const Profile = ({ open, onClose }) => {
     useEffect(() => {
         if (user) {
             setFormData({
-                first_name: user.employee.first_name || '',
-                last_name: user.employee.last_name || '',
+                first_name: user?.employee?.first_name || '',
+                last_name: user?.employee?.last_name || '',
                 email: user?.email || '',
-                mobile_number: user.employee.mobile_number || ''
+                mobile_number: user?.employee?.mobile_number || ''
             });
         }
     }, [user]);
@@ -72,8 +72,6 @@ const Profile = ({ open, onClose }) => {
             [name]: value
         }));
     };
-
-    // console.log('Profile', user)
 
     const formSubmit = async (e) => {
         e.preventDefault();
@@ -106,16 +104,16 @@ const Profile = ({ open, onClose }) => {
                 mobile_number: formData.mobile_number
             };
 
-            const res = await apiClient.put(
-                'auth/profile', {
-                _id: user.id,
-                payload
+            await apiClient.put('/auth/profile', payload);
+            if (refreshMe) {
+                await refreshMe();
             }
-            );
-
+            alert('Profile updated successfully ✅');
             onClose();
         } catch (error) {
             console.error('Profile Update Error', error);
+            const msg = error.response?.data?.detail || 'Failed to update profile. Please try again.';
+            alert(`Error: ${msg}`);
         } finally {
             setLoading(false);
         }
