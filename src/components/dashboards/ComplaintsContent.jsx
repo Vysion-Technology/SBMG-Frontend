@@ -86,6 +86,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [specificDateFilter, setSpecificDateFilter] = useState('');
   const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
 
   // Raise Complaint Modal state
@@ -1862,6 +1863,8 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
         complaint.district || 'N/A',
         complaint.submittedDate || 'N/A',
         complaint.statusDisplay || complaint.status || 'N/A',
+        complaint.closed_at || '—',
+        complaint.closed_by || '—',
         complaint.assignedTo || 'Unassigned',
         complaint.priority || 'Medium',
         complaint.lat || 'N/A',
@@ -1953,7 +1956,11 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       long: complaint.long,
       media: complaint.media_urls || [],
       comments: complaint.comments || [],
-      last_sla_breach_level: complaint.last_sla_breach_level || null
+      last_sla_breach_level: complaint.last_sla_breach_level || null,
+      closed_at: complaint.closed_at ? new Date(complaint.closed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+      closed_by: complaint.closed_by_info || (complaint.closed_at ? (complaint.complainant_name || 'Citizen') : '—'),
+      rawCreatedAt: complaint.created_at || null,
+      rawClosedAt: complaint.closed_at || null
     };
   });
 
@@ -2964,6 +2971,24 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     }}>
                       {t('table:resolvedDate')}
                     </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {t('table:dateOfClosure', 'Date of Complaint Closure')}
+                    </th>
+                    <th style={{
+                      padding: '12px',
+                      textAlign: 'center',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151'
+                    }}>
+                      {t('table:closedBy', 'Closed By')}
+                    </th>
                   </>
                 ) : (
                   <>
@@ -3173,6 +3198,25 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                           ? new Date(complaint.resolved_at).toLocaleDateString()
                           : 'N/A'
                         }
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {complaint.closed_at
+                          ? new Date(complaint.closed_at).toLocaleDateString()
+                          : '—'
+                        }
+                      </td>
+                      <td style={{
+                        padding: '12px',
+                        textAlign: 'center',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        {complaint.closed_by_info || (complaint.closed_at ? (complaint.complainant_name || 'Citizen') : '—')}
                       </td>
                     </tr>
                   ))
@@ -3549,6 +3593,55 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
             alignItems: 'center',
             gap: '16px'
           }}>
+            {/* Specific Date Filter */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              height: '38px',
+              boxSizing: 'border-box'
+            }}>
+              <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
+              <input
+                type="date"
+                value={specificDateFilter}
+                onChange={(e) => setSpecificDateFilter(e.target.value)}
+                title={t('table:filterByDate', 'Filter by Date')}
+                aria-label={t('table:filterByDate', 'Filter by Date')}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '13px',
+                  color: '#374151',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
+              />
+              {specificDateFilter && (
+                <button
+                  type="button"
+                  onClick={() => setSpecificDateFilter('')}
+                  title={t('table:clearDate', 'Clear Date')}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#9ca3af',
+                    padding: '0 2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             {/* Search Bar */}
             <div style={{
               position: 'relative',
@@ -3753,6 +3846,40 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     </span>
                   </div>
                 </th>
+                <th
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('closed_at')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:dateOfClosure', 'Date of Complaint Closure')}
+                    <SortIcon col="closed_at" />
+                  </div>
+                </th>
+                <th
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('closed_by')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:closedBy', 'Closed By')}
+                    <SortIcon col="closed_by" />
+                  </div>
+                </th>
                 <th style={{
                   padding: '12px',
                   textAlign: 'left',
@@ -3897,6 +4024,20 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                     </td>
                     <td style={{
                       padding: '12px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {complaint.closed_at}
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {complaint.closed_by}
+                    </td>
+                    <td style={{
+                      padding: '12px',
                       fontSize: '14px'
                     }}>
                       <SLABadge level={complaint.last_sla_breach_level} />
@@ -3966,6 +4107,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
       </div>
 
       <ComplaintDetailsPopup
+        onStatusUpdated={() => { fetchComplaintsData(); fetchAnalyticsData(); }}
         open={showComplaintDetails}
         onClose={() => setShowComplaintDetails(false)}
         complaintId={selectedComplaint}

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer, Upload, Image as ImageIcon, X as XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useAuth } from '../../../context/AuthContext.jsx';
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
@@ -166,7 +166,7 @@ const styles = {
 
 };
 
-const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => {
+const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onStatusUpdated }) => {
     const { t } = useTranslation(['table', 'complaints', 'common']);
 
     const [popupData, setPopupData] = useState(null);
@@ -188,6 +188,19 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
             user?.role?.toUpperCase()
         ) &&
         !complaint?.closed_at;
+
+    const isVDO = user?.role?.toUpperCase() === "VDO";
+    const canVerifyComplaint =
+        isVDO &&
+        (complaint?.status?.toUpperCase() === "RESOLVED" ||
+            (complaint?.resolved_at && !complaint?.verified_at && !complaint?.closed_at));
+
+    const [showVerifyModal, setShowVerifyModal] = useState(false);
+    const [verifyComment, setVerifyComment] = useState("");
+    const [verifyMediaFile, setVerifyMediaFile] = useState(null);
+    const [verifyMediaPreview, setVerifyMediaPreview] = useState(null);
+    const [verifying, setVerifying] = useState(false);
+    const [verifyError, setVerifyError] = useState("");
 
 
     console.log("Role:", user?.role);
@@ -393,6 +406,9 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
             setComplaint(res.data);
             setShowCloseModal(false);
             setCloseRemark("");
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
 
         } catch (error) {
             console.error("Close complaint error:", error);
@@ -400,6 +416,61 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
             alert(typeof errorDetail === 'string' ? errorDetail : "Failed to close complaint");
         } finally {
             setClosing(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith("image/")) {
+                setVerifyError("Please select a valid image file.");
+                return;
+            }
+            setVerifyMediaFile(file);
+            setVerifyMediaPreview(URL.createObjectURL(file));
+            setVerifyError("");
+        }
+    };
+
+    const handleConfirmVerify = async () => {
+        if (!complaint?.id) return;
+
+        try {
+            setVerifying(true);
+            setVerifyError("");
+
+            const formData = new FormData();
+            formData.append("comment", verifyComment.trim() || "Verified by VDO");
+            if (verifyMediaFile) {
+                formData.append("media", verifyMediaFile);
+            }
+
+            await apiClient.patch(
+                `/complaints/vdo/complaints/${complaint.id}/verify`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                }
+            );
+
+            // UI refresh
+            const res = await apiClient.get(`/public/${complaint.id}/details`);
+            setComplaint(res.data);
+            setShowVerifyModal(false);
+            setVerifyComment("");
+            setVerifyMediaFile(null);
+            setVerifyMediaPreview(null);
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
+        } catch (error) {
+            console.error("Verify complaint error:", error);
+            const errorDetail = error.response?.data?.detail;
+            setVerifyError(typeof errorDetail === "string" ? errorDetail : "Failed to verify complaint");
+        } finally {
+            setVerifying(false);
         }
     };
 
@@ -512,7 +583,10 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                                             <div>
                                                                 <p style={{ fontWeight: '500', color: '#03B77B', fontSize: '18px' }}>
                                                                     Complaint has been Closed</p>
-                                                                <p style={{ color: '#666' }}> Closed <span style={{ fontSize: '12px' }}>{formatDate(complaint?.closed_at)} </span> </p>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px', fontSize: '12px', color: '#4b5563' }}>
+                                                                    <p style={{ margin: 0 }}><strong>Date of Complaint Closure:</strong> {formatDate(complaint?.closed_at)}</p>
+                                                                    <p style={{ margin: 0 }}><strong>Closed By:</strong> {complaint?.closed_by_info || complaint?.complainant_name || 'Citizen'}</p>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -616,7 +690,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                                     {complaint.description}
                                                 </p>
 
-                                                {/* Closing Remark Card for Closed Complaints */}
+                                                {/* Closing Details Card for Closed Complaints */}
                                                 {complaint?.closed_at && (
                                                     <div
                                                         style={{
@@ -627,17 +701,30 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                                             borderRadius: "8px"
                                                         }}
                                                     >
-                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
-                                                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                                                Closing Remark
-                                                            </span>
-                                                            <span style={{ fontSize: "11px", color: "#15803d", fontWeight: 500 }}>
-                                                                {complaint.closed_by_info ? `Closed by: ${complaint.closed_by_info}` : ""}
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px" }}>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                                <span style={{ fontSize: "12px", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                                    Date of Complaint Closure
+                                                                </span>
+                                                                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>
+                                                                    {formatDate(complaint.closed_at)}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                                <span style={{ fontSize: "12px", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                                    Closed By
+                                                                </span>
+                                                                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>
+                                                                    {complaint.closed_by_info || complaint.complainant_name || "Citizen"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ borderTop: "1px dashed #bbf7d0", paddingTop: "6px" }}>
+                                                            <span style={{ fontSize: "11px", fontWeight: 600, color: "#166534" }}>Closing Remark: </span>
+                                                            <span style={{ fontSize: "13px", color: "#14532d", fontWeight: 500 }}>
+                                                                {closingComment?.comment || "Complaint closed."}
                                                             </span>
                                                         </div>
-                                                        <p style={{ margin: 0, fontSize: "13px", color: "#14532d", fontWeight: 500, lineHeight: 1.4 }}>
-                                                            {closingComment?.comment || "Complaint closed."}
-                                                        </p>
                                                     </div>
                                                 )}
 
@@ -698,7 +785,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                     }
                                 </div>
 
-                                {(onSendNotice || canCloseComplaint) && complaint && (
+                                {(onSendNotice || canCloseComplaint || canVerifyComplaint) && complaint && (
                                     <div className='flex items-center justify-end gap-3 border-t border-[#D6D9DE] bg-white p-3'>
                                         {onSendNotice && (
                                             <button
@@ -724,6 +811,36 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                                 }}
                                             >
                                                 {t('table:sendNotice', 'Send Notice')}
+                                            </button>
+                                        )}
+
+                                        {canVerifyComplaint && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setVerifyComment("");
+                                                    setVerifyMediaFile(null);
+                                                    setVerifyMediaPreview(null);
+                                                    setVerifyError("");
+                                                    setShowVerifyModal(true);
+                                                }}
+                                                disabled={verifying}
+                                                style={{
+                                                    background: "#f59e0b",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    padding: "9px 20px",
+                                                    cursor: verifying ? "not-allowed" : "pointer",
+                                                    opacity: verifying ? 0.7 : 1,
+                                                    fontWeight: 500,
+                                                    fontSize: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                Verify Resolution
                                             </button>
                                         )}
 
@@ -895,6 +1012,217 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice }) => 
                                         </>
                                     ) : (
                                         "Confirm & Close"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* VDO Verify Resolution Modal with Photo Upload */}
+            <AnimatePresence>
+                {showVerifyModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2100,
+                            padding: "16px"
+                        }}
+                        onClick={() => !verifying && setShowVerifyModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "#fff",
+                                borderRadius: "12px",
+                                width: "100%",
+                                maxWidth: "500px",
+                                padding: "24px",
+                                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#111827" }}>
+                                    Verify Complaint Resolution
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => !verifying && setShowVerifyModal(false)}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "18px",
+                                        color: "#6b7280"
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p style={{ margin: "0 0 16px 0", fontSize: "14px", color: "#4b5563" }}>
+                                Verify resolution for Complaint <strong>#{complaint?.id}</strong>. You can upload proof photos from your system and provide remarks.
+                            </p>
+
+                            {/* Photo Upload Section */}
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    Proof Photo (Upload from System)
+                                </label>
+                                
+                                {verifyMediaPreview ? (
+                                    <div style={{ position: "relative", width: "100%", height: "180px", borderRadius: "8px", overflow: "hidden", border: "1px solid #d1d5db", marginBottom: "8px" }}>
+                                        <img
+                                            src={verifyMediaPreview}
+                                            alt="Verification Proof Preview"
+                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setVerifyMediaFile(null);
+                                                setVerifyMediaPreview(null);
+                                            }}
+                                            style={{
+                                                position: "absolute",
+                                                top: "8px",
+                                                right: "8px",
+                                                background: "rgba(0,0,0,0.6)",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: "50%",
+                                                width: "28px",
+                                                height: "28px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            <XIcon size={16} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "20px",
+                                            border: "2px dashed #d1d5db",
+                                            borderRadius: "8px",
+                                            cursor: "pointer",
+                                            backgroundColor: "#f9fafb",
+                                            transition: "border-color 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = "#f59e0b"}
+                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = "#d1d5db"}
+                                    >
+                                        <Upload size={24} style={{ color: "#9ca3af", marginBottom: "6px" }} />
+                                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
+                                            Click to browse and upload photo
+                                        </span>
+                                        <span style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
+                                            PNG, JPG, WebP up to 10MB
+                                        </span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            style={{ display: "none" }}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Verification Remark */}
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    Verification Remark
+                                </label>
+                                <textarea
+                                    value={verifyComment}
+                                    onChange={(e) => setVerifyComment(e.target.value)}
+                                    rows={3}
+                                    placeholder="Enter verification remarks (e.g., Work verified on site)..."
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        outline: "none",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                            </div>
+
+                            {verifyError && (
+                                <p style={{ margin: "0 0 16px 0", fontSize: "12px", color: "#ef4444" }}>
+                                    {verifyError}
+                                </p>
+                            )}
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    disabled={verifying}
+                                    onClick={() => setShowVerifyModal(false)}
+                                    style={{
+                                        padding: "9px 16px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        background: "#f9fafb",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: verifying ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={verifying}
+                                    onClick={handleConfirmVerify}
+                                    style={{
+                                        padding: "9px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: verifying ? "#fcd34d" : "#f59e0b",
+                                        color: "#fff",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: verifying ? "not-allowed" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    {verifying ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            Verifying...
+                                        </>
+                                    ) : (
+                                        "Verify & Submit"
                                     )}
                                 </button>
                             </div>
