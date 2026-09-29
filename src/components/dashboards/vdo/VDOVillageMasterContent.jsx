@@ -272,11 +272,19 @@ const VDOVillageMasterContent = () => {
       ]);
     }
 
+    if (data.surveyor_name || data.surveyor_post || data.surveyor_contact) {
+      addSection("Surveyor Details", [
+        ["Name:", data.surveyor_name || "N/A"],
+        ["Post:", data.surveyor_post || "N/A"],
+        ["Contact Number:", data.surveyor_contact || "N/A"],
+      ]);
+    }
 
     if (data.work_order) {
       addSection("Work Order", [
         ["Dispatch No:", data.work_order.work_order_no],
-        ["Date:", formatDate(data.work_order.work_order_date)],
+        ["Start Date:", formatDate(data.work_order.work_order_date)],
+        ["End Date:", formatDate(data.work_order.work_order_end_date)],
         ["Amount:", formatCurrency(data.work_order.work_order_amount)],
       ]);
     }

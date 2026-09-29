@@ -18,7 +18,7 @@ const options = [
 
 
 
-const emptyWorkOrder = () => ({ work_order_no: '', work_order_date: '', work_order_amount: '' });
+const emptyWorkOrder = () => ({ work_order_no: '', work_order_date: '', work_order_end_date: '', work_order_amount: '' });
 const emptyFundSanctioned = () => ({ amount: '', head: 'FFC' });
 const emptyDoorToDoor = () => ({ num_households: '', num_shops: '', collection_frequency: 'DAILY' });
 const emptyRoadSweeping = () => ({ width: '', length: '', cleaning_frequency: 'DAILY' });
@@ -94,9 +94,13 @@ function mapGetToForm(data) {
     vdo_contact_number: s(data.vdo_contact_number),
     sarpanch_contact: s(data.sarpanch_contact),
     num_ward_panchs: n(data.num_ward_panchs),
+    surveyor_name: s(data.surveyor_name || data.surveyor?.name || data.surveyor?.surveyor_name),
+    surveyor_post: s(data.surveyor_post || data.surveyor?.post || data.surveyor?.surveyor_post || data.surveyor_role || data.surveyor?.surveyor_role),
+    surveyor_contact: s(data.surveyor_contact || data.surveyor?.contact || data.surveyor?.surveyor_contact),
     work_order: {
       work_order_no: s(wo.work_order_no),
       work_order_date: s(wo.work_order_date) || new Date().toISOString().split('T')[0],
+      work_order_end_date: s(wo.work_order_end_date),
       work_order_amount: n(wo.work_order_amount)
     },
     fund_sanctioned: {
@@ -239,6 +243,10 @@ function formToPayload(form) {
 
     num_ward_panchs: n(form.num_ward_panchs),
 
+    surveyor_name: s(form.surveyor_name) || null,
+    surveyor_post: s(form.surveyor_post) || null,
+    surveyor_contact: s(form.surveyor_contact) || null,
+
     agency_id: Number(form.agency_id) || null,
 
     work_order: {
@@ -246,6 +254,7 @@ function formToPayload(form) {
       work_order_date:
         s(form.work_order?.work_order_date) ||
         new Date().toISOString().split('T')[0],
+      work_order_end_date: s(form.work_order?.work_order_end_date) || null,
       work_order_amount: n(form.work_order?.work_order_amount)
     },
 
@@ -554,7 +563,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
   const [moduleAgency, SetModuleAgency] = useState(false)
   const [phoneErrors, setPhoneErrors] = useState({
     sarpanch_contact: "",
-    vdo_contact_number: ""
+    vdo_contact_number: "",
+    surveyor_contact: ""
   });
   const [agencyForm, setAgencyForm] = useState({
     name: "",
@@ -623,6 +633,9 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         sarpanch_name: '',
         sarpanch_contact: '',
         num_ward_panchs: '',
+        surveyor_name: '',
+        surveyor_post: '',
+        surveyor_contact: '',
 
         work_order: emptyWorkOrder(),
         fund_sanctioned: emptyFundSanctioned(),
@@ -941,6 +954,32 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         return;
       }
 
+      if (form.surveyor_contact && form.surveyor_contact.trim().length > 0) {
+        if (form.surveyor_contact.trim().length !== 10 || !/^[6-9]\d{9}$/.test(form.surveyor_contact.trim())) {
+          setPhoneErrors(prev => ({
+            ...prev,
+            surveyor_contact: "Enter valid 10-digit mobile number (starts with 6-9)"
+          }));
+          setError("Please fix surveyor contact number ❌");
+          setSaving(false);
+          return;
+        }
+      }
+
+      if (!form.work_order?.work_order_end_date) {
+        setError("Work order end date is required ❌");
+        setSaving(false);
+        return;
+      }
+
+      if (form.work_order?.work_order_date && form.work_order?.work_order_end_date) {
+        if (new Date(form.work_order.work_order_end_date) < new Date(form.work_order.work_order_date)) {
+          setError("Work order end date cannot be earlier than start date ❌");
+          setSaving(false);
+          return;
+        }
+      }
+
 
 
       const fundAmount = Number(form.fund_sanctioned?.amount || 0);
@@ -1060,7 +1099,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     if (!isOpen) {
       setPhoneErrors({
         sarpanch_contact: "",
-        vdo_contact_number: ""
+        vdo_contact_number: "",
+        surveyor_contact: ""
       });
       setError(null);
     }
@@ -1268,10 +1308,37 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
                 </>
               ))}
-              {section((t('table:WORK_ORDER')), grid3(
+              {section((t('table:SURVEYOR_DETAILS')), grid3(
+                <>
+                  <Input
+                    label={t('table:SURVEYOR_NAME')}
+                    value={form.surveyor_name}
+                    onChange={(v) => update('surveyor_name', v)}
+                    disabled={saving}
+                    placeholder={t('table:ENTER_SURVEYOR_NAME')}
+                  />
+                  <Input
+                    label={t('table:SURVEYOR_POST')}
+                    value={form.surveyor_post}
+                    onChange={(v) => update('surveyor_post', v)}
+                    disabled={saving}
+                    placeholder={t('table:ENTER_SURVEYOR_POST')}
+                  />
+                  <Input
+                    label={t('table:SURVEYOR_CONTACT')}
+                    value={form.surveyor_contact}
+                    onChange={(v) => handlePhoneChange('surveyor_contact', v)}
+                    error={phoneErrors.surveyor_contact}
+                    disabled={saving}
+                    placeholder={t('table:ENTER_SURVEYOR_CONTACT')}
+                  />
+                </>
+              ))}
+              {section((t('table:WORK_ORDER')), grid2(
                 <>
                   <Input label={t('table:WORK_ORDER_NO')} value={form.work_order?.work_order_no} onChange={(v) => update('work_order.work_order_no', v)} disabled={saving} />
                   <Input label={t('table:WORK_ORDER_DATE')} type="date" value={form.work_order?.work_order_date} onChange={(v) => update('work_order.work_order_date', v)} disabled={saving} />
+                  <Input label={t('table:WORK_ORDER_END_DATE')} type="date" value={form.work_order?.work_order_end_date} onChange={(v) => update('work_order.work_order_end_date', v)} disabled={saving} />
                   <Input label={t('table:WORK_ORDER_AMOUNT')} type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
