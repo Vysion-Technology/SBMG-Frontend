@@ -913,7 +913,8 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
         // Events Data
         if (eventsRes.status === 'fulfilled' && eventsRes.value?.data != null) {
           const allEvents = eventsRes.value.data;
-          const active = allEvents.filter((x) => x.active === true).length;
+          const now = new Date();
+          const active = allEvents.filter((x) => x.active !== false && (!x.end_time || new Date(x.end_time) >= now)).length;
           setEventsCardData({ total: allEvents.length, active, inactive: allEvents.length - active });
         } else setEventsCardData(null);
         if (eventsRes.status === 'rejected') setEventsCardError(eventsRes.reason?.message || 'Failed to load');

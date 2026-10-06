@@ -1612,7 +1612,7 @@ const VDOComplaintsContent = () => {
 
 
   return (
-    <div>
+    <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
 
       {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
       <div style={{ padding: '10px 0px 0px 16px' }}>

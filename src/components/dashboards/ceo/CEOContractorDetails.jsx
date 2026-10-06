@@ -268,8 +268,8 @@ const CEOContractorDetails = () => {
                         <div class="value">${data.work_order.work_order_no || 'N/A'}</div>
                         <div class="label">Date:</div>
                         <div class="value">${data.work_order.work_order_date || 'N/A'}</div>
-                        <div class="label">Amount:</div>
-                        <div class="value">₹${data.work_order.work_order_amount?.toLocaleString() || 0}</div>
+                        <div class="label">Amount (in Lacs):</div>
+                        <div class="value">₹${(Number(data.work_order.work_order_amount || 0) / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L</div>
                     </div>
                 </div>
                 ` : ''}
@@ -280,8 +280,8 @@ const CEOContractorDetails = () => {
                     <div class="info-grid">
                         <div class="label">Head:</div>
                         <div class="value">${data.fund_sanctioned.head || 'N/A'}</div>
-                        <div class="label">Amount:</div>
-                        <div class="value">₹${data.fund_sanctioned.amount?.toLocaleString() || 0}</div>
+                        <div class="label">Amount (in Lacs):</div>
+                        <div class="value">₹${(Number(data.fund_sanctioned.amount || 0) / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L</div>
                     </div>
                 </div>
                 ` : ''}

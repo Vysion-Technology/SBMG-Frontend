@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer, Upload, Image as ImageIcon, X as XIcon } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer, RotateCcw, Upload, Image as ImageIcon, X as XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { useAuth } from '../../../context/AuthContext.jsx';
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
@@ -181,13 +181,27 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
     const [closeRemark, setCloseRemark] = useState("");
     const [closeRemarkError, setCloseRemarkError] = useState("");
 
+    const [reopening, setReopening] = useState(false);
+    const [showReopenModal, setShowReopenModal] = useState(false);
+    const [reopenReason, setReopenReason] = useState("");
+    const [reopenReasonError, setReopenReasonError] = useState("");
+
     const { user } = useAuth();
+
+    const isSMD = ["SMD", "ADMIN"].includes(user?.role?.toUpperCase());
 
     const canCloseComplaint =
         ["ADMIN", "CEO", "BDO", "SMD"].includes(
             user?.role?.toUpperCase()
         ) &&
         !complaint?.closed_at;
+
+    const canReopenComplaint =
+        isSMD &&
+        Boolean(
+            complaint?.closed_at ||
+            ["CLOSED", "RESOLVED", "VERIFIED"].includes(complaint?.status?.toUpperCase())
+        );
 
     const isVDO = user?.role?.toUpperCase() === "VDO";
     const canVerifyComplaint =
@@ -205,6 +219,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
 
     console.log("Role:", user?.role);
     console.log("Can Close:", canCloseComplaint);
+    console.log("Can Reopen:", canReopenComplaint);
 
 
 
@@ -353,9 +368,19 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
                 ? complaint.comments[complaint.comments.length - 1]
                 : null) || { comment: "Complaint closed." },
             showImages: false
-        }
+        },
 
-    ].filter(Boolean) : [];
+        ...(complaint?.comments || [])
+            .filter(c => c.comment && (c.comment.includes("REOPENED") || c.comment.includes("Reopened") || c.comment.toLowerCase().includes("reopened")))
+            .map(c => ({
+                status: "Reopened",
+                role: "SMD",
+                date: c.commented_at,
+                data: c,
+                showImages: false
+            }))
+
+    ].filter(Boolean).sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
 
     const closingComment = React.useMemo(() => {
         if (!complaint?.closed_at || !complaint?.comments?.length) return null;
@@ -376,6 +401,52 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
         setCloseRemark("");
         setCloseRemarkError("");
         setShowCloseModal(true);
+    };
+
+    const handleOpenReopenModal = () => {
+        setReopenReason("");
+        setReopenReasonError("");
+        setShowReopenModal(true);
+    };
+
+    const handleConfirmReopen = async () => {
+        if (!complaint?.id) return;
+
+        if (!reopenReason || !reopenReason.trim()) {
+            setReopenReasonError(t("complaints:reopenReasonRequired", "Reason is mandatory when reopening a complaint."));
+            return;
+        }
+
+        try {
+            setReopening(true);
+            setReopenReasonError("");
+
+            await apiClient.patch(
+                `/complaints/${complaint.id}/reopen`,
+                {
+                    reason: reopenReason.trim()
+                }
+            );
+
+            // UI refresh
+            const res = await apiClient.get(
+                `/public/${complaint.id}/details`
+            );
+
+            setComplaint(res.data);
+            setShowReopenModal(false);
+            setReopenReason("");
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
+
+        } catch (error) {
+            console.error("Reopen complaint error:", error);
+            const errorDetail = error.response?.data?.detail;
+            alert(typeof errorDetail === 'string' ? errorDetail : "Failed to reopen complaint");
+        } finally {
+            setReopening(false);
+        }
     };
 
     const handleConfirmClose = async () => {
@@ -785,7 +856,7 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
                                     }
                                 </div>
 
-                                {(onSendNotice || canCloseComplaint || canVerifyComplaint) && complaint && (
+                                {(onSendNotice || canCloseComplaint || canVerifyComplaint || canReopenComplaint) && complaint && (
                                     <div className='flex items-center justify-end gap-3 border-t border-[#D6D9DE] bg-white p-3'>
                                         {onSendNotice && (
                                             <button
@@ -811,6 +882,31 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
                                                 }}
                                             >
                                                 {t('table:sendNotice', 'Send Notice')}
+                                            </button>
+                                        )}
+
+                                        {canReopenComplaint && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenReopenModal}
+                                                disabled={reopening}
+                                                style={{
+                                                    background: "#dc2626",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    padding: "9px 20px",
+                                                    cursor: reopening ? "not-allowed" : "pointer",
+                                                    opacity: reopening ? 0.7 : 1,
+                                                    fontWeight: 500,
+                                                    fontSize: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                <RotateCcw size={16} />
+                                                {t('complaints:reopenComplaint', 'Reopen Complaint')}
                                             </button>
                                         )}
 
@@ -1012,6 +1108,150 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onSta
                                         </>
                                     ) : (
                                         "Confirm & Close"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* SMD Reopen Complaint Modal */}
+            <AnimatePresence>
+                {showReopenModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2100,
+                            padding: "16px"
+                        }}
+                        onClick={() => !reopening && setShowReopenModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "#fff",
+                                borderRadius: "12px",
+                                width: "100%",
+                                maxWidth: "500px",
+                                padding: "24px",
+                                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <RotateCcw size={20} color="#dc2626" />
+                                    {t('complaints:reopenComplaint', 'Reopen Complaint')}
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => !reopening && setShowReopenModal(false)}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "18px",
+                                        color: "#6b7280"
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p style={{ margin: "0 0 16px 0", fontSize: "14px", color: "#4b5563" }}>
+                                {t('complaints:reopenComplaintDescription', {
+                                    id: complaint?.id,
+                                    defaultValue: `Reopen Complaint #${complaint?.id}. Please provide a mandatory reason for reopening this complaint.`
+                                })}
+                            </p>
+
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    {t('complaints:reopenReason', 'Reason for Reopening *')}
+                                </label>
+                                <textarea
+                                    value={reopenReason}
+                                    onChange={(e) => {
+                                        setReopenReason(e.target.value);
+                                        if (reopenReasonError) setReopenReasonError("");
+                                    }}
+                                    rows={3}
+                                    placeholder={t('complaints:reopenReasonPlaceholder', 'Enter the reason for reopening this complaint...')}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "8px",
+                                        border: reopenReasonError ? "1px solid #ef4444" : "1px solid #d1d5db",
+                                        outline: "none",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                                {reopenReasonError && (
+                                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#ef4444" }}>
+                                        {reopenReasonError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    disabled={reopening}
+                                    onClick={() => setShowReopenModal(false)}
+                                    style={{
+                                        padding: "9px 16px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        background: "#f9fafb",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: reopening ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    {t('complaints:cancel', 'Cancel')}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={reopening || !reopenReason.trim()}
+                                    onClick={handleConfirmReopen}
+                                    style={{
+                                        padding: "9px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: !reopenReason.trim() || reopening ? "#fca5a5" : "#dc2626",
+                                        color: "#fff",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: !reopenReason.trim() || reopening ? "not-allowed" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    {reopening ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            {t('complaints:reopening', 'Reopening...')}
+                                        </>
+                                    ) : (
+                                        t('complaints:confirmAndReopen', 'Confirm & Reopen')
                                     )}
                                 </button>
                             </div>

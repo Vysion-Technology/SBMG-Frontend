@@ -290,14 +290,17 @@ const UnifiedDashboardBDO = () => {
             isSidebarOpen={isSidebarOpen}
           />
         </div>
-        <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+        <div className="flex-1 dashboard-main-content" style={{
           flex: 1,
+          minWidth: 0,
+          width: '100%',
+          maxWidth: '100%',
           backgroundColor: '#F3F4F6',
           margin: 0,
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto'
+          overflow: 'hidden'
         }}>
           <Header
             pageTitle={t(activeItem)}

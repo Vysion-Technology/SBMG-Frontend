@@ -1110,7 +1110,7 @@ const SchemesContent = () => {
                   }}
                 >
                   <span style={{ fontWeight: 600 }}>
-                    {t('schemeevent:imageUpload')}
+                    {t('schemeevent:imageUpload')} {contentType === "scheme" && <span style={{ color: '#ef4444' }}>*</span>}
                   </span>
 
 
@@ -1347,6 +1347,27 @@ const SchemesContent = () => {
               {contentType === "circular" && (
                 <div style={{ marginBottom: "24px" }}>
                   <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "8px",
+                      position: "relative"
+                    }}
+                  >
+                    <span style={{ fontWeight: 600 }}>
+                      {t('schemeevent:uploadCircularPdf', 'Circular PDF')} <span style={{ color: '#ef4444' }}>*</span>
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        color: "#ef4444",
+                      }}
+                    >
+                      {t('schemeevent:required', 'Required')}
+                    </span>
+                  </div>
+                  <div
                     onClick={() =>
                       document
                         .getElementById("pdfUpload")
@@ -1532,7 +1553,7 @@ const SchemesContent = () => {
                     fontWeight: 600,
                   }}
                 >
-                  {t('schemeevent:name')}
+                  {t('schemeevent:name')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
 
                 <input
@@ -1576,7 +1597,7 @@ const SchemesContent = () => {
                     fontWeight: 600,
                   }}
                 >
-                  {t('schemeevent:description')}
+                  {t('schemeevent:description')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
 
                 <textarea
@@ -1621,7 +1642,7 @@ const SchemesContent = () => {
                     fontWeight: 600,
                   }}
                 >
-                  {t('schemeevent:eligibility')}
+                  {t('schemeevent:eligibility')} <span style={{ color: '#ef4444' }}>*</span>
                 </label>
 
                 <textarea
@@ -1668,7 +1689,7 @@ const SchemesContent = () => {
                       fontWeight: 600,
                     }}
                   >
-                    {t('schemeevent:benefits')}
+                    {t('schemeevent:benefits')} <span style={{ color: '#ef4444' }}>*</span>
                   </label>
 
                   <textarea

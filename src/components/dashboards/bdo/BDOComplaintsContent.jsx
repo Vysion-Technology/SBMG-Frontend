@@ -1728,7 +1728,7 @@ const BDOComplaintsContent = () => {
   }, [activeScope, selectedDistrictId, selectedBlockId, fetchGramPanchayats]);
 
   return (
-    <div>
+    <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {/* Header Section */}
       <div style={{
         backgroundColor: 'white',

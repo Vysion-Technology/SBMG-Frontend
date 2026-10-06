@@ -97,7 +97,7 @@ function addSurveyBlock(doc, data, startY) {
       ['Work Order No', data.work_order.work_order_no || 'N/A'],
       ['Start Date', data.work_order.work_order_date || 'N/A'],
       ['End Date', data.work_order.work_order_end_date || 'N/A'],
-      ['Amount', `₹${Number(data.work_order.work_order_amount || 0).toLocaleString()}`]
+      ['Amount (in Lacs)', `₹${(Number(data.work_order.work_order_amount || 0) / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`]
     ], y);
   }
 
@@ -105,7 +105,7 @@ function addSurveyBlock(doc, data, startY) {
   if (data.fund_sanctioned) {
     y = addSection(doc, 'Fund Sanctioned', [
       ['Head', data.fund_sanctioned.head || 'N/A'],
-      ['Amount', `₹${Number(data.fund_sanctioned.amount || 0).toLocaleString()}`]
+      ['Amount (in Lacs)', `₹${(Number(data.fund_sanctioned.amount || 0) / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`]
     ], y);
   }
 

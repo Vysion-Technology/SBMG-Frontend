@@ -43,6 +43,12 @@ function mapGetToForm(data) {
   const o = (x, d) => (x != null && typeof x === 'object' ? x : d);
   const n = (x, d = 0) => (typeof x === 'number' && !isNaN(x) ? x : (parseFloat(x) || d));
   const s = (x, d = '') => (x != null && String(x).trim() !== '' ? String(x).trim() : d);
+  const lacs = (x) => {
+    if (x === "" || x === null || x === undefined) return '';
+    const num = Number(x);
+    if (isNaN(num)) return '';
+    return Number((num / 100000).toFixed(4));
+  };
 
   const wo = o(data.work_order, {});
   const fs = o(data.fund_sanctioned, {});
@@ -101,10 +107,10 @@ function mapGetToForm(data) {
       work_order_no: s(wo.work_order_no),
       work_order_date: s(wo.work_order_date) || new Date().toISOString().split('T')[0],
       work_order_end_date: s(wo.work_order_end_date),
-      work_order_amount: n(wo.work_order_amount)
+      work_order_amount: lacs(wo.work_order_amount)
     },
     fund_sanctioned: {
-      amount: n(fs.amount),
+      amount: lacs(fs.amount),
       head: s(fs.head, 'FFC')
     },
     door_to_door_collection: {
@@ -176,7 +182,7 @@ function mapGetToForm(data) {
 
     bartan_bank: {
       established_banks: n(o(data.bartan_bank, {}).established_banks),
-      revenue: n(o(data.bartan_bank, {}).revenue)
+      revenue: lacs(o(data.bartan_bank, {}).revenue)
     },
 
     vehicle_assets: {
@@ -195,7 +201,7 @@ function mapGetToForm(data) {
       sanctioned_csr_ngo: n(d2d.sanctioned_csr_ngo),
       sanctioned_shg: n(d2d.sanctioned_shg),
       sanctioned_mixed_model: n(d2d.sanctioned_mixed_model),
-      total_expenditure: n(d2d.total_expenditure),
+      total_expenditure: lacs(d2d.total_expenditure),
       vehicles_deployed: n(d2d.vehicles_deployed),
       persons_deployed: n(d2d.persons_deployed),
       households_covered: n(d2d.households_covered),
@@ -224,6 +230,13 @@ function formToPayload(form) {
     if (x === "" || x === null || x === undefined) return 0;
     const num = Number(x);
     return Number.isInteger(num) ? num : Math.floor(num || 0);
+  };
+
+  const rupees = (x) => {
+    if (x === "" || x === null || x === undefined) return 0;
+    const num = Number(x);
+    if (isNaN(num)) return 0;
+    return Math.round(num * 100000);
   };
 
   const s = (x) => (x != null ? String(x) : '');
@@ -255,11 +268,11 @@ function formToPayload(form) {
         s(form.work_order?.work_order_date) ||
         new Date().toISOString().split('T')[0],
       work_order_end_date: s(form.work_order?.work_order_end_date) || null,
-      work_order_amount: n(form.work_order?.work_order_amount)
+      work_order_amount: rupees(form.work_order?.work_order_amount)
     },
 
     fund_sanctioned: {
-      amount: n(form.fund_sanctioned?.amount),
+      amount: rupees(form.fund_sanctioned?.amount),
       head: s(form.fund_sanctioned?.head) || 'FFC'
     },
 
@@ -348,7 +361,7 @@ function formToPayload(form) {
 
     bartan_bank: {
       established_banks: n(form.bartan_bank?.established_banks),
-      revenue: n(form.bartan_bank?.revenue)
+      revenue: rupees(form.bartan_bank?.revenue)
     },
 
     vehicle_assets: {
@@ -368,7 +381,7 @@ function formToPayload(form) {
       sanctioned_csr_ngo: n(form.d2d_activities?.sanctioned_csr_ngo),
       sanctioned_shg: n(form.d2d_activities?.sanctioned_shg),
       sanctioned_mixed_model: n(form.d2d_activities?.sanctioned_mixed_model),
-      total_expenditure: n(form.d2d_activities?.total_expenditure),
+      total_expenditure: rupees(form.d2d_activities?.total_expenditure),
       vehicles_deployed: n(form.d2d_activities?.vehicles_deployed),
       persons_deployed: n(form.d2d_activities?.persons_deployed),
       households_covered: n(form.d2d_activities?.households_covered),
@@ -436,7 +449,7 @@ function formToPayload(form) {
 //   </div>
 // );
 
-const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min, max, error }) => (
+const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabled, min, max, step, error }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
 
     <label style={{ fontSize: '13px', fontWeight: '500', color: '#374151' }}>
@@ -451,6 +464,7 @@ const Input = ({ label, value, onChange, type = 'text', placeholder = '', disabl
       disabled={disabled}
       min={min}
       max={max}
+      step={step}
       style={{
         padding: '8px 10px',
         border: error ? '1px solid red' : '1px solid #d1d5db',
@@ -984,9 +998,35 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
       const fundAmount = Number(form.fund_sanctioned?.amount || 0);
       const workOrderAmount = Number(form.work_order?.work_order_amount || 0);
+      const totalExpenditure = Number(form.d2d_activities?.total_expenditure || 0);
+      const bartanRevenue = Number(form.bartan_bank?.revenue || 0);
+
+      if (fundAmount > 100) {
+        setError("Fund sanctioned amount cannot exceed 100 Lacs ❌");
+        setSaving(false);
+        return;
+      }
+
+      if (workOrderAmount > 100) {
+        setError("Work order amount cannot exceed 100 Lacs ❌");
+        setSaving(false);
+        return;
+      }
 
       if (workOrderAmount > fundAmount) {
         setError("Work order amount can not be higher than funds sanctioned ❌");
+        setSaving(false);
+        return;
+      }
+
+      if (totalExpenditure > 100) {
+        setError("Total expenditure cannot exceed 100 Lacs ❌");
+        setSaving(false);
+        return;
+      }
+
+      if (bartanRevenue > 100) {
+        setError("Bartan bank revenue cannot exceed 100 Lacs ❌");
         setSaving(false);
         return;
       }
@@ -1339,12 +1379,12 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   <Input label={t('table:WORK_ORDER_NO')} value={form.work_order?.work_order_no} onChange={(v) => update('work_order.work_order_no', v)} disabled={saving} />
                   <Input label={t('table:WORK_ORDER_DATE')} type="date" value={form.work_order?.work_order_date} onChange={(v) => update('work_order.work_order_date', v)} disabled={saving} />
                   <Input label={t('table:WORK_ORDER_END_DATE')} type="date" value={form.work_order?.work_order_end_date} onChange={(v) => update('work_order.work_order_end_date', v)} disabled={saving} />
-                  <Input label={t('table:WORK_ORDER_AMOUNT')} type="number" min={0} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:WORK_ORDER_AMOUNT')} type="number" min={0} max={100} step="0.01" placeholder={t('table:ENTER_AMOUNT_LACS')} value={form.work_order?.work_order_amount} onChange={(v) => update('work_order.work_order_amount', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
               {section((t('table:FUND_SANCTIONED')), grid3(
                 <>
-                  <Input label={t('table:AMOUNT')} type="number" min={0} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('table:AMOUNT')} type="number" min={0} max={100} step="0.01" placeholder={t('table:ENTER_AMOUNT_LACS')} value={form.fund_sanctioned?.amount} onChange={(v) => update('fund_sanctioned.amount', v === '' ? '' : Number(v))} disabled={saving} />
                   <Select label={t('table:HEAD')} value={form.fund_sanctioned?.head} onChange={(v) => update('fund_sanctioned.head', v)} options={FUND_HEAD_OPTIONS} disabled={saving} />
                   {form.fund_sanctioned?.head === 'OTHER' && (
                     <Input
@@ -1464,7 +1504,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                       )
                     }
                   />
-                  <Input label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')} type="number" min={0} value={form.bartan_bank?.revenue} onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))} disabled={saving} />
+                  <Input label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')} type="number" min={0} max={100} step="0.01" placeholder={t('table:ENTER_AMOUNT_LACS')} value={form.bartan_bank?.revenue} onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))} disabled={saving} />
                 </>
               ))}
               {/* {section('Vehicle Assets', grid3(
@@ -1524,7 +1564,8 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                       />
 
                       <Input label={t('table:TOTAL_EXPENDITURE')}
-                        type="number" min={0}
+                        type="number" min={0} max={100} step="0.01"
+                        placeholder={t('table:ENTER_AMOUNT_LACS')}
                         value={form.d2d_activities?.total_expenditure}
                         onChange={(v) => update('d2d_activities.total_expenditure', v === '' ? '' : Number(v))}
                       />
