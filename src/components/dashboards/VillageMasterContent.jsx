@@ -422,13 +422,33 @@ const VillageMasterContent = () => {
     }
 
     if (data.d2d_activities) {
+      const contractModeLabel = (() => {
+        const mode = data.d2d_activities.work_contract_through || (() => {
+          const active = [
+            data.d2d_activities.sanctioned_tender > 0 ? 'tender' : null,
+            data.d2d_activities.sanctioned_self_gp > 0 ? 'self_gp' : null,
+            data.d2d_activities.sanctioned_csr_ngo > 0 ? 'csr_ngo' : null,
+            data.d2d_activities.sanctioned_shg > 0 ? 'shg' : null,
+            data.d2d_activities.sanctioned_mixed_model > 0 ? 'mixed_model' : null,
+          ].filter(Boolean);
+          if (active.length > 1) return 'mixed_model';
+          if (active.length === 1) return active[0];
+          return '';
+        })();
+        switch (mode) {
+          case 'tender': return "Contractors through Tender";
+          case 'self_gp': return "GP through Placement Agency";
+          case 'csr_ngo': return "GP through CSR";
+          case 'shg': return "GP through SHG";
+          case 'mixed_model': return "Mixed Model";
+          default: return "None";
+        }
+      })();
+
       addSection("Door to Door Waste Collection, Segregation & Disposal Activities", [
         ["Door to Door Service available in this gp:", data.d2d_activities.is_active ? "Yes" : "No"],
         ["Work Frequency:", data.d2d_activities.work_frequency ? (data.d2d_activities.work_frequency === 'none' ? 'None' : data.d2d_activities.work_frequency === 'weekly' ? 'Weekly' : data.d2d_activities.work_frequency === '15 days' ? '15 Days' : data.d2d_activities.work_frequency === 'monthly' ? 'Monthly' : data.d2d_activities.work_frequency) : "None"],
-        ["Total No. of Work Sanctioned Through Tender:", data.d2d_activities.sanctioned_tender],
-        ["Total No. of Work Sanctioned Self by GPs:", data.d2d_activities.sanctioned_self_gp],
-        ["Total No. of Work Sanctioned Through CSR/NGOs:", data.d2d_activities.sanctioned_csr_ngo],
-        ["Total No. of Work Sanctioned Through SHGs:", data.d2d_activities.sanctioned_shg],
+        ["Door to door work contract through:", contractModeLabel],
         ["Total Expenditure Amt. (Rs in Lakhs):", data.d2d_activities.total_expenditure],
         ["Vehicles Deployed:", data.d2d_activities.vehicles_deployed],
         ["Persons Deployed:", data.d2d_activities.persons_deployed],
