@@ -31,6 +31,9 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import VDOContractorDetails from './VDOContractorDetails';
 import ReconfirmationWarningBanner from '../../common/ReconfirmationWarningBanner';
 import ReconfirmationLockOverlay from '../../common/ReconfirmationLockOverlay';
+import ProfileWarningBanner from '../../common/ProfileWarningBanner';
+import ProfileLockOverlay from '../../common/ProfileLockOverlay';
+import Profile from '../common/Profile';
 import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
@@ -192,6 +195,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 const UnifiedDashboardVDO = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const vdoLocation = useVDOLocation();
 
   const { t } = useTranslation(['dashboard', 'common'])
@@ -272,12 +276,15 @@ const UnifiedDashboardVDO = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ProfileLockOverlay />
       <ReconfirmationLockOverlay
         onNavigateToReconfirm={handleNavigateToGPMasterData}
         activeItem={activeItem}
       />
       <TopHeaderBar />
+      <ProfileWarningBanner onOpenProfile={() => setShowProfileModal(true)} />
       <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
+      <Profile open={showProfileModal} onClose={() => setShowProfileModal(false)} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
@@ -296,14 +303,17 @@ const UnifiedDashboardVDO = () => {
             isSidebarOpen={isSidebarOpen}
           />
         </div>
-        <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+        <div className="flex-1 dashboard-main-content" style={{
           flex: 1,
+          minWidth: 0,
+          width: '100%',
+          maxWidth: '100%',
           backgroundColor: '#F3F4F6',
           margin: 0,
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto'
+          overflow: 'hidden'
         }}>
           <Header
             pageTitle={t(activeItem)}

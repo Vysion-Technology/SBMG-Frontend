@@ -170,11 +170,9 @@ const VDOVillageMasterContent = () => {
     }
 
     const formatCurrency = (amount) => {
-      if (amount === null || amount === undefined || isNaN(amount)) return '0';
-      if (amount >= 100000) {
-        return `₹${(amount / 100000).toFixed(1)} L`;
-      }
-      return `₹${amount.toLocaleString('en-IN')}`;
+      if (amount === null || amount === undefined || isNaN(amount) || amount === '') return '0';
+      const inLacs = Number(amount) / 100000;
+      return `₹${inLacs.toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`;
     };
 
     const checkPageBreak = (neededHeight = 10) => {
@@ -272,19 +270,27 @@ const VDOVillageMasterContent = () => {
       ]);
     }
 
+    if (data.surveyor_name || data.surveyor_post || data.surveyor_contact) {
+      addSection("Surveyor Details", [
+        ["Name:", data.surveyor_name || "N/A"],
+        ["Post:", data.surveyor_post || "N/A"],
+        ["Contact Number:", data.surveyor_contact || "N/A"],
+      ]);
+    }
 
     if (data.work_order) {
       addSection("Work Order", [
         ["Dispatch No:", data.work_order.work_order_no],
-        ["Date:", formatDate(data.work_order.work_order_date)],
-        ["Amount:", formatCurrency(data.work_order.work_order_amount)],
+        ["Start Date:", formatDate(data.work_order.work_order_date)],
+        ["End Date:", formatDate(data.work_order.work_order_end_date)],
+        ["Amount (in Lacs):", formatCurrency(data.work_order.work_order_amount)],
       ]);
     }
 
     if (data.fund_sanctioned) {
       addSection("Fund Sanctioned", [
         ["Head:", data.fund_sanctioned.head],
-        ["Amount:", formatCurrency(data.fund_sanctioned.amount)],
+        ["Amount (in Lacs):", formatCurrency(data.fund_sanctioned.amount)],
       ]);
     }
 
@@ -809,11 +815,9 @@ const VDOVillageMasterContent = () => {
 
   // Helper function to format currency
   const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 100000) {
-      return `₹${(amount / 100000).toFixed(1)} L`;
-    }
-    return `₹${amount.toLocaleString('en-IN')}`;
+    if (amount === null || amount === undefined || isNaN(amount) || amount === '') return '0';
+    const inLacs = Number(amount) / 100000;
+    return `₹${inLacs.toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`;
   };
 
   // Helper function to get analytics data with defaults
@@ -964,7 +968,7 @@ const VDOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`}
             </div>
           </div>
 
@@ -1000,7 +1004,7 @@ const VDOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`}
             </div>
           </div>
 

@@ -20,5 +20,15 @@
     "openComplaintsDescription": "Complaints that are currently open and awaiting action.",
     "resolvedComplaintsDescription": "Complaints resolved after action was taken.",
     "verifiedComplaintsDescription": "Complaints verified by the VDO.",
-    "disposedComplaintsDescription": "Complaints closed after final disposal or resolution confirmation."
+    "disposedComplaintsDescription": "Complaints closed after final disposal or resolution confirmation.",
+    "complainantName": "Complainant Name",
+    "enterComplainantName": "Enter Complainant Name",
+    "complainant": "Complainant",
+    "reopenComplaint": "Reopen Complaint",
+    "reopenComplaintDescription": "Reopen Complaint #{{id}}. Please provide a mandatory reason for reopening this complaint.",
+    "reopenReason": "Reason for Reopening *",
+    "reopenReasonPlaceholder": "Enter the reason for reopening this complaint...",
+    "reopenReasonRequired": "Reason is mandatory when reopening a complaint.",
+    "confirmAndReopen": "Confirm & Reopen",
+    "reopening": "Reopening..."
 }

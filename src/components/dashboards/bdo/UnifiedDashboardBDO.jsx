@@ -32,6 +32,9 @@ import { useTranslation } from 'react-i18next';
 import Volunteer from '../Volunteer';
 import EventsContent from '../EventsContent';
 import SchemesContent from '../SchemesContent';
+import ProfileWarningBanner from '../../common/ProfileWarningBanner';
+import ProfileLockOverlay from '../../common/ProfileLockOverlay';
+import Profile from '../common/Profile';
 
 const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 
@@ -187,6 +190,7 @@ const Sidebar = ({ activeItem, setActiveItem, isSidebarOpen }) => {
 const UnifiedDashboardBDO = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const bdoLocation = useBDOLocation();
 
   const { t } = useTranslation(['common', 'dashboard']);
@@ -264,7 +268,10 @@ const UnifiedDashboardBDO = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ProfileLockOverlay />
       <TopHeaderBar />
+      <ProfileWarningBanner onOpenProfile={() => setShowProfileModal(true)} />
+      <Profile open={showProfileModal} onClose={() => setShowProfileModal(false)} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
@@ -283,14 +290,17 @@ const UnifiedDashboardBDO = () => {
             isSidebarOpen={isSidebarOpen}
           />
         </div>
-        <div className="flex-1 dashboard-main-content bg-gray-100 m-0 p-0 flex flex-col overflow-auto" style={{
+        <div className="flex-1 dashboard-main-content" style={{
           flex: 1,
+          minWidth: 0,
+          width: '100%',
+          maxWidth: '100%',
           backgroundColor: '#F3F4F6',
           margin: 0,
           padding: 0,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto'
+          overflow: 'hidden'
         }}>
           <Header
             pageTitle={t(activeItem)}

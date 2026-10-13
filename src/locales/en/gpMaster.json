@@ -1,14 +1,14 @@
 {
     "totalGPMasterData": "Total GP Master Data",
     "villageGPDataCoverage": "Village GP Data Coverage",
-    "totalFundsSanctioned": "Total Funds Sanctioned",
-    "totalWorkOrderAmount": "Total Work Order Amount",
+    "totalFundsSanctioned": "Total Funds Sanctioned (in Lacs)",
+    "totalWorkOrderAmount": "Total Work Order Amount (in Lacs)",
     "coverageOverview": "Coverage Overview",
     "totalGPs": "Total GPs",
     "gpsWithData": "GPs with Data",
     "contractorDataFilled": "Contractor Data Filled",
     "dataFilledCovered": "Data Filled Coverage",
-    "totalAmount": "Total Amount",
+    "totalAmount": "Total Amount (in Lacs)",
     "districtPerformanceScore": "District Performance Score",
     "belowDistrictAverage": "Below District Average",
     "aboveDistrictAverage": "Above District Average"

@@ -31,6 +31,9 @@ import FeedbacksContent from './FeedbacksContent';
 import ContractorDetails from './ContractorDetails';
 import ReconfirmationWarningBanner from '../common/ReconfirmationWarningBanner';
 import ReconfirmationLockOverlay from '../common/ReconfirmationLockOverlay';
+import ProfileWarningBanner from '../common/ProfileWarningBanner';
+import ProfileLockOverlay from '../common/ProfileLockOverlay';
+import Profile from './common/Profile';
 import { useTranslation } from "react-i18next";
 import Volunteer from './Volunteer';
 
@@ -201,6 +204,7 @@ const UnifiedDashboard = () => {
   const [activeItem, setActiveItem] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
   const [complaintsInitialFilter, setComplaintsInitialFilter] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const { t, i18n } = useTranslation();
 
@@ -326,12 +330,15 @@ const UnifiedDashboard = () => {
       padding: 0,
       overflow: 'hidden'
     }}>
+      <ProfileLockOverlay />
       <ReconfirmationLockOverlay
         onNavigateToReconfirm={handleNavigateToGPMasterData}
         activeItem={activeItem}
       />
       <TopHeaderBar />
+      <ProfileWarningBanner onOpenProfile={() => setShowProfileModal(true)} />
       <ReconfirmationWarningBanner onNavigateToReconfirm={handleNavigateToGPMasterData} />
+      <Profile open={showProfileModal} onClose={() => setShowProfileModal(false)} />
       <div className="flex flex-1 min-h-0" style={{
         display: 'flex',
         flex: 1,
