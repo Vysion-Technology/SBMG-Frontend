@@ -22,5 +22,15 @@
     "openComplaintsDescription": "वे शिकायतें जो वर्तमान में लंबित हैं और कार्रवाई की प्रतीक्षा कर रही हैं।",
     "resolvedComplaintsDescription": "कार्रवाई के बाद समाधान की गई शिकायतें।",
     "verifiedComplaintsDescription": "वीडीओ द्वारा सत्यापित शिकायतें।",
-    "disposedComplaintsDescription": "अंतिम निस्तारण या समाधान की पुष्टि के बाद बंद की गई शिकायतें।"
+    "disposedComplaintsDescription": "अंतिम निस्तारण या समाधान की पुष्टि के बाद बंद की गई शिकायतें।",
+    "complainantName": "शिकायतकर्ता का नाम",
+    "enterComplainantName": "शिकायतकर्ता का नाम दर्ज करें",
+    "complainant": "शिकायतकर्ता",
+    "reopenComplaint": "शिकायत पुनः खोलें",
+    "reopenComplaintDescription": "शिकायत #{{id}} पुनः खोलें। कृपया इस शिकायत को पुनः खोलने का अनिवार्य कारण बताएं।",
+    "reopenReason": "पुनः खोलने का कारण *",
+    "reopenReasonPlaceholder": "इस शिकायत को पुनः खोलने का कारण दर्ज करें...",
+    "reopenReasonRequired": "शिकायत को पुनः खोलने के लिए कारण अनिवार्य है।",
+    "confirmAndReopen": "पुष्टि करें और पुनः खोलें",
+    "reopening": "पुनः खोला जा रहा है..."
 }

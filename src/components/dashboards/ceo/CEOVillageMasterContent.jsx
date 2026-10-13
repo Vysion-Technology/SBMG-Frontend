@@ -249,11 +249,9 @@ const CEOVillageMasterContent = () => {
     }
 
     const formatCurrency = (amount) => {
-      if (amount === null || amount === undefined || isNaN(amount)) return '0';
-      if (amount >= 100000) {
-        return `₹${(amount / 100000).toFixed(1)} L`;
-      }
-      return `₹${amount.toLocaleString('en-IN')}`;
+      if (amount === null || amount === undefined || isNaN(amount) || amount === '') return '0';
+      const inLacs = Number(amount) / 100000;
+      return `₹${inLacs.toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`;
     };
 
     const checkPageBreak = (neededHeight = 10) => {
@@ -351,19 +349,27 @@ const CEOVillageMasterContent = () => {
       ]);
     }
 
+    if (data.surveyor_name || data.surveyor_post || data.surveyor_contact) {
+      addSection("Surveyor Details", [
+        ["Name:", data.surveyor_name || "N/A"],
+        ["Post:", data.surveyor_post || "N/A"],
+        ["Contact Number:", data.surveyor_contact || "N/A"],
+      ]);
+    }
 
     if (data.work_order) {
       addSection("Work Order", [
         ["Dispatch No:", data.work_order.work_order_no],
-        ["Date:", formatDate(data.work_order.work_order_date)],
-        ["Amount:", formatCurrency(data.work_order.work_order_amount)],
+        ["Start Date:", formatDate(data.work_order.work_order_date)],
+        ["End Date:", formatDate(data.work_order.work_order_end_date)],
+        ["Amount (in Lacs):", formatCurrency(data.work_order.work_order_amount)],
       ]);
     }
 
     if (data.fund_sanctioned) {
       addSection("Fund Sanctioned", [
         ["Head:", data.fund_sanctioned.head],
-        ["Amount:", formatCurrency(data.fund_sanctioned.amount)],
+        ["Amount (in Lacs):", formatCurrency(data.fund_sanctioned.amount)],
       ]);
     }
 
@@ -1263,11 +1269,9 @@ const CEOVillageMasterContent = () => {
 
   // Helper function to format currency
   const formatCurrency = (amount) => {
-    if (amount === null || amount === undefined || isNaN(amount)) return '0';
-    if (amount >= 100000) {
-      return `₹${(amount / 100000).toFixed(1)} L`;
-    }
-    return `₹${amount.toLocaleString('en-IN')}`;
+    if (amount === null || amount === undefined || isNaN(amount) || amount === '') return '0';
+    const inLacs = Number(amount) / 100000;
+    return `₹${inLacs.toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`;
   };
 
   // Helper function to get analytics data with defaults
@@ -1782,7 +1786,7 @@ const CEOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN')} L`}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_funds_sanctioned', 0) * 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`}
             </div>
           </div>
 
@@ -1818,7 +1822,7 @@ const CEOVillageMasterContent = () => {
               color: analyticsError ? '#ef4444' : '#111827',
               margin: 0
             }}>
-              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN')} L`}
+              {loadingAnalytics ? '...' : `₹${(getAnalyticsValue('total_work_order_amount', 0) * 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })} L`}
             </div>          </div>
 
 
@@ -1927,7 +1931,7 @@ const CEOVillageMasterContent = () => {
             {/* Table Header */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '120px 1fr 200px',
+              gridTemplateColumns: '120px 1fr 340px',
               backgroundColor: '#f9fafb',
               padding: '12px 16px',
               borderBottom: '1px solid #e5e7eb'
@@ -1964,7 +1968,7 @@ const CEOVillageMasterContent = () => {
               return (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '120px 1fr 200px',
+                  gridTemplateColumns: '120px 1fr 340px',
                   padding: '12px 16px',
                   alignItems: 'center',
                   borderBottom: '1px solid #f3f4f6'
@@ -1994,63 +1998,84 @@ const CEOVillageMasterContent = () => {
                     >
                       {t('table:sendNotice')}
                     </button>
-                    {/* <button
-                  onClick={() => { if (survey) { setEditSurveyId(survey.id); setShowEditModal(true); } }}
-                  disabled={!hasData}
-                  title={hasData ? 'Edit GP Master Data' : 'No data to edit'}
-                  style={{
-                    padding: '6px',
-                    backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    cursor: hasData ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: hasData ? 1 : 0.6
-                  }}
-                >
-                  <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
-                </button> */}
-                    <button
-                      onClick={() => hasData && handleDownloadPDF(survey.id)}
-                      disabled={!hasData}
-                      title={hasData ? 'Download PDF' : 'No data to download'}
-                      style={{
-                        padding: '6px',
-                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        cursor: hasData ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: hasData ? 1 : 0.6
-                      }}
-                    >
-                      <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
-                    </button>
+                    {hasData ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setEditSurveyId(survey.id);
+                            setShowEditModal(true);
+                          }}
+                          title="Edit GP Master Data"
+                          style={{
+                            padding: '6px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Edit style={{ width: '16px', height: '16px', color: '#374151' }} />
+                        </button>
 
-                    <button
-                      onClick={() => hasData && handleDownloadPDF(survey.id, 'view')}
-                      disabled={!hasData}
-                      title={hasData ? 'View PDF' : 'No data to view'}
-                      style={{
-                        padding: '6px 12px',
-                        backgroundColor: hasData ? '#f3f4f6' : '#f9fafb',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        color: '#374151',
-                        cursor: hasData ? 'pointer' : 'not-allowed',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: hasData ? 1 : 0.6
-                      }}
-                    >
-                      {t('table:view')}
-                    </button>
+                        <button
+                          onClick={() => handleDownloadPDF(survey.id)}
+                          title="Download PDF"
+                          style={{
+                            padding: '6px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Download style={{ width: '16px', height: '16px', color: '#374151' }} />
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadPDF(survey.id, 'view')}
+                          title="View PDF"
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            color: '#374151',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {t('table:view')}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setEditSurveyId(null);
+                          setShowEditModal(true);
+                        }}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500'
+                        }}
+                      >
+                        + Add GP Master Data
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -2060,13 +2085,15 @@ const CEOVillageMasterContent = () => {
       )}
 
       {/* Edit GP Master Data modal */}
-      {/* <EditGPMasterModalPMasterModal
+      <EditGPMasterModal
         isOpen={showEditModal}
         onClose={() => { setShowEditModal(false); setEditSurveyId(null); }}
         surveyId={editSurveyId}
         gpName={selectedLocation}
         onSuccess={() => { fetchGpSurveys(); fetchAnalytics(); }}
-      /> */}
+        vdoGPId={selectedGPId}
+        fy_id={selectedFyId}
+      />
 
       {/* Coverage Table Section - Only for State, Districts, and Blocks */}
       {activeScope !== 'GPs' && (

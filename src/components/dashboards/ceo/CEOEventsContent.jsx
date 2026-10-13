@@ -60,54 +60,117 @@ const CEOEventsContent = () => {
         }
     }, [events, selectedEvent, loading]);
 
+    const sortEvents = (eventsList) => {
+        const now = new Date();
+        return [...eventsList].sort((a, b) => {
+            const aStart = a.start_time ? new Date(a.start_time) : new Date(0);
+            const aEnd = a.end_time ? new Date(a.end_time) : new Date(0);
+            const bStart = b.start_time ? new Date(b.start_time) : new Date(0);
+            const bEnd = b.end_time ? new Date(b.end_time) : new Date(0);
+
+            const getRank = (event, start, end) => {
+                if (event.active === false) return 3; // Inactive
+                if (now >= start && now <= end) return 0; // Ongoing (first)
+                if (now < start) return 1; // Upcoming (second)
+                return 2; // Completed (third)
+            };
+
+            const aRank = getRank(a, aStart, aEnd);
+            const bRank = getRank(b, bStart, bEnd);
+
+            if (aRank !== bRank) {
+                return aRank - bRank;
+            }
+
+            // If both are ongoing, earliest start date first
+            if (aRank === 0) {
+                return aStart - bStart;
+            }
+
+            // If both are upcoming, nearest start date first
+            if (aRank === 1) {
+                return aStart - bStart;
+            }
+
+            // If both are completed / inactive, most recently completed first
+            return bEnd - aEnd;
+        });
+    };
+
     const fetchEvents = async () => {
         try {
             setLoading(true);
             setError(null);
-            // Fetch events based on filter - use API filtering when possible, but always apply client-side filtering as backup
-            let eventsData = [];
+            
+            // Fetch both active and inactive events to ensure accurate status categorization
+            const [activeResponse, inactiveResponse] = await Promise.all([
+                eventsAPI.getEvents({ skip: 0, limit: 100, active: true }),
+                eventsAPI.getEvents({ skip: 0, limit: 100, active: false })
+            ]);
+            const activeEvents = activeResponse.data || [];
+            const inactiveEvents = inactiveResponse.data || [];
+            
+            const eventsMap = new Map();
+            [...activeEvents, ...inactiveEvents].forEach(event => {
+                if (event.id && !eventsMap.has(event.id)) {
+                    eventsMap.set(event.id, event);
+                }
+            });
+            const allEvents = Array.from(eventsMap.values());
 
-            if (eventFilter === 'all') {
-                // For 'all', fetch both active and inactive separately to ensure we get everything
-                const [activeResponse, inactiveResponse] = await Promise.all([
-                    eventsAPI.getEvents({ skip: 0, limit: 100, active: true }),
-                    eventsAPI.getEvents({ skip: 0, limit: 100, active: false })
-                ]);
-                const activeEvents = activeResponse.data || [];
-                const inactiveEvents = inactiveResponse.data || [];
-                // Merge and deduplicate by event ID to prevent duplicates
-                const eventsMap = new Map();
-                [...activeEvents, ...inactiveEvents].forEach(event => {
-                    if (event.id && !eventsMap.has(event.id)) {
-                        eventsMap.set(event.id, event);
-                    }
-                });
-                eventsData = Array.from(eventsMap.values());
-            } else {
-                // For 'active' or 'inactive', fetch with the appropriate parameter
-                const activeParam = eventFilter === 'active' ? true : false;
-                const response = await eventsAPI.getEvents({ skip: 0, limit: 100, active: activeParam });
-                eventsData = response.data || [];
-            }
+            const now = new Date();
+            let filteredEvents = allEvents;
 
-            console.log('Fetched events data:', eventsData);
-
-            // Apply client-side filtering to ensure correct display (backup safety check)
-            let filteredEvents = eventsData;
             if (eventFilter === 'active') {
-                filteredEvents = eventsData.filter(event => event.active === true);
+                // Active = not disabled AND not completed (ongoing or upcoming)
+                filteredEvents = allEvents.filter(event => 
+                    event.active !== false && (!event.end_time || new Date(event.end_time) >= now)
+                );
             } else if (eventFilter === 'inactive') {
-                filteredEvents = eventsData.filter(event => event.active === false);
+                // Inactive = disabled OR already completed
+                filteredEvents = allEvents.filter(event => 
+                    event.active === false || (event.end_time && new Date(event.end_time) < now)
+                );
             }
-            // 'all' filter: show all events (no additional filtering needed)
 
-            setEvents(filteredEvents);
+            setEvents(sortEvents(filteredEvents));
         } catch (err) {
             console.error('Error fetching events:', err);
             setError('Failed to load events. Please try again.');
         } finally {
             setLoading(false);
         }
+    // Helper function to get event status
+    const getEventStatus = (startTime, endTime, active = true) => {
+        if (!active) {
+            return {
+                label: "Inactive",
+                color: "#ef4444" // red
+            };
+        }
+
+        const now = new Date();
+        const start = startTime ? new Date(startTime) : null;
+        const end = endTime ? new Date(endTime) : null;
+
+        if (start && now < start) {
+            return {
+                label: "Upcoming",
+                color: "#3b82f6" // blue
+            };
+        }
+
+        if (start && end && now >= start && now <= end) {
+            return {
+                label: "Ongoing",
+                color: "#10b981" // green
+            };
+        }
+
+        return {
+            label: "Completed",
+            color: "#6b7280" // gray
+        };
     };
 
     // Helper function to format date
@@ -446,14 +509,14 @@ const CEOEventsContent = () => {
                                         position: 'absolute',
                                         top: '12px',
                                         right: '12px',
-                                        backgroundColor: event.active ? '#10b981' : '#ef4444',
+                                        backgroundColor: getEventStatus(event.start_time, event.end_time, event.active).color,
                                         color: 'white',
                                         padding: '4px 8px',
                                         borderRadius: '12px',
                                         fontSize: '12px',
                                         fontWeight: '500'
                                     }}>
-                                        {event.active ? 'Active' : 'Inactive'}
+                                        {getEventStatus(event.start_time, event.end_time, event.active).label}
                                     </div>
                                     {/* Media count indicator if multiple images */}
                                     {event.media && event.media.length > 1 && (

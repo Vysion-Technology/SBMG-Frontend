@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Check, Clock, Loader, MapPin, Printer, ShieldAlert } from "lucide-react";
+import { ArrowRight, Check, Clock, Loader, MapPin, Printer, RotateCcw, Upload, Image as ImageIcon, X as XIcon } from "lucide-react";
 import React, { useEffect, useState } from "react";
+import { useAuth } from '../../../context/AuthContext.jsx';
 import { useGoogleMaps } from "../../../context/GoogleMapsProvider";
 import apiClient, { MEDIA_BASE_URL } from "../../../services/api";
 import ResolutionPopup from "./ResolutionPopup";
-import { useAuth } from '../../../context/AuthContext.jsx';
+import SLABadge from "./SLABadge.jsx";
+import { useTranslation } from "react-i18next";
 
 
 const styles = {
@@ -164,7 +166,8 @@ const styles = {
 
 };
 
-const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
+const ComplaintDetailsPopup = ({ open, onClose, complaintId, onSendNotice, onStatusUpdated }) => {
+    const { t } = useTranslation(['table', 'complaints', 'common']);
 
     const [popupData, setPopupData] = useState(null);
     const [selectedImage, setSelectedImage] = useState(null);
@@ -174,8 +177,18 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
     const [fullAddress, setFullAddress] = useState("");
 
     const [closing, setClosing] = useState(false);
+    const [showCloseModal, setShowCloseModal] = useState(false);
+    const [closeRemark, setCloseRemark] = useState("");
+    const [closeRemarkError, setCloseRemarkError] = useState("");
+
+    const [reopening, setReopening] = useState(false);
+    const [showReopenModal, setShowReopenModal] = useState(false);
+    const [reopenReason, setReopenReason] = useState("");
+    const [reopenReasonError, setReopenReasonError] = useState("");
 
     const { user } = useAuth();
+
+    const isSMD = ["SMD", "ADMIN"].includes(user?.role?.toUpperCase());
 
     const canCloseComplaint =
         ["ADMIN", "CEO", "BDO", "SMD"].includes(
@@ -183,9 +196,30 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
         ) &&
         !complaint?.closed_at;
 
+    const canReopenComplaint =
+        isSMD &&
+        Boolean(
+            complaint?.closed_at ||
+            ["CLOSED", "RESOLVED", "VERIFIED"].includes(complaint?.status?.toUpperCase())
+        );
+
+    const isVDO = user?.role?.toUpperCase() === "VDO";
+    const canVerifyComplaint =
+        isVDO &&
+        (complaint?.status?.toUpperCase() === "RESOLVED" ||
+            (complaint?.resolved_at && !complaint?.verified_at && !complaint?.closed_at));
+
+    const [showVerifyModal, setShowVerifyModal] = useState(false);
+    const [verifyComment, setVerifyComment] = useState("");
+    const [verifyMediaFile, setVerifyMediaFile] = useState(null);
+    const [verifyMediaPreview, setVerifyMediaPreview] = useState(null);
+    const [verifying, setVerifying] = useState(false);
+    const [verifyError, setVerifyError] = useState("");
+
 
     console.log("Role:", user?.role);
     console.log("Can Close:", canCloseComplaint);
+    console.log("Can Reopen:", canReopenComplaint);
 
 
 
@@ -299,7 +333,9 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
         {
             status: "Complaint Created",
-            role: complaint?.mobile_number,
+            role: complaint?.complainant_name
+                ? `${complaint.complainant_name}${complaint.mobile_number ? ` • +91${complaint.mobile_number}` : ''}`
+                : (complaint?.mobile_number ? `+91${complaint.mobile_number}` : "Citizen"),
             date: complaint?.created_at,
             data: { comment: complaint?.description }
         },
@@ -326,13 +362,30 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
         complaint?.closed_at && {
             status: "Closed",
-            role: complaint?.closed_by_info || "Citizen",
+            role: complaint?.closed_by_info || complaint?.complainant_name || "Citizen",
             date: complaint?.closed_at,
-            data: complaint?.comments?.[complaint?.comments?.length - 1],
+            data: (complaint?.comments?.length > 0
+                ? complaint.comments[complaint.comments.length - 1]
+                : null) || { comment: "Complaint closed." },
             showImages: false
-        }
+        },
 
-    ].filter(Boolean) : [];
+        ...(complaint?.comments || [])
+            .filter(c => c.comment && (c.comment.includes("REOPENED") || c.comment.includes("Reopened") || c.comment.toLowerCase().includes("reopened")))
+            .map(c => ({
+                status: "Reopened",
+                role: "SMD",
+                date: c.commented_at,
+                data: c,
+                showImages: false
+            }))
+
+    ].filter(Boolean).sort((a, b) => new Date(a.date) - new Date(b.date)) : [];
+
+    const closingComment = React.useMemo(() => {
+        if (!complaint?.closed_at || !complaint?.comments?.length) return null;
+        return complaint.comments[complaint.comments.length - 1];
+    }, [complaint]);
 
     const formatDate = (date) =>
         new Date(date).toLocaleString("en-IN", {
@@ -344,23 +397,34 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
         });
 
 
-    const handleCloseComplaint = async () => {
-        if (!complaintId) return;
+    const handleOpenCloseModal = () => {
+        setCloseRemark("");
+        setCloseRemarkError("");
+        setShowCloseModal(true);
+    };
 
-        // ADD THIS ↓
-        const confirmed = window.confirm(
-            "Are you sure you want to close this complaint?"
-        );
-        if (!confirmed) return;
-        // ADD THIS ↑
+    const handleOpenReopenModal = () => {
+        setReopenReason("");
+        setReopenReasonError("");
+        setShowReopenModal(true);
+    };
+
+    const handleConfirmReopen = async () => {
+        if (!complaint?.id) return;
+
+        if (!reopenReason || !reopenReason.trim()) {
+            setReopenReasonError(t("complaints:reopenReasonRequired", "Reason is mandatory when reopening a complaint."));
+            return;
+        }
 
         try {
-            setClosing(true);
+            setReopening(true);
+            setReopenReasonError("");
 
             await apiClient.patch(
-                `/complaints/${complaint.id}/status`,
+                `/complaints/${complaint.id}/reopen`,
                 {
-                    status_name: "CLOSED"
+                    reason: reopenReason.trim()
                 }
             );
 
@@ -370,12 +434,114 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
             );
 
             setComplaint(res.data);
+            setShowReopenModal(false);
+            setReopenReason("");
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
+
+        } catch (error) {
+            console.error("Reopen complaint error:", error);
+            const errorDetail = error.response?.data?.detail;
+            alert(typeof errorDetail === 'string' ? errorDetail : "Failed to reopen complaint");
+        } finally {
+            setReopening(false);
+        }
+    };
+
+    const handleConfirmClose = async () => {
+        if (!complaint?.id) return;
+
+        if (!closeRemark || !closeRemark.trim()) {
+            setCloseRemarkError("Remark is mandatory when closing a complaint.");
+            return;
+        }
+
+        try {
+            setClosing(true);
+            setCloseRemarkError("");
+
+            await apiClient.patch(
+                `/complaints/${complaint.id}/status`,
+                {
+                    status_name: "CLOSED",
+                    remark: closeRemark.trim()
+                }
+            );
+
+            // UI refresh
+            const res = await apiClient.get(
+                `/public/${complaint.id}/details`
+            );
+
+            setComplaint(res.data);
+            setShowCloseModal(false);
+            setCloseRemark("");
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
 
         } catch (error) {
             console.error("Close complaint error:", error);
-            alert("Failed to close complaint");
+            const errorDetail = error.response?.data?.detail;
+            alert(typeof errorDetail === 'string' ? errorDetail : "Failed to close complaint");
         } finally {
             setClosing(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith("image/")) {
+                setVerifyError("Please select a valid image file.");
+                return;
+            }
+            setVerifyMediaFile(file);
+            setVerifyMediaPreview(URL.createObjectURL(file));
+            setVerifyError("");
+        }
+    };
+
+    const handleConfirmVerify = async () => {
+        if (!complaint?.id) return;
+
+        try {
+            setVerifying(true);
+            setVerifyError("");
+
+            const formData = new FormData();
+            formData.append("comment", verifyComment.trim() || "Verified by VDO");
+            if (verifyMediaFile) {
+                formData.append("media", verifyMediaFile);
+            }
+
+            await apiClient.patch(
+                `/complaints/vdo/complaints/${complaint.id}/verify`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                }
+            );
+
+            // UI refresh
+            const res = await apiClient.get(`/public/${complaint.id}/details`);
+            setComplaint(res.data);
+            setShowVerifyModal(false);
+            setVerifyComment("");
+            setVerifyMediaFile(null);
+            setVerifyMediaPreview(null);
+            if (typeof onStatusUpdated === "function") {
+                onStatusUpdated();
+            }
+        } catch (error) {
+            console.error("Verify complaint error:", error);
+            const errorDetail = error.response?.data?.detail;
+            setVerifyError(typeof errorDetail === "string" ? errorDetail : "Failed to verify complaint");
+        } finally {
+            setVerifying(false);
         }
     };
 
@@ -444,9 +610,12 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
 
                                             <div className="!p-5">
                                                 {/* location dis block gps.. */}
-                                                <p style={{ color: "#666", fontSize: "13px" }}>
-                                                    {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
-                                                </p>
+                                                <div className="flex  justify-between">
+                                                    <p style={{ color: "#666", fontSize: "13px" }}>
+                                                        {complaint?.district_name} | {complaint?.block_name} | {complaint?.village_name}
+                                                    </p>
+                                                    <SLABadge level={complaint.last_sla_breach_level} />
+                                                </div>
 
                                                 {/* Complaint actions type */}
                                                 <div
@@ -485,7 +654,10 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                             <div>
                                                                 <p style={{ fontWeight: '500', color: '#03B77B', fontSize: '18px' }}>
                                                                     Complaint has been Closed</p>
-                                                                <p style={{ color: '#666' }}> Closed <span style={{ fontSize: '12px' }}>{formatDate(complaint?.closed_at)} </span> </p>
+                                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '2px', fontSize: '12px', color: '#4b5563' }}>
+                                                                    <p style={{ margin: 0 }}><strong>Date of Complaint Closure:</strong> {formatDate(complaint?.closed_at)}</p>
+                                                                    <p style={{ margin: 0 }}><strong>Closed By:</strong> {complaint?.closed_by_info || complaint?.complainant_name || 'Citizen'}</p>
+                                                                </div>
                                                             </div>
                                                         </div>
 
@@ -534,48 +706,6 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                                 </div>}
                                                 </div>
 
-
-                                                {/* SLA Breach Banner */}
-                                                {complaint?.last_sla_breach_level && (
-                                                    <div style={{
-                                                        marginTop: '12px',
-                                                        padding: '12px 14px',
-                                                        borderRadius: '6px',
-                                                        borderLeft: `4px solid ${complaint.last_sla_breach_level === 'DISTRICT' ? '#ef4444' :
-                                                            complaint.last_sla_breach_level === 'BLOCK' ? '#f97316' : '#eab308'
-                                                            }`,
-                                                        backgroundColor:
-                                                            complaint.last_sla_breach_level === 'DISTRICT' ? '#fef2f2' :
-                                                                complaint.last_sla_breach_level === 'BLOCK' ? '#fff7ed' : '#fefce8',
-                                                        display: 'flex',
-                                                        gap: '10px',
-                                                        alignItems: 'flex-start'
-                                                    }}>
-                                                        <span style={{ fontSize: '18px' }}>⚠️</span>
-                                                        <div>
-                                                            <p style={{
-                                                                fontWeight: 600,
-                                                                fontSize: '13px',
-                                                                color:
-                                                                    complaint.last_sla_breach_level === 'DISTRICT' ? '#991b1b' :
-                                                                        complaint.last_sla_breach_level === 'BLOCK' ? '#9a3412' : '#854d0e',
-                                                                margin: 0
-                                                            }}>
-                                                                SLA Breach — {
-                                                                    complaint.last_sla_breach_level === 'GP' ? 'VDO Level (7+ days)' :
-                                                                        complaint.last_sla_breach_level === 'BLOCK' ? 'Block Level (15+ days)' :
-                                                                            'District Level (30+ days)'
-                                                                }
-                                                            </p>
-                                                            <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
-                                                                {complaint.last_sla_breach_level === 'GP' && 'Unresolved for 7+ days. Escalated to VDO.'}
-                                                                {complaint.last_sla_breach_level === 'BLOCK' && 'Unresolved for 15+ days. Escalated to Block Officer.'}
-                                                                {complaint.last_sla_breach_level === 'DISTRICT' && 'Unresolved for 30+ days. Escalated to District / SMD Admin.'}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
-
                                                 {/* Complaint Img */}
                                                 <div style={styles.images}>
                                                     {complaint?.media?.slice(0, 2).map((img, i) => (
@@ -600,14 +730,22 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                     >
                                                         {formatDate(complaint?.created_at)}
                                                     </h4>
+
                                                 </div>
 
-                                                <div style={{ display: "flex", justifyContent: 'space-between', margin: '5px 0px' }}>
-                                                    <h4
-                                                        style={{ fontSize: '11px', padding: '5px 5px', background: '#F3F4F6', borderRadius: '8px' }}
-                                                    >
-                                                        +91{(complaint?.mobile_number)}
-                                                    </h4>
+                                                <div style={{ display: "flex", justifyContent: 'space-between', alignItems: 'center', margin: '8px 0px' }}>
+                                                    {complaint?.complainant_name ? (
+                                                        <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>
+                                                            {complaint.complainant_name}
+                                                        </div>
+                                                    ) : <div />}
+                                                    {complaint?.mobile_number && (
+                                                        <h4
+                                                            style={{ fontSize: '11px', padding: '4px 8px', background: '#F3F4F6', borderRadius: '8px', color: '#4b5563', fontWeight: 500 }}
+                                                        >
+                                                            +91 {complaint.mobile_number}
+                                                        </h4>
+                                                    )}
                                                 </div>
 
                                                 {/* Location */}
@@ -622,6 +760,44 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                 <p style={{ fontSize: "14px", marginTop: "8px" }}>
                                                     {complaint.description}
                                                 </p>
+
+                                                {/* Closing Details Card for Closed Complaints */}
+                                                {complaint?.closed_at && (
+                                                    <div
+                                                        style={{
+                                                            marginTop: "14px",
+                                                            padding: "12px 14px",
+                                                            backgroundColor: "#f0fdf4",
+                                                            border: "1px solid #bbf7d0",
+                                                            borderRadius: "8px"
+                                                        }}
+                                                    >
+                                                        <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "8px" }}>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                                <span style={{ fontSize: "12px", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                                    Date of Complaint Closure
+                                                                </span>
+                                                                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>
+                                                                    {formatDate(complaint.closed_at)}
+                                                                </span>
+                                                            </div>
+                                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                                <span style={{ fontSize: "12px", fontWeight: 700, color: "#166534", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                                                                    Closed By
+                                                                </span>
+                                                                <span style={{ fontSize: "12px", color: "#15803d", fontWeight: 600 }}>
+                                                                    {complaint.closed_by_info || complaint.complainant_name || "Citizen"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ borderTop: "1px dashed #bbf7d0", paddingTop: "6px" }}>
+                                                            <span style={{ fontSize: "11px", fontWeight: 600, color: "#166534" }}>Closing Remark: </span>
+                                                            <span style={{ fontSize: "13px", color: "#14532d", fontWeight: 500 }}>
+                                                                {closingComment?.comment || "Complaint closed."}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* timeline */}
                                                 <h4 style={{ marginTop: "20px" }}>Timeline</h4>
@@ -672,116 +848,121 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                                                             </div>
 
                                                         ))}
-
-                                                        {/* System Generated SLA Comments — YAHAN ANDAR */}
-                                                        {complaint?.comments?.filter(c => c.is_system_generated).map((c, i) => (
-                                                            <div key={`sys-${i}`} style={{
-                                                                marginBottom: '12px',
-                                                                position: 'relative',
-                                                                paddingLeft: '10px',
-                                                                cursor: 'default'
-                                                            }}>
-                                                                <div style={{
-                                                                    width: '14px', height: '14px',
-                                                                    backgroundColor: '#9ca3af',
-                                                                    borderRadius: '50%',
-                                                                    position: 'absolute',
-                                                                    left: '-21px', top: '14px',
-                                                                    border: '3px solid #e5e7eb'
-                                                                }} />
-                                                                <div style={{
-                                                                    backgroundColor: '#f3f4f6',
-                                                                    border: '1px solid #e5e7eb',
-                                                                    borderRadius: '8px',
-                                                                    padding: '10px 12px',
-                                                                    display: 'flex',
-                                                                    gap: '10px',
-                                                                    alignItems: 'flex-start'
-                                                                }}>
-                                                                    <span style={{ display: 'inline-flex', alignItems: 'center', color: '#4b5563', marginTop: '2px' }}>
-                                                                        <ShieldAlert size={16} />
-                                                                    </span>
-                                                                    <div>
-                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                                                                            <span style={{
-                                                                                fontSize: '11px', fontWeight: 600,
-                                                                                color: '#4b5563',
-                                                                                textTransform: 'uppercase', letterSpacing: '0.05em'
-                                                                            }}>
-                                                                                SLA Event
-                                                                            </span>
-                                                                            <span style={{
-                                                                                backgroundColor: '#e5e7eb',
-                                                                                color: '#374151',
-                                                                                fontSize: '10px',
-                                                                                fontWeight: '600',
-                                                                                padding: '2px 6px',
-                                                                                borderRadius: '4px',
-                                                                                textTransform: 'uppercase'
-                                                                            }}>
-                                                                                System Notification
-                                                                            </span>
-                                                                        </div>
-                                                                        <p style={{ fontSize: '13px', color: '#374151', margin: '6px 0 0 0', lineHeight: '1.4' }}>
-                                                                            {c.comment}
-                                                                        </p>
-                                                                        {c.created_at && (
-                                                                            <p style={{ fontSize: '11px', color: '#9ca3af', margin: '4px 0 0 0' }}>
-                                                                                {formatDate(c.created_at)}
-                                                                            </p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-
-
-
                                                     </div>
-
-
                                                 </div>
-
-
                                             </div>
-
-
                                         </>
                                     )
                                     }
                                 </div>
 
-                                {canCloseComplaint && (
-                                    <div className='flex items-center justify-end gap-3 border-t border-[#D6D9DE]  bg-white'>
-
-                                        <div className="!p-2">
+                                {(onSendNotice || canCloseComplaint || canVerifyComplaint || canReopenComplaint) && complaint && (
+                                    <div className='flex items-center justify-end gap-3 border-t border-[#D6D9DE] bg-white p-3'>
+                                        {onSendNotice && (
                                             <button
-                                                onClick={handleCloseComplaint}
+                                                type="button"
+                                                onClick={() => {
+                                                    const complaintForNotice = {
+                                                        ...complaint,
+                                                        title: complaint.title || complaintTypeMap[complaint.complaint_type_id] || complaint.complaint_type || 'Complaint',
+                                                        complaint_type: complaintTypeMap[complaint.complaint_type_id] || complaint.complaint_type || complaint.title,
+                                                        statusDisplay: complaint.status ? (complaint.status.charAt(0).toUpperCase() + complaint.status.slice(1)) : 'Pending'
+                                                    };
+                                                    onSendNotice(complaintForNotice);
+                                                }}
+                                                style={{
+                                                    padding: '9px 16px',
+                                                    backgroundColor: 'transparent',
+                                                    border: '1px solid #d1d5db',
+                                                    borderRadius: '8px',
+                                                    fontSize: '14px',
+                                                    color: '#374151',
+                                                    fontWeight: 500,
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                {t('table:sendNotice', 'Send Notice')}
+                                            </button>
+                                        )}
+
+                                        {canReopenComplaint && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenReopenModal}
+                                                disabled={reopening}
+                                                style={{
+                                                    background: "#dc2626",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    padding: "9px 20px",
+                                                    cursor: reopening ? "not-allowed" : "pointer",
+                                                    opacity: reopening ? 0.7 : 1,
+                                                    fontWeight: 500,
+                                                    fontSize: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                <RotateCcw size={16} />
+                                                {t('complaints:reopenComplaint', 'Reopen Complaint')}
+                                            </button>
+                                        )}
+
+                                        {canVerifyComplaint && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setVerifyComment("");
+                                                    setVerifyMediaFile(null);
+                                                    setVerifyMediaPreview(null);
+                                                    setVerifyError("");
+                                                    setShowVerifyModal(true);
+                                                }}
+                                                disabled={verifying}
+                                                style={{
+                                                    background: "#f59e0b",
+                                                    color: "#fff",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                    padding: "9px 20px",
+                                                    cursor: verifying ? "not-allowed" : "pointer",
+                                                    opacity: verifying ? 0.7 : 1,
+                                                    fontWeight: 500,
+                                                    fontSize: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
+                                                }}
+                                            >
+                                                Verify Resolution
+                                            </button>
+                                        )}
+
+                                        {canCloseComplaint && (
+                                            <button
+                                                type="button"
+                                                onClick={handleOpenCloseModal}
                                                 disabled={closing}
                                                 style={{
                                                     background: "#16a34a",
                                                     color: "#fff",
                                                     border: "none",
                                                     borderRadius: "8px",
-                                                    padding: "10px 20px",
+                                                    padding: "9px 20px",
                                                     cursor: closing ? "not-allowed" : "pointer",
                                                     opacity: closing ? 0.7 : 1,
-                                                    fontWeight: 500
+                                                    fontWeight: 500,
+                                                    fontSize: '14px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px'
                                                 }}
                                             >
-                                                {closing ? (
-                                                    <>
-                                                        <Loader
-                                                            size={16}
-                                                            className="animate-spin"
-                                                        />
-                                                        Closing...
-                                                    </>
-                                                ) : (
-                                                    "Close Complaint"
-                                                )}
+                                                Close Complaint
                                             </button>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -794,6 +975,501 @@ const ComplaintDetailsPopup = ({ open, onClose, complaintId }) => {
                 )}
 
             </AnimatePresence >
+
+            {/* Close Complaint Modal with Mandatory Remark */}
+            <AnimatePresence>
+                {showCloseModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2100,
+                            padding: "16px"
+                        }}
+                        onClick={() => !closing && setShowCloseModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "#fff",
+                                borderRadius: "12px",
+                                width: "100%",
+                                maxWidth: "480px",
+                                padding: "24px",
+                                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#111827" }}>
+                                    Close Complaint
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => !closing && setShowCloseModal(false)}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "18px",
+                                        color: "#6b7280"
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p style={{ margin: "0 0 16px 0", fontSize: "14px", color: "#4b5563" }}>
+                                Are you sure you want to close Complaint <strong>#{complaint?.id}</strong>? Please provide a mandatory remark.
+                            </p>
+
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    Closing Remark <span style={{ color: "#ef4444" }}>*</span>
+                                </label>
+                                <textarea
+                                    value={closeRemark}
+                                    onChange={(e) => {
+                                        setCloseRemark(e.target.value);
+                                        if (closeRemarkError) setCloseRemarkError("");
+                                    }}
+                                    rows={4}
+                                    placeholder="Enter closing remark / reason for closure..."
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "8px",
+                                        border: closeRemarkError ? "1px solid #ef4444" : "1px solid #d1d5db",
+                                        outline: "none",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                                {closeRemarkError && (
+                                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#ef4444" }}>
+                                        {closeRemarkError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    disabled={closing}
+                                    onClick={() => setShowCloseModal(false)}
+                                    style={{
+                                        padding: "9px 16px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        background: "#f9fafb",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: closing ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={closing || !closeRemark.trim()}
+                                    onClick={handleConfirmClose}
+                                    style={{
+                                        padding: "9px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: !closeRemark.trim() || closing ? "#86efac" : "#16a34a",
+                                        color: "#fff",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: !closeRemark.trim() || closing ? "not-allowed" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    {closing ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            Closing...
+                                        </>
+                                    ) : (
+                                        "Confirm & Close"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* SMD Reopen Complaint Modal */}
+            <AnimatePresence>
+                {showReopenModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2100,
+                            padding: "16px"
+                        }}
+                        onClick={() => !reopening && setShowReopenModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "#fff",
+                                borderRadius: "12px",
+                                width: "100%",
+                                maxWidth: "500px",
+                                padding: "24px",
+                                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#111827", display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <RotateCcw size={20} color="#dc2626" />
+                                    {t('complaints:reopenComplaint', 'Reopen Complaint')}
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => !reopening && setShowReopenModal(false)}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "18px",
+                                        color: "#6b7280"
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p style={{ margin: "0 0 16px 0", fontSize: "14px", color: "#4b5563" }}>
+                                {t('complaints:reopenComplaintDescription', {
+                                    id: complaint?.id,
+                                    defaultValue: `Reopen Complaint #${complaint?.id}. Please provide a mandatory reason for reopening this complaint.`
+                                })}
+                            </p>
+
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    {t('complaints:reopenReason', 'Reason for Reopening *')}
+                                </label>
+                                <textarea
+                                    value={reopenReason}
+                                    onChange={(e) => {
+                                        setReopenReason(e.target.value);
+                                        if (reopenReasonError) setReopenReasonError("");
+                                    }}
+                                    rows={3}
+                                    placeholder={t('complaints:reopenReasonPlaceholder', 'Enter the reason for reopening this complaint...')}
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "8px",
+                                        border: reopenReasonError ? "1px solid #ef4444" : "1px solid #d1d5db",
+                                        outline: "none",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                                {reopenReasonError && (
+                                    <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#ef4444" }}>
+                                        {reopenReasonError}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    disabled={reopening}
+                                    onClick={() => setShowReopenModal(false)}
+                                    style={{
+                                        padding: "9px 16px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        background: "#f9fafb",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: reopening ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    {t('complaints:cancel', 'Cancel')}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={reopening || !reopenReason.trim()}
+                                    onClick={handleConfirmReopen}
+                                    style={{
+                                        padding: "9px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: !reopenReason.trim() || reopening ? "#fca5a5" : "#dc2626",
+                                        color: "#fff",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: !reopenReason.trim() || reopening ? "not-allowed" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    {reopening ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            {t('complaints:reopening', 'Reopening...')}
+                                        </>
+                                    ) : (
+                                        t('complaints:confirmAndReopen', 'Confirm & Reopen')
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* VDO Verify Resolution Modal with Photo Upload */}
+            <AnimatePresence>
+                {showVerifyModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            background: "rgba(0,0,0,0.5)",
+                            backdropFilter: "blur(4px)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2100,
+                            padding: "16px"
+                        }}
+                        onClick={() => !verifying && setShowVerifyModal(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                background: "#fff",
+                                borderRadius: "12px",
+                                width: "100%",
+                                maxWidth: "500px",
+                                padding: "24px",
+                                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                            }}
+                        >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600, color: "#111827" }}>
+                                    Verify Complaint Resolution
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => !verifying && setShowVerifyModal(false)}
+                                    style={{
+                                        border: "none",
+                                        background: "transparent",
+                                        cursor: "pointer",
+                                        fontSize: "18px",
+                                        color: "#6b7280"
+                                    }}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <p style={{ margin: "0 0 16px 0", fontSize: "14px", color: "#4b5563" }}>
+                                Verify resolution for Complaint <strong>#{complaint?.id}</strong>. You can upload proof photos from your system and provide remarks.
+                            </p>
+
+                            {/* Photo Upload Section */}
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    Proof Photo (Upload from System)
+                                </label>
+                                
+                                {verifyMediaPreview ? (
+                                    <div style={{ position: "relative", width: "100%", height: "180px", borderRadius: "8px", overflow: "hidden", border: "1px solid #d1d5db", marginBottom: "8px" }}>
+                                        <img
+                                            src={verifyMediaPreview}
+                                            alt="Verification Proof Preview"
+                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setVerifyMediaFile(null);
+                                                setVerifyMediaPreview(null);
+                                            }}
+                                            style={{
+                                                position: "absolute",
+                                                top: "8px",
+                                                right: "8px",
+                                                background: "rgba(0,0,0,0.6)",
+                                                color: "#fff",
+                                                border: "none",
+                                                borderRadius: "50%",
+                                                width: "28px",
+                                                height: "28px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                cursor: "pointer"
+                                            }}
+                                        >
+                                            <XIcon size={16} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <label
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "20px",
+                                            border: "2px dashed #d1d5db",
+                                            borderRadius: "8px",
+                                            cursor: "pointer",
+                                            backgroundColor: "#f9fafb",
+                                            transition: "border-color 0.2s"
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.borderColor = "#f59e0b"}
+                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = "#d1d5db"}
+                                    >
+                                        <Upload size={24} style={{ color: "#9ca3af", marginBottom: "6px" }} />
+                                        <span style={{ fontSize: "13px", fontWeight: 500, color: "#374151" }}>
+                                            Click to browse and upload photo
+                                        </span>
+                                        <span style={{ fontSize: "11px", color: "#9ca3af", marginTop: "2px" }}>
+                                            PNG, JPG, WebP up to 10MB
+                                        </span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            style={{ display: "none" }}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            {/* Verification Remark */}
+                            <div style={{ marginBottom: "16px" }}>
+                                <label style={{ display: "block", fontSize: "13px", fontWeight: 500, color: "#374151", marginBottom: "6px" }}>
+                                    Verification Remark
+                                </label>
+                                <textarea
+                                    value={verifyComment}
+                                    onChange={(e) => setVerifyComment(e.target.value)}
+                                    rows={3}
+                                    placeholder="Enter verification remarks (e.g., Work verified on site)..."
+                                    style={{
+                                        width: "100%",
+                                        padding: "10px 12px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        outline: "none",
+                                        fontSize: "14px",
+                                        fontFamily: "inherit",
+                                        resize: "vertical",
+                                        boxSizing: "border-box"
+                                    }}
+                                />
+                            </div>
+
+                            {verifyError && (
+                                <p style={{ margin: "0 0 16px 0", fontSize: "12px", color: "#ef4444" }}>
+                                    {verifyError}
+                                </p>
+                            )}
+
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                                <button
+                                    type="button"
+                                    disabled={verifying}
+                                    onClick={() => setShowVerifyModal(false)}
+                                    style={{
+                                        padding: "9px 16px",
+                                        borderRadius: "8px",
+                                        border: "1px solid #d1d5db",
+                                        background: "#f9fafb",
+                                        color: "#374151",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: verifying ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={verifying}
+                                    onClick={handleConfirmVerify}
+                                    style={{
+                                        padding: "9px 20px",
+                                        borderRadius: "8px",
+                                        border: "none",
+                                        background: verifying ? "#fcd34d" : "#f59e0b",
+                                        color: "#fff",
+                                        fontSize: "14px",
+                                        fontWeight: 500,
+                                        cursor: verifying ? "not-allowed" : "pointer",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "6px"
+                                    }}
+                                >
+                                    {verifying ? (
+                                        <>
+                                            <Loader size={16} className="animate-spin" />
+                                            Verifying...
+                                        </>
+                                    ) : (
+                                        "Verify & Submit"
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             <ResolutionPopup
                 open={popupData}

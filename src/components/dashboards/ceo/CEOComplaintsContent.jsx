@@ -94,6 +94,7 @@ const CEOComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
+  const [specificDateFilter, setSpecificDateFilter] = useState('');
   const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     key: null,
@@ -1316,6 +1317,8 @@ const CEOComplaintsContent = () => {
         complaint.district || 'N/A',
         complaint.submittedDate || 'N/A',
         complaint.statusDisplay || complaint.status || 'N/A',
+        complaint.closed_at || '—',
+        complaint.closed_by || '—',
         complaint.assignedTo || 'Unassigned',
         complaint.priority || 'Medium',
         complaint.lat || 'N/A',
@@ -1387,6 +1390,7 @@ const CEOComplaintsContent = () => {
       priority: 'Medium', // API doesn't provide priority, using default
       location: complaint.location || `${complaint.village_name}, ${complaint.block_name}`,
       submittedBy: complaint.mobile_number || 'N/A',
+      complainant_name: complaint.complainant_name || null,
       submittedDate: complaint.created_at ? new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A',
       assignedTo: complaint.assigned_worker || 'Unassigned',
       statusColor,
@@ -1400,7 +1404,11 @@ const CEOComplaintsContent = () => {
       long: complaint.long,
       media: complaint.media_urls || [],
       comments: complaint.comments || [],
-      last_sla_breach_level: complaint.last_sla_breach_level || null
+      last_sla_breach_level: complaint.last_sla_breach_level || null,
+      closed_at: complaint.closed_at ? new Date(complaint.closed_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—',
+      closed_by: complaint.closed_by_info || (complaint.closed_at ? (complaint.complainant_name || 'Citizen') : '—'),
+      rawCreatedAt: complaint.created_at || null,
+      rawClosedAt: complaint.closed_at || null
     };
   });
 
@@ -1451,6 +1459,18 @@ const CEOComplaintsContent = () => {
     : null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
+    if (specificDateFilter) {
+      const complaintCreated = complaint.rawCreatedAt || complaint.created_at;
+      if (complaintCreated) {
+        const d = new Date(complaintCreated).toISOString().split('T')[0];
+        if (d !== specificDateFilter) {
+          return false;
+        }
+      } else {
+        return false;
+      }
+    }
+
     // Get normalized status from complaint (already normalized during mapping)
     const complaintStatusNormalized = (complaint.statusNormalized || normalizeStatusForFilter(complaint.status || 'OPEN'))
       .trim()
@@ -1472,6 +1492,7 @@ const CEOComplaintsContent = () => {
       complaint.id.toLowerCase().includes(q) ||
       (complaint.location || '').toLowerCase().includes(q) ||
       (complaint.submittedBy || '').toLowerCase().includes(q) ||
+      (complaint.complainant_name || '').toLowerCase().includes(q) ||
       (complaint.submittedDate || '').toLowerCase().includes(q) ||
       (complaint.statusDisplay || complaint.status || '').toLowerCase().includes(q) ||
       (complaint.assignedTo || '').toLowerCase().includes(q) ||
@@ -1487,6 +1508,13 @@ const CEOComplaintsContent = () => {
 
     let valA = a[sortConfig.key];
     let valB = b[sortConfig.key];
+
+    // ✅ ID SORT
+    if (sortConfig.key === 'id' || sortConfig.key === 'ids') {
+      const numA = Number(a.ids) || 0;
+      const numB = Number(b.ids) || 0;
+      return sortConfig.direction === 'asc' ? numA - numB : numB - numA;
+    }
 
     // ✅ ESCALATION SORT
     if (sortConfig.key === 'last_sla_breach_level') {
@@ -1690,7 +1718,7 @@ const CEOComplaintsContent = () => {
   }, [activeScope, selectedDistrictId, selectedBlockId, fetchGramPanchayats]);
 
   return (
-    <div>
+    <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {/* Header Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2442,7 +2470,7 @@ const CEOComplaintsContent = () => {
                 backgroundColor: showOnlyEscalated ? '#ffffff' : '#dc2626',
                 display: 'inline-block'
               }} />
-              {showOnlyEscalated ? 'Showing BLOCK' : 'BLOCK'}
+              {showOnlyEscalated ? 'District Escalation' : 'District Escalation'}
             </button>
           </div>
 
@@ -2451,6 +2479,55 @@ const CEOComplaintsContent = () => {
             alignItems: 'center',
             gap: '16px'
           }}>
+            {/* Specific Date Filter */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '6px 10px',
+              height: '38px',
+              boxSizing: 'border-box'
+            }}>
+              <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
+              <input
+                type="date"
+                value={specificDateFilter}
+                onChange={(e) => setSpecificDateFilter(e.target.value)}
+                title={t('table:filterByDate', 'Filter by Date')}
+                aria-label={t('table:filterByDate', 'Filter by Date')}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '13px',
+                  color: '#374151',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer'
+                }}
+              />
+              {specificDateFilter && (
+                <button
+                  type="button"
+                  onClick={() => setSpecificDateFilter('')}
+                  title={t('table:clearDate', 'Clear Date')}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: '#9ca3af',
+                    padding: '0 2px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
             {/* Search Bar */}
             <div style={{
               position: 'relative',
@@ -2528,7 +2605,7 @@ const CEOComplaintsContent = () => {
               <tr style={{
                 borderBottom: '2px solid #e5e7eb'
               }}>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2538,14 +2615,14 @@ const CEOComplaintsContent = () => {
                     position: 'relative',
                     cursor: 'pointer'
                   }}
-                  onClick={() => handleSort('submittedBy')}
+                  onClick={() => handleSort('ids')}
                 >
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    {t('table:userNumber')}
-                    <SortIcon col="submittedBy" />
+                    {t('table:complaintId')}
+                    <SortIcon col="ids" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2562,7 +2639,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="location" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2579,7 +2656,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="title" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2596,7 +2673,7 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="submittedDate" />
                   </div>
                 </th>
-                <th 
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2613,7 +2690,41 @@ const CEOComplaintsContent = () => {
                     <SortIcon col="statusDisplay" />
                   </div>
                 </th>
-                <th 
+                <th
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('closed_at')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:dateOfClosure', 'Date of Complaint Closure')}
+                    <SortIcon col="closed_at" />
+                  </div>
+                </th>
+                <th
+                  style={{
+                    padding: '12px',
+                    textAlign: 'left',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    position: 'relative',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => handleSort('closed_by')}
+                >
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    {t('table:closedBy', 'Closed By')}
+                    <SortIcon col="closed_by" />
+                  </div>
+                </th>
+                <th
                   style={{
                     padding: '12px',
                     textAlign: 'left',
@@ -2645,7 +2756,7 @@ const CEOComplaintsContent = () => {
             <tbody key={`complaints-${activeFilter}-${filteredComplaints.length}`}>
               {loadingComplaints ? (
                 <tr>
-                  <td colSpan="7" style={{
+                  <td colSpan="9" style={{
                     padding: '40px',
                     textAlign: 'center',
                     fontSize: '14px',
@@ -2656,7 +2767,7 @@ const CEOComplaintsContent = () => {
                 </tr>
               ) : (complaintsError || filteredComplaints.length === 0) ? (
                 <tr>
-                  <td colSpan="7" style={{ padding: 0 }}>
+                  <td colSpan="9" style={{ padding: 0 }}>
                     <NoDataFound size="small" />
                   </td>
                 </tr>
@@ -2679,8 +2790,18 @@ const CEOComplaintsContent = () => {
                           fontWeight: '500',
                           marginBottom: '2px'
                         }}>
-                          {complaint.submittedBy || 'N/A'}
+                          {complaint.id || (complaint.ids ? `COMP-${complaint.ids}` : 'N/A')}
                         </div>
+                        {complaint.complainant_name && (
+                          <div style={{
+                            fontSize: '13px',
+                            fontWeight: '500',
+                            color: '#111827',
+                            marginBottom: '1px'
+                          }}>
+                            {complaint.complainant_name}
+                          </div>
+                        )}
                         <div style={{
                           fontSize: '12px',
                           color: '#6b7280'
@@ -2734,6 +2855,20 @@ const CEOComplaintsContent = () => {
                           {complaint.statusDisplay || complaint.status || 'N/A'}
                         </div>
                       </div>
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {complaint.closed_at}
+                    </td>
+                    <td style={{
+                      padding: '12px',
+                      fontSize: '14px',
+                      color: '#374151'
+                    }}>
+                      {complaint.closed_by}
                     </td>
                     <td style={{
                       padding: '12px',
@@ -2806,9 +2941,11 @@ const CEOComplaintsContent = () => {
       </div>
 
       <ComplaintDetailsPopup
+        onStatusUpdated={() => { fetchComplaintsData(); fetchAnalyticsData(); }}
         open={showComplaintDetails}
         onClose={() => setShowComplaintDetails(false)}
         complaintId={selectedComplaint}
+        onSendNotice={(complaint) => handleOpenNoticeModal(complaint)}
       />
 
 

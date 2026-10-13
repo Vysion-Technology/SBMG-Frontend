@@ -146,9 +146,11 @@ apiClient.interceptors.response.use(
         // Redirect to login page
         window.location.href = '/login';
       } else if (error.response.status === 412) {
-        // GP Reconfirmation Required
+        // GP Reconfirmation Required or Profile Update Required
         if (error.response.data?.detail === "GP_RECONFIRMATION_REQUIRED") {
           window.dispatchEvent(new CustomEvent('gp-reconfirmation-required'));
+        } else if (error.response.data?.detail === "PROFILE_UPDATE_REQUIRED") {
+          window.dispatchEvent(new CustomEvent('profile-update-required'));
         }
       }
     }
@@ -162,6 +164,7 @@ export const authAPI = {
   login: (credentials) => apiClient.post('/auth/login', credentials),
   getMe: () => apiClient.get('/auth/me'),
   logout: () => apiClient.post('/auth/logout'),
+  updateProfile: (profileData) => apiClient.put('/auth/profile', profileData),
 };
 
 export const dashboardAPI = {
