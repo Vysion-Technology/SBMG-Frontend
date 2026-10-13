@@ -100,7 +100,11 @@ const VDOComplaintsContent = () => {
   const [activeFilter, setActiveFilter] = useState('Open');
   const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [specificDateFilter, setSpecificDateFilter] = useState('');
+  const [showTableDateDropdown, setShowTableDateDropdown] = useState(false);
+  const [tableDateRange, setTableDateRange] = useState('');
+  const [tableStartDate, setTableStartDate] = useState('');
+  const [tableEndDate, setTableEndDate] = useState('');
+  const [isTableCustomRange, setIsTableCustomRange] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     key: null,
     direction: 'asc'
@@ -435,10 +439,12 @@ const VDOComplaintsContent = () => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('[data-location-dropdown]') &&
         !event.target.closest('[data-date-dropdown]') &&
+        !event.target.closest('[data-table-date-dropdown]') &&
         !event.target.closest('[data-top3-dropdown]') &&
         !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
+        setShowTableDateDropdown(false);
         setShowFilterDropdown(false);
       }
     };
@@ -880,6 +886,85 @@ const VDOComplaintsContent = () => {
         setShowDateDropdown(false);
       }
     }
+  };
+
+  const tableDateRanges = [
+    { label: t('table:allDates', 'All Dates'), value: 'all' },
+    { label: t('table:today', 'Today'), value: 'today' },
+    { label: t('table:thisWeek', 'This Week'), value: 'week' },
+    { label: t('table:thisMonth', 'This Month'), value: 'month' },
+    { label: t('table:thisYear', 'This Year'), value: 'year' },
+    { label: t('table:customRange', 'Custom Range'), value: 'custom' }
+  ];
+
+  const handleTableDateRangeSelection = (range) => {
+    if (range.value === 'all') {
+      setTableStartDate('');
+      setTableEndDate('');
+      setTableDateRange('');
+      setIsTableCustomRange(false);
+      setShowTableDateDropdown(false);
+      return;
+    }
+
+    if (range.value === 'custom') {
+      setIsTableCustomRange(true);
+      setTableDateRange('Custom');
+      return;
+    }
+
+    setIsTableCustomRange(false);
+    setTableDateRange(range.label);
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    let startStr = todayStr;
+
+    switch (range.value) {
+      case 'today':
+        startStr = todayStr;
+        break;
+      case 'week': {
+        const d = new Date(now);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        startStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        break;
+      }
+      case 'month':
+        startStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        break;
+      case 'year':
+        startStr = `${now.getFullYear()}-01-01`;
+        break;
+      default:
+        startStr = todayStr;
+    }
+
+    setTableStartDate(startStr);
+    setTableEndDate(todayStr);
+    setShowTableDateDropdown(false);
+  };
+
+  const getTableDateDisplayText = () => {
+    if (tableDateRange && tableDateRange !== 'Custom') {
+      return tableDateRange;
+    }
+    if (tableStartDate && tableEndDate) {
+      const s = new Date(tableStartDate);
+      const e = new Date(tableEndDate);
+      return `${s.getDate()}/${s.getMonth() + 1}/${s.getFullYear()} - ${e.getDate()}/${e.getMonth() + 1}/${e.getFullYear()}`;
+    }
+    if (tableStartDate) {
+      const s = new Date(tableStartDate);
+      return `From ${s.getDate()}/${s.getMonth() + 1}/${s.getFullYear()}`;
+    }
+    if (tableEndDate) {
+      const e = new Date(tableEndDate);
+      return `Up to ${e.getDate()}/${e.getMonth() + 1}/${e.getFullYear()}`;
+    }
+    return t('table:filterByDate', 'Filter by Date');
   };
 
   // Validate selected day when month or year changes
@@ -1350,11 +1435,18 @@ const VDOComplaintsContent = () => {
     : null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
-    if (specificDateFilter) {
+    if (tableStartDate || tableEndDate) {
       const complaintCreated = complaint.rawCreatedAt || complaint.created_at;
       if (complaintCreated) {
-        const d = new Date(complaintCreated).toISOString().split('T')[0];
-        if (d !== specificDateFilter) {
+        const d = new Date(complaintCreated);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const localDateStr = `${year}-${month}-${day}`;
+          if (tableStartDate && localDateStr < tableStartDate) return false;
+          if (tableEndDate && localDateStr > tableEndDate) return false;
+        } else {
           return false;
         }
       } else {
@@ -2127,52 +2219,308 @@ const VDOComplaintsContent = () => {
             alignItems: 'center',
             gap: '16px'
           }}>
-            {/* Specific Date Filter */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '6px 10px',
-              height: '38px',
-              boxSizing: 'border-box'
-            }}>
-              <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
-              <input
-                type="date"
-                value={specificDateFilter}
-                onChange={(e) => setSpecificDateFilter(e.target.value)}
-                title={t('table:filterByDate', 'Filter by Date')}
-                aria-label={t('table:filterByDate', 'Filter by Date')}
+            {/* Table Date Range Filter Modal/Dropdown */}
+            <div
+              data-table-date-dropdown
+              style={{ position: 'relative' }}
+            >
+              <div
+                onClick={() => setShowTableDateDropdown(!showTableDateDropdown)}
                 style={{
-                  border: 'none',
-                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: (tableStartDate || tableEndDate) ? '#f0fdf4' : 'white',
+                  border: (tableStartDate || tableEndDate) ? '1px solid #86efac' : '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  height: '38px',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer',
+                  color: (tableStartDate || tableEndDate) ? '#166534' : '#374151',
                   fontSize: '13px',
-                  color: '#374151',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
+                  fontWeight: (tableStartDate || tableEndDate) ? '500' : '400',
+                  transition: 'all 0.2s',
+                  userSelect: 'none'
                 }}
-              />
-              {specificDateFilter && (
-                <button
-                  type="button"
-                  onClick={() => setSpecificDateFilter('')}
-                  title={t('table:clearDate', 'Clear Date')}
+              >
+                <Calendar style={{ width: '16px', height: '16px', color: (tableStartDate || tableEndDate) ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
+                <span>{getTableDateDisplayText()}</span>
+                <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af', flexShrink: 0 }} />
+                {(tableStartDate || tableEndDate) && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableStartDate('');
+                      setTableEndDate('');
+                      setTableDateRange('');
+                      setIsTableCustomRange(false);
+                    }}
+                    title={t('table:clearDate', 'Clear Date')}
+                    style={{
+                      marginLeft: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#9ca3af',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    ✕
+                  </span>
+                )}
+              </div>
+
+              {/* Modern Date Range Modal */}
+              {showTableDateDropdown && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
                   style={{
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#9ca3af',
-                    padding: '0 2px',
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                    zIndex: 1000,
+                    width: '560px',
+                    maxWidth: '90vw',
                     display: 'flex',
-                    alignItems: 'center'
+                    overflow: 'hidden'
                   }}
                 >
-                  ✕
-                </button>
+                  {/* Left Sidebar - Predefined Ranges */}
+                  <div style={{
+                    width: '180px',
+                    backgroundColor: '#f8fafc',
+                    borderRight: '1px solid #e2e8f0',
+                    padding: '16px 0',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
+                      }}>
+                        {t('table:quickSelect', 'Quick Select')}
+                      </h3>
+                    </div>
+
+                    {tableDateRanges.map((range) => {
+                      const isSelected = (!tableStartDate && !tableEndDate && range.value === 'all') ||
+                        (isTableCustomRange && range.value === 'custom') ||
+                        (!isTableCustomRange && tableDateRange === range.label);
+
+                      return (
+                        <div
+                          key={range.value}
+                          onClick={() => handleTableDateRangeSelection(range)}
+                          style={{
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: range.value === 'custom' ? '#10b981' : isSelected ? '#10b981' : '#475569',
+                            backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                            borderLeft: isSelected ? '3px solid #10b981' : '3px solid transparent',
+                            transition: 'all 0.2s',
+                            fontWeight: isSelected ? '600' : '400'
+                          }}
+                        >
+                          {range.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right Side - Custom or Selected Range View */}
+                  <div style={{
+                    flex: 1,
+                    padding: '16px',
+                    minHeight: '220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}>
+                    {isTableCustomRange ? (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          {t('table:selectDateRange', 'Select Date Range')}
+                        </h3>
+
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              {t('table:startDate', 'Start Date')}
+                            </label>
+                            <input
+                              type="date"
+                              value={tableStartDate || ''}
+                              onChange={(e) => setTableStartDate(e.target.value)}
+                              max={tableEndDate || undefined}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              {t('table:endDate', 'End Date')}
+                            </label>
+                            <input
+                              type="date"
+                              value={tableEndDate || ''}
+                              onChange={(e) => setTableEndDate(e.target.value)}
+                              min={tableStartDate || undefined}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          justifyContent: 'flex-end',
+                          marginTop: '16px'
+                        }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTableStartDate('');
+                              setTableEndDate('');
+                              setTableDateRange('');
+                              setIsTableCustomRange(false);
+                              setShowTableDateDropdown(false);
+                            }}
+                            style={{
+                              padding: '8px 16px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              backgroundColor: '#f9fafb',
+                              color: '#6b7280',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t('table:clearDate', 'Clear')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowTableDateDropdown(false)}
+                            disabled={!tableStartDate && !tableEndDate}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: (tableStartDate || tableEndDate) ? '#10b981' : '#d1d5db',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              cursor: (tableStartDate || tableEndDate) ? 'pointer' : 'not-allowed'
+                            }}
+                          >
+                            {t('table:apply', 'Apply')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          {t('table:selectedRange', 'Selected Range')}
+                        </h3>
+
+                        <div style={{
+                          padding: '12px',
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '6px',
+                          marginBottom: '16px'
+                        }}>
+                          <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
+                            {tableDateRange || t('table:allDates', 'All Dates')}
+                          </div>
+                          {tableStartDate && tableEndDate && (
+                            <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                              {new Date(tableStartDate).toLocaleDateString()} - {new Date(tableEndDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {(tableStartDate || tableEndDate) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTableStartDate('');
+                                setTableEndDate('');
+                                setTableDateRange('');
+                                setIsTableCustomRange(false);
+                                setShowTableDateDropdown(false);
+                              }}
+                              style={{
+                                padding: '8px 16px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                backgroundColor: '#f9fafb',
+                                color: '#6b7280',
+                                fontSize: '14px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {t('table:clearDate', 'Clear')}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowTableDateDropdown(false)}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t('table:close', 'Close')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
