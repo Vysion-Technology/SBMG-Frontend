@@ -2016,13 +2016,25 @@ const BDODashboardContent = () => {
 
 
   useEffect(() => {
+    if (activeScope === 'GPs' && !selectedGPId) {
+      return;
+    }
+
     const fetchAssetsData = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        const params = {};
+        if (selectedDistrictId) params.district_id = selectedDistrictId;
+        if (selectedBlockId) params.block_id = selectedBlockId;
+        if (activeScope === 'GPs' && selectedGPId) {
+          params.gp_id = selectedGPId;
+        }
+
         const res = await apiClient.get(
-          'annual-surveys/analytics/assets'
+          'annual-surveys/analytics/assets',
+          { params }
         );
 
         const mapped = mapAssetsApiToUI(res?.data || {});
@@ -2040,7 +2052,7 @@ const BDODashboardContent = () => {
     };
 
     fetchAssetsData();
-  }, []);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   const fetchDistrictsAssets = async () => {
     setLoadingDis(true);
