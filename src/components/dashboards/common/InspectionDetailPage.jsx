@@ -275,9 +275,19 @@ const InspectionDetailPage = ({ inspectionId, isopen, onClose }) => {
                                                             <p style={styles.innerCardValue}>{inspectionData.district_name}</p>
                                                         </div>
                                                         <div style={styles.cardInnerDiv}>
-                                                            <div style={styles.innerCardHeading}>Role</div>
-                                                            <p style={styles.innerCardValue}>{inspectionData.officer_role}</p>
+                                                            <div style={styles.innerCardHeading}>Inspector Name</div>
+                                                            <p style={styles.innerCardValue}>{inspectionData.name || inspectionData.officer_name || 'N/A'}</p>
                                                         </div>
+                                                        <div style={styles.cardInnerDiv}>
+                                                            <div style={styles.innerCardHeading}>Post</div>
+                                                            <p style={styles.innerCardValue}>{inspectionData.post || inspectionData.officer_role || 'N/A'}</p>
+                                                        </div>
+                                                        {inspectionData.contact_number && (
+                                                            <div style={styles.cardInnerDiv}>
+                                                                <div style={styles.innerCardHeading}>Contact Number</div>
+                                                                <p style={styles.innerCardValue}>{inspectionData.contact_number}</p>
+                                                            </div>
+                                                        )}
                                                         <div style={styles.cardInnerDiv}>
                                                             <div style={styles.innerCardHeading}>Position holder ID</div>
                                                             <p style={styles.innerCardValue}>{inspectionData.position_holder_id}</p>

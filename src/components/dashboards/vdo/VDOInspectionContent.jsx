@@ -1296,9 +1296,13 @@ const VDOInspectionContent = () => {
             <div class="label">District Name:</div>
             <div class="value">${data.district_name || 'N/A'}</div>
             <div class="label">Officer Name:</div>
-            <div class="value">${data.officer_name || 'N/A'}</div>
-            <div class="label">Officer Role:</div>
-            <div class="value">${data.officer_role || 'N/A'}</div>
+            <div class="value">${data.name || data.officer_name || 'N/A'}</div>
+            <div class="label">Post:</div>
+            <div class="value">${data.post || data.officer_role || 'N/A'}</div>
+            ${data.contact_number ? `
+            <div class="label">Contact Number:</div>
+            <div class="value">${data.contact_number}</div>
+            ` : ''}
             <div class="label">Start Time:</div>
             <div class="value">${data.start_time ? new Date(data.start_time).toLocaleString() : 'N/A'}</div>
             <div class="label">Register Maintenance:</div>
