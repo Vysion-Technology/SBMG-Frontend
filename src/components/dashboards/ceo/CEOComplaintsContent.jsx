@@ -632,16 +632,16 @@ const CEOComplaintsContent = () => {
         console.log('📅 End Date:', endDate);
       }
 
-      // Add geography filters based on active scope
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
+      // Add geography filters based on active selection
+      if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
       }
 
       const url = `/complaints?${params.toString()}`;
@@ -696,16 +696,16 @@ const CEOComplaintsContent = () => {
       params.append('level', level);
       console.log('📊 Level:', level);
 
-      // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
+      // Add geography IDs based on active selection
+      if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
       }
 
       // Add date range if available
@@ -815,29 +815,13 @@ const CEOComplaintsContent = () => {
       return;
     }
 
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (activeScope === 'State') {
-      console.log('📡 Calling API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
+    // Wait until CEO district ID is loaded
+    if (!selectedDistrictId) {
+      console.log('⏳ Waiting for CEO district selection');
       return;
     }
 
-    // For other scopes, check if we have the necessary location data loaded
-    if (activeScope === 'Districts' && !selectedDistrictId) {
-      console.log('⏳ Waiting for district selection');
-      return; // Wait for district selection
-    }
-    if (activeScope === 'Blocks' && !selectedBlockId) {
-      console.log('⏳ Waiting for block selection');
-      return; // Wait for block selection
-    }
-    if (activeScope === 'GPs' && !selectedGPId) {
-      console.log('⏳ Waiting for GP selection');
-      return; // Wait for GP selection
-    }
-
-    console.log('📡 Calling API for other scopes');
+    console.log('📡 Calling API for CEO complaints');
     fetchAnalyticsData();
     fetchComplaintsData();
   }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchComplaintsData]);

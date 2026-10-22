@@ -2095,10 +2095,8 @@ const CEODashboardContent = () => {
   }
 
   useEffect(() => {
-    if (activeScope === 'Blocks' && !selectedBlockId) {
-      return;
-    }
-    if (activeScope === 'GPs' && !selectedGPId) {
+    // Wait until CEO district is available
+    if (!selectedDistrictId) {
       return;
     }
 
@@ -2107,13 +2105,14 @@ const CEODashboardContent = () => {
       setError(null);
 
       try {
-        const params = {};
-        if (selectedDistrictId) params.district_id = selectedDistrictId;
+        const params = {
+          district_id: selectedDistrictId,
+        };
         if (activeScope === 'Blocks' && selectedBlockId) {
           params.block_id = selectedBlockId;
-        } else if (activeScope === 'GPs' && selectedGPId) {
+        } else if (activeScope === 'GPs') {
           if (selectedBlockId) params.block_id = selectedBlockId;
-          params.gp_id = selectedGPId;
+          if (selectedGPId) params.gp_id = selectedGPId;
         }
 
         const res = await apiClient.get(
@@ -2202,21 +2201,8 @@ const CEODashboardContent = () => {
   };
 
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const data = await fetchDistrictsAssets();
-        setDistrictTableData(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadDistricts();
-  }, []);
-
-
- const formatValue = (key, value) => {
+  // Districts drill-down data is fetched lazily by AssetsTable when opened
+  const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
       if (isNaN(num)) return "-";
@@ -2363,6 +2349,7 @@ const CEODashboardContent = () => {
                       cards={section.cards}
                       apiData={districtTableData}
                       loadingDis={loadingDis}
+                      fetchDistricts={fetchDistrictsAssets}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={

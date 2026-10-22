@@ -2016,7 +2016,8 @@ const BDODashboardContent = () => {
 
 
   useEffect(() => {
-    if (activeScope === 'GPs' && !selectedGPId) {
+    // Wait until BDO block is available
+    if (!selectedBlockId) {
       return;
     }
 
@@ -2025,9 +2026,10 @@ const BDODashboardContent = () => {
       setError(null);
 
       try {
-        const params = {};
+        const params = {
+          block_id: selectedBlockId,
+        };
         if (selectedDistrictId) params.district_id = selectedDistrictId;
-        if (selectedBlockId) params.block_id = selectedBlockId;
         if (activeScope === 'GPs' && selectedGPId) {
           params.gp_id = selectedGPId;
         }
@@ -2118,20 +2120,7 @@ const BDODashboardContent = () => {
   };
 
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const data = await fetchDistrictsAssets();
-        setDistrictTableData(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadDistricts();
-  }, []);
-
-
+  // Districts drill-down data is fetched lazily by AssetsTable when opened
   const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
@@ -2270,6 +2259,7 @@ const BDODashboardContent = () => {
                       cards={section.cards}
                       apiData={districtTableData}
                       loadingDis={loadingDis}
+                      fetchDistricts={fetchDistrictsAssets}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
                       initialLevel="gp"

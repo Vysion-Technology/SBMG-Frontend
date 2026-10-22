@@ -636,10 +636,13 @@ const BDOComplaintsContent = () => {
         console.log('📅 End Date:', endDate);
       }
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Add geography filters based on selection
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       const url = `/complaints?${params.toString()}`;
@@ -695,10 +698,13 @@ const BDOComplaintsContent = () => {
       console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Add geography filters based on selection
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -808,29 +814,13 @@ const BDOComplaintsContent = () => {
       return;
     }
 
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (activeScope === 'State') {
-      console.log('📡 Calling API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
+    // Wait until BDO block ID is loaded
+    if (!selectedBlockId) {
+      console.log('⏳ Waiting for BDO block selection');
       return;
     }
 
-    // For other scopes, check if we have the necessary location data loaded
-    if (activeScope === 'Districts' && !selectedDistrictId) {
-      console.log('⏳ Waiting for district selection');
-      return; // Wait for district selection
-    }
-    if (activeScope === 'Blocks' && !selectedBlockId) {
-      console.log('⏳ Waiting for block selection');
-      return; // Wait for block selection
-    }
-    if (activeScope === 'GPs' && !selectedGPId) {
-      console.log('⏳ Waiting for GP selection');
-      return; // Wait for GP selection
-    }
-
-    console.log('📡 Calling API for other scopes');
+    console.log('📡 Calling API for BDO complaints');
     fetchAnalyticsData();
     fetchComplaintsData();
   }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchComplaintsData]);

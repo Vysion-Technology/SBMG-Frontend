@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../../assets/images/number1.png';
@@ -237,13 +237,12 @@ const CEOInspectionContent = () => {
 
   // Effect to fetch data when scope changes
   useEffect(() => {
-    if (activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') {
-      if (activeScope !== 'Districts') {
-        setBlocks([]);
+    if (activeScope === 'Blocks') {
+      if (!selectedBlockId) {
         setGramPanchayats([]);
       }
     }
-  }, [activeScope]);
+  }, [activeScope, selectedBlockId]);
 
   useEffect(() => {
     if ((activeScope === 'Districts' || activeScope === 'Blocks' || activeScope === 'GPs') && selectedDistrictId) {
@@ -515,21 +514,26 @@ const CEOInspectionContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // Determine level based on active scope
-      const level = 'VILLAGE'; // CEO: Always VILLAGE level
+      // Determine level based on active scope & selection
+      // If a block or GP is specifically selected, or in GPs scope, show GP (VILLAGE) level.
+      // Otherwise, show BLOCK level aggregation within CEO's district.
+      let level = 'BLOCK';
+      if (activeScope === 'GPs' || selectedBlockId || selectedGPId) {
+        level = 'VILLAGE';
+      }
       params.append('level', level);
       console.log('📊 Level:', level);
 
-      // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
+      // Add geography IDs hierarchically based on selection: selectedGPId -> selectedBlockId -> selectedDistrictId
+      if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
       }
 
       // Add date range if available
@@ -600,16 +604,16 @@ const CEOInspectionContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
+      // Add geography IDs hierarchically based on selection: selectedGPId -> selectedBlockId -> selectedDistrictId
+      if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
       }
 
       // Add date range if available
@@ -804,15 +808,15 @@ const CEOInspectionContent = () => {
       // Add geography IDs based on selection
       // IMPORTANT: Do not send any IDs when level is DISTRICT (API requirement)
       if (apiLevel !== 'DISTRICT') {
-        if (apiLevel === 'BLOCK' && selectedDistrictId) {
-          params.append('district_id', selectedDistrictId);
-          console.log('🏙️  District ID:', selectedDistrictId);
-        } else if (apiLevel === 'VILLAGE' && activeScope === 'Blocks' && selectedBlockId) {
-          params.append('block_id', selectedBlockId);
-          console.log('🏘️  Block ID:', selectedBlockId);
-        } else if (apiLevel === 'VILLAGE' && activeScope === 'GPs' && selectedGPId) {
+        if (selectedGPId) {
           params.append('gp_id', selectedGPId);
           console.log('🏡 GP ID:', selectedGPId);
+        } else if (selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        } else if (selectedDistrictId) {
+          params.append('district_id', selectedDistrictId);
+          console.log('🏙️  District ID:', selectedDistrictId);
         }
       }
 
@@ -896,16 +900,16 @@ const CEOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // Add geography IDs based on selection
-      if (activeScope === 'Districts' && selectedDistrictId) {
-        params.append('district_id', selectedDistrictId);
-        console.log('🏙️  District ID:', selectedDistrictId);
-      } else if (activeScope === 'Blocks' && selectedBlockId) {
-        params.append('block_id', selectedBlockId);
-        console.log('🏘️  Block ID:', selectedBlockId);
-      } else if (activeScope === 'GPs' && selectedGPId) {
+      // Add geography IDs hierarchically based on selection: selectedGPId -> selectedBlockId -> selectedDistrictId
+      if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
+      } else if (selectedDistrictId) {
+        params.append('district_id', selectedDistrictId);
+        console.log('🏙️  District ID:', selectedDistrictId);
       }
 
       // Add date range if available
@@ -1564,7 +1568,7 @@ const CEOInspectionContent = () => {
   };
 
   // Helper function to generate chart data from analytics
-  const getChartData = () => {
+  const chartData = useMemo(() => {
     if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return {
         categories: [],
@@ -1574,9 +1578,11 @@ const CEOInspectionContent = () => {
       };
     }
 
-    const data = analyticsData.response;
+    const rawData = analyticsData.response;
+    // Guard against massive payloads causing SVG layout freezes in ApexCharts
+    const data = rawData.length > 100 ? rawData.slice(0, 100) : rawData;
 
-    // Calculate state average from coverage_percentage
+    // Calculate state/district average from coverage_percentage
     const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
     const stateAverage = data.length > 0 ? totalCoverage / data.length : 0;
 
@@ -1600,7 +1606,7 @@ const CEOInspectionContent = () => {
       aboveAverage,
       stateAverage
     };
-  };
+  }, [analyticsData]);
 
   // Dropdown click handlers
   const handlePerformersDropdown1Click = () => {
@@ -1636,10 +1642,13 @@ const CEOInspectionContent = () => {
     setShowPerformanceReportDropdown(false);
   };
 
-  // Chart data for State Performance Score - Dynamic based on analyticsData
-  const chartData = getChartData();
+  const averageLabel = (activeScope === 'Blocks' && !selectedBlockId) ? 'block average' :
+    activeScope === 'State' ? 'district average' :
+      activeScope === 'Districts' ? 'block average' :
+        activeScope === 'Blocks' ? 'GP average' :
+          'village average';
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     chart: {
       type: 'bar',
       height: 300,
@@ -1708,10 +1717,11 @@ const CEOInspectionContent = () => {
           borderWidth: 2,
           strokeDashArray: 5,
           label: {
-            text: activeScope === 'State' ? 'District Average' :
-              activeScope === 'Districts' ? 'Block Average' :
-                activeScope === 'Blocks' ? 'GP Average' :
-                  'Village Average',
+            text: (activeScope === 'Blocks' && !selectedBlockId) ? 'Block Average' :
+              activeScope === 'State' ? 'District Average' :
+                activeScope === 'Districts' ? 'Block Average' :
+                  activeScope === 'Blocks' ? 'GP Average' :
+                    'Village Average',
             style: {
               color: '#6b7280',
               fontSize: '12px'
@@ -1721,14 +1731,9 @@ const CEOInspectionContent = () => {
         }
       ]
     }
-  };
+  }), [chartData, activeScope, selectedBlockId]);
 
-  const averageLabel = activeScope === 'State' ? 'district average' :
-    activeScope === 'Districts' ? 'block average' :
-      activeScope === 'Blocks' ? 'GP average' :
-        'village average';
-
-  const chartSeries = [
+  const chartSeries = useMemo(() => [
     {
       name: `Below ${averageLabel}`,
       data: chartData.belowAverage
@@ -1737,7 +1742,7 @@ const CEOInspectionContent = () => {
       name: `Above ${averageLabel}`,
       data: chartData.aboveAverage
     }
-  ];
+  ], [chartData.belowAverage, chartData.aboveAverage, averageLabel]);
 
   return (
     <div>
@@ -2466,7 +2471,7 @@ const CEOInspectionContent = () => {
                 }}>
                   {activeScope === 'State' ? t('inspection:districtPerformanceScore') :
                     activeScope === 'Districts' ? t('inspection:blockPerformanceScore') :
-                      activeScope === 'Blocks' ? t('inspection:gpPerformanceScore') :
+                      activeScope === 'Blocks' ? (selectedBlockId ? t('inspection:gpPerformanceScore') : t('inspection:blockPerformanceScore')) :
                         t('inspection:villagePerformanceScore')}
                 </h3>
 
@@ -2487,10 +2492,11 @@ const CEOInspectionContent = () => {
                       backgroundColor: '#ef4444'
                     }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {t('inspection:below')} {activeScope === 'State' ? t('inspection:districtAverage') :
-                        activeScope === 'Districts' ? t('inspection:blockAverage') :
-                          activeScope === 'Blocks' ? t('inspection:gpAverage') :
-                            t('inspection:villageAverage')}
+                      {t('inspection:below')} {(activeScope === 'Blocks' && !selectedBlockId) ? t('inspection:blockAverage') :
+                        activeScope === 'State' ? t('inspection:districtAverage') :
+                          activeScope === 'Districts' ? t('inspection:blockAverage') :
+                            activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                              t('inspection:villageAverage')}
                     </span>
                   </div>
                   <div style={{
@@ -2505,10 +2511,11 @@ const CEOInspectionContent = () => {
                       backgroundColor: '#10b981'
                     }}></div>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                      {t('inspection:above')} {activeScope === 'State' ? t('inspection:districtAverage') :
-                        activeScope === 'Districts' ? t('inspection:blockAverage') :
-                          activeScope === 'Blocks' ? t('inspection:gpAverage') :
-                            t('inspection:villageAverage')}
+                      {t('inspection:above')} {(activeScope === 'Blocks' && !selectedBlockId) ? t('inspection:blockAverage') :
+                        activeScope === 'State' ? t('inspection:districtAverage') :
+                          activeScope === 'Districts' ? t('inspection:blockAverage') :
+                            activeScope === 'Blocks' ? t('inspection:gpAverage') :
+                              t('inspection:villageAverage')}
                     </span>
                   </div>
                 </div>

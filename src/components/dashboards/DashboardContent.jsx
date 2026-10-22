@@ -2712,19 +2712,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     }
   };
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const data = await fetchDistrictsAssets();
-        setDistrictTableData(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadDistricts();
-  }, []);
-
+  // Districts drill-down data is fetched lazily by AssetsTable when opened
   const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
@@ -2890,6 +2878,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       cards={section.cards}
                       apiData={districtTableData}
                       loadingDis={loadingDis}
+                      fetchDistricts={fetchDistrictsAssets}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={

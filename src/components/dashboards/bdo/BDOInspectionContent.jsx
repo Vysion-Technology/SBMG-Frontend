@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../../assets/images/number1.png';
@@ -525,10 +525,13 @@ const BDOInspectionContent = () => {
       params.append('level', level);
       console.log('📊 Level:', level);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -599,10 +602,13 @@ const BDOInspectionContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -794,10 +800,15 @@ const BDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
-      if (apiLevel !== 'DISTRICT' && selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // BDO: Pass gp_id or block_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
+      if (apiLevel !== 'DISTRICT') {
+        if (selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        } else if (selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        }
       }
 
       // Add date range if available
@@ -880,10 +891,13 @@ const BDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -1542,7 +1556,7 @@ const BDOInspectionContent = () => {
   };
 
   // Helper function to generate chart data from analytics
-  const getChartData = () => {
+  const chartData = useMemo(() => {
     if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return {
         categories: [],
@@ -1552,7 +1566,8 @@ const BDOInspectionContent = () => {
       };
     }
 
-    const data = analyticsData.response;
+    const rawData = analyticsData.response;
+    const data = rawData.length > 100 ? rawData.slice(0, 100) : rawData;
 
     // Calculate state average from coverage_percentage
     const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
@@ -1578,7 +1593,7 @@ const BDOInspectionContent = () => {
       aboveAverage,
       stateAverage
     };
-  };
+  }, [analyticsData]);
 
   // Dropdown click handlers
   const handlePerformersDropdown1Click = () => {
@@ -1614,10 +1629,9 @@ const BDOInspectionContent = () => {
     setShowPerformanceReportDropdown(false);
   };
 
-  // Chart data for State Performance Score - Dynamic based on analyticsData
-  const chartData = getChartData();
+  const averageLabel = 'GP average';
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     chart: {
       type: 'bar',
       height: 300,
@@ -1686,10 +1700,7 @@ const BDOInspectionContent = () => {
           borderWidth: 2,
           strokeDashArray: 5,
           label: {
-            text: activeScope === 'State' ? 'District Average' :
-              activeScope === 'Districts' ? 'Block Average' :
-                activeScope === 'Blocks' ? 'GP Average' :
-                  'Village Average',
+            text: 'GP Average',
             style: {
               color: '#6b7280',
               fontSize: '12px'
@@ -1699,14 +1710,9 @@ const BDOInspectionContent = () => {
         }
       ]
     }
-  };
+  }), [chartData]);
 
-  const averageLabel = activeScope === 'State' ? 'district average' :
-    activeScope === 'Districts' ? 'block average' :
-      activeScope === 'Blocks' ? 'GP average' :
-        'village average';
-
-  const chartSeries = [
+  const chartSeries = useMemo(() => [
     {
       name: `Below ${averageLabel}`,
       data: chartData.belowAverage
@@ -1715,7 +1721,7 @@ const BDOInspectionContent = () => {
       name: `Above ${averageLabel}`,
       data: chartData.aboveAverage
     }
-  ];
+  ], [chartData.belowAverage, chartData.aboveAverage, averageLabel]);
 
   return (
     <div>
