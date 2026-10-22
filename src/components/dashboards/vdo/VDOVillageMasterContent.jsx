@@ -851,39 +851,6 @@ const VDOVillageMasterContent = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* VDO: Title and Year dropdown - no geo tabs or location selection */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            GP Master Data
-          </h1>
-        </div>
-      </div>
-
-      {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
-      <div style={{ padding: '10px 0px 0px 16px' }}>
-        <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '600' }}>
-          {getLocationPath ? getLocationPath() : 'Rajasthan'}
-        </span>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',

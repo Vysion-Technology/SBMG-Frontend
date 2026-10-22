@@ -409,58 +409,6 @@ const VDOContractorDetails = () => {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F3F4F6' }}>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            {t('common:contractorDetails')}
-          </h1>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return `Rajasthan / ${selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const districtName = selectedDistrictForHierarchy?.name || selectedLocation;
-              return `Rajasthan / ${districtName} / ${selectedLocation}`;
-            } else if (activeScope === 'GPs') {
-              const districtName = selectedDistrictForHierarchy?.name || '';
-              const blockName = selectedBlockForHierarchy?.name || '';
-              return `Rajasthan / ${districtName} / ${blockName} / ${vdoGPName}`;
-            }
-            return `Rajasthan / ${selectedLocation}`;
-          })()}
-        </span>
-      </div>
-
-      {/* Overview Section */}
-
-
       {/* Report Section - Only for GP view */}
       {activeScope === 'GPs' && (
 
