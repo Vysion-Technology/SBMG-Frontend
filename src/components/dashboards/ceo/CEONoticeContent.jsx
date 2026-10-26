@@ -1,7 +1,8 @@
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Download, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Download, X, Paperclip, AlertTriangle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from 'xlsx';
-import apiClient from '../../../services/api';
+import apiClient, { noticesAPI } from '../../../services/api';
+import OfficialNoticeModal from '../common/OfficialNoticeModal';
 import { InfoTooltip } from '../../common/Tooltip';
 import NoDataFound from '../common/NoDataFound';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,13 @@ const CEONoticeContent = () => {
   const [repliesModal, setRepliesModal] = useState({ isOpen: false, notice: null });
   const [replyText, setReplyText] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
+  const [replyFile, setReplyFile] = useState(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
+  const [followUpModal, setFollowUpModal] = useState({
+    isOpen: false,
+    notice: null,
+    diffDays: 7
+  });
 
   // Pagination state
   const pageSize = 100; // Number of items per page
@@ -68,7 +76,7 @@ const CEONoticeContent = () => {
     };
 
     fetchSentNotices();
-  }, [sentPage]);
+  }, [sentPage, refreshCounter]);
 
   // Fetch received notices
   useEffect(() => {
@@ -131,10 +139,16 @@ const CEONoticeContent = () => {
     const replyDate = latestReply?.reply_datetime || latestReply?.replyDatetime || latestReply?.created_at || latestReply?.createdAt || null;
     const hasReplies = replies.length > 0;
 
+    // 7-day overdue check for sent notices
+    const noticeDateObj = new Date(notice.date || notice.created_at || notice.createdAt);
+    const now = new Date();
+    const diffDays = Math.max(0, Math.floor((now - noticeDateObj) / (1000 * 60 * 60 * 24)));
+    const isOverdue7Days = viewMode === 'sent' && !hasReplies && diffDays >= 7;
+
     const statusText = viewMode === 'received'
       ? (hasReplies ? 'Reply Submitted' : 'Reply not submitted')
-      : (hasReplies ? 'Reply received' : 'Reply not received');
-    const statusColor = hasReplies ? '#047857' : '#dc2626';
+      : (hasReplies ? 'Reply received' : (isOverdue7Days ? `No Reply (${diffDays}d Overdue)` : 'Reply not received'));
+    const statusColor = hasReplies ? '#047857' : (isOverdue7Days ? '#dc2626' : '#d97706');
 
     return {
       id: notice.id,
@@ -143,9 +157,9 @@ const CEONoticeContent = () => {
       category: notice.type?.name || notice.category || notice.notice_type?.name || 'N/A',
       subject: notice.title || notice.subject || 'N/A',
       text: notice.text || '',
-      rolename: notice.receiver.first_name,
-      districtname: notice.receiver.last_name,
-      gpsname: notice.receiver.middle_name,
+      rolename: notice.receiver?.first_name,
+      districtname: notice.receiver?.last_name,
+      gpsname: notice.receiver?.middle_name,
       sender,
       receiver,
       status: statusText,
@@ -153,6 +167,9 @@ const CEONoticeContent = () => {
       statusDate: hasReplies ? replyDate : null,
       replies,
       raw: notice,
+      isOverdue7Days,
+      diffDays,
+      media: notice.media || []
     };
   };
 
@@ -241,6 +258,19 @@ const CEONoticeContent = () => {
   const closeViewNoticeModal = () => {
     setViewNoticeModal({ isOpen: false, notice: null });
     setReplyText('');
+    setReplyFile(null);
+  };
+
+  const openFollowUpModal = (notice) => {
+    const noticeDate = new Date(notice.date || notice.created_at || notice.createdAt);
+    const now = new Date();
+    const diffDays = Math.max(7, Math.floor((now - noticeDate) / (1000 * 60 * 60 * 24)));
+    setFollowUpModal({
+      isOpen: true,
+      notice,
+      diffDays
+    });
+    closeActionMenu();
   };
   const closeRepliesModal = () => setRepliesModal({ isOpen: false, notice: null });
 
@@ -358,8 +388,19 @@ const CEONoticeContent = () => {
 
     try {
       setSubmittingReply(true);
-      const response = await apiClient.post(`/notices/${notice.id}/reply`, {
-        reply_text: replyText.trim()
+      let attachmentUrl = null;
+      if (replyFile) {
+        try {
+          const uploadRes = await noticesAPI.uploadReplyMedia(notice.id, replyFile);
+          attachmentUrl = uploadRes.data?.attachment_url;
+        } catch (uploadErr) {
+          console.error('Failed to upload reply attachment:', uploadErr);
+        }
+      }
+
+      const response = await noticesAPI.replyNotice(notice.id, {
+        reply_text: replyText.trim(),
+        attachment_url: attachmentUrl
       });
 
       console.log('✅ Reply submitted successfully:', response.data);
@@ -810,13 +851,54 @@ const CEONoticeContent = () => {
                           {formatDate(notice.statusDate)}
                         </div>
                       )}
+                      {notice.isOverdue7Days && (
+                        <span style={{
+                          display: 'inline-block',
+                          marginTop: '4px',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          backgroundColor: '#fef2f2',
+                          color: '#dc2626',
+                          border: '1px solid #fecaca'
+                        }}>
+                          ⚠️ {notice.diffDays}+ Days Overdue
+                        </span>
+                      )}
                     </td>
                     <td style={{
                       padding: '16px 24px',
                       fontSize: '14px',
                       color: '#374151',
-                      textAlign: 'center'
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap'
                     }}>
+                      {notice.isOverdue7Days && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFollowUpModal(notice);
+                          }}
+                          title="Issue Follow-up Notice / अनुस्मारक पत्र जारी करें"
+                          style={{
+                            padding: '4px 10px',
+                            fontSize: '11.5px',
+                            fontWeight: 600,
+                            borderRadius: '6px',
+                            border: '1px solid #f87171',
+                            backgroundColor: '#fee2e2',
+                            color: '#b91c1c',
+                            cursor: 'pointer',
+                            marginRight: '8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          <AlertTriangle size={12} /> अनुस्मारक
+                        </button>
+                      )}
                       <button
                         style={{
                           background: 'none',
@@ -941,6 +1023,27 @@ const CEONoticeContent = () => {
           >
             {(t('noFB:viewNotice'))}
           </button>
+          {actionMenu.notice.isOverdue7Days && (
+            <button
+              onClick={() => openFollowUpModal(actionMenu.notice)}
+              style={{
+                border: 'none',
+                background: '#fee2e2',
+                color: '#b91c1c',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: '8px',
+                borderRadius: '14px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <AlertTriangle size={14} /> Follow-up Notice
+            </button>
+          )}
           <button
             onClick={() => openRepliesModal(actionMenu.notice)}
             disabled={!actionMenu.notice.replies || actionMenu.notice.replies.length === 0}
@@ -1065,6 +1168,38 @@ const CEONoticeContent = () => {
                   {viewNoticeModal.notice.text || 'No details provided.'}
                 </div>
               </div>
+
+              {/* Notice PDF Attachment */}
+              {((viewNoticeModal.notice.media && viewNoticeModal.notice.media.length > 0) || (viewNoticeModal.notice.raw?.media && viewNoticeModal.notice.raw.media.length > 0)) && (
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px' }}>Official Notice PDF / संलग्न नोटिस:</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {(viewNoticeModal.notice.media || viewNoticeModal.notice.raw?.media || []).map((m, idx) => (
+                      <a
+                        key={m.id || idx}
+                        href={m.media_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 14px',
+                          borderRadius: '8px',
+                          backgroundColor: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          color: '#065f46',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          textDecoration: 'none'
+                        }}
+                      >
+                        📄 View Official Notice PDF #{idx + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Reply Section - Only for received notices */}
@@ -1089,6 +1224,51 @@ const CEONoticeContent = () => {
                   }}
                   disabled={submittingReply}
                 />
+
+                {/* File Attachment Upload */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      fontWeight: 500
+                    }}
+                  >
+                    <Paperclip size={15} />
+                    {replyFile ? replyFile.name : 'Attach Document / File (संलग्नक)'}
+                    <input
+                      type="file"
+                      onChange={(e) => setReplyFile(e.target.files[0] || null)}
+                      style={{ display: 'none' }}
+                      disabled={submittingReply}
+                    />
+                  </label>
+                  {replyFile && (
+                    <button
+                      type="button"
+                      onClick={() => setReplyFile(null)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: 500
+                      }}
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <button
                     onClick={closeViewNoticeModal}
@@ -1211,10 +1391,32 @@ const CEONoticeContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 600, color: '#111827' }}> {(t('noFB:reply'))}</span>
+                    <span style={{ fontWeight: 600, color: '#111827' }}>
+                      {reply.replier ? `${reply.replier.first_name} ${reply.replier.last_name}` : (t('noFB:reply'))}
+                    </span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(reply.reply_datetime || reply.replyDatetime || reply.created_at || reply.createdAt)}</span>
                   </div>
                   <div style={{ color: '#374151', fontSize: '14px', lineHeight: 1.6 }}>{reply.reply_text || reply.replyText || reply.text}</div>
+                  {reply.attachment_url && (
+                    <div style={{ marginTop: '10px' }}>
+                      <a
+                        href={reply.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: '#2563eb',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        <Paperclip size={14} /> View Attached Document / संलग्नक देखें
+                      </a>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -1240,6 +1442,29 @@ const CEONoticeContent = () => {
         </div>
       )}
 
+      {/* Follow-up Official Notice Modal (7+ days escalation) */}
+      {followUpModal.isOpen && (
+        <OfficialNoticeModal
+          isOpen={followUpModal.isOpen}
+          onClose={() => setFollowUpModal({ isOpen: false, notice: null, diffDays: 7 })}
+          complaint={{
+            id: followUpModal.notice?.raw?.complaint_id || followUpModal.notice?.raw?.id || followUpModal.notice?.id,
+            district_id: followUpModal.notice?.raw?.district_id,
+            block_id: followUpModal.notice?.raw?.block_id,
+            village_id: followUpModal.notice?.raw?.gp_id,
+            village_name: followUpModal.notice?.gpsname,
+            block_name: followUpModal.notice?.blockname,
+            district_name: followUpModal.notice?.districtname,
+            title: followUpModal.notice?.subject
+          }}
+          senderRole="CEO"
+          isFollowUp={true}
+          followUpDays={followUpModal.diffDays}
+          onSuccess={() => {
+            setRefreshCounter(c => c + 1);
+          }}
+        />
+      )}
     </div>
   );
 };

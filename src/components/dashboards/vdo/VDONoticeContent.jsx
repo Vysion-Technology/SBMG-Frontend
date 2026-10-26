@@ -1,7 +1,7 @@
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Download, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronUp, ChevronsLeft, ChevronsRight, ChevronsUpDown, Download, X, Paperclip } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from 'xlsx';
-import apiClient from '../../../services/api';
+import apiClient, { noticesAPI } from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 import { useTranslation } from 'react-i18next';
 
@@ -24,6 +24,7 @@ const VDONoticeContent = () => {
   const [viewNoticeModal, setViewNoticeModal] = useState({ isOpen: false, notice: null });
   const [repliesModal, setRepliesModal] = useState({ isOpen: false, notice: null });
   const [replyText, setReplyText] = useState('');
+  const [replyFile, setReplyFile] = useState(null);
   const [submittingReply, setSubmittingReply] = useState(false);
 
   // Pagination state
@@ -240,6 +241,7 @@ const VDONoticeContent = () => {
   const closeViewNoticeModal = () => {
     setViewNoticeModal({ isOpen: false, notice: null });
     setReplyText('');
+    setReplyFile(null);
   };
   const closeRepliesModal = () => setRepliesModal({ isOpen: false, notice: null });
 
@@ -357,8 +359,20 @@ const VDONoticeContent = () => {
 
     try {
       setSubmittingReply(true);
-      const response = await apiClient.post(`/notices/${notice.id}/reply`, {
-        reply_text: replyText.trim()
+
+      let attachmentUrl = null;
+      if (replyFile) {
+        try {
+          const uploadRes = await noticesAPI.uploadReplyMedia(notice.id, replyFile);
+          attachmentUrl = uploadRes.data?.attachment_url;
+        } catch (uploadErr) {
+          console.error('Failed to upload reply attachment:', uploadErr);
+        }
+      }
+
+      const response = await noticesAPI.replyNotice(notice.id, {
+        reply_text: replyText.trim(),
+        attachment_url: attachmentUrl
       });
 
       console.log('✅ Reply submitted successfully:', response.data);
@@ -1063,6 +1077,38 @@ const VDONoticeContent = () => {
                   {viewNoticeModal.notice.text || 'No details provided.'}
                 </div>
               </div>
+
+              {/* Notice PDF Attachment */}
+              {((viewNoticeModal.notice.media && viewNoticeModal.notice.media.length > 0) || (viewNoticeModal.notice.raw?.media && viewNoticeModal.notice.raw.media.length > 0)) && (
+                <div>
+                  <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px' }}>Official Notice PDF / संलग्न नोटिस:</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {(viewNoticeModal.notice.media || viewNoticeModal.notice.raw?.media || []).map((m, idx) => (
+                      <a
+                        key={m.id || idx}
+                        href={m.media_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '7px 14px',
+                          borderRadius: '8px',
+                          backgroundColor: '#ecfdf5',
+                          border: '1px solid #a7f3d0',
+                          color: '#065f46',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          textDecoration: 'none'
+                        }}
+                      >
+                        📄 View Official Notice PDF #{idx + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Reply Section - Only for received notices */}
@@ -1087,6 +1133,51 @@ const VDONoticeContent = () => {
                   }}
                   disabled={submittingReply}
                 />
+
+                {/* File Attachment Upload */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <label
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '7px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      color: '#475569',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      fontWeight: 500
+                    }}
+                  >
+                    <Paperclip size={15} />
+                    {replyFile ? replyFile.name : 'Attach Document / File (संलग्नक)'}
+                    <input
+                      type="file"
+                      onChange={(e) => setReplyFile(e.target.files[0] || null)}
+                      style={{ display: 'none' }}
+                      disabled={submittingReply}
+                    />
+                  </label>
+                  {replyFile && (
+                    <button
+                      type="button"
+                      onClick={() => setReplyFile(null)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        fontWeight: 500
+                      }}
+                    >
+                      ✕ Remove
+                    </button>
+                  )}
+                </div>
+
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                   <button
                     onClick={closeViewNoticeModal}
@@ -1209,10 +1300,32 @@ const VDONoticeContent = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: 600, color: '#111827' }}>Reply</span>
+                    <span style={{ fontWeight: 600, color: '#111827' }}>
+                      {reply.replier ? `${reply.replier.first_name} ${reply.replier.last_name}` : 'Reply'}
+                    </span>
                     <span style={{ fontSize: '12px', color: '#6b7280' }}>{formatDate(reply.reply_datetime || reply.replyDatetime || reply.created_at || reply.createdAt)}</span>
                   </div>
                   <div style={{ color: '#374151', fontSize: '14px', lineHeight: 1.6 }}>{reply.reply_text || reply.replyText || reply.text}</div>
+                  {reply.attachment_url && (
+                    <div style={{ marginTop: '10px' }}>
+                      <a
+                        href={reply.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: '#2563eb',
+                          fontSize: '13px',
+                          fontWeight: 500,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        <Paperclip size={14} /> View Attached Document / संलग्नक देखें
+                      </a>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

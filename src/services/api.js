@@ -232,6 +232,22 @@ export const eventsAPI = {
 export const noticesAPI = {
   getTypes: () => apiClient.get('/notices/types'),
   createNotice: (payload) => apiClient.post('/notices/', payload),
+  uploadMedia: (noticeId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post(`/notices/${noticeId}/media`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadReplyMedia: (noticeId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post(`/notices/${noticeId}/reply/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  replyNotice: (noticeId, payload) => apiClient.post(`/notices/${noticeId}/reply`, payload),
+  deleteNotice: (noticeId) => apiClient.delete(`/notices/${noticeId}`),
 };
 
 export const vehiclesAPI = {
