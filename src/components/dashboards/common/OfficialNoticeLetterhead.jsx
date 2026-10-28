@@ -175,62 +175,6 @@ export const OfficialNoticeLetterhead = React.forwardRef(({
           </div>
         </div>
 
-        {/* Recipient Details */}
-        <div style={{ marginBottom: '20px', fontSize: '14px', color: '#1f2937' }}>
-          <div style={{ fontWeight: 600, marginBottom: '2px' }}>
-            {isHindi ? 'प्रति,' : 'To,'}
-          </div>
-          <div style={{ fontWeight: 600 }}>
-            {recipientName ? `${recipientName} (` : ''}
-            {isHindi ? (
-              recipientRole === 'CEO' ? 'मुख्य कार्यकारी अधिकारी (CEO)' :
-              recipientRole === 'BDO' ? 'खण्ड विकास अधिकारी (BDO)' :
-              'ग्राम विकास अधिकारी (VDO)'
-            ) : (
-              recipientRole === 'CEO' ? 'Chief Executive Officer (CEO)' :
-              recipientRole === 'BDO' ? 'Block Development Officer (BDO)' :
-              'Village Development Officer (VDO)'
-            )}
-            {recipientName ? ')' : ''}
-          </div>
-          <div>
-            {recipientRole === 'CEO' ? (
-              <>
-                <span>{isHindi ? 'जिला परिषद: ' : 'Zilla Parishad: '}</span>
-                <span style={{ fontWeight: 500 }}>{districtName || '—'}</span>
-              </>
-            ) : recipientRole === 'BDO' ? (
-              <>
-                <span>{isHindi ? 'पंचायत समिति: ' : 'Panchayat Samiti: '}</span>
-                <span style={{ fontWeight: 500 }}>{blockName || '—'}</span>
-                {districtName && (
-                  <>
-                    <span> | {isHindi ? 'जिला: ' : 'District: '}</span>
-                    <span style={{ fontWeight: 500 }}>{districtName}</span>
-                  </>
-                )}
-              </>
-            ) : (
-              <>
-                {isHindi ? 'ग्राम पंचायत: ' : 'Gram Panchayat: '}
-                <span style={{ fontWeight: 500 }}>{villageName || '—'}</span>
-                {blockName && (
-                  <>
-                    <span> | {isHindi ? 'पं. समिति: ' : 'Panchayat Samiti: '}</span>
-                    <span style={{ fontWeight: 500 }}>{blockName}</span>
-                  </>
-                )}
-                {districtName && (
-                  <>
-                    <span> | {isHindi ? 'जिला: ' : 'District: '}</span>
-                    <span style={{ fontWeight: 500 }}>{districtName}</span>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-
         {/* Notice Subject Line */}
         <div style={{
           fontSize: '16px',

@@ -4600,9 +4600,10 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
               </label>
               <textarea
                 value={complaintForm.details}
+                maxLength={600}
                 onChange={(e) => {
                   const value = e.target.value;
-                  if (value.length <= 100) {
+                  if (value.length <= 600) {
                     setComplaintForm(prev => ({ ...prev, details: value }));
                   }
                 }}
@@ -4625,7 +4626,7 @@ const ComplaintsContent = ({ initialFilter, onFilterConsumed }) => {
                 marginTop: '4px',
                 textAlign: 'right'
               }}>
-                {complaintForm.details.length}/100
+                {complaintForm.details.length}/600
               </div>
             </div>
 
