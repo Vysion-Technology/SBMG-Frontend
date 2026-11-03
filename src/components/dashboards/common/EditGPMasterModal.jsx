@@ -196,6 +196,18 @@ function mapGetToForm(data) {
 
     d2d_activities: {
       is_active: d2d.is_active ?? false,
+      work_contract_through: d2d.work_contract_through || (() => {
+        const active = [
+          d2d.sanctioned_tender > 0 ? 'tender' : null,
+          d2d.sanctioned_self_gp > 0 ? 'self_gp' : null,
+          d2d.sanctioned_csr_ngo > 0 ? 'csr_ngo' : null,
+          d2d.sanctioned_shg > 0 ? 'shg' : null,
+          d2d.sanctioned_mixed_model > 0 ? 'mixed_model' : null,
+        ].filter(Boolean);
+        if (active.length > 1) return 'mixed_model';
+        if (active.length === 1) return active[0];
+        return '';
+      })(),
       sanctioned_tender: n(d2d.sanctioned_tender),
       sanctioned_self_gp: n(d2d.sanctioned_self_gp),
       sanctioned_csr_ngo: n(d2d.sanctioned_csr_ngo),
@@ -376,11 +388,12 @@ function formToPayload(form) {
     // ✅ NEW
     d2d_activities: {
       is_active: form.d2d_activities?.is_active ?? false,
-      sanctioned_tender: n(form.d2d_activities?.sanctioned_tender),
-      sanctioned_self_gp: n(form.d2d_activities?.sanctioned_self_gp),
-      sanctioned_csr_ngo: n(form.d2d_activities?.sanctioned_csr_ngo),
-      sanctioned_shg: n(form.d2d_activities?.sanctioned_shg),
-      sanctioned_mixed_model: n(form.d2d_activities?.sanctioned_mixed_model),
+      work_contract_through: (form.d2d_activities?.is_active ? form.d2d_activities?.work_contract_through : null) || null,
+      sanctioned_tender: (form.d2d_activities?.is_active && form.d2d_activities?.work_contract_through === 'tender') ? 1 : 0,
+      sanctioned_self_gp: (form.d2d_activities?.is_active && form.d2d_activities?.work_contract_through === 'self_gp') ? 1 : 0,
+      sanctioned_csr_ngo: (form.d2d_activities?.is_active && form.d2d_activities?.work_contract_through === 'csr_ngo') ? 1 : 0,
+      sanctioned_shg: (form.d2d_activities?.is_active && form.d2d_activities?.work_contract_through === 'shg') ? 1 : 0,
+      sanctioned_mixed_model: (form.d2d_activities?.is_active && form.d2d_activities?.work_contract_through === 'mixed_model') ? 1 : 0,
       total_expenditure: rupees(form.d2d_activities?.total_expenditure),
       vehicles_deployed: n(form.d2d_activities?.vehicles_deployed),
       persons_deployed: n(form.d2d_activities?.persons_deployed),
@@ -712,6 +725,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
 
         d2d_activities: {
           is_active: false,
+          work_contract_through: '',
           sanctioned_tender: '',
           sanctioned_self_gp: '',
           sanctioned_csr_ngo: '',
@@ -1175,6 +1189,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
     if (!value) {
       update('d2d_activities', {
         is_active: false,
+        work_contract_through: '',
         sanctioned_tender: 0,
         sanctioned_self_gp: 0,
         sanctioned_csr_ngo: 0,
@@ -1532,35 +1547,19 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                   {form.d2d_activities?.is_active === true && (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
 
-                      <Input label={t('table:CONTRACTORS_THROUGH_TENDER')}
-                        type="number" min={0}
-                        value={form.d2d_activities?.sanctioned_tender}
-                        onChange={(v) => update('d2d_activities.sanctioned_tender', v === '' ? '' : Number(v))}
-                      />
-
-                      <Input label={t('table:GP_THROUGH_PLACEMENT_AGENCY')}
-                        type="number" min={0}
-                        value={form.d2d_activities?.sanctioned_self_gp}
-                        onChange={(v) => update('d2d_activities.sanctioned_self_gp', v === '' ? '' : Number(v))}
-                      />
-
-
-
-                      <Input label={t('table:GP_THROUGH_CSR')}
-                        type="number" min={0}
-                        value={form.d2d_activities?.sanctioned_csr_ngo}
-                        onChange={(v) => update('d2d_activities.sanctioned_csr_ngo', v === '' ? '' : Number(v))}
-                      />
-
-                      <Input label={t('table:GP_THROUGH_SHG')}
-                        type="number" min={0}
-                        value={form.d2d_activities?.sanctioned_shg}
-                        onChange={(v) => update('d2d_activities.sanctioned_shg', v === '' ? '' : Number(v))}
-                      />
-                      <Input label={t('table:MIXED_MODEL')}
-                        type="number" min={0}
-                        value={form.d2d_activities?.sanctioned_mixed_model}
-                        onChange={(v) => update('d2d_activities.sanctioned_mixed_model', v === '' ? '' : Number(v))}
+                      <Select
+                        label={t('table:DOOR_TO_DOOR_WORK_CONTRACT_THROUGH', 'Door to door work contract through')}
+                        value={form.d2d_activities?.work_contract_through || ''}
+                        onChange={(v) => update('d2d_activities.work_contract_through', v)}
+                        options={[
+                          { value: '', label: '-- Select --' },
+                          { value: 'tender', label: t('table:CONTRACTORS_THROUGH_TENDER', 'Contractors through Tender') },
+                          { value: 'self_gp', label: t('table:GP_THROUGH_PLACEMENT_AGENCY', 'GP through Placement Agency') },
+                          { value: 'csr_ngo', label: t('table:GP_THROUGH_CSR', 'GP through CSR') },
+                          { value: 'shg', label: t('table:GP_THROUGH_SHG', 'GP through SHG') },
+                          { value: 'mixed_model', label: t('table:MIXED_MODEL', 'Mixed Model') }
+                        ]}
+                        disabled={saving}
                       />
 
                       <Input label={t('table:TOTAL_EXPENDITURE')}

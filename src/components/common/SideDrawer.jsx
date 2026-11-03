@@ -18,6 +18,19 @@ const SlideDrawer = ({
     const isControlled = controlledOpen !== undefined;
     const open = isControlled ? controlledOpen : internalOpen;
 
+    const [shouldRender, setShouldRender] = useState(open);
+
+    useEffect(() => {
+        if (open) {
+            setShouldRender(true);
+        } else {
+            const timer = setTimeout(() => {
+                setShouldRender(false);
+            }, 300);
+            return () => clearTimeout(timer);
+        }
+    }, [open]);
+
     const setOpen = (val) => {
         if (isControlled) {
             if (!val) onClose?.();
@@ -90,9 +103,11 @@ const SlideDrawer = ({
 
                 {/* BODY */}
                 <div className="h-[calc(100vh-60px)] overflow-y-auto !p-4">
-                    {typeof children === "function"
-                        ? children({ closeDrawer: handleClose })
-                        : children}
+                    {shouldRender && (
+                        typeof children === "function"
+                            ? children({ closeDrawer: handleClose })
+                            : children
+                    )}
                 </div>
             </aside>
         </>

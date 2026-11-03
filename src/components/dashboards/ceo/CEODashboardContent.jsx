@@ -2095,13 +2095,29 @@ const CEODashboardContent = () => {
   }
 
   useEffect(() => {
+    // Wait until CEO district is available
+    if (!selectedDistrictId) {
+      return;
+    }
+
     const fetchAssetsData = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        const params = {
+          district_id: selectedDistrictId,
+        };
+        if (activeScope === 'Blocks' && selectedBlockId) {
+          params.block_id = selectedBlockId;
+        } else if (activeScope === 'GPs') {
+          if (selectedBlockId) params.block_id = selectedBlockId;
+          if (selectedGPId) params.gp_id = selectedGPId;
+        }
+
         const res = await apiClient.get(
-          'annual-surveys/analytics/assets'
+          'annual-surveys/analytics/assets',
+          { params }
         );
 
         const mapped = mapAssetsApiToUI(res?.data || {});
@@ -2119,7 +2135,7 @@ const CEODashboardContent = () => {
     };
 
     fetchAssetsData();
-  }, []);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
   const fetchDistrictsAssets = async () => {
     setLoadingDis(true);
@@ -2185,21 +2201,8 @@ const CEODashboardContent = () => {
   };
 
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const data = await fetchDistrictsAssets();
-        setDistrictTableData(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadDistricts();
-  }, []);
-
-
- const formatValue = (key, value) => {
+  // Districts drill-down data is fetched lazily by AssetsTable when opened
+  const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
       if (isNaN(num)) return "-";
@@ -2346,6 +2349,7 @@ const CEODashboardContent = () => {
                       cards={section.cards}
                       apiData={districtTableData}
                       loadingDis={loadingDis}
+                      fetchDistricts={fetchDistrictsAssets}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={

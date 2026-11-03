@@ -2583,13 +2583,37 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
   }
 
   useEffect(() => {
+    // Only fetch if we have the necessary location ID selected for non-state scopes
+    if (activeScope === 'Districts' && !selectedDistrictId) {
+      return;
+    }
+    if (activeScope === 'Blocks' && !selectedBlockId) {
+      return;
+    }
+    if (activeScope === 'GPs' && !selectedGPId) {
+      return;
+    }
+
     const fetchAssetsData = async () => {
       setLoading(true);
       setError(null);
 
       try {
+        const params = {};
+        if (activeScope === 'Districts' && selectedDistrictId) {
+          params.district_id = selectedDistrictId;
+        } else if (activeScope === 'Blocks' && selectedBlockId) {
+          if (selectedDistrictId) params.district_id = selectedDistrictId;
+          params.block_id = selectedBlockId;
+        } else if (activeScope === 'GPs' && selectedGPId) {
+          if (selectedDistrictId) params.district_id = selectedDistrictId;
+          if (selectedBlockId) params.block_id = selectedBlockId;
+          params.gp_id = selectedGPId;
+        }
+
         const res = await apiClient.get(
-          'annual-surveys/analytics/assets'
+          'annual-surveys/analytics/assets',
+          { params }
         );
 
         const mapped = mapAssetsApiToUI(res?.data || {});
@@ -2607,7 +2631,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     };
 
     fetchAssetsData();
-  }, []);
+  }, [activeScope, selectedDistrictId, selectedBlockId, selectedGPId]);
 
 
   const fetchDistrictsAssets = async () => {
@@ -2688,19 +2712,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
     }
   };
 
-  useEffect(() => {
-    const loadDistricts = async () => {
-      try {
-        const data = await fetchDistrictsAssets();
-        setDistrictTableData(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadDistricts();
-  }, []);
-
+  // Districts drill-down data is fetched lazily by AssetsTable when opened
   const formatValue = (key, value) => {
     if (key === "Drainage_channels") {
       const num = Number(value);
@@ -2866,6 +2878,7 @@ const DashboardContent = ({ onNavigateToComplaints, onNavigateToAttendance, onNa
                       cards={section.cards}
                       apiData={districtTableData}
                       loadingDis={loadingDis}
+                      fetchDistricts={fetchDistrictsAssets}
                       fetchBlocksData={fetchBlocksDataAssets}
                       fetchGPData={fetchGPDataAssets}
                       initialLevel={

@@ -2125,14 +2125,6 @@ const VDOAttendanceContent = () => {
           }
         }
       `}</style>
-      {/* Header Section */}
-      {/* Location Indicator - VDO fixed location, no generic "District DISTRICT" / "Block" / "Village" */}
-      <div style={{ padding: '10px 0px 0px 16px' }}>
-        <span style={{ fontSize: '14px', color: '#6B7280', fontWeight: '600' }}>
-          {getLocationPath ? getLocationPath() : 'Rajasthan'}
-        </span>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',

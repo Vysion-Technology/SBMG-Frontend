@@ -8,6 +8,7 @@ import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
 import SLABadge from '../common/SLABadge';
+import OfficialNoticeModal from '../common/OfficialNoticeModal';
 import { useTranslation } from 'react-i18next';
 
 const BDOComplaintsContent = () => {
@@ -98,7 +99,11 @@ const BDOComplaintsContent = () => {
   // Complaints specific state
   const [activeFilter, setActiveFilter] = useState('Open');
   const [searchTerm, setSearchTerm] = useState('');
-  const [specificDateFilter, setSpecificDateFilter] = useState('');
+  const [showTableDateDropdown, setShowTableDateDropdown] = useState(false);
+  const [tableDateRange, setTableDateRange] = useState('');
+  const [tableStartDate, setTableStartDate] = useState('');
+  const [tableEndDate, setTableEndDate] = useState('');
+  const [isTableCustomRange, setIsTableCustomRange] = useState(false);
   const [showOnlyEscalated, setShowOnlyEscalated] = useState(false);
   const [sortConfig, setSortConfig] = useState({
     key: null,
@@ -513,10 +518,12 @@ const BDOComplaintsContent = () => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('[data-location-dropdown]') &&
         !event.target.closest('[data-date-dropdown]') &&
+        !event.target.closest('[data-table-date-dropdown]') &&
         !event.target.closest('[data-top3-dropdown]') &&
         !event.target.closest('[data-filter-dropdown]')) {
         setShowLocationDropdown(false);
         setShowDateDropdown(false);
+        setShowTableDateDropdown(false);
         setShowFilterDropdown(false);
       }
     };
@@ -630,10 +637,13 @@ const BDOComplaintsContent = () => {
         console.log('📅 End Date:', endDate);
       }
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Add geography filters based on selection
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       const url = `/complaints?${params.toString()}`;
@@ -689,10 +699,13 @@ const BDOComplaintsContent = () => {
       console.log('📊 Level:', level);
 
       // Add geography IDs based on selection
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Add geography filters based on selection
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -802,29 +815,13 @@ const BDOComplaintsContent = () => {
       return;
     }
 
-    // For State scope, we can call API immediately (no need to wait for districts)
-    if (activeScope === 'State') {
-      console.log('📡 Calling API for State scope');
-      fetchAnalyticsData();
-      fetchComplaintsData();
+    // Wait until BDO block ID is loaded
+    if (!selectedBlockId) {
+      console.log('⏳ Waiting for BDO block selection');
       return;
     }
 
-    // For other scopes, check if we have the necessary location data loaded
-    if (activeScope === 'Districts' && !selectedDistrictId) {
-      console.log('⏳ Waiting for district selection');
-      return; // Wait for district selection
-    }
-    if (activeScope === 'Blocks' && !selectedBlockId) {
-      console.log('⏳ Waiting for block selection');
-      return; // Wait for block selection
-    }
-    if (activeScope === 'GPs' && !selectedGPId) {
-      console.log('⏳ Waiting for GP selection');
-      return; // Wait for GP selection
-    }
-
-    console.log('📡 Calling API for other scopes');
+    console.log('📡 Calling API for BDO complaints');
     fetchAnalyticsData();
     fetchComplaintsData();
   }, [activeScope, selectedLocation, selectedDistrictId, selectedBlockId, selectedGPId, startDate, endDate, isCustomRange, fetchComplaintsData]);
@@ -958,6 +955,85 @@ const BDOComplaintsContent = () => {
       setEndDate(todayStr);
       setShowDateDropdown(false);
     }
+  };
+
+  const tableDateRanges = [
+    { label: t('table:allDates', 'All Dates'), value: 'all' },
+    { label: t('table:today', 'Today'), value: 'today' },
+    { label: t('table:thisWeek', 'This Week'), value: 'week' },
+    { label: t('table:thisMonth', 'This Month'), value: 'month' },
+    { label: t('table:thisYear', 'This Year'), value: 'year' },
+    { label: t('table:customRange', 'Custom Range'), value: 'custom' }
+  ];
+
+  const handleTableDateRangeSelection = (range) => {
+    if (range.value === 'all') {
+      setTableStartDate('');
+      setTableEndDate('');
+      setTableDateRange('');
+      setIsTableCustomRange(false);
+      setShowTableDateDropdown(false);
+      return;
+    }
+
+    if (range.value === 'custom') {
+      setIsTableCustomRange(true);
+      setTableDateRange('Custom');
+      return;
+    }
+
+    setIsTableCustomRange(false);
+    setTableDateRange(range.label);
+
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    let startStr = todayStr;
+
+    switch (range.value) {
+      case 'today':
+        startStr = todayStr;
+        break;
+      case 'week': {
+        const d = new Date(now);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        d.setDate(diff);
+        startStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        break;
+      }
+      case 'month':
+        startStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+        break;
+      case 'year':
+        startStr = `${now.getFullYear()}-01-01`;
+        break;
+      default:
+        startStr = todayStr;
+    }
+
+    setTableStartDate(startStr);
+    setTableEndDate(todayStr);
+    setShowTableDateDropdown(false);
+  };
+
+  const getTableDateDisplayText = () => {
+    if (tableDateRange && tableDateRange !== 'Custom') {
+      return tableDateRange;
+    }
+    if (tableStartDate && tableEndDate) {
+      const s = new Date(tableStartDate);
+      const e = new Date(tableEndDate);
+      return `${s.getDate()}/${s.getMonth() + 1}/${s.getFullYear()} - ${e.getDate()}/${e.getMonth() + 1}/${e.getFullYear()}`;
+    }
+    if (tableStartDate) {
+      const s = new Date(tableStartDate);
+      return `From ${s.getDate()}/${s.getMonth() + 1}/${s.getFullYear()}`;
+    }
+    if (tableEndDate) {
+      const e = new Date(tableEndDate);
+      return `Up to ${e.getDate()}/${e.getMonth() + 1}/${e.getFullYear()}`;
+    }
+    return t('table:filterByDate', 'Filter by Date');
   };
 
   // Handle custom date selection
@@ -1450,11 +1526,18 @@ const BDOComplaintsContent = () => {
     : null;
 
   const filteredComplaints = complaintsData.filter(complaint => {
-    if (specificDateFilter) {
+    if (tableStartDate || tableEndDate) {
       const complaintCreated = complaint.rawCreatedAt || complaint.created_at;
       if (complaintCreated) {
-        const d = new Date(complaintCreated).toISOString().split('T')[0];
-        if (d !== specificDateFilter) {
+        const d = new Date(complaintCreated);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const localDateStr = `${year}-${month}-${day}`;
+          if (tableStartDate && localDateStr < tableStartDate) return false;
+          if (tableEndDate && localDateStr > tableEndDate) return false;
+        } else {
           return false;
         }
       } else {
@@ -1729,184 +1812,6 @@ const BDOComplaintsContent = () => {
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            {t('common:complaints')}
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => handleScopeChange(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div
-            data-location-dropdown
-            style={{
-              position: 'relative',
-              minWidth: '200px'
-            }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
-            {showLocationDropdown && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  minWidth: '280px'
-                }}
-              >
-                {/* BDO: Simple GP list from assigned block */}
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {loadingGPs ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading GPs...
-                    </div>
-                  ) : gramPanchayats.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No GPs found for your block
-                    </div>
-                  ) : (
-                    gramPanchayats.map((gp) => {
-                      const isSelectedGP = selectedLocation === gp.name;
-                      return (
-                        <div
-                          key={`gp-${gp.id}`}
-                          onClick={() => handleGPClick(gp)}
-                          style={getMenuItemStyles(isSelectedGP)}
-                        >
-                          <span>{gp.name}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator */}
-      <div style={{
-        padding: '10px 0px 0px 16px',
-      }}>
-        <span style={{
-          fontSize: '14px',
-          color: '#6B7280',
-          fontWeight: '600'
-        }}>
-          {(() => {
-            const rawDistrict = (bdoDistrictName || '').trim();
-            const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-            const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-            const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
-            if (activeScope === 'State') {
-              return selectedLocation;
-            } else if (activeScope === 'Districts') {
-              return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-            } else if (activeScope === 'Blocks') {
-              const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
-              return parts.join(' / ');
-            } else if (activeScope === 'GPs') {
-              const gpName = (selectedLocation || '').trim();
-              const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
-              return parts.join(' / ');
-            }
-            return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-          })()}
-        </span>
-      </div>
-
       {/* Overview Section */}
       <div style={{
         backgroundColor: 'white',
@@ -2440,52 +2345,308 @@ const BDOComplaintsContent = () => {
             alignItems: 'center',
             gap: '16px'
           }}>
-            {/* Specific Date Filter */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'white',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '6px 10px',
-              height: '38px',
-              boxSizing: 'border-box'
-            }}>
-              <Calendar style={{ width: '16px', height: '16px', color: '#9ca3af', flexShrink: 0 }} />
-              <input
-                type="date"
-                value={specificDateFilter}
-                onChange={(e) => setSpecificDateFilter(e.target.value)}
-                title={t('table:filterByDate', 'Filter by Date')}
-                aria-label={t('table:filterByDate', 'Filter by Date')}
+            {/* Table Date Range Filter Modal/Dropdown */}
+            <div
+              data-table-date-dropdown
+              style={{ position: 'relative' }}
+            >
+              <div
+                onClick={() => setShowTableDateDropdown(!showTableDateDropdown)}
                 style={{
-                  border: 'none',
-                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: (tableStartDate || tableEndDate) ? '#f0fdf4' : 'white',
+                  border: (tableStartDate || tableEndDate) ? '1px solid #86efac' : '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  height: '38px',
+                  boxSizing: 'border-box',
+                  cursor: 'pointer',
+                  color: (tableStartDate || tableEndDate) ? '#166534' : '#374151',
                   fontSize: '13px',
-                  color: '#374151',
-                  backgroundColor: 'transparent',
-                  cursor: 'pointer'
+                  fontWeight: (tableStartDate || tableEndDate) ? '500' : '400',
+                  transition: 'all 0.2s',
+                  userSelect: 'none'
                 }}
-              />
-              {specificDateFilter && (
-                <button
-                  type="button"
-                  onClick={() => setSpecificDateFilter('')}
-                  title={t('table:clearDate', 'Clear Date')}
+              >
+                <Calendar style={{ width: '16px', height: '16px', color: (tableStartDate || tableEndDate) ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
+                <span>{getTableDateDisplayText()}</span>
+                <ChevronDown style={{ width: '14px', height: '14px', color: '#9ca3af', flexShrink: 0 }} />
+                {(tableStartDate || tableEndDate) && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTableStartDate('');
+                      setTableEndDate('');
+                      setTableDateRange('');
+                      setIsTableCustomRange(false);
+                    }}
+                    title={t('table:clearDate', 'Clear Date')}
+                    style={{
+                      marginLeft: '4px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      color: '#9ca3af',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    ✕
+                  </span>
+                )}
+              </div>
+
+              {/* Modern Date Range Modal */}
+              {showTableDateDropdown && (
+                <div
+                  onClick={(e) => e.stopPropagation()}
                   style={{
-                    border: 'none',
-                    background: 'transparent',
-                    cursor: 'pointer',
-                    fontSize: '14px',
-                    color: '#9ca3af',
-                    padding: '0 2px',
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15)',
+                    zIndex: 1000,
+                    width: '560px',
+                    maxWidth: '90vw',
                     display: 'flex',
-                    alignItems: 'center'
+                    overflow: 'hidden'
                   }}
                 >
-                  ✕
-                </button>
+                  {/* Left Sidebar - Predefined Ranges */}
+                  <div style={{
+                    width: '180px',
+                    backgroundColor: '#f8fafc',
+                    borderRight: '1px solid #e2e8f0',
+                    padding: '16px 0',
+                    flexShrink: 0
+                  }}>
+                    <div style={{ padding: '0 16px 12px', borderBottom: '1px solid #e2e8f0' }}>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#1e293b'
+                      }}>
+                        {t('table:quickSelect', 'Quick Select')}
+                      </h3>
+                    </div>
+
+                    {tableDateRanges.map((range) => {
+                      const isSelected = (!tableStartDate && !tableEndDate && range.value === 'all') ||
+                        (isTableCustomRange && range.value === 'custom') ||
+                        (!isTableCustomRange && tableDateRange === range.label);
+
+                      return (
+                        <div
+                          key={range.value}
+                          onClick={() => handleTableDateRangeSelection(range)}
+                          style={{
+                            padding: '12px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            color: range.value === 'custom' ? '#10b981' : isSelected ? '#10b981' : '#475569',
+                            backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                            borderLeft: isSelected ? '3px solid #10b981' : '3px solid transparent',
+                            transition: 'all 0.2s',
+                            fontWeight: isSelected ? '600' : '400'
+                          }}
+                        >
+                          {range.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Right Side - Custom or Selected Range View */}
+                  <div style={{
+                    flex: 1,
+                    padding: '16px',
+                    minHeight: '220px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                  }}>
+                    {isTableCustomRange ? (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          {t('table:selectDateRange', 'Select Date Range')}
+                        </h3>
+
+                        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              {t('table:startDate', 'Start Date')}
+                            </label>
+                            <input
+                              type="date"
+                              value={tableStartDate || ''}
+                              onChange={(e) => setTableStartDate(e.target.value)}
+                              max={tableEndDate || undefined}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label style={{
+                              display: 'block',
+                              fontSize: '12px',
+                              color: '#64748b',
+                              marginBottom: '4px'
+                            }}>
+                              {t('table:endDate', 'End Date')}
+                            </label>
+                            <input
+                              type="date"
+                              value={tableEndDate || ''}
+                              onChange={(e) => setTableEndDate(e.target.value)}
+                              min={tableStartDate || undefined}
+                              style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '140px'
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{
+                          display: 'flex',
+                          gap: '8px',
+                          justifyContent: 'flex-end',
+                          marginTop: '16px'
+                        }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTableStartDate('');
+                              setTableEndDate('');
+                              setTableDateRange('');
+                              setIsTableCustomRange(false);
+                              setShowTableDateDropdown(false);
+                            }}
+                            style={{
+                              padding: '8px 16px',
+                              border: '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              backgroundColor: '#f9fafb',
+                              color: '#6b7280',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t('table:clearDate', 'Clear')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowTableDateDropdown(false)}
+                            disabled={!tableStartDate && !tableEndDate}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: (tableStartDate || tableEndDate) ? '#10b981' : '#d1d5db',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              cursor: (tableStartDate || tableEndDate) ? 'pointer' : 'not-allowed'
+                            }}
+                          >
+                            {t('table:apply', 'Apply')}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <h3 style={{
+                          margin: '0 0 16px 0',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          color: '#1e293b'
+                        }}>
+                          {t('table:selectedRange', 'Selected Range')}
+                        </h3>
+
+                        <div style={{
+                          padding: '12px',
+                          backgroundColor: '#f0fdf4',
+                          border: '1px solid #bbf7d0',
+                          borderRadius: '6px',
+                          marginBottom: '16px'
+                        }}>
+                          <div style={{ fontSize: '14px', color: '#166534', fontWeight: '500' }}>
+                            {tableDateRange || t('table:allDates', 'All Dates')}
+                          </div>
+                          {tableStartDate && tableEndDate && (
+                            <div style={{ fontSize: '12px', color: '#16a34a', marginTop: '4px' }}>
+                              {new Date(tableStartDate).toLocaleDateString()} - {new Date(tableEndDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {(tableStartDate || tableEndDate) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTableStartDate('');
+                                setTableEndDate('');
+                                setTableDateRange('');
+                                setIsTableCustomRange(false);
+                                setShowTableDateDropdown(false);
+                              }}
+                              style={{
+                                padding: '8px 16px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                backgroundColor: '#f9fafb',
+                                color: '#6b7280',
+                                fontSize: '14px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {t('table:clearDate', 'Clear')}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setShowTableDateDropdown(false)}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {t('table:close', 'Close')}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
 
@@ -2910,322 +3071,20 @@ const BDOComplaintsContent = () => {
       />
 
 
-      {/* Notice Location Modal */}
-      {showNoticeModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          padding: '20px'
+      {/* Official Automated Notice Modal */}
+      <OfficialNoticeModal
+        isOpen={showNoticeModal}
+        onClose={() => {
+          setShowNoticeModal(false);
+          setSelectedComplaintForNotice(null);
         }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowNoticeModal(false);
-            }
-          }}
-        >
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            width: '100%',
-            maxWidth: '700px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '24px',
-            position: 'relative'
-          }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '20px'
-            }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px'
-              }}>
-                <h2 style={{
-                  fontSize: '20px',
-                  fontWeight: '600',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  {(t("table:location"))}
-                </h2>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  backgroundColor: '#f3f4f6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
-                </div>
-              </div>
-              <button
-                onClick={() => setShowNoticeModal(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-              >
-                <X style={{ width: '20px', height: '20px', color: '#6b7280' }} />
-              </button>
-            </div>
-
-            {/* To: Recipient */}
-            <div style={{
-              marginBottom: '20px',
-              padding: '12px',
-              backgroundColor: '#f9fafb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              color: '#374151'
-            }}>
-              <strong>{(t("table:to"))} :</strong> {noticeForm.to}
-            </div>
-
-            {/* Subject Field */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                {(t("table:subject"))}
-              </label>
-              <input
-                type="text"
-                value={noticeForm.subject}
-                onChange={(e) => setNoticeForm(prev => ({ ...prev, subject: e.target.value }))}
-                placeholder="Enter scheme"
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}
-              />
-            </div>
-
-            {/* Category Field */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                {(t("table:category"))}
-              </label>
-              <div style={{ position: 'relative' }}>
-                <select
-                  value={noticeForm.categoryId}
-                  onChange={(e) => {
-                    const selectedCategory = noticeCategories.find(cat => cat.id.toString() === e.target.value);
-                    setNoticeForm(prev => ({
-                      ...prev,
-                      categoryId: e.target.value,
-                      categoryName: selectedCategory ? selectedCategory.name : ''
-                    }));
-                  }}
-                  disabled={loadingNoticeCategories || noticeCategories.length === 0}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '2px solid #3b82f6',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    color: loadingNoticeCategories || noticeCategories.length === 0 ? '#9ca3af' : '#374151',
-                    backgroundColor: loadingNoticeCategories || noticeCategories.length === 0 ? '#f9fafb' : 'white',
-                    appearance: 'none',
-                    cursor: loadingNoticeCategories || noticeCategories.length === 0 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <option value="">
-                    {loadingNoticeCategories ? 'Loading categories...' : 'Select'}
-                  </option>
-                  {noticeCategories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: '16px',
-                  height: '16px',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }} />
-              </div>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: '#f3f4f6',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginTop: '8px'
-              }}>
-                <User style={{ width: '18px', height: '18px', color: '#6b7280' }} />
-              </div>
-            </div>
-
-            {/* Details Field */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '14px',
-                fontWeight: '500',
-                color: '#374151',
-                marginBottom: '8px'
-              }}>
-                {(t("table:details"))}
-              </label>
-              <textarea
-                value={noticeForm.details}
-                onChange={(e) => setNoticeForm(prev => ({ ...prev, details: e.target.value }))}
-                placeholder="Enter notice details"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  color: '#374151',
-                  minHeight: '150px',
-                  resize: 'vertical',
-                  fontFamily: 'inherit'
-                }}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px'
-            }}>
-              <button
-                onClick={() => {
-                  setShowNoticeModal(false);
-                  setNoticeForm({
-                    to: '',
-                    subject: '',
-                    categoryId: '',
-                    categoryName: '',
-                    details: ''
-                  });
-                  setSelectedComplaintForNotice(null);
-                }}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#f3f4f6',
-                  color: '#374151',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                {(t("table:cancel"))}
-              </button>
-              <button
-                onClick={async () => {
-                  try {
-                    setSendingNotice(true);
-
-                    // Get current user info (authority giving notice)
-                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-                    const senderName = currentUser.name || currentUser.username || 'System Admin';
-
-                    // Create notice payload
-                    const noticeData = {
-                      recipient: noticeForm.to,
-                      title: noticeForm.subject,
-                      notice_type_id: parseInt(noticeForm.categoryId),
-                      text: noticeForm.details,
-                      module: 'Complaints',
-                      complaint_id: selectedComplaintForNotice?.id,
-                      sender_name: senderName,
-                      recipient_name: noticeForm.to,
-                      district_id: selectedComplaintForNotice?.district_id,
-                      block_id: selectedComplaintForNotice?.block_id,
-                      gp_id: selectedComplaintForNotice?.village_id,
-                      date: new Date().toISOString().split('T')[0],
-                      time: new Date().toTimeString().split(' ')[0]
-                    };
-
-                    await noticesAPI.createNotice(noticeData);
-
-                    // Close modal and reset form
-                    setShowNoticeModal(false);
-                    setNoticeForm({
-                      to: '',
-                      subject: '',
-                      categoryId: '',
-                      categoryName: '',
-                      details: ''
-                    });
-                    setSelectedComplaintForNotice(null);
-
-                    // Show success message
-                    alert('Notice sent successfully!');
-                  } catch (error) {
-                    console.error('Error sending notice:', error);
-                    alert('Failed to send notice. Please try again.');
-                  } finally {
-                    setSendingNotice(false);
-                  }
-                }}
-                disabled={!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? '#d1d5db' : '#10b981',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 'not-allowed' : 'pointer',
-                  opacity: (!noticeForm.to || !noticeForm.subject || !noticeForm.categoryId || !noticeForm.details || sendingNotice || loadingNoticeCategories) ? 0.6 : 1
-                }}
-              >
-                {sendingNotice ? (t("table:sending")) : (t("table:send"))}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        complaint={selectedComplaintForNotice}
+        senderRole="BDO"
+        onSuccess={() => {
+          fetchComplaintsData?.();
+          fetchAnalyticsData?.();
+        }}
+      />
     </div>
   );
 };
