@@ -489,6 +489,12 @@ const CommonTable = ({
     );
 };
 
+// Shared in-memory caches across all AssetsTable instances to de-duplicate identical drill-down requests
+const globalBlocksCache = new Map();
+const globalGpsCache = new Map();
+let globalDistrictsPromise = null;
+let globalDistrictsData = null;
+
 const AssetsTable = ({
     initialLevel = "district",
     selectedDistrict = null,
@@ -527,12 +533,26 @@ const AssetsTable = ({
             return;
         }
 
-        if (typeof fetchDistricts === "function") {
+        const fetchDistrictsFn = fetchDistrictsRef.current || fetchDistricts;
+        if (typeof fetchDistrictsFn === "function") {
             try {
+                if (globalDistrictsData) {
+                    setCurrentData(globalDistrictsData);
+                    return;
+                }
                 setLoadingDistricts(true);
-                const districts = await fetchDistricts();
-                setCurrentData(Array.isArray(districts) ? districts : []);
+                if (!globalDistrictsPromise) {
+                    globalDistrictsPromise = fetchDistrictsFn().catch((err) => {
+                        globalDistrictsPromise = null;
+                        throw err;
+                    });
+                }
+                const districts = await globalDistrictsPromise;
+                globalDistrictsData = Array.isArray(districts) ? districts : [];
+                globalDistrictsPromise = null;
+                setCurrentData(globalDistrictsData);
             } catch (err) {
+                globalDistrictsPromise = null;
                 setError(err);
                 setCurrentData([]);
             } finally {
@@ -553,10 +573,6 @@ const AssetsTable = ({
     useEffect(() => { fetchDistrictsRef.current = fetchDistricts; }, [fetchDistricts]);
     useEffect(() => { mapApiToUIRef.current = mapApiToUI; }, [mapApiToUI]);
 
-    // Simple in-memory caches to de-duplicate identical drill-down requests
-    const blocksCacheRef = useRef(new Map());
-    const gpsCacheRef = useRef(new Map());
-
     const loadBlocks = async (districtId) => {
         if (!districtId) {
             setBlocksData([]);
@@ -567,12 +583,15 @@ const AssetsTable = ({
 
         try {
             const cacheKey = String(districtId);
-            const cached = blocksCacheRef.current.get(cacheKey);
+            const cached = globalBlocksCache.get(cacheKey);
             if (cached) {
-                return await cached;
+                const resolved = await cached;
+                setBlocksData(resolved);
+                return resolved;
             }
 
-            const promise = (fetchBlocksDataRef.current ? fetchBlocksDataRef.current(districtId) : Promise.resolve([])).then((blocks) => {
+            const fetchFn = fetchBlocksDataRef.current || fetchBlocksData;
+            const promise = (fetchFn ? fetchFn(districtId) : Promise.resolve([])).then((blocks) => {
                 return (blocks || []).map((item) => {
                     const blockId = item.block_id || item.blockId || item.geography_id || item.id;
                     return {
@@ -587,14 +606,15 @@ const AssetsTable = ({
             });
 
             // store promise to dedupe inflight
-            blocksCacheRef.current.set(cacheKey, promise);
+            globalBlocksCache.set(cacheKey, promise);
             const normalized = await promise;
             console.debug(`Normalized ${normalized.length} blocks for district ${districtId}`);
             setBlocksData(normalized);
             // replace promise with resolved data
-            blocksCacheRef.current.set(cacheKey, normalized);
+            globalBlocksCache.set(cacheKey, normalized);
             return normalized;
         } catch (err) {
+            globalBlocksCache.delete(String(districtId));
             console.error("Failed to load blocks:", err);
             setError(err);
             setBlocksData([]);
@@ -614,13 +634,16 @@ const AssetsTable = ({
 
         try {
             const cacheKey = `${districtId}:${blockId}`;
-            const cachedGps = gpsCacheRef.current.get(cacheKey);
+            const cachedGps = globalGpsCache.get(cacheKey);
             if (cachedGps) {
-                return await cachedGps;
+                const resolved = await cachedGps;
+                setGpsData(resolved);
+                return resolved;
             }
 
             console.debug(`Fetching GPs for ${cacheKey}`);
-            const gpPromise = (fetchGPDataRef.current ? fetchGPDataRef.current(districtId, blockId) : Promise.resolve([])).then((gps) => {
+            const fetchFn = fetchGPDataRef.current || fetchGPData;
+            const gpPromise = (fetchFn ? fetchFn(districtId, blockId) : Promise.resolve([])).then((gps) => {
                 return (gps || []).map((item) => {
                     const gpId = item.gpId || item.gp_id || item.id || item.geography_id;
                     return {
@@ -637,13 +660,14 @@ const AssetsTable = ({
                 });
             });
 
-            gpsCacheRef.current.set(cacheKey, gpPromise);
+            globalGpsCache.set(cacheKey, gpPromise);
             const normalizedGps = await gpPromise;
             console.debug(`Normalized ${normalizedGps.length} GPs for block ${blockId} (district ${districtId})`);
             setGpsData(normalizedGps);
-            gpsCacheRef.current.set(cacheKey, normalizedGps);
+            globalGpsCache.set(cacheKey, normalizedGps);
             return normalizedGps;
         } catch (err) {
+            globalGpsCache.delete(`${districtId}:${blockId}`);
             console.error("Failed to load GPs:", err);
             setError(err);
             setGpsData([]);

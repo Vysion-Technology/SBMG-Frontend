@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { MapPin, ChevronDown, ChevronRight, Calendar, List, Info, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import number1 from '../../../assets/images/number1.png';
@@ -525,10 +525,13 @@ const BDOInspectionContent = () => {
       params.append('level', level);
       console.log('📊 Level:', level);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -599,10 +602,13 @@ const BDOInspectionContent = () => {
       // Build query parameters based on selected scope
       const params = new URLSearchParams();
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -794,10 +800,15 @@ const BDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
-      if (apiLevel !== 'DISTRICT' && selectedGPId) {
-        params.append('gp_id', selectedGPId);
-        console.log('🏡 GP ID:', selectedGPId);
+      // BDO: Pass gp_id or block_id when not DISTRICT level (API: do not send IDs when level is DISTRICT)
+      if (apiLevel !== 'DISTRICT') {
+        if (selectedGPId) {
+          params.append('gp_id', selectedGPId);
+          console.log('🏡 GP ID:', selectedGPId);
+        } else if (selectedBlockId) {
+          params.append('block_id', selectedBlockId);
+          console.log('🏘️  Block ID:', selectedBlockId);
+        }
       }
 
       // Add date range if available
@@ -880,10 +891,13 @@ const BDOInspectionContent = () => {
       params.append('level', apiLevel);
       console.log('📊 Level:', apiLevel);
 
-      // BDO: Only pass gp_id (backend knows district/block from GP)
+      // BDO: Pass gp_id if selected, otherwise pass block_id
       if (selectedGPId) {
         params.append('gp_id', selectedGPId);
         console.log('🏡 GP ID:', selectedGPId);
+      } else if (selectedBlockId) {
+        params.append('block_id', selectedBlockId);
+        console.log('🏘️  Block ID:', selectedBlockId);
       }
 
       // Add date range if available
@@ -1383,9 +1397,13 @@ const BDOInspectionContent = () => {
             <div class="label">District Name:</div>
             <div class="value">${data.district_name || 'N/A'}</div>
             <div class="label">Officer Name:</div>
-            <div class="value">${data.officer_name || 'N/A'}</div>
-            <div class="label">Officer Role:</div>
-            <div class="value">${data.officer_role || 'N/A'}</div>
+            <div class="value">${data.name || data.officer_name || 'N/A'}</div>
+            <div class="label">Post:</div>
+            <div class="value">${data.post || data.officer_role || 'N/A'}</div>
+            ${data.contact_number ? `
+            <div class="label">Contact Number:</div>
+            <div class="value">${data.contact_number}</div>
+            ` : ''}
             <div class="label">Start Time:</div>
             <div class="value">${data.start_time ? new Date(data.start_time).toLocaleString() : 'N/A'}</div>
             <div class="label">Register Maintenance:</div>
@@ -1542,7 +1560,7 @@ const BDOInspectionContent = () => {
   };
 
   // Helper function to generate chart data from analytics
-  const getChartData = () => {
+  const chartData = useMemo(() => {
     if (!analyticsData || !analyticsData.response || analyticsData.response.length === 0) {
       return {
         categories: [],
@@ -1552,7 +1570,8 @@ const BDOInspectionContent = () => {
       };
     }
 
-    const data = analyticsData.response;
+    const rawData = analyticsData.response;
+    const data = rawData.length > 100 ? rawData.slice(0, 100) : rawData;
 
     // Calculate state average from coverage_percentage
     const totalCoverage = data.reduce((sum, item) => sum + (item.coverage_percentage || 0), 0);
@@ -1578,7 +1597,7 @@ const BDOInspectionContent = () => {
       aboveAverage,
       stateAverage
     };
-  };
+  }, [analyticsData]);
 
   // Dropdown click handlers
   const handlePerformersDropdown1Click = () => {
@@ -1614,10 +1633,9 @@ const BDOInspectionContent = () => {
     setShowPerformanceReportDropdown(false);
   };
 
-  // Chart data for State Performance Score - Dynamic based on analyticsData
-  const chartData = getChartData();
+  const averageLabel = 'GP average';
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     chart: {
       type: 'bar',
       height: 300,
@@ -1686,10 +1704,7 @@ const BDOInspectionContent = () => {
           borderWidth: 2,
           strokeDashArray: 5,
           label: {
-            text: activeScope === 'State' ? 'District Average' :
-              activeScope === 'Districts' ? 'Block Average' :
-                activeScope === 'Blocks' ? 'GP Average' :
-                  'Village Average',
+            text: 'GP Average',
             style: {
               color: '#6b7280',
               fontSize: '12px'
@@ -1699,14 +1714,9 @@ const BDOInspectionContent = () => {
         }
       ]
     }
-  };
+  }), [chartData]);
 
-  const averageLabel = activeScope === 'State' ? 'district average' :
-    activeScope === 'Districts' ? 'block average' :
-      activeScope === 'Blocks' ? 'GP average' :
-        'village average';
-
-  const chartSeries = [
+  const chartSeries = useMemo(() => [
     {
       name: `Below ${averageLabel}`,
       data: chartData.belowAverage
@@ -1715,194 +1725,19 @@ const BDOInspectionContent = () => {
       name: `Above ${averageLabel}`,
       data: chartData.aboveAverage
     }
-  ];
+  ], [chartData.belowAverage, chartData.aboveAverage, averageLabel]);
 
   return (
     <div>
-      {/* Header Section */}
-      <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '5px 15px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        position: 'sticky',
-        top: '53px',
-        zIndex: 999,
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-      }}>
-        {/* Left side - Dashboard title */}
-        <div>
-          <h1 style={{
-            fontSize: '20px',
-            fontWeight: '600',
-            color: '#374151',
-            margin: 0
-          }}>
-            Inspection
-          </h1>
-        </div>
-
-        {/* Right side - Scope buttons and Location dropdown */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
-        }}>
-          {/* Scope segmented buttons */}
-          <div style={{
-            display: 'flex',
-            backgroundColor: '#f3f4f6',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '2px'
-          }}>
-            {scopeButtons.map((scope) => (
-              <button
-                key={scope}
-                onClick={() => setActiveScope(scope)}
-                style={{
-                  padding: '3px 10px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  backgroundColor: activeScope === scope ? '#10b981' : 'transparent',
-                  color: activeScope === scope ? 'white' : '#6b7280',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {/* Location dropdown */}
-          <div style={{
-            position: 'relative',
-            minWidth: '200px'
-          }}>
-            <button
-              onClick={() => activeScope !== 'State' && setShowLocationDropdown(!showLocationDropdown)}
-              disabled={activeScope === 'State'}
-              style={{
-                width: '100%',
-                padding: '5px 12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '10px',
-                backgroundColor: activeScope === 'State' ? '#f9fafb' : 'white',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: activeScope === 'State' ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                color: activeScope === 'State' ? '#9ca3af' : '#6b7280',
-                opacity: activeScope === 'State' ? 0.6 : 1
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <MapPin style={{ width: '16px', height: '16px', color: '#9ca3af' }} />
-                <span>{selectedLocation}</span>
-              </div>
-              <ChevronDown style={{
-                width: '16px',
-                height: '16px',
-                color: activeScope === 'State' ? '#d1d5db' : '#9ca3af'
-              }} />
-            </button>
-
-            {/* Location Dropdown Menu - BDO: GPs ONLY (no districts or blocks) */}
-            {showLocationDropdown && (
-              <div
-                key={`dropdown-${activeScope}`}
-                style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  left: 'auto',
-                  backgroundColor: 'white',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '10px',
-                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.12)',
-                  zIndex: 1000,
-                  marginTop: '6px',
-                  minWidth: '280px'
-                }}
-              >
-                {/* BDO: Simple GP list from assigned block */}
-                <div
-                  style={{
-                    minWidth: '240px',
-                    maxHeight: '280px',
-                    overflowY: 'auto'
-                  }}
-                >
-                  {loadingGPs ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      Loading GPs...
-                    </div>
-                  ) : gramPanchayats.length === 0 ? (
-                    <div style={{ padding: '12px 16px', fontSize: '13px', color: '#6b7280' }}>
-                      No GPs found for your block
-                    </div>
-                  ) : (
-                    gramPanchayats.map((gp) => {
-                      const isSelectedGP = selectedLocation === gp.name;
-                      return (
-                        <div
-                          key={`gp-${gp.id}`}
-                          onClick={() => handleGPClick(gp)}
-                          style={getMenuItemStyles(isSelectedGP)}
-                        >
-                          <span>{gp.name}</span>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Location Indicator and My Inspections Button OR Back Button - Hidden in GP view */}
+      {/* My Inspections Button OR Back Button - Hidden in GP view */}
       {activeScope !== 'GPs' && (
         !showMyInspections ? (
           <div style={{
             padding: '10px 16px 0px 16px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'flex-end'
           }}>
-            <span style={{
-              fontSize: '14px',
-              color: '#6B7280',
-              fontWeight: '600'
-            }}>
-              {(() => {
-                const rawDistrict = (bdoDistrictName || '').trim();
-                const districtLabel = (rawDistrict && rawDistrict.toLowerCase() !== 'district') ? `${bdoDistrictName} DISTRICT` : '';
-                const rawBlock = (selectedBlockForHierarchy?.name || bdoBlockName || selectedLocation || '').trim();
-                const blockName = (rawBlock && rawBlock.toLowerCase() !== 'block') ? rawBlock : '';
-                if (activeScope === 'State') {
-                  return selectedLocation;
-                } else if (activeScope === 'Districts') {
-                  return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-                } else if (activeScope === 'Blocks') {
-                  const parts = ['Rajasthan', districtLabel, blockName].filter(Boolean);
-                  return parts.join(' / ');
-                } else if (activeScope === 'GPs') {
-                  const gpName = (selectedLocation || '').trim();
-                  const parts = ['Rajasthan', districtLabel, blockName, gpName].filter(Boolean);
-                  return parts.join(' / ');
-                }
-                return districtLabel ? `Rajasthan / ${districtLabel}` : `Rajasthan / ${rawDistrict || selectedLocation}`;
-              })()}
-            </span>
-
             {/* My Inspections Button */}
             <button
               onClick={() => setShowMyInspections(true)}
