@@ -319,6 +319,7 @@ const UnifiedDashboardVDO = () => {
             pageTitle={t(activeItem)}
             onMenuClick={() => setIsSidebarOpen(prev => !prev)}
             onNotificationsClick={() => setActiveItem('notices')}
+            onNavigateSection={(section) => setActiveItem(section)}
             showLocationSearch={false}
           />
           <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>

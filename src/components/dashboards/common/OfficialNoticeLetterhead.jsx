@@ -1,5 +1,4 @@
 import React from 'react';
-import noticeHeaderBanner from '../../../assets/images/notice-official-header.png';
 
 /**
  * OfficialNoticeLetterhead
@@ -15,6 +14,9 @@ export const OfficialNoticeLetterhead = React.forwardRef(({
   recipientName = '',
   complaintId = '',
   complaintTitle = '',
+  complaintDescription = '',
+  complainantName = '',
+  complaintDate = '',
   villageName = '',
   blockName = '',
   districtName = '',
@@ -32,6 +34,14 @@ export const OfficialNoticeLetterhead = React.forwardRef(({
     month: '2-digit',
     year: 'numeric'
   });
+
+  const formattedComplaintDate = complaintDate
+    ? new Date(complaintDate).toLocaleDateString(isHindi ? 'hi-IN' : 'en-IN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+    : '';
 
   const formattedDateTime = new Date(noticeDate).toLocaleString(isHindi ? 'hi-IN' : 'en-IN', {
     day: '2-digit',
@@ -138,21 +148,6 @@ export const OfficialNoticeLetterhead = React.forwardRef(({
       }}
     >
       <div>
-        {/* Official Header Banner */}
-        <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-          <img
-            src={noticeHeaderBanner}
-            alt="Government of Rajasthan Letterhead Header"
-            style={{
-              width: '100%',
-              maxHeight: '135px',
-              objectFit: 'contain',
-              display: 'block',
-              margin: '0 auto'
-            }}
-          />
-        </div>
-
         {/* Ref No & Date Bar */}
         <div style={{
           display: 'flex',
@@ -180,13 +175,68 @@ export const OfficialNoticeLetterhead = React.forwardRef(({
           fontSize: '16px',
           fontWeight: 700,
           color: isFollowUp ? '#dc2626' : '#111827',
-          marginBottom: '22px',
+          marginBottom: '20px',
           padding: '6px 0',
           borderBottom: '1.5px solid #111827',
           display: 'inline-block'
         }}>
           <u>{subjectText}</u>
         </div>
+
+        {/* Complaint Details Box */}
+        {complaintId && (
+          <div style={{
+            backgroundColor: '#f8fafc',
+            border: '1px solid #cbd5e1',
+            borderRadius: '6px',
+            padding: '12px 16px',
+            marginBottom: '22px',
+            fontSize: '13px',
+            color: '#334155',
+            lineHeight: 1.6
+          }}>
+            <div style={{
+              fontWeight: 700,
+              color: '#0f172a',
+              fontSize: '13.5px',
+              borderBottom: '1px solid #e2e8f0',
+              paddingBottom: '5px',
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{isHindi ? 'विवरण: लम्बित शिकायत' : 'Complaint Details'}</span>
+              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
+                {isHindi ? `शिकायत आईडी: #${complaintId}` : `ID: #${complaintId}`}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px' }}>
+              <div>
+                <strong style={{ color: '#1e293b' }}>{isHindi ? 'शिकायत प्रकार: ' : 'Type: '}</strong>
+                <span>{complaintTitle || '—'}</span>
+              </div>
+              {formattedComplaintDate && (
+                <div>
+                  <strong style={{ color: '#1e293b' }}>{isHindi ? 'पंजीयन दिनांक: ' : 'Registered Date: '}</strong>
+                  <span>{formattedComplaintDate}</span>
+                </div>
+              )}
+              {complainantName && (
+                <div>
+                  <strong style={{ color: '#1e293b' }}>{isHindi ? 'शिकायतकर्ता: ' : 'Complainant: '}</strong>
+                  <span>{complainantName}</span>
+                </div>
+              )}
+            </div>
+            {complaintDescription && (
+              <div style={{ marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #cbd5e1' }}>
+                <strong style={{ color: '#1e293b' }}>{isHindi ? 'शिकायत का संक्षिप्त विवरण: ' : 'Description: '}</strong>
+                <span>{complaintDescription}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Notice Body */}
         <div style={{

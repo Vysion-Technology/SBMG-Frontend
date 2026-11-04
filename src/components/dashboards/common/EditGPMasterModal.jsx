@@ -182,7 +182,8 @@ function mapGetToForm(data) {
 
     bartan_bank: {
       established_banks: n(o(data.bartan_bank, {}).established_banks),
-      revenue: lacs(o(data.bartan_bank, {}).revenue)
+      revenue: lacs(o(data.bartan_bank, {}).revenue),
+      work_contract_through: o(data.bartan_bank, {}).work_contract_through || ''
     },
 
     vehicle_assets: {
@@ -373,7 +374,8 @@ function formToPayload(form) {
 
     bartan_bank: {
       established_banks: n(form.bartan_bank?.established_banks),
-      revenue: rupees(form.bartan_bank?.revenue)
+      revenue: rupees(form.bartan_bank?.revenue),
+      work_contract_through: form.bartan_bank?.established_banks === 1 ? (form.bartan_bank?.work_contract_through || null) : null
     },
 
     vehicle_assets: {
@@ -744,6 +746,7 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
         bartan_bank: {
           established_banks: '',
           revenue: '',
+          work_contract_through: '',
         },
 
         vehicle_assets: {
@@ -1507,20 +1510,51 @@ const EditGPMasterModal = ({ isOpen, onClose, surveyId, gpName = 'GP', onSuccess
                 </>
               ))}
 
-              {section((t('table:BARTAN_BANK')), grid2(
-                <>
-                  <BooleanRadio
-                    label={t('dashboard:assets.NO_OF_STABLES_BARTAN_BANK')}
-                    value={form.bartan_bank?.established_banks === 1}
-                    onChange={(val) =>
-                      update(
-                        "bartan_bank.established_banks",
-                        val ? 1 : 0
-                      )
-                    }
-                  />
-                  <Input label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')} type="number" min={0} max={100} step="0.01" placeholder={t('table:ENTER_AMOUNT_LACS')} value={form.bartan_bank?.revenue} onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))} disabled={saving} />
-                </>
+              {section((t('table:BARTAN_BANK')), (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    <BooleanRadio
+                      label={t('dashboard:assets.NO_OF_STABLES_BARTAN_BANK')}
+                      value={form.bartan_bank?.established_banks === 1}
+                      onChange={(val) => {
+                        update("bartan_bank.established_banks", val ? 1 : 0);
+                        if (!val) {
+                          update("bartan_bank.work_contract_through", "");
+                        }
+                      }}
+                    />
+                    <Input
+                      label={t('dashboard:assets.REVENUE_OF_BARTAN_BANK')}
+                      type="number"
+                      min={0}
+                      max={100}
+                      step="0.01"
+                      placeholder={t('table:ENTER_AMOUNT_LACS')}
+                      value={form.bartan_bank?.revenue}
+                      onChange={(v) => update('bartan_bank.revenue', v === '' ? '' : Number(v))}
+                      disabled={saving}
+                    />
+                  </div>
+
+                  {form.bartan_bank?.established_banks === 1 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <Select
+                        label={t('table:BARTAN_BANK_WORK_CONTRACT_THROUGH', 'Bartan bank work contract through')}
+                        value={form.bartan_bank?.work_contract_through || ''}
+                        onChange={(v) => update('bartan_bank.work_contract_through', v)}
+                        options={[
+                          { value: '', label: '-- Select --' },
+                          { value: 'tender', label: t('table:CONTRACTORS_THROUGH_TENDER', 'Contractors through Tender') },
+                          { value: 'self_gp', label: t('table:GP_THROUGH_PLACEMENT_AGENCY', 'GP through Placement Agency') },
+                          { value: 'csr_ngo', label: t('table:GP_THROUGH_CSR', 'GP through CSR') },
+                          { value: 'shg', label: t('table:GP_THROUGH_SHG', 'GP through SHG') },
+                          { value: 'mixed_model', label: t('table:MIXED_MODEL', 'Mixed Model') }
+                        ]}
+                        disabled={saving}
+                      />
+                    </div>
+                  )}
+                </div>
               ))}
               {/* {section('Vehicle Assets', grid3(
                 <>

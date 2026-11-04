@@ -10,6 +10,7 @@ import apiClient from '../../services/api';
 import { ROLES } from '../../utils/roleConfig';
 import { useTranslation } from "react-i18next";
 import Profile from '../dashboards/common/Profile';
+import NotificationDropdown from './NotificationDropdown';
 
 const buildSubtitle = (typeLabel, meta) => {
   if (typeLabel === 'District') {
@@ -73,7 +74,7 @@ const IndiaFlag = ({ size = 20 }) => (
   </svg>
 );
 
-const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, pageTitle = 'dashboard', isMobile = false }) => {
+const Header = ({ onMenuClick, onNotificationsClick, onNavigateSection, showLocationSearch = true, pageTitle = 'dashboard', isMobile = false }) => {
   const navigate = useNavigate();
   const { role, logout } = useAuth();
   const isCEO = role === ROLES.CEO;
@@ -1283,44 +1284,11 @@ const Header = ({ onMenuClick, onNotificationsClick, showLocationSearch = true, 
         </div>
 
 
-        {/* Notification bell - Separate container */}
-        <div style={{
-          backgroundColor: '#f3f4f6',
-          padding: '1px',
-          borderRadius: '20px',
-          border: '1px solid #e5e7eb'
-        }}>
-          <button
-            style={{
-              padding: '6px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              position: 'relative',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-            aria-label="Open notices"
-            onClick={() => {
-              if (typeof onNotificationsClick === 'function') {
-                onNotificationsClick();
-              } else {
-                try {
-                  const target = document.querySelector('[data-dashboard-section="notices"]');
-                  if (target) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }
-                } catch (error) {
-                  console.error('Failed to focus notices section:', error);
-                }
-              }
-            }}
-          >
-            <Bell style={{ width: '18px', height: '18px', color: '#6b7280' }} />
-          </button>
-        </div>
+        {/* Notification bell dropdown */}
+        <NotificationDropdown
+          onNotificationsClick={onNotificationsClick}
+          onNavigateSection={onNavigateSection}
+        />
 
         {/* User profile - Separate container */}
         <div ref={userDropdownRef} style={{ position: 'relative' }}>

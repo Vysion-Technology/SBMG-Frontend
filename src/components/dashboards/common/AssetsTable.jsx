@@ -179,7 +179,7 @@ const CommonTable = ({
     showBack = false,
 }) => {
     const getColumnWidth = (card) => {
-        if (card.key === "Total_Work_Sanctioned_Status") return "minmax(450px, 550px)";
+        if (card.key === "Total_Work_Sanctioned_Status" || card.key === "Total_Work_Sanctioned_Status_Bartan") return "minmax(450px, 550px)";
         if (card.key === "FSTPs") return "minmax(300px, 2fr)";
         if (card.key === "OWNED_VEHICLES") return "minmax(250px, 200px)";
         if (card.key === "CONTRACTOR_VEHICLES") return "minmax(250px, 200px)";

@@ -168,6 +168,25 @@ function addSurveyBlock(doc, data, startY) {
     ], y);
   }
 
+  // Bartan Bank
+  if (data.bartan_bank) {
+    const bartanMode = (() => {
+      switch (data.bartan_bank.work_contract_through) {
+        case 'tender': return 'Contractors through Tender';
+        case 'self_gp': return 'GP through Placement Agency';
+        case 'csr_ngo': return 'GP through CSR';
+        case 'shg': return 'GP through SHG';
+        case 'mixed_model': return 'Mixed Model';
+        default: return 'None';
+      }
+    })();
+    y = addSection(doc, 'Bartan Bank', [
+      ['Established Bartan Bank', data.bartan_bank.established_banks ? 'Yes' : 'No'],
+      ['Work Contract Through', bartanMode],
+      ['Revenue (in Lakhs)', String(data.bartan_bank.revenue ?? 0)]
+    ], y);
+  }
+
   return y;
 }
 
