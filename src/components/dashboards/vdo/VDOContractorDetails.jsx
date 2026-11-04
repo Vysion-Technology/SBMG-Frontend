@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronRight, List, Search, Filter, Download, Eye, Edit, Trash2, CheckCircle, XCircle, Clock, Users, UserCheck, UserX, DollarSign, Target, TrendingUp, Database, BarChart3, ArrowUpDown, Calendar, FileText } from 'lucide-react';
 import Chart from 'react-apexcharts';
 import apiClient, { annualSurveysAPI } from '../../../services/api';
 import { useVDOLocation } from '../../../context/VDOLocationContext';
@@ -7,6 +7,7 @@ import NoDataFound from '../common/NoDataFound';
 import { InfoTooltip } from '../../common/Tooltip';
 import { generateAnnualSurveysPDF } from '../../../utils/annualSurveysPdf';
 import EditContractorDetails from './EditContractorDetails';
+import ContractorNoticeModal from './ContractorNoticeModal';
 import { useTranslation } from 'react-i18next';
 
 
@@ -98,6 +99,13 @@ const VDOContractorDetails = () => {
   const [loadingGpSurvey, setLoadingGpSurvey] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editSurveyId, setEditSurveyId] = useState(null);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [selectedContractorForNotice, setSelectedContractorForNotice] = useState(null);
+
+  const handleSendNotice = (contractor) => {
+    setSelectedContractorForNotice(contractor);
+    setShowNoticeModal(true);
+  };
 
   const scopeButtons = ['GPs']; // BDO can only view GPs
   const performanceButtons = ['Time', 'Location'];
@@ -539,23 +547,36 @@ const VDOContractorDetails = () => {
                         </div>
                       </div>
                     </div>
-                    <div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '15px' }}>
                       <button
                         onClick={() => handleEdit(item)}
                         title='Edit Contractor Data'
                         style={{
-                          marginTop: '15px',
                           padding: '8px',
                           backgroundColor: '#009B56',
-                          border: '0px solid #d1d5db',
-                          borderRadius: '0px 8px 8px 0px ',
+                          border: 'none',
+                          borderRadius: '0px 8px 8px 0px',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-
                         }}
                       >  <Edit style={{ width: '16px', height: '16px', color: 'white' }} />
+                      </button>
+                      <button
+                        onClick={() => handleSendNotice(item)}
+                        title={t('table:sendNotice', 'Send Notice')}
+                        style={{
+                          padding: '8px',
+                          backgroundColor: '#dc2626',
+                          border: 'none',
+                          borderRadius: '0px 8px 8px 0px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >  <FileText style={{ width: '16px', height: '16px', color: 'white' }} />
                       </button>
                     </div>
                   </div>
@@ -580,6 +601,21 @@ const VDOContractorDetails = () => {
             onsuccess={fetchAnalytics}
           />
 
+        )
+      }
+      {
+        showNoticeModal && (
+          <ContractorNoticeModal
+            isOpen={showNoticeModal}
+            onClose={() => {
+              setShowNoticeModal(false);
+              setSelectedContractorForNotice(null);
+            }}
+            contractor={selectedContractorForNotice}
+            gpName={vdoGPName}
+            blockName={vdoBlockName}
+            districtName={vdoDistrictName}
+          />
         )
       }
     </div>
