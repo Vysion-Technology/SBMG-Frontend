@@ -421,6 +421,25 @@ const VillageMasterContent = () => {
       ]);
     }
 
+    if (data.bartan_bank) {
+      const bartanContractModeLabel = (() => {
+        switch (data.bartan_bank.work_contract_through) {
+          case 'tender': return "Contractors through Tender";
+          case 'self_gp': return "GP through Placement Agency";
+          case 'csr_ngo': return "GP through CSR";
+          case 'shg': return "GP through SHG";
+          case 'mixed_model': return "Mixed Model";
+          default: return "None";
+        }
+      })();
+
+      addSection("Bartan Bank Details", [
+        ["Established Bartan Bank:", data.bartan_bank.established_banks ? "Yes" : "No"],
+        ["Bartan bank work contract through:", bartanContractModeLabel],
+        ["Revenue (in Lakhs):", data.bartan_bank.revenue ?? 0],
+      ]);
+    }
+
     if (data.d2d_activities) {
       const contractModeLabel = (() => {
         const mode = data.d2d_activities.work_contract_through || (() => {

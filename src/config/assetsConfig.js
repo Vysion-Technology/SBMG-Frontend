@@ -296,6 +296,22 @@ export const assetsSections = [
         bgImg: "/doortodoorimg.png",
       },
       {
+        key: "Total_Work_Sanctioned_Status_Bartan",
+        label: "totalWorkSanctioned",
+        subLabels: [
+          "contractorsThroughTender",
+          "gpThroughPlacementAgency",
+          "gpThroughCSR",
+          "gpThroughSHG",
+          "mixedModel",
+        ],
+        width: "840px",
+        bgColor: "#FEFCE8",
+        textColor: "#364153",
+        border: "#E5E7EB",
+        bgImg: "/doortodoorimg.png",
+      },
+      {
         key: "REVENUE_OF_BARTAN_BANK",
         label: "REVENUE_OF_BARTAN_BANK",
         bgColor: "#FEFCE8",

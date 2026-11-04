@@ -5,6 +5,7 @@ import { useVDOLocation } from '../../../context/VDOLocationContext';
 import apiClient from '../../../services/api';
 import { InfoTooltip } from '../../common/Tooltip';
 import ComplaintDetailsPopup from '../common/ComplaintDetailsPopup';
+import ContractorNoticeModal from './ContractorNoticeModal';
 import SLABadge from '../common/SLABadge';
 import { useTranslation } from 'react-i18next';
 
@@ -197,6 +198,8 @@ const VDOComplaintsContent = () => {
   // Complaints Details page
   const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [showComplaintDetails, setShowComplaintDetails] = useState(false);
+  const [showContractorNoticeModal, setShowContractorNoticeModal] = useState(false);
+  const [selectedComplaintForNotice, setSelectedComplaintForNotice] = useState(null);
 
   const handleOpenComplaintDetails = (id) => {
     setSelectedComplaint(id);
@@ -2905,7 +2908,25 @@ const VDOComplaintsContent = () => {
         open={showComplaintDetails}
         onClose={() => setShowComplaintDetails(false)}
         complaintId={selectedComplaint}
+        onSendNotice={(complaintData) => {
+          setSelectedComplaintForNotice(complaintData);
+          setShowContractorNoticeModal(true);
+        }}
       />
+
+      {showContractorNoticeModal && (
+        <ContractorNoticeModal
+          isOpen={showContractorNoticeModal}
+          onClose={() => {
+            setShowContractorNoticeModal(false);
+            setSelectedComplaintForNotice(null);
+          }}
+          complaint={selectedComplaintForNotice}
+          gpName={vdoGPName}
+          blockName={vdoBlockName}
+          districtName={vdoDistrictName}
+        />
+      )}
 
 
 

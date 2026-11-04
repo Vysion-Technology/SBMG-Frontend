@@ -92,6 +92,13 @@ export const mapAssetsApiToUI = (res) => {
 
     // Back bartan
     NO_OF_STABLES_BARTAN_BANK: res?.bartan_bank?.established_banks || 0,
+    Total_Work_Sanctioned_Status_Bartan: [
+      { label: "Tender", value: res?.bartan_bank?.sanctioned_tender || 0 },
+      { label: "Self GP", value: res?.bartan_bank?.sanctioned_self_gp || 0 },
+      { label: "CSR/NGO", value: res?.bartan_bank?.sanctioned_csr_ngo || 0 },
+      { label: "SHG", value: res?.bartan_bank?.sanctioned_shg || 0 },
+      { label: "Mixed Model", value: res?.bartan_bank?.sanctioned_mixed_model || 0 },
+    ],
     REVENUE_OF_BARTAN_BANK: res?.bartan_bank?.revenue || 0,
 
     // vehicle_assets
