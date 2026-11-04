@@ -307,6 +307,7 @@ const UnifiedDashboardCEO = () => {
             pageTitle={t(activeItem)}
             onMenuClick={() => setIsSidebarOpen(prev => !prev)}
             onNotificationsClick={() => setActiveItem('notices')}
+            onNavigateSection={(section) => setActiveItem(section)}
           />
           <div className={`dashboard-tab-content dashboard-tab-${String(activeItem).replace(/\s+/g, '-')}`} style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden' }}>
             {renderContent()}

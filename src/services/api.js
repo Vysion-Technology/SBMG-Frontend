@@ -424,6 +424,11 @@ export const circularAPI = {
     apiClient.delete(`circulars/${id}`),
 };
 
-
+export const notificationsAPI = {
+  getNotifications: (params = {}) => apiClient.get('/in-app-notifications', { params }),
+  getUnreadCount: () => apiClient.get('/in-app-notifications/unread-count'),
+  markAsRead: (notificationId) => apiClient.patch(`/in-app-notifications/${notificationId}/read`),
+  markAllAsRead: () => apiClient.patch('/in-app-notifications/mark-all-read'),
+};
 
 export default apiClient;
